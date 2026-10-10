@@ -1,0 +1,41 @@
+# https://editorconfig.org
+# DE-DRMS 缩进与编码约定。请在编辑器中启用 EditorConfig 支持。
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 4
+
+[*.{md,markdown,rst,txt}]
+trim_trailing_whitespace = false
+indent_size = 2
+
+[*.{yml,yaml,json,jsonc,toml,ini,cfg}]
+indent_size = 2
+
+[*.{js,jsx,ts,tsx,css,scss,html,vue}]
+indent_size = 2
+
+[*.{c,h,cpp,hpp,cc,hh}]
+indent_style = space
+indent_size = 4
+
+[*.py]
+indent_size = 4
+max_line_length = 100
+
+[Makefile]
+indent_style = tab
+
+[*.{mk,make}]
+indent_style = tab
+
+[*.{s,S,ld}]
+indent_style = tab
+
+[*.{bat,cmd,ps1}]
+end_of_line = crlf

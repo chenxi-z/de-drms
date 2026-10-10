@@ -1,0 +1,99 @@
+# ---------------------------------------------------------------------------
+# DE-DRMS — 行尾与文件类型约定
+#
+# 目标：仓库内文本统一 LF，检出时不随平台改写，保证跨 Windows/Linux
+# 协作与固件 diff 的稳定性。二进制文件禁止行尾转换与文本 diff。
+# ---------------------------------------------------------------------------
+
+# 默认：按内容自动判定文本，统一使用 LF
+* text=auto eol=lf
+
+# ---------- 明确的文本类型 ----------
+*.md            text eol=lf
+*.markdown      text eol=lf
+*.txt           text eol=lf
+*.rst           text eol=lf
+*.c             text eol=lf
+*.h             text eol=lf
+*.cpp           text eol=lf
+*.hpp           text eol=lf
+*.cc            text eol=lf
+*.hh            text eol=lf
+*.py            text eol=lf
+*.js            text eol=lf
+*.ts            text eol=lf
+*.tsx           text eol=lf
+*.jsx           text eol=lf
+*.json          text eol=lf
+*.yml           text eol=lf
+*.yaml          text eol=lf
+*.toml          text eol=lf
+*.ini           text eol=lf
+*.cfg           text eol=lf
+*.cmake         text eol=lf
+*.xml           text eol=lf
+*.csv           text eol=lf
+*.ld            text eol=lf
+*.s             text eol=lf
+*.S             text eol=lf
+Makefile        text eol=lf
+CMakeLists.txt  text eol=lf
+
+# ---------- Windows 脚本保持 CRLF ----------
+*.bat           text eol=crlf
+*.cmd           text eol=crlf
+*.ps1           text eol=crlf
+
+# ---------- 位图 / 文档 / 压缩包 ----------
+*.png     binary
+*.jpg     binary
+*.jpeg    binary
+*.gif     binary
+*.bmp     binary
+*.ico     binary
+*.webp    binary
+*.pdf     binary
+*.zip     binary
+*.7z      binary
+*.rar     binary
+*.gz      binary
+*.tar     binary
+*.xlsx    binary
+*.xls     binary
+*.docx    binary
+*.doc     binary
+*.pptx    binary
+
+# ---------- 固件与可执行产物 ----------
+*.hex     binary
+*.bin     binary
+*.elf     binary
+*.axf     binary
+*.s19     binary
+*.srec    binary
+*.o       binary
+*.a       binary
+*.lib     binary
+*.so      binary
+*.dll     binary
+*.exe     binary
+*.dylib   binary
+
+# ---------- EDA 原生格式 ----------
+# Altium 的 SchDoc/PcbDoc 为 OLE 复合文档，EasyEDA Pro 的 epro 为容器格式。
+# KiCad 的 .kicad_sch / .kicad_pcb 是文本 S 表达式，交由上面的 text=auto
+# 自动判定，以便保留可读、可 review 的 diff。
+*.SchDoc  binary
+*.PcbDoc  binary
+*.PrjPcb  binary
+*.epro    binary
+
+# ---------- 机械 / 3D 模型 ----------
+*.step    binary
+*.stp     binary
+*.stl     binary
+*.igs     binary
+*.iges    binary
+*.f3d     binary
+*.sldprt  binary
+*.sldasm  binary

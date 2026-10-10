@@ -1,0 +1,196 @@
+# ---------------------------------------------------------------------------
+# DE-DRMS — 双电极直流表面电阻测试仪
+# 仓库级忽略规则：编译产物、EDA/3D 输出、编辑器与操作系统临时文件
+#
+# 原则：只提交源文件与文档。正式发布件（固件 hex/bin、生产记录等）
+# 如确需入库，请在对应目录放置局部 .gitignore 用 "!" 规则放行，
+# 不要为了个别例外放宽本文件。
+# ---------------------------------------------------------------------------
+
+# ---------- 操作系统 ----------
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+*~
+
+# ---------- 编辑器 / IDE ----------
+.vscode/
+.idea/
+*.swp
+*.swo
+*.swn
+*.orig
+*.rej
+.clangd/
+.ccls-cache/
+compile_commands.json
+
+# ---------- 通用构建产物 ----------
+build/
+build-*/
+out/
+output/
+dist/
+bin/
+obj/
+*.o
+*.obj
+*.a
+*.lib
+*.so
+*.so.*
+*.dylib
+*.dll
+*.exe
+*.elf
+*.axf
+*.map
+*.lst
+*.hex
+*.bin
+*.s19
+*.srec
+*.ihex
+
+# ---------- CMake / Make ----------
+CMakeCache.txt
+CMakeFiles/
+cmake-build-*/
+*.make
+*.ninja
+
+# ---------- Keil MDK / ARM ----------
+*.uvguix
+*.uvguix.*
+*.uvoptx
+*.uvprojx.bak
+*.dep
+*.crf
+*.d
+*.lnp
+*.htm
+*.plg
+*.bak
+*.scvd
+JLinkLog.txt
+JLinkSettings.ini
+RTE/
+Objects/
+Listings/
+DebugConfig/
+
+# ---------- IAR EWARM ----------
+*.ewt
+*.ewd
+*.ewp.bak
+settings/
+
+# ---------- PlatformIO ----------
+.pio/
+.pioenvs/
+.piolibdeps/
+
+# ---------- STM32CubeIDE / Eclipse ----------
+.settings/
+.cproject
+.project
+.mxproject
+*.launch
+.metadata/
+
+# ---------- Python（上位机 / 工具脚本） ----------
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+.venv/
+venv/
+env/
+ENV/
+.python-version
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.ipynb_checkpoints/
+
+# ---------- Node / Electron（上位机） ----------
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.eslintcache
+*.tsbuildinfo
+
+# ---------- .NET / C#（上位机备选技术栈） ----------
+.vs/
+*.user
+*.suo
+*.userprefs
+*.nupkg
+packages/
+
+# ---------- Qt ----------
+*.pro.user
+*.pro.user.*
+moc_*.cpp
+moc_*.h
+qrc_*.cpp
+ui_*.h
+*.qmlc
+*.jsc
+
+# ---------- EDA：KiCad ----------
+*.kicad_prl
+*.kicad_pcb-bak
+*-backups/
+*-cache/
+_autosave-*
+fp-info-cache
+*.rpt
+
+# ---------- EDA：Altium ----------
+Project Outputs/
+History/
+__Previews/
+*.SchDocPreview
+*.PcbDocPreview
+*.PrjPcbStructure
+*.Designer
+
+# ---------- EDA：EasyEDA / 嘉立创EDA ----------
+*.easyeda.bak
+*.epro.bak
+EasyEDA/
+JLCEDA/
+
+# ---------- 机械 / 3D ----------
+SolidWorks/
+*.SLDPRT.bak
+*.sldasm.bak
+*.sldprt.bak
+*.step.bak
+*.stp.bak
+*.stl.bak
+*.f3d.bak
+
+# ---------- 日志 / 临时 ----------
+*.log
+logs/
+tmp/
+temp/
+*.tmp
+*.temp
+*.cache
+*.pid
+*.seed
