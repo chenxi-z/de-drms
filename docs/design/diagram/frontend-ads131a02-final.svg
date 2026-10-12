@@ -1,0 +1,124 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 620">
+  <style>
+    text { font-family: 'JetBrains Mono', 'Noto Sans SC', 'PingFang SC', monospace; }
+  </style>
+  <defs>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1e293b" stroke-width="0.5"/>
+    </pattern>
+    <marker id="arr-cyan" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#22d3ee"/>
+    </marker>
+    <marker id="arr-amber" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#fbbf24"/>
+    </marker>
+    <marker id="arr-green" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#34d399"/>
+    </marker>
+  </defs>
+
+  <rect width="100%" height="100%" fill="#0f172a"/>
+  <rect width="100%" height="100%" fill="url(#grid)"/>
+
+  <text x="30" y="40" fill="white" font-size="16" font-weight="700">前端拓扑（定稿）：恒流源 + 跟随器 + ADS131A02 双通道同步实测</text>
+  <text x="30" y="60" fill="#94a3b8" font-size="10">恒流 I 串联流过样品与 Rsense → 两路电压各经跟随器 → ADS131A02 两通道同步采样 → 软件 R = (V_sample/V_Rsense)×Rsense</text>
+
+  <!-- ===== 左侧：恒流激励链 ===== -->
+  <rect x="30" y="85" width="300" height="470" rx="12" fill="none" stroke="#fbbf24" stroke-width="1" stroke-dasharray="8,4"/>
+  <text x="42" y="103" fill="#fbbf24" font-size="10" font-weight="600">恒流激励链</text>
+
+  <!-- 恒流源 -->
+  <rect x="90" y="118" width="180" height="62" rx="6" fill="#0f172a"/>
+  <rect x="90" y="118" width="180" height="62" rx="6" fill="rgba(6,78,59,0.4)" stroke="#34d399" stroke-width="1.5"/>
+  <text x="180" y="142" fill="white" font-size="11" font-weight="600" text-anchor="middle">恒流源 I（恒定）</text>
+  <text x="180" y="158" fill="#94a3b8" font-size="9" text-anchor="middle">OPA333 + BSS138，VSET 分压</text>
+  <text x="180" y="172" fill="#34d399" font-size="8" text-anchor="middle">稳定可靠优先，I 精确恒定</text>
+
+  <line x1="180" y1="180" x2="180" y2="215" stroke="#fbbf24" stroke-width="2" marker-end="url(#arr-amber)"/>
+  <text x="195" y="200" fill="#fbbf24" font-size="8">I</text>
+
+  <!-- R_sample -->
+  <rect x="90" y="220" width="180" height="72" rx="6" fill="#0f172a"/>
+  <rect x="90" y="220" width="180" height="72" rx="6" fill="rgba(8,51,68,0.4)" stroke="#22d3ee" stroke-width="1.5"/>
+  <text x="180" y="246" fill="white" font-size="11" font-weight="600" text-anchor="middle">R_sample</text>
+  <text x="180" y="262" fill="#94a3b8" font-size="9" text-anchor="middle">MWCNTs 10k–120kΩ</text>
+  <text x="180" y="278" fill="#22d3ee" font-size="8" text-anchor="middle">通道 0：测 V_sample</text>
+
+  <line x1="180" y1="292" x2="180" y2="327" stroke="#fbbf24" stroke-width="2" marker-end="url(#arr-amber)"/>
+  <text x="195" y="312" fill="#fbbf24" font-size="8">同一个 I</text>
+
+  <!-- Rsense -->
+  <rect x="90" y="332" width="180" height="72" rx="6" fill="#0f172a"/>
+  <rect x="90" y="332" width="180" height="72" rx="6" fill="rgba(120,53,15,0.3)" stroke="#fbbf24" stroke-width="1.5"/>
+  <text x="180" y="358" fill="white" font-size="11" font-weight="600" text-anchor="middle">Rsense 150 kΩ</text>
+  <text x="180" y="374" fill="#94a3b8" font-size="9" text-anchor="middle">0.1% 精密，低温漂</text>
+  <text x="180" y="390" fill="#fbbf24" font-size="8" text-anchor="middle">通道 1：测 V_Rsense</text>
+
+  <line x1="180" y1="404" x2="180" y2="432" stroke="#fbbf24" stroke-width="2"/>
+  <!-- GND -->
+  <line x1="165" y1="432" x2="195" y2="432" stroke="#fbbf24" stroke-width="2"/>
+  <line x1="170" y1="438" x2="190" y2="438" stroke="#fbbf24" stroke-width="2"/>
+  <line x1="175" y1="444" x2="185" y2="444" stroke="#fbbf24" stroke-width="2"/>
+  <text x="180" y="462" fill="#94a3b8" font-size="8" text-anchor="middle">GND</text>
+
+  <!-- ===== 中间：跟随器 ===== -->
+  <!-- 跟随器 ch0 -->
+  <rect x="380" y="230" width="150" height="56" rx="6" fill="#0f172a"/>
+  <rect x="380" y="230" width="150" height="56" rx="6" fill="rgba(6,78,59,0.3)" stroke="#34d399" stroke-width="1.5"/>
+  <text x="455" y="252" fill="white" font-size="10" font-weight="600" text-anchor="middle">跟随器 CH0</text>
+  <text x="455" y="268" fill="#94a3b8" font-size="8" text-anchor="middle">OPA388/OPA320</text>
+
+  <!-- 跟随器 ch1 -->
+  <rect x="380" y="342" width="150" height="56" rx="6" fill="#0f172a"/>
+  <rect x="380" y="342" width="150" height="56" rx="6" fill="rgba(6,78,59,0.3)" stroke="#34d399" stroke-width="1.5"/>
+  <text x="455" y="364" fill="white" font-size="10" font-weight="600" text-anchor="middle">跟随器 CH1</text>
+  <text x="455" y="380" fill="#94a3b8" font-size="8" text-anchor="middle">OPA388/OPA320</text>
+
+  <!-- R_sample → 跟随器0 -->
+  <line x1="270" y1="256" x2="380" y2="256" stroke="#22d3ee" stroke-width="2" marker-end="url(#arr-cyan)"/>
+  <!-- Rsense → 跟随器1 -->
+  <line x1="270" y1="368" x2="380" y2="368" stroke="#fbbf24" stroke-width="2" marker-end="url(#arr-amber)"/>
+
+  <!-- ===== 右侧：ADC ===== -->
+  <rect x="600" y="85" width="370" height="470" rx="12" fill="none" stroke="#60a5fa" stroke-width="1" stroke-dasharray="8,4"/>
+  <text x="612" y="103" fill="#60a5fa" font-size="10" font-weight="600">ADS131A02（双通道同步采样）</text>
+
+  <rect x="680" y="180" width="220" height="200" rx="8" fill="#0f172a"/>
+  <rect x="680" y="180" width="220" height="200" rx="8" fill="rgba(59,130,246,0.3)" stroke="#60a5fa" stroke-width="1.5"/>
+  <text x="790" y="206" fill="white" font-size="12" font-weight="700" text-anchor="middle">ADS131A02</text>
+  <text x="790" y="222" fill="#94a3b8" font-size="8" text-anchor="middle">24-bit ΣΔ, 128 kSPS</text>
+  <text x="790" y="236" fill="#94a3b8" font-size="8" text-anchor="middle">内部 1.2V 基准 6ppm/℃</text>
+
+  <text x="700" y="270" fill="#22d3ee" font-size="10" font-weight="600">CH0（AIN0/AIN1）</text>
+  <text x="700" y="286" fill="#94a3b8" font-size="8">测 V_sample</text>
+  <text x="700" y="330" fill="#fbbf24" font-size="10" font-weight="600">CH1（AIN2/AIN3）</text>
+  <text x="700" y="346" fill="#94a3b8" font-size="8">测 V_Rsense</text>
+  <text x="700" y="366" fill="#60a5fa" font-size="8">两通道同一时钟沿转换</text>
+
+  <!-- 跟随器0 → CH0 -->
+  <line x1="530" y1="256" x2="640" y2="256" stroke="#22d3ee" stroke-width="2"/>
+  <line x1="640" y1="256" x2="640" y2="262" stroke="#22d3ee" stroke-width="2"/>
+  <line x1="640" y1="262" x2="680" y2="262" stroke="#22d3ee" stroke-width="2" marker-end="url(#arr-cyan)"/>
+  <!-- 跟随器1 → CH1 -->
+  <line x1="530" y1="368" x2="640" y2="368" stroke="#fbbf24" stroke-width="2"/>
+  <line x1="640" y1="368" x2="640" y2="322" stroke="#fbbf24" stroke-width="2"/>
+  <line x1="640" y1="322" x2="680" y2="322" stroke="#fbbf24" stroke-width="2" marker-end="url(#arr-amber)"/>
+
+  <!-- SPI → MCU -->
+  <line x1="790" y1="380" x2="790" y2="440" stroke="#60a5fa" stroke-width="2" marker-end="url(#arr-green)"/>
+  <rect x="700" y="445" width="180" height="50" rx="6" fill="#0f172a"/>
+  <rect x="700" y="445" width="180" height="50" rx="6" fill="rgba(76,29,149,0.4)" stroke="#a78bfa" stroke-width="1.5"/>
+  <text x="790" y="467" fill="white" font-size="10" font-weight="600" text-anchor="middle">MCU（STM32U5）</text>
+  <text x="790" y="483" fill="#94a3b8" font-size="8" text-anchor="middle">SPI 3.3V 直连，软件除法</text>
+
+  <!-- 底部公式 -->
+  <rect x="340" y="510" width="630" height="90" rx="10" fill="#0f172a"/>
+  <rect x="340" y="510" width="630" height="90" rx="10" fill="rgba(6,78,59,0.3)" stroke="#34d399" stroke-width="1.5"/>
+  <text x="655" y="540" fill="white" font-size="13" font-weight="700" text-anchor="middle">R_sample = (V_sample ÷ V_Rsense) × Rsense</text>
+  <text x="655" y="566" fill="#34d399" font-size="10" font-weight="600" text-anchor="middle">两通道同步测 → 恒流 I 与基准误差在除法中抵消</text>
+  <text x="655" y="588" fill="#94a3b8" font-size="8" text-anchor="middle">精度取决于 Rsense（0.1%）与 ADC 线性度；断裂时 V_Rsense→0，软件判开路</text>
+
+  <!-- 图例 -->
+  <text x="612" y="120" fill="#22d3ee" font-size="8">─ 通道 0（样品）</text>
+  <text x="612" y="132" fill="#fbbf24" font-size="8">─ 通道 1（Rsense）</text>
+</svg>
