@@ -108,8 +108,9 @@
   <line x1="790" y1="380" x2="790" y2="440" stroke="#60a5fa" stroke-width="2" marker-end="url(#arr-green)"/>
   <rect x="700" y="445" width="180" height="50" rx="6" fill="#0f172a"/>
   <rect x="700" y="445" width="180" height="50" rx="6" fill="rgba(76,29,149,0.4)" stroke="#a78bfa" stroke-width="1.5"/>
-  <text x="790" y="467" fill="white" font-size="10" font-weight="600" text-anchor="middle">MCU（STM32U5）</text>
-  <text x="790" y="483" fill="#94a3b8" font-size="8" text-anchor="middle">SPI 3.3V 直连，软件除法</text>
+  <text x="790" y="467" fill="white" font-size="10" font-weight="600" text-anchor="middle">MCU（STM32U575RGT6）</text>
+  <text x="790" y="481" fill="#94a3b8" font-size="8" text-anchor="middle">SPI 3.3V 直连，软件除法</text>
+  <text x="790" y="493" fill="#94a3b8" font-size="8" text-anchor="middle">786KB SRAM · USB OTG FS</text>
 
   <!-- 底部公式 -->
   <rect x="340" y="510" width="630" height="90" rx="10" fill="#0f172a"/>
