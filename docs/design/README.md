@@ -34,16 +34,20 @@
 | 环节 | 定稿 | 出处 |
 | --- | --- | --- |
 | 测量拓扑 | **恒流激励 + 双通道同步实测**（恒流测电阻，**不做电桥**） | E.4 |
-| 激励 | **8 µA** 恒流，Rsense = **150 kΩ 0.1%**，运放 OPA333/OPA388 + BSS138 | E.2 |
+| 激励 | **8 µA** 恒流，Rsense = **150 kΩ 0.1%**，运放 OPA333（推荐落定）+ BSS138 | E.2 |
 | 信号电平 | V_sample 80 mV（基线）→ 960 mV（120 kΩ）；V_Rsense = 1.2 V | E.2 |
-| **ADC** | **ADS131A02**：2 通道**同步采样**、24 bit、128 kSPS、内部 1.2 V 基准、3.3 V 数字直连 | E.4 |
+| **ADC** | **ADS131A02**：2 通道**同步采样**、24 bit、128 kSPS、内部 **2.442 V** 基准（2026-10-12 勘误，原文"1.2 V"有误）、3.3 V 数字直连 | E.4 |
 | 前置 | 每通道一颗**跟随器**（OPA388/OPA320），高阻源经跟随器驱动 ADC | E.4 |
 | 保护 | **BAV199** 双二极管钳位（默认）/ 低漏电 ESD 阵列（备选焊盘） | E.4.1 |
-| 自校准 | **0.1% Rsense 打底 + 板上 R_ref 自检**，校准 Rsense+ADC 综合系数 | E.3 |
+| 自校准 | **0.1% Rsense 打底 + 板上 R_ref 自检**（TMUX1101×2 + TMUX1102×2 切换、R_ref 100 kΩ 0.01%），校准 Rsense+ADC 综合系数 | E.3 |
 | **MCU** | **STM32U575RGT6**：M33 160 MHz、1 MB Flash、**786 KB SRAM**、USB OTG FS、LQFP-64 | E.5 |
 | 温度传感 | **TMP117**（I²C，±0.1 ℃） | E.5.2 |
 | 电源 | **1S 锂电（可充电）+ 双 LDO 3.3 V**（数字 / 模拟低噪分离） | E.1 |
-| 通信 | **USB OTG FS**（设备模式） | E.5.3 |
+| 通信 | **USB OTG FS**（设备模式，Type-C，CC×2 下拉 5.1 kΩ） | E.5.3、E.9 |
+| 引脚分配 | **LQFP-64 全表定稿**（SPI1/调试 USART2/I²C1/USB/SWD/控制 GPIO/预留 SPI2） | E.6 |
+| 时钟 | **MCU 免晶振**（MSIS→PLL 160 M；USB 用 HSI48+CRS←SOF）+ **ADC 自挂 16.384 MHz 晶振**；HSE 焊盘预留 | E.7 |
+| 电源域/电池 | BQ24040（OUT=电池节点）+ SGM2210-3.3（数字）/ TPS7A2033（模拟，EN 受控）；监测 VREFINT+PC0；**报警 3.65 V / 停测 3.50 V**；充电 500 mA/1 A（BC1.2 判 DCP 后切） | E.8 |
+| 交互/连接器 | 2 键；档位 LED×4 + 状态 + 充电灯；XH2.54 样品座；Type-C；6P 调试排针；TMP117 外置 4 线探头（连接器用户自选） | E.9 |
 
 **数据流**：1S 锂电 → 双 LDO → OPA333 恒流源（8 µA）→ 样品 / Rsense → 跟随器 →
 ADS131A02（双通道同步）→ STM32U575RGT6（SPI）→ USB → 上位机。
@@ -65,6 +69,7 @@ ADS131A02（双通道同步）→ STM32U575RGT6（SPI）→ USB → 上位机。
 | 文件 | 状态 |
 | --- | --- |
 | [frontend-ads131a02-final.svg](diagram/frontend-ads131a02-final.svg) / [@2x.png](diagram/frontend-ads131a02-final@2x.png) | ✅ **当前有效**：恒流源 + 跟随器 + ADS131A02 双通道同步实测 |
+| [rref-calibration-circuit.svg](diagram/rref-calibration-circuit.svg) / [@2x.png](diagram/rref-calibration-circuit@2x.png) | ✅ **当前有效**：R_ref 自校准切换电路示意（含测量/校准双模式电流路径；如另绘终稿替换同名文件即可） |
 | [ratiometric-divider-final.svg](diagram/ratiometric-divider-final.svg) | ⚠️ **已被取代**：分压激励 + 比例式（此方案经评审否决） |
 | [ratiometric-measurement.svg](diagram/ratiometric-measurement.svg) | ⚠️ **已被取代**：比例为 Rsense 接 REF（该路线因基准电流问题否决） |
 
@@ -74,7 +79,7 @@ ADS131A02（双通道同步）→ STM32U575RGT6（SPI）→ USB → 上位机。
 
 1. **分档阈值**：四级判定对应的 R/R₀ 值——需该批试件的 R/R₀–位移标定曲线。
 2. **温度系数标定**：需实测（论文值仅作参考）。
-3. **R_ref 自校准电路**：方案已定（E.3），切换电路待细化。
+3. ~~R_ref 自校准电路~~ → **已定稿（E.3，2026-10-12）**；原理图前挂起细项（VSET 网络、TS 网络、抗混叠 RC、LED/按键参数、方向性 BOM）见主文档 **E.10**。
 4. **"R₀ 的 1%"适用区间**与量程下限。
 5. **上位机功能范围**（曲线显示、温度补偿、数据导出）。
 6. **单位与命名**：Ω/cm² 与 Ω/sq 的定义待统一；`DE-DRMS` 正式展开未定。
@@ -92,4 +97,6 @@ ADS131A02（双通道同步）→ STM32U575RGT6（SPI）→ USB → 上位机。
 
 关键提交：`e14eb60` 工作区初始化 → `d11a618` V2.0 → `f99fc7a` V2.2（论文参数）→
 `114d920` V3.0 通用信号链 → `049a2da` 附录 D 应用配置 → `a6f34a6`/`6dfd34e` ADC 定稿 →
-`f58241d` MCU 定版 + 数值一致性修正。
+`f58241d` MCU 定版 + 数值一致性修正 → **2026-10-12：E.3 自校准电路细化（TMUX110x）、
+E.6–E.9 引脚/时钟/电源域/交互定稿、E.5.5 销号；三处勘误（内部基准实为 2.442 V、
+"电流沉"改称恒流源、BQ24040 无独立 BAT 脚）；8 µA 电流依据更正为合规电压**。

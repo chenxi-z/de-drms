@@ -80,14 +80,14 @@
   <line x1="270" y1="368" x2="380" y2="368" stroke="#fbbf24" stroke-width="2" marker-end="url(#arr-amber)"/>
 
   <!-- ===== 右侧：ADC ===== -->
-  <rect x="600" y="85" width="370" height="470" rx="12" fill="none" stroke="#60a5fa" stroke-width="1" stroke-dasharray="8,4"/>
+  <rect x="600" y="85" width="370" height="415" rx="12" fill="none" stroke="#60a5fa" stroke-width="1" stroke-dasharray="8,4"/>
   <text x="612" y="103" fill="#60a5fa" font-size="10" font-weight="600">ADS131A02（双通道同步采样）</text>
 
   <rect x="680" y="180" width="220" height="200" rx="8" fill="#0f172a"/>
   <rect x="680" y="180" width="220" height="200" rx="8" fill="rgba(59,130,246,0.3)" stroke="#60a5fa" stroke-width="1.5"/>
   <text x="790" y="206" fill="white" font-size="12" font-weight="700" text-anchor="middle">ADS131A02</text>
   <text x="790" y="222" fill="#94a3b8" font-size="8" text-anchor="middle">24-bit ΣΔ, 128 kSPS</text>
-  <text x="790" y="236" fill="#94a3b8" font-size="8" text-anchor="middle">内部 1.2V 基准 6ppm/℃</text>
+  <text x="790" y="236" fill="#94a3b8" font-size="8" text-anchor="middle">内部 2.442V 基准 6ppm/℃</text>
 
   <text x="700" y="270" fill="#22d3ee" font-size="10" font-weight="600">CH0（AIN0/AIN1）</text>
   <text x="700" y="286" fill="#94a3b8" font-size="8">测 V_sample</text>

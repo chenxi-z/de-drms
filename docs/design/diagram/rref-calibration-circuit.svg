@@ -1,0 +1,377 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1560" height="1060" viewBox="0 0 1560 1060"
+     font-family="'Noto Sans CJK SC','Noto Sans SC','Source Han Sans SC','PingFang SC','Microsoft YaHei',sans-serif">
+<style>
+  .w   { stroke:#374151; stroke-width:2;   fill:none }
+  .wr  { stroke:#374151; stroke-width:2.5; fill:none }
+  .sym { stroke:#374151; stroke-width:1.8; fill:none; stroke-linejoin:round }
+  .p   { stroke:#7c3aed; stroke-width:1.8; fill:none; stroke-dasharray:6,4 }
+  .gw  { stroke:#059669; stroke-width:3.5; fill:none }
+  .ow  { stroke:#ea580c; stroke-width:3.5; fill:none }
+  .gd  { stroke:#9ca3af; stroke-width:2;   fill:none; stroke-dasharray:5,4 }
+</style>
+<defs>
+  <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
+    <path d="M20,0 L0,0 0,20" fill="none" stroke="#eef2f7" stroke-width="1"/>
+  </pattern>
+  <marker id="arrG" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="11" refX="10" refY="4.5" orient="auto">
+    <path d="M0,0 L10,4.5 L0,9 z" fill="#059669"/>
+  </marker>
+  <marker id="arrO" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="11" refX="10" refY="4.5" orient="auto">
+    <path d="M0,0 L10,4.5 L0,9 z" fill="#ea580c"/>
+  </marker>
+</defs>
+
+<rect x="0" y="0" width="1560" height="1060" fill="#ffffff"/>
+<rect x="0" y="0" width="1560" height="1060" fill="url(#grid)"/>
+
+<!-- ================= 标题块 ================= -->
+<text x="40" y="62" font-size="27" font-weight="bold" fill="#0f172a">R<tspan font-size="16" dy="2">ref</tspan><tspan font-size="27" dy="-2"> 自校准电路</tspan></text>
+<text x="40" y="90" font-size="12.5" fill="#64748b">双电极直流电阻测量仪 · 恒流 8 µA 激励 + 双通道同步实测（ADS131A02）· 顶端共用 3.3V_A，只切换电流回线与测量线</text>
+<text x="1520" y="62" font-size="12" fill="#94a3b8" text-anchor="end">附录 E.3 自校准切换电路 · 原理示意</text>
+<text x="1520" y="90" font-size="12" fill="#94a3b8" text-anchor="end">图例与自查要点见图注</text>
+
+<!-- ================= 3.3V_A 模拟轨 与 共用取电点 T ================= -->
+<line x1="90" y1="150" x2="640" y2="150" class="wr"/>
+<line x1="90" y1="150" x2="90" y2="138" class="sym"/>
+<line x1="76" y1="138" x2="104" y2="138" stroke="#374151" stroke-width="2.5" fill="none"/>
+<text x="106" y="143" font-size="12.5" font-weight="bold" fill="#374151">3.3V_A</text>
+<rect x="172" y="128" width="166" height="30" rx="8" fill="none" stroke="#2563eb" stroke-width="1.2" stroke-dasharray="5,4"/>
+<circle cx="180" cy="150" r="4" fill="#111827"/>
+<circle cx="330" cy="150" r="4" fill="#111827"/>
+<circle cx="255" cy="150" r="5" fill="#ffffff" stroke="#111827" stroke-width="2"/>
+<text x="243" y="143" font-size="15" font-weight="bold" fill="#111827" text-anchor="end">T</text>
+<text x="255" y="119" font-size="11" fill="#2563eb" text-anchor="middle">T（3.3V_A 模拟轨上的共用取电点）：样品与 R_ref 顶端永久连接、不经开关</text>
+
+<!-- ================= 支路① 被测样品（板外） ================= -->
+<line x1="180" y1="150" x2="180" y2="190" class="w"/>
+<rect x="152" y="190" width="56" height="55" rx="3" fill="#f8fafc" stroke="#374151" stroke-width="1.6"/>
+<circle cx="180" cy="204" r="4" fill="#ffffff" stroke="#374151" stroke-width="1.6"/>
+<circle cx="180" cy="231" r="4" fill="#ffffff" stroke="#374151" stroke-width="1.6"/>
+<text x="216" y="206" font-size="12" font-weight="bold" fill="#334155">XH2.54-2P</text>
+<text x="216" y="223" font-size="10.5" fill="#94a3b8">面板出板口</text>
+<line x1="180" y1="245" x2="180" y2="272" class="w"/>
+<rect x="105" y="272" width="150" height="78" rx="4" fill="#fffbeb" stroke="#d97706" stroke-width="1.8" stroke-dasharray="7,5"/>
+<text x="180" y="299" font-size="14" font-weight="bold" fill="#92400e" text-anchor="middle">被测样品</text>
+<text x="180" y="321" font-size="12" fill="#92400e" text-anchor="middle">R = 10 ~ 120 kΩ</text>
+<text x="180" y="339" font-size="10" fill="#b45309" text-anchor="middle">（板外器件 · 虚线框）</text>
+<line x1="180" y1="350" x2="180" y2="375" class="w"/>
+
+<!-- ================= 支路② 校准基准 R_ref ================= -->
+<line x1="330" y1="150" x2="330" y2="225" class="w"/>
+<rect x="300" y="225" width="60" height="75" rx="2" fill="#f1f5f9" stroke="#374151" stroke-width="1.8"/>
+<line x1="330" y1="300" x2="330" y2="375" class="w"/>
+<text x="374" y="252" font-size="13" font-weight="bold" fill="#111827">R<tspan font-size="9.5" dy="2">ref</tspan></text>
+<text x="374" y="272" font-size="10.5" fill="#374151">100 kΩ ±0.01%</text>
+<text x="374" y="290" font-size="10" fill="#94a3b8">≤25 ppm/℃</text>
+
+<!-- ================= BAV199 双二极管钳位（接 AVDD / GND） ================= -->
+<line x1="180" y1="363" x2="70" y2="363" class="w"/>
+<circle cx="180" cy="363" r="3.5" fill="#111827"/>
+<line x1="70" y1="363" x2="70" y2="340" class="sym"/>
+<polygon points="62,340 78,340 70,322" fill="none" stroke="#374151" stroke-width="1.6"/>
+<line x1="60" y1="320" x2="80" y2="320" stroke="#374151" stroke-width="2" fill="none"/>
+<line x1="70" y1="320" x2="70" y2="306" class="sym"/>
+<line x1="58" y1="304" x2="82" y2="304" stroke="#374151" stroke-width="2.5" fill="none"/>
+<text x="70" y="295" font-size="10.5" font-weight="bold" fill="#374151" text-anchor="middle">AVDD</text>
+<text x="70" y="283" font-size="9" fill="#94a3b8" text-anchor="middle">(3.3V_A)</text>
+<line x1="70" y1="363" x2="70" y2="385" class="sym"/>
+<line x1="60" y1="385" x2="80" y2="385" stroke="#374151" stroke-width="2" fill="none"/>
+<polygon points="62,405 78,405 70,387" fill="none" stroke="#374151" stroke-width="1.6"/>
+<line x1="70" y1="405" x2="70" y2="425" class="sym"/>
+<line x1="52" y1="425" x2="88" y2="425" stroke="#374151" stroke-width="2.5" fill="none"/>
+<line x1="60" y1="431" x2="80" y2="431" stroke="#374151" stroke-width="2" fill="none"/>
+<line x1="67" y1="437" x2="73" y2="437" stroke="#374151" stroke-width="2" fill="none"/>
+<text x="60" y="452" font-size="10.5" font-weight="bold" fill="#6b7280" text-anchor="middle">BAV199</text>
+<text x="60" y="465" font-size="9.5" fill="#6b7280" text-anchor="middle">双二极管钳位</text>
+<text x="60" y="478" font-size="9" fill="#94a3b8" text-anchor="middle">→ AVDD / GND</text>
+
+<!-- ================= 节点 S / F 与测量线开关 K3 / K4 ================= -->
+<circle cx="180" cy="375" r="4.5" fill="#111827"/>
+<text x="193" y="369" font-size="14" font-weight="bold" fill="#111827">S</text>
+<circle cx="330" cy="375" r="4.5" fill="#111827"/>
+<text x="322" y="366" font-size="14" font-weight="bold" fill="#111827" text-anchor="end">F</text>
+<!-- K3 支路（S → M）：NO 常开 -->
+<line x1="180" y1="375" x2="210" y2="375" class="w"/>
+<line x1="210" y1="375" x2="210" y2="450" class="w"/>
+<line x1="210" y1="450" x2="240" y2="450" class="w"/>
+<circle cx="240" cy="450" r="3.5" fill="#ffffff" stroke="#374151" stroke-width="2"/>
+<circle cx="290" cy="450" r="3.5" fill="#ffffff" stroke="#374151" stroke-width="2"/>
+<line x1="240" y1="450" x2="276" y2="436" class="sym"/>
+<line x1="290" y1="450" x2="322" y2="450" class="w"/>
+<path d="M322,450 Q330,436 338,450" fill="none" stroke="#374151" stroke-width="2"/>
+<line x1="338" y1="450" x2="440" y2="450" class="w"/>
+<line x1="440" y1="450" x2="440" y2="375" class="w"/>
+<!-- K4 支路（F → M）：NC 常闭 -->
+<line x1="330" y1="375" x2="355" y2="375" class="w"/>
+<line x1="355" y1="375" x2="370" y2="375" class="w"/>
+<circle cx="370" cy="375" r="3.5" fill="#ffffff" stroke="#374151" stroke-width="2"/>
+<circle cx="420" cy="375" r="3.5" fill="#ffffff" stroke="#374151" stroke-width="2"/>
+<line x1="370" y1="375" x2="417" y2="374" class="sym"/>
+<line x1="420" y1="375" x2="440" y2="375" class="w"/>
+<circle cx="440" cy="375" r="4.5" fill="#111827"/>
+<text x="451" y="392" font-size="14" font-weight="bold" fill="#111827">M</text>
+<text x="296" y="466" font-size="10.5" font-weight="bold" fill="#7c3aed">K3·NO</text>
+<text x="416" y="357" font-size="10.5" font-weight="bold" fill="#7c3aed" text-anchor="end">K4·NC</text>
+<line x1="258" y1="430" x2="258" y2="443" class="p"/>
+<circle cx="258" cy="443" r="3" fill="#ffffff" stroke="#7c3aed" stroke-width="1.6"/>
+<line x1="393.5" y1="374.5" x2="393.5" y2="430" class="p"/>
+<circle cx="393.5" cy="374.5" r="3" fill="#ffffff" stroke="#7c3aed" stroke-width="1.6"/>
+
+<!-- ================= 电流回线开关 K1（NO）/ K2（NC） ================= -->
+<line x1="180" y1="375" x2="180" y2="455" class="w"/>
+<circle cx="180" cy="455" r="3.5" fill="#ffffff" stroke="#374151" stroke-width="2"/>
+<circle cx="180" cy="505" r="3.5" fill="#ffffff" stroke="#374151" stroke-width="2"/>
+<line x1="180" y1="455" x2="196" y2="500" class="sym"/>
+<line x1="180" y1="505" x2="180" y2="580" class="w"/>
+<line x1="330" y1="375" x2="330" y2="455" class="w"/>
+<circle cx="330" cy="455" r="3.5" fill="#ffffff" stroke="#374151" stroke-width="2"/>
+<circle cx="330" cy="505" r="3.5" fill="#ffffff" stroke="#374151" stroke-width="2"/>
+<line x1="330" y1="455" x2="334" y2="503" class="sym"/>
+<line x1="330" y1="505" x2="330" y2="580" class="w"/>
+<text x="200" y="470" font-size="10.5" font-weight="bold" fill="#7c3aed">K1·NO</text>
+<text x="366" y="492" font-size="10.5" font-weight="bold" fill="#7c3aed">K2·NC</text>
+<line x1="360" y1="478" x2="332" y2="478" class="p"/>
+<circle cx="332" cy="478" r="3" fill="#ffffff" stroke="#7c3aed" stroke-width="1.6"/>
+<circle cx="188" cy="478" r="3" fill="#ffffff" stroke="#7c3aed" stroke-width="1.6"/>
+
+<!-- ================= B 母线 → Rsense → E → 低边恒流源 → GND ================= -->
+<line x1="180" y1="580" x2="520" y2="580" class="wr"/>
+<circle cx="330" cy="580" r="4" fill="#111827"/>
+<circle cx="520" cy="580" r="4.5" fill="#111827"/>
+<text x="532" y="570" font-size="14" font-weight="bold" fill="#111827">B</text>
+<line x1="520" y1="580" x2="520" y2="610" class="w"/>
+<rect x="455" y="610" width="130" height="58" rx="3" fill="#f1f5f9" stroke="#374151" stroke-width="1.8"/>
+<text x="520" y="636" font-size="14" font-weight="bold" fill="#111827" text-anchor="middle">R<tspan font-size="10" dy="2">sense</tspan></text>
+<text x="520" y="656" font-size="11.5" fill="#374151" text-anchor="middle">150 kΩ 0.1%</text>
+<line x1="520" y1="668" x2="520" y2="700" class="w"/>
+<circle cx="520" cy="700" r="4.5" fill="#111827"/>
+<text x="507" y="693" font-size="14" font-weight="bold" fill="#111827" text-anchor="end">E</text>
+<line x1="520" y1="700" x2="520" y2="730" class="w"/>
+<rect x="445" y="730" width="150" height="70" rx="3" fill="#f1f5f9" stroke="#374151" stroke-width="1.8"/>
+<text x="520" y="755" font-size="12.5" font-weight="bold" fill="#111827" text-anchor="middle">低边恒流源 8 µA</text>
+<text x="520" y="773" font-size="11" fill="#374151" text-anchor="middle">OPA388 + BSS138</text>
+<text x="520" y="790" font-size="9.5" fill="#94a3b8" text-anchor="middle">（在地侧，非高边源）</text>
+<line x1="520" y1="800" x2="520" y2="822" class="w"/>
+<line x1="500" y1="822" x2="540" y2="822" stroke="#374151" stroke-width="2.5" fill="none"/>
+<line x1="508" y1="829" x2="532" y2="829" stroke="#374151" stroke-width="2" fill="none"/>
+<line x1="516" y1="836" x2="524" y2="836" stroke="#374151" stroke-width="2" fill="none"/>
+<text x="546" y="830" font-size="10" fill="#6b7280">GND</text>
+
+<!-- ================= 跟随器 ×4（OPA388 单位增益） ================= -->
+<line x1="640" y1="150" x2="640" y2="270" class="w"/>
+<line x1="640" y1="270" x2="705" y2="270" class="w"/>
+<text x="648" y="263" font-size="10.5" fill="#64748b">T</text>
+<line x1="440" y1="375" x2="655" y2="375" class="w"/>
+<line x1="655" y1="375" x2="655" y2="350" class="w"/>
+<line x1="655" y1="350" x2="705" y2="350" class="w"/>
+<text x="648" y="343" font-size="10.5" fill="#64748b">M</text>
+<line x1="520" y1="580" x2="670" y2="580" class="w"/>
+<line x1="670" y1="580" x2="670" y2="430" class="w"/>
+<line x1="670" y1="430" x2="705" y2="430" class="w"/>
+<text x="648" y="423" font-size="10.5" fill="#64748b">B</text>
+<line x1="520" y1="700" x2="685" y2="700" class="w"/>
+<line x1="685" y1="700" x2="685" y2="510" class="w"/>
+<line x1="685" y1="510" x2="705" y2="510" class="w"/>
+<text x="648" y="503" font-size="10.5" fill="#64748b">E</text>
+<polygon points="705,250 705,290 758,270" fill="#ffffff" stroke="#374151" stroke-width="1.8"/>
+<text x="721" y="274" font-size="11" fill="#374151">×1</text>
+<text x="731" y="302" font-size="9" fill="#94a3b8" text-anchor="middle">OPA388</text>
+<line x1="758" y1="270" x2="790" y2="270" class="w"/>
+<polygon points="705,330 705,370 758,350" fill="#ffffff" stroke="#374151" stroke-width="1.8"/>
+<text x="721" y="354" font-size="11" fill="#374151">×1</text>
+<text x="731" y="382" font-size="9" fill="#94a3b8" text-anchor="middle">OPA388</text>
+<line x1="758" y1="350" x2="790" y2="350" class="w"/>
+<polygon points="705,410 705,450 758,430" fill="#ffffff" stroke="#374151" stroke-width="1.8"/>
+<text x="721" y="434" font-size="11" fill="#374151">×1</text>
+<text x="731" y="462" font-size="9" fill="#94a3b8" text-anchor="middle">OPA388</text>
+<line x1="758" y1="430" x2="790" y2="430" class="w"/>
+<polygon points="705,490 705,530 758,510" fill="#ffffff" stroke="#374151" stroke-width="1.8"/>
+<text x="721" y="514" font-size="11" fill="#374151">×1</text>
+<text x="731" y="542" font-size="9" fill="#94a3b8" text-anchor="middle">OPA388</text>
+<line x1="758" y1="510" x2="790" y2="510" class="w"/>
+
+<!-- ================= ADS131A02 ================= -->
+<rect x="790" y="205" width="160" height="410" rx="8" fill="#eff6ff" stroke="#2563eb" stroke-width="2"/>
+<text x="870" y="234" font-size="14.5" font-weight="bold" fill="#1d4ed8" text-anchor="middle">ADS131A02</text>
+<text x="870" y="251" font-size="10.5" fill="#3b82f6" text-anchor="middle">双通道同步 24 bit ΣΔ</text>
+<line x1="802" y1="262" x2="938" y2="262" stroke="#bfdbfe" stroke-width="1"/>
+<text x="802" y="274" font-size="11.5" fill="#1e40af">AIN0P</text>
+<text x="802" y="354" font-size="11.5" fill="#1e40af">AIN0N</text>
+<text x="802" y="434" font-size="11.5" fill="#1e40af">AIN1P</text>
+<text x="802" y="514" font-size="11.5" fill="#1e40af">AIN1N</text>
+<text x="938" y="318" font-size="10.5" fill="#64748b" text-anchor="end">通道 0</text>
+<text x="938" y="478" font-size="10.5" fill="#64748b" text-anchor="end">通道 1</text>
+<line x1="802" y1="540" x2="938" y2="540" stroke="#bfdbfe" stroke-width="1"/>
+<text x="870" y="560" font-size="10.5" fill="#475569" text-anchor="middle">16.384 MHz 晶振</text>
+<text x="870" y="578" font-size="10.5" fill="#475569" text-anchor="middle">SPI → MCU</text>
+<text x="870" y="596" font-size="10.5" fill="#475569" text-anchor="middle">内部基准 2.442 V</text>
+<text x="866" y="634" font-size="10" fill="#64748b" text-anchor="middle">※ 通道 1（R<tspan font-size="8" dy="2">sense</tspan><tspan dy="-2"> 压降）</tspan></text>
+<text x="866" y="650" font-size="10" fill="#64748b" text-anchor="middle">永远在测、不参与切换</text>
+
+<!-- ================= MCU GPIO 控制源 + 两根控制线 ================= -->
+<rect x="40" y="545" width="115" height="115" rx="5" fill="#faf5ff" stroke="#7c3aed" stroke-width="1.6"/>
+<text x="52" y="568" font-size="11.5" font-weight="bold" fill="#6b21a8">MCU GPIO</text>
+<text x="52" y="588" font-size="9" fill="#4b5563">SEL_CURR → K1, K2</text>
+<text x="52" y="605" font-size="9" fill="#4b5563">SEL_SENSE → K3, K4</text>
+<text x="52" y="624" font-size="9" font-weight="bold" fill="#7c3aed">高 = 测量，低 = 校准</text>
+<text x="52" y="641" font-size="8.5" fill="#94a3b8">紫色虚线 = 控制线</text>
+<polyline points="120,545 120,478 188,478" class="p"/>
+<polyline points="160,478 160,650 360,650 360,478" class="p"/>
+<circle cx="160" cy="478" r="3" fill="#7c3aed"/>
+<text x="205" y="644" font-size="9.5" font-weight="bold" fill="#7c3aed">SEL_CURR</text>
+<polyline points="100,660 100,680 430,680 430,430 258,430" class="p"/>
+<circle cx="393.5" cy="430" r="3" fill="#7c3aed"/>
+<text x="240" y="672" font-size="9.5" font-weight="bold" fill="#7c3aed">SEL_SENSE</text>
+
+<!-- ================= 开关真值表 ================= -->
+<rect x="170" y="690" width="260" height="140" rx="5" fill="#faf5ff" stroke="#c4b5fd" stroke-width="1.4"/>
+<text x="182" y="709" font-size="10.5" font-weight="bold" fill="#6b21a8">开关状态真值表（主图按默认态绘制）</text>
+<text x="182" y="728" font-size="8.5" fill="#94a3b8">SEL_CURR</text>
+<text x="234" y="728" font-size="8.5" fill="#94a3b8">SEL_SENSE</text>
+<text x="300" y="728" font-size="8.5" fill="#94a3b8">K1</text>
+<text x="322" y="728" font-size="8.5" fill="#94a3b8">K3</text>
+<text x="344" y="728" font-size="8.5" fill="#94a3b8">K2</text>
+<text x="366" y="728" font-size="8.5" fill="#94a3b8">K4</text>
+<text x="392" y="728" font-size="8.5" fill="#94a3b8">模式</text>
+<text x="182" y="746" font-size="9" fill="#047857">1</text>
+<text x="234" y="746" font-size="9" fill="#047857">1</text>
+<text x="300" y="746" font-size="9" fill="#047857">通</text>
+<text x="322" y="746" font-size="9" fill="#047857">通</text>
+<text x="344" y="746" font-size="9" fill="#9ca3af">断</text>
+<text x="366" y="746" font-size="9" fill="#9ca3af">断</text>
+<text x="392" y="746" font-size="9" font-weight="bold" fill="#047857">测量</text>
+<text x="182" y="764" font-size="9" fill="#c2410c">0</text>
+<text x="234" y="764" font-size="9" fill="#c2410c">0</text>
+<text x="300" y="764" font-size="9" fill="#9ca3af">断</text>
+<text x="322" y="764" font-size="9" fill="#9ca3af">断</text>
+<text x="344" y="764" font-size="9" fill="#c2410c">通</text>
+<text x="366" y="764" font-size="9" fill="#c2410c">通</text>
+<text x="392" y="764" font-size="9" font-weight="bold" fill="#c2410c">校准</text>
+<text x="182" y="786" font-size="8.5" fill="#374151">K1、K3 = TMUX1101（NO 常开）</text>
+<text x="182" y="801" font-size="8.5" fill="#374151">K2、K4 = TMUX1102（NC 常闭）</text>
+<text x="182" y="818" font-size="8.5" font-weight="bold" fill="#7c3aed">高电平 = 测量；低电平 = 校准（一根 SEL 翻转一对）</text>
+
+<!-- ================= 校准系数 k 说明块 ================= -->
+<rect x="690" y="700" width="250" height="120" rx="6" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.5"/>
+<text x="704" y="726" font-size="11.5" font-weight="bold" fill="#334155">校准系数 k（存 MCU Flash）</text>
+<text x="704" y="748" font-size="10" fill="#475569">k = (V<tspan font-size="8" dy="2">ch1</tspan><tspan dy="-2"> / V</tspan><tspan font-size="8" dy="2">ch0</tspan><tspan dy="-2">)</tspan><tspan font-size="8" dy="2">cal</tspan><tspan dy="-2"> × (R</tspan><tspan font-size="8" dy="2">ref</tspan><tspan dy="-2"> / R</tspan><tspan font-size="8" dy="2">sense</tspan><tspan dy="-2">)</tspan></text>
+<text x="704" y="766" font-size="10" fill="#475569">R = k × (V<tspan font-size="8" dy="2">ch0</tspan><tspan dy="-2"> / V</tspan><tspan font-size="8" dy="2">ch1</tspan><tspan dy="-2">) × R</tspan><tspan font-size="8" dy="2">sense</tspan></text>
+<text x="704" y="787" font-size="9.5" fill="#94a3b8">共用同一 Rsense / 跟随器 / ADC</text>
+<text x="704" y="803" font-size="9.5" fill="#94a3b8">→ 长期复用（EEPROM + 温度戳）</text>
+
+<!-- ================= 面板①　测量模式 ================= -->
+<rect x="965" y="110" width="555" height="460" rx="10" fill="#f0fdf4" stroke="#059669" stroke-width="2"/>
+<text x="985" y="142" font-size="15" font-weight="bold" fill="#065f46">① 测量模式（SEL_CURR = 1，SEL_SENSE = 1）</text>
+<text x="985" y="163" font-size="10.5" fill="#047857">K1 ✓ 通（NO 常开）、K3 ✓ 通　|　K2 × 断、K4 × 断</text>
+<line x1="985" y1="172" x2="1500" y2="172" stroke="#bbf7d0" stroke-width="1"/>
+<line x1="990" y1="200" x2="1495" y2="200" class="wr"/>
+<text x="990" y="192" font-size="11" font-weight="bold" fill="#374151">3.3V_A</text>
+<circle cx="1105" cy="200" r="3.5" fill="#059669"/>
+<line x1="1105" y1="200" x2="1105" y2="222" class="gw" marker-end="url(#arrG)"/>
+<rect x="1040" y="222" width="130" height="54" rx="3" fill="#ffffff" stroke="#059669" stroke-width="2"/>
+<text x="1105" y="246" font-size="12.5" font-weight="bold" fill="#111827" text-anchor="middle">被测样品</text>
+<text x="1105" y="265" font-size="10.5" fill="#374151" text-anchor="middle">R = 10 ~ 120 kΩ</text>
+<line x1="1105" y1="276" x2="1105" y2="304" class="gw" marker-end="url(#arrG)"/>
+<rect x="1050" y="304" width="110" height="30" rx="3" fill="#ecfdf5" stroke="#059669" stroke-width="1.5"/>
+<text x="1105" y="324" font-size="11" fill="#047857" text-anchor="middle">K1 通（NO）</text>
+<line x1="1105" y1="334" x2="1105" y2="372" class="gw" marker-end="url(#arrG)"/>
+<line x1="1105" y1="372" x2="1250" y2="372" class="gw"/>
+<circle cx="1250" cy="372" r="4" fill="#059669"/>
+<circle cx="1395" cy="200" r="3.5" fill="#9ca3af"/>
+<line x1="1395" y1="200" x2="1395" y2="222" class="gd"/>
+<rect x="1330" y="222" width="130" height="54" rx="3" fill="#f9fafb" stroke="#9ca3af" stroke-width="1.6" stroke-dasharray="5,4"/>
+<text x="1395" y="246" font-size="12.5" font-weight="bold" fill="#6b7280" text-anchor="middle">R_ref</text>
+<text x="1395" y="265" font-size="10.5" fill="#9ca3af" text-anchor="middle">100 kΩ ±0.01%</text>
+<line x1="1395" y1="276" x2="1395" y2="304" class="gd"/>
+<rect x="1340" y="304" width="110" height="30" rx="3" fill="#f9fafb" stroke="#9ca3af" stroke-width="1.4" stroke-dasharray="5,4"/>
+<text x="1395" y="324" font-size="11" fill="#9ca3af" text-anchor="middle">K2 断（NC）</text>
+<line x1="1395" y1="334" x2="1395" y2="372" class="gd"/>
+<line x1="1395" y1="372" x2="1250" y2="372" class="gd"/>
+<text x="1500" y="418" font-size="9.5" fill="#9ca3af" text-anchor="end">R_ref 支路：断开，无电流（灰显）</text>
+<line x1="1250" y1="372" x2="1250" y2="392" class="gw" marker-end="url(#arrG)"/>
+<rect x="1185" y="392" width="130" height="54" rx="3" fill="#ffffff" stroke="#059669" stroke-width="2"/>
+<text x="1250" y="416" font-size="12.5" font-weight="bold" fill="#111827" text-anchor="middle">Rsense</text>
+<text x="1250" y="435" font-size="10.5" fill="#374151" text-anchor="middle">150 kΩ 0.1%</text>
+<line x1="1250" y1="446" x2="1250" y2="474" class="gw" marker-end="url(#arrG)"/>
+<rect x="1185" y="474" width="130" height="44" rx="3" fill="#ffffff" stroke="#059669" stroke-width="1.6"/>
+<text x="1250" y="495" font-size="11.5" font-weight="bold" fill="#111827" text-anchor="middle">恒流源 8 µA</text>
+<text x="1250" y="510" font-size="9" fill="#6b7280" text-anchor="middle">OPA388 + BSS138</text>
+<line x1="1250" y1="518" x2="1250" y2="538" class="w"/>
+<line x1="1234" y1="538" x2="1266" y2="538" stroke="#374151" stroke-width="2.5" fill="none"/>
+<line x1="1242" y1="545" x2="1258" y2="545" stroke="#374151" stroke-width="2" fill="none"/>
+<line x1="1248" y1="551" x2="1252" y2="551" stroke="#374151" stroke-width="2" fill="none"/>
+<text x="985" y="470" font-size="10.5" fill="#047857">ch0 ← 样品压降（K3 通）</text>
+<text x="985" y="490" font-size="10.5" fill="#047857">ch1 ← Rsense 压降（常测）</text>
+<text x="985" y="548" font-size="14" font-weight="bold" fill="#065f46">R = k × (V<tspan font-size="10" dy="2">ch0</tspan><tspan dy="-2"> / V</tspan><tspan font-size="10" dy="2">ch1</tspan><tspan dy="-2">) × R</tspan><tspan font-size="10" dy="2">sense</tspan></text>
+
+<!-- ================= 面板②　校准模式 ================= -->
+<rect x="965" y="590" width="555" height="460" rx="10" fill="#fff7ed" stroke="#ea580c" stroke-width="2"/>
+<text x="985" y="622" font-size="15" font-weight="bold" fill="#9a3412">② 校准模式（SEL_CURR = 0，SEL_SENSE = 0）</text>
+<text x="985" y="643" font-size="10.5" fill="#c2410c">K2 ✓ 通（NC 常闭）、K4 ✓ 通　|　K1 × 断、K3 × 断</text>
+<line x1="985" y1="652" x2="1500" y2="652" stroke="#fed7aa" stroke-width="1"/>
+<line x1="990" y1="680" x2="1495" y2="680" class="wr"/>
+<text x="990" y="672" font-size="11" font-weight="bold" fill="#374151">3.3V_A</text>
+<circle cx="1105" cy="680" r="3.5" fill="#9ca3af"/>
+<line x1="1105" y1="680" x2="1105" y2="702" class="gd"/>
+<rect x="1040" y="702" width="130" height="54" rx="3" fill="#f9fafb" stroke="#9ca3af" stroke-width="1.6" stroke-dasharray="5,4"/>
+<text x="1105" y="726" font-size="12.5" font-weight="bold" fill="#6b7280" text-anchor="middle">被测样品</text>
+<text x="1105" y="745" font-size="10.5" fill="#9ca3af" text-anchor="middle">零电流（顶端仍接轨）</text>
+<line x1="1105" y1="756" x2="1105" y2="784" class="gd"/>
+<rect x="1050" y="784" width="110" height="30" rx="3" fill="#f9fafb" stroke="#9ca3af" stroke-width="1.4" stroke-dasharray="5,4"/>
+<text x="1105" y="804" font-size="11" fill="#9ca3af" text-anchor="middle">K1 断（NO）</text>
+<line x1="1105" y1="814" x2="1105" y2="852" class="gd"/>
+<line x1="1105" y1="852" x2="1250" y2="852" class="gd"/>
+<text x="1096" y="838" font-size="9.5" fill="#9ca3af" text-anchor="end">回线断开 = 零电流（非短路）</text>
+<circle cx="1395" cy="680" r="3.5" fill="#ea580c"/>
+<line x1="1395" y1="680" x2="1395" y2="702" class="ow" marker-end="url(#arrO)"/>
+<rect x="1330" y="702" width="130" height="54" rx="3" fill="#ffffff" stroke="#ea580c" stroke-width="2"/>
+<text x="1395" y="726" font-size="12.5" font-weight="bold" fill="#111827" text-anchor="middle">R_ref</text>
+<text x="1395" y="745" font-size="10.5" fill="#374151" text-anchor="middle">100 kΩ ±0.01%</text>
+<line x1="1395" y1="756" x2="1395" y2="784" class="ow" marker-end="url(#arrO)"/>
+<rect x="1340" y="784" width="110" height="30" rx="3" fill="#fff7ed" stroke="#ea580c" stroke-width="1.5"/>
+<text x="1395" y="804" font-size="11" fill="#c2410c" text-anchor="middle">K2 通（NC）</text>
+<line x1="1395" y1="814" x2="1395" y2="852" class="ow" marker-end="url(#arrO)"/>
+<line x1="1395" y1="852" x2="1250" y2="852" class="ow"/>
+<circle cx="1250" cy="852" r="4" fill="#ea580c"/>
+<line x1="1250" y1="852" x2="1250" y2="872" class="ow" marker-end="url(#arrO)"/>
+<rect x="1185" y="872" width="130" height="54" rx="3" fill="#ffffff" stroke="#ea580c" stroke-width="2"/>
+<text x="1250" y="896" font-size="12.5" font-weight="bold" fill="#111827" text-anchor="middle">Rsense</text>
+<text x="1250" y="915" font-size="10.5" fill="#374151" text-anchor="middle">150 kΩ 0.1%（同一个）</text>
+<line x1="1250" y1="926" x2="1250" y2="954" class="ow" marker-end="url(#arrO)"/>
+<rect x="1185" y="954" width="130" height="44" rx="3" fill="#ffffff" stroke="#ea580c" stroke-width="1.6"/>
+<text x="1250" y="975" font-size="11.5" font-weight="bold" fill="#111827" text-anchor="middle">恒流源 8 µA</text>
+<text x="1250" y="990" font-size="9" fill="#6b7280" text-anchor="middle">OPA388 + BSS138</text>
+<line x1="1250" y1="998" x2="1250" y2="1012" class="w"/>
+<line x1="1234" y1="1012" x2="1266" y2="1012" stroke="#374151" stroke-width="2.5" fill="none"/>
+<line x1="1242" y1="1019" x2="1258" y2="1019" stroke="#374151" stroke-width="2" fill="none"/>
+<line x1="1248" y1="1025" x2="1252" y2="1025" stroke="#374151" stroke-width="2" fill="none"/>
+<text x="985" y="950" font-size="10.5" fill="#c2410c">ch0 ← R_ref 压降（K4 通）</text>
+<text x="985" y="970" font-size="10.5" fill="#c2410c">ch1 ← Rsense 压降（常测，不切换）</text>
+<text x="985" y="1028" font-size="11.5" font-weight="bold" fill="#9a3412">k = (V<tspan font-size="8.5" dy="2">ch1</tspan><tspan dy="-2"> / V</tspan><tspan font-size="8.5" dy="2">ch0</tspan><tspan dy="-2">)</tspan><tspan font-size="8.5" dy="2">cal</tspan><tspan dy="-2"> × (R</tspan><tspan font-size="8.5" dy="2">ref</tspan><tspan dy="-2"> / R</tspan><tspan font-size="8.5" dy="2">sense</tspan><tspan dy="-2">)</tspan></text>
+<text x="985" y="1046" font-size="10" fill="#c2410c">（存 MCU Flash，带温度戳，供温漂补偿）</text>
+
+<!-- ================= 注释区 A：开关与控制逻辑 ================= -->
+<rect x="40" y="846" width="435" height="112" rx="6" fill="#faf5ff" stroke="#c4b5fd" stroke-width="1.5"/>
+<text x="56" y="869" font-size="12" font-weight="bold" fill="#6b21a8">开关器件与控制逻辑（不得标反）</text>
+<text x="56" y="889" font-size="10" fill="#374151">K1、K3 = TMUX1101（SPST 常开 NO，控制脚高电平导通）</text>
+<text x="56" y="906" font-size="10" fill="#374151">K2、K4 = TMUX1102（SPST 常闭 NC，控制脚低电平导通）</text>
+<text x="56" y="923" font-size="10" fill="#374151">SEL_CURR 同控 K1+K2；SEL_SENSE 同控 K3+K4 —— 一根线翻转一对</text>
+<text x="56" y="940" font-size="10" fill="#374151">高电平 = 测量（走样品）；低电平 = 校准（走 R_ref）</text>
+<text x="56" y="953" font-size="9" fill="#94a3b8">紫色虚线 = MCU GPIO 控制线；主图按默认电平（低）绘制 = K2/K4 通（校准态）</text>
+
+<!-- ================= 注释区 B：自校准的意义 ================= -->
+<rect x="485" y="846" width="455" height="112" rx="6" fill="#f0fdf4" stroke="#86efac" stroke-width="1.5"/>
+<text x="501" y="869" font-size="12" font-weight="bold" fill="#065f46">这就是「自校准」的意义</text>
+<text x="501" y="889" font-size="10" fill="#374151">两种模式共用同一个 Rsense、同一套跟随器、同一对 ADC 通道；</text>
+<text x="501" y="906" font-size="10" fill="#374151">校准的正是「Rsense + ADC 增益」综合系数 k，而不是恒流源电流</text>
+<text x="501" y="923" font-size="10" fill="#374151">（8 µA 只需稳定、不需准确——电流误差在比值中约掉）。</text>
+<text x="501" y="940" font-size="10" fill="#047857">R_ref 顶端与样品顶端永久共接 3.3V_A（T 点，不加开关），</text>
+<text x="501" y="953" font-size="10" fill="#047857">故校准精度不受开关导通电阻影响。</text>
+
+<!-- ================= 注释区 C：图注与自查要点 ================= -->
+<rect x="40" y="968" width="900" height="82" rx="6" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.5"/>
+<text x="56" y="989" font-size="11.5" font-weight="bold" fill="#334155">图注与自查要点</text>
+<text x="56" y="1009" font-size="10" fill="#4b5563">① 顶端 T 为轨上共用取电点：样品与 R_ref 顶端之间没有开关；② 恒流源在低边（地侧），不是从电源轨灌电流的高边源；③ 校准时样品回线断开 → 零电流</text>
+<text x="56" y="1026" font-size="10" fill="#4b5563">（不是被短路，顶端仍接 3.3V_A）；④ 通道 1（Rsense 压降）永远在线、不参与切换；⑤ T→AIN0P 必经单位增益跟随器，不是直连电源轨；⑥ 虚线框 = 板外器件</text>
+<text x="56" y="1043" font-size="10" fill="#4b5563">⑦ 信号交叉处画小跳线 = 跨越不连接（紫色控制线以颜色区分）。图例：深灰 = 导线；绿 = 测量；橙 = 校准；紫虚线 = 控制；灰虚线 = 未选中支路</text>
+</svg>
