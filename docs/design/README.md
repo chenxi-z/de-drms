@@ -70,10 +70,14 @@ ADS131A02（双通道同步）→ STM32U575RGT6（SPI）→ USB → 上位机。
 | --- | --- |
 | [frontend-ads131a02-final.svg](diagram/frontend-ads131a02-final.svg) / [@2x.png](diagram/frontend-ads131a02-final@2x.png) | ✅ **当前有效**：恒流源 + 跟随器 + ADS131A02 双通道同步实测 |
 | [rref-calibration-circuit.svg](diagram/rref-calibration-circuit.svg) / [@2x.png](diagram/rref-calibration-circuit@2x.png) | ✅ **当前有效**：R_ref 自校准切换电路示意（含测量/校准双模式电流路径；如另绘终稿替换同名文件即可） |
-| [ratiometric-divider-final.svg](diagram/ratiometric-divider-final.svg) | ⚠️ **已被取代**：分压激励 + 比例式（此方案经评审否决） |
-| [ratiometric-measurement.svg](diagram/ratiometric-measurement.svg) | ⚠️ **已被取代**：比例为 Rsense 接 REF（该路线因基准电流问题否决） |
 
-（历史图保留作决策过程参考，实现时请勿使用。）
+被否方案的两张旧图（`ratiometric-measurement`、`ratiometric-divider-final`——分压激励 + 比例式路线）
+已按「仓库只留当前有效图」原则于 2026-10-12 移除；决策过程保留在 git 历史与
+[adc-selection/README.md](adc-selection/README.md)，需要时取回：
+
+```
+git show e23f257:docs/design/diagram/ratiometric-measurement.svg
+```
 
 ## 6 未决事项
 
@@ -89,7 +93,7 @@ ADS131A02（双通道同步）→ STM32U575RGT6（SPI）→ USB → 上位机。
 
 | 资料 | 位置 |
 | --- | --- |
-| TI 24 bit ADC 参数筛选表（34 颗，用户导出） | [adc-selection/ADCs-parametrics-20261012.xlsx](adc-selection/ADCs-parametrics-20261012.xlsx) |
+| TI 24 bit ADC 参数筛选表（34 颗，用户导出） | Obsidian 库 `20-硬件工程/10-项目设计/DE-DRMS-ADC参数筛选-20261012.xlsx`（2026-10-12 由本仓库移入） |
 | 器件数据手册（ADS131A02、ADS131M02、ADS127L11/L14、AD7124、AD779x、ADS1220/1235/124S08/1262、STM32U545/U575 等） | Obsidian 库 `20-硬件工程/datasheets/`（由专门会话管理，本仓库不重复存放） |
 | 论文（MWCNTs 双固化修复材料，参数依据） | 用户提供；本仓库不存放 |
 

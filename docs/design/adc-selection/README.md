@@ -103,5 +103,6 @@ ADS1220(太慢) → ADS124S08(多通道复用/4kSPS) → AD7175-2(排除)
 
 ## 7 TI 参数筛选表存档
 
-用户 2026-10-12 从 TI 官网参数筛选器导出的 34 颗 24bit ΣΔ ADC 对比表，
-原始文件：`docs/design/adc-selection/ADCs-parametrics-20261012.xlsx`（见本目录）。
+用户 2026-10-12 从 TI 官网参数筛选器导出的 34 颗 24bit ΣΔ ADC 对比表。
+原始文件已移入 Obsidian 库：`20-硬件工程/10-项目设计/DE-DRMS-ADC参数筛选-20261012.xlsx`
+（2026-10-12 由 `docs/design/adc-selection/` 移入，本仓库不重复存放外部资料）。
