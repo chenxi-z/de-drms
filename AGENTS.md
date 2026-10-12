@@ -60,7 +60,7 @@
 | 前端 | **4 颗跟随器 OPA388**（每条 ADC 输入线一颗）；保护 BAV199（默认）/ 低漏电 ESD 阵列（备选焊盘） |
 | 自校准 | 0.1% Rsense 打底 + 板上 R_ref（100 kΩ 0.01%）自检，TMUX1101×2+TMUX1102×2 切换（切换电路已画：`docs/design/diagram/rref-calibration-circuit.svg`，方案见 E.3） |
 | MCU | STM32U575RGT6（M33 160 MHz、1 MB Flash、786 KB SRAM、USB OTG FS、LQFP-64） |
-| 温度/电源/通信 | TMP117 外置 4 线探头；1S 锂电 + BQ24040 + 双 LDO（**两轨均 TPS7A2033**）；USB OTG FS（Type-C） |
+| 温度/电源/通信 | TMP117 外置 4 线探头；1S 锂电 + BQ24040 + 双 LDO（**数字 TPS7A0233 常开 / 模拟 TPS7A2033 EN 受控**）；USB OTG FS（Type-C） |
 | 引脚/时钟/电源域/交互 | 已全部定稿（主文档 E.6–E.9）；E.5.5 三项待办已销号 |
 
 ## 硬约束（改任何参数都要复核）

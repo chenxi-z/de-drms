@@ -33,7 +33,7 @@
 - 自校准：0.1% Rsense 打底 + 板上 R_ref（100 kΩ 0.01%）自检，**TMUX1101×2+TMUX1102×2 切换**（电路见 E.3 + diagram/rref-calibration-circuit）
 - MCU：**STM32U575RGT6**（M33 160 MHz、1 MB Flash、**786 KB SRAM**、USB OTG FS、LQFP-64）
 - 温度：TMP117 外置 4 线探头（连接器用户自选）；通信：USB OTG FS（Type-C）
-- 电源：1S 锂电 103450 + **BQ24040**（OUT=电池节点）+ 双 LDO（**两轨均 TPS7A2033**，6.5 µA / 7 µVrms）
+- 电源：1S 锂电 103450 + **BQ24040**（OUT=电池节点）+ 双 LDO（**数字 TPS7A0233 25 nA 常开 / 模拟 TPS7A2033 6.5 µA、7 µVrms EN 受控**）
 - 引脚/时钟/电源域/交互/连接器已全部定稿（主文档 **E.6–E.9**）；E.5.5 三项待办已销号
 - 电池管理：**报警 3.65 V / 停测软关机 3.50 V**（仅电池供电态生效）；充电 500 mA 默认、BC1.2 判 DCP 切 1 A
 
