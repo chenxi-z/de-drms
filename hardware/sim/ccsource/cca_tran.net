@@ -1,0 +1,19 @@
+* DE-DRMS Variant A — CURR_DIS disable/enable transient (linear opamp macro, gear)
+.inc models.inc
+V1 ta 0 3.3
+Rsample ta sn 10k
+Rk1 sn b 2
+Vsm b dd 0
+M1 dd g e e nmosb
+Rs e 0 150k
+R1 vset ta 360k
+R2 vset 0 200k
+Cf vset 0 1n
+M2 vset xd 0 0 nmosb
+Rg xd 0 1meg
+Vdis xd 0 PULSE(0 3.3 3m 1u 1u 5m 10m)
+Cg g 0 1n
+Xop vset e ta 0 g opa333t
+.tran 0 12m 20u
+.options method=gear
+.end
