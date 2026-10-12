@@ -72,12 +72,8 @@ ADS131A02（双通道同步）→ STM32U575RGT6（SPI）→ USB → 上位机。
 | [rref-calibration-circuit.svg](diagram/rref-calibration-circuit.svg) / [@2x.png](diagram/rref-calibration-circuit@2x.png) | ✅ **当前有效**：R_ref 自校准切换电路示意（含测量/校准双模式电流路径；如另绘终稿替换同名文件即可） |
 
 被否方案的两张旧图（`ratiometric-measurement`、`ratiometric-divider-final`——分压激励 + 比例式路线）
-已按「仓库只留当前有效图」原则于 2026-10-12 移除；决策过程保留在 git 历史与
-[adc-selection/README.md](adc-selection/README.md)，需要时取回：
-
-```
-git show e23f257:docs/design/diagram/ratiometric-measurement.svg
-```
+已于 2026-10-12 移除，并随仓库瘦身**从 git 历史中一并清除**（历史已改写，旧 SHA 作废）；
+被否方案的文字判定依据见 [adc-selection/README.md](adc-selection/README.md) 与本文件 §4。
 
 ## 6 未决事项
 
@@ -100,7 +96,14 @@ git show e23f257:docs/design/diagram/ratiometric-measurement.svg
 ## 8 变更记录（本仓库 git）
 
 关键提交：`e14eb60` 工作区初始化 → `d11a618` V2.0 → `f99fc7a` V2.2（论文参数）→
-`114d920` V3.0 通用信号链 → `049a2da` 附录 D 应用配置 → `a6f34a6`/`6dfd34e` ADC 定稿 →
-`f58241d` MCU 定版 + 数值一致性修正 → **2026-10-12：E.3 自校准电路细化（TMUX110x）、
+`114d920` V3.0 通用信号链 → `049a2da` 附录 D 应用配置 → `a6f34a6`/`84e5a3f` ADC 定稿 →
+`ff6ecb7` MCU 定版 + 数值一致性修正 → `6c8e847` **2026-10-12：E.3 自校准电路细化（TMUX110x）、
 E.6–E.9 引脚/时钟/电源域/交互定稿、E.5.5 销号；三处勘误（内部基准实为 2.442 V、
-"电流沉"改称恒流源、BQ24040 无独立 BAT 脚）；8 µA 电流依据更正为合规电压**。
+"电流沉"改称恒流源、BQ24040 无独立 BAT 脚）；8 µA 电流依据更正为合规电压** →
+`05d6688` 图内运放正名 OPA333、`b872b2a` AGENTS.md 目录清单与「新文件先问」纪律、
+`1393bc3` 参数筛选表移入 Obsidian + 移除被否旧图 →
+**2026-10-12 仓库瘦身（历史改写）**：移除 `adc_ds/` 手册副本、伪 PDF `ad779x.pdf`、
+厂商参数表 xlsx、两张被否旧图，并加 `.githooks/pre-commit` 守卫；`.git` 16 MB → 2 MB。
+
+> ⚠️ **全部提交 SHA 已因上述改写而变更**：本节及外部文档中更早的 SHA 引用一律作废，
+> 需要历史时请用提交信息检索（`git log --oneline --grep=...`）。

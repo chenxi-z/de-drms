@@ -194,3 +194,23 @@ temp/
 *.cache
 *.pid
 *.seed
+
+# ---------- 外部资料：一律不入库（放 Obsidian 库 20-硬件工程/） ----------
+# 见 AGENTS.md「工作约定」与 .githooks/pre-commit；确需入库用 git add -f
+# 例外：docs/design/diagram/*@2x.png（示意图预览，经确认保留，勿在此忽略）
+*.pdf
+*.PDF
+*.xlsx
+*.xls
+*.xlsm
+*.docx
+*.doc
+*.pptx
+*.ppt
+*.zip
+*.7z
+*.rar
+*.tar
+*.gz
+*.tgz
+adc_ds/

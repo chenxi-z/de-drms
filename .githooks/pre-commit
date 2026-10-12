@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+# DE-DRMS 预提交守卫 —— 外部资料与大文件不得入 git
+#
+# 规则来源：AGENTS.md「工作约定」/ README.md「开发约定」
+# 启用（每个克隆各自执行一次）：git config core.hooksPath .githooks
+# 例外：docs/design/diagram/*@2x.png（示意图预览，用户确认保留）
+# 绕过：git commit --no-verify（须在提交信息里写明理由）
+#
+# 拒绝对象：
+#   1) 器件手册 / 论文 / 厂商导出件（pdf、Office、压缩包）→ 应放 Obsidian 库 20-硬件工程/
+#   2) 单个文件 > 1 MiB（图预览例外）
+
+MAX_KB=1024
+bad=""
+
+add_bad() { bad="${bad}"$'\n'"  $1"; }
+
+while IFS= read -r -d '' f; do
+  [ -z "$f" ] && continue
+  case "$f" in
+    docs/design/diagram/*@2x.png) continue ;;   # 图预览例外
+  esac
+  case "$f" in
+    *.pdf|*.PDF|*.xlsx|*.xls|*.xlsm|*.docx|*.doc|*.pptx|*.ppt|*.zip|*.7z|*.rar|*.tar|*.gz|*.tgz)
+      add_bad "[外部资料] $f" ;;
+  esac
+  if [ -f "$f" ]; then
+    kb=$(( ( $(wc -c < "$f") + 1023 ) / 1024 ))
+    if [ "$kb" -gt "$MAX_KB" ]; then
+      add_bad "[大文件 ${kb}KB > ${MAX_KB}KB] $f"
+    fi
+  fi
+done < <(git diff --cached --name-only --diff-filter=AM -z)
+
+if [ -n "$bad" ]; then
+  {
+    echo "✖ 提交被拒绝：以下文件不该进 git"
+    printf '%s\n' "$bad"
+    echo
+    echo "  器件手册 / 论文 / 厂商导出件 → 放 Obsidian 库（20-硬件工程/）"
+    echo "  确需入库：git commit --no-verify，并在提交信息里写明理由"
+  } >&2
+  exit 1
+fi
+
+exit 0
