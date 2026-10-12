@@ -552,21 +552,26 @@ connected"），系统负载与电池**并联**挂 OUT，电池供电时中间�
 
 ```
 Type-C VBUS 5V ──IN── BQ24040（WSON-10 2×2，立创 C81080，库存 13 万，$0.26@100）
-                        └─ OUT（=电池节点）──┬─ SGM2210-3.3 ── 3.3V_D（数字域，常开）
+                        └─ OUT（=电池节点）──┬─ TPS7A2033 ── 3.3V_D（数字域，常开）
 1S 电芯 103450（带保护板，XH 连接） ─────────┘  └─ TPS7A2033 ── 3.3V_A（模拟域，EN=ANA_EN 受控）
 ```
 
 ### E.8.2 LDO 选型与压降（手册核实）
 
-| 域 | 器件 | 规格 | 负载 | 预算 |
-| --- | --- | --- | --- | --- |
-| 3.3V_D | **SGM2210-3.3** | 300 mA、压差 typ 240 / max 280 mV @300 mA（全温 max 380 mV）、48 µVrms、VIN 2.5–20 V、EN VIH≤1.3 V | MCU 13.5 mA typ@160 MHz、ADS131A02 IOVDD 0.6 mA、TMP117、LED 峰值 ~20–30 mA | <50 mA |
-| 3.3V_A | **TPS7A2033PDBVR** | 300 mA、7 µVrms、IQ 6.5 µA、压差 max 145 mV @300 mA、VIN 1.6–6.0 V、UVLO max 1.59 V | ADS131A02 AVDD 3.2 mA typ、OPA388×4 + OPA333、TMUX×4、VSET 分压 | <15 mA |
+| 域 | 器件 | **Iq** | 规格（手册核实） | 负载 | 预算 |
+| --- | --- | --- | --- | --- | --- |
+| 3.3V_D | **TPS7A2033PDBVR** | **6.5 µA** | 300 mA、7 µVrms、PSRR 95 dB@1 kHz、压差 max 145 mV@300 mA（→50 mA 时 ≈24 mV）、输出精度 ±1.5% max、VIN 1.6–6.0 V、EN + smart pulldown、SOT-23-5、1 µF 稳定 | MCU 13.5 mA typ@160 MHz、ADS131A02 IOVDD 0.6 mA、TMP117、LED 峰值 ~20–30 mA | <50 mA |
+| 3.3V_A | **TPS7A2033PDBVR** | **6.5 µA** | 同上（EN = ANA_EN 受控） | ADS131A02 AVDD 3.2 mA typ、OPA388×4 + OPA333、TMUX×4、VSET 分压 | <15 mA |
 
-压降按**Rds(on) 上界换算**（非手册直接保证值，量产前用板上监测实测标定）：
-SGM2210 Rds ≤1.27 Ω（380 mV@300 mA 反推）→ 50 mA 时 ≤63 mV；TPS7A20 Rds ≤0.48 Ω → 15 mA 时 ≤7 mV。
-备选（不入选 BOM）：TPS7A8033（1 A 过剩、噪声反高）、TPS7A3901（±双路，无负轨需求）；
-TPS7A2050 为 5.0 V 版本，电压不符。
+压降按**Rds(on) 上界换算**（0.48 Ω = 145 mV/300 mA 反推；非手册直接保证值，量产前用板上监测实测标定）：
+TPS7A2033 → 50 mA 时 ≈24 mV、15 mA 时 ≈7 mV。电池截止 3.50 V 下允许 200 mV，**裕量充足**；充电时 OUT 最高 4.23 V，裕量更大。
+
+**2026-10-13 决策：两轨统一 TPS7A2033**（原 3.3V_D 用 SGM2210-3.3）。依据（手册对比）：SGM2210 的
+**Iq 36 µA（typ）** 是**常开数字轨**上最大单项耗电（> MCU Stop3 目标 14.5 µA），换 TPS7A2033 省 **~30 µA 常态**，
+兼得 7 µVrms / ±1.5% / 更好瞬态，并把 **LDO 料号由 2 个减为 1 个**。
+落选备选（记录，手册已核）：**TPS7A0233**（Iq 25 nA 最省，但压差 270 mV max@200 mA、噪声 ≈270 µVrms、瞬态较慢）；
+**TLV755P**（500 mA、Iq 25 µA、压差 238 mV@500 mA）；SGM2210（20 V VIN 余量对本设计无用）；
+TPS7A8033（1 A 过剩、噪声反高）、TPS7A3901（±双路，无负轨需求）、TPS7A2050（5.0 V 版本，电压不符）。
 
 **域划分**：ADS131A02 AVDD→3.3V_A、IOVDD→3.3V_D；TMUX110x VDD→3.3V_A（SEL 由 3.3V_D 驱动，
 Fail-Safe 逻辑容忍）；OPA/VSET→3.3V_A；MCU 全部电源脚、LED、TMP117→3.3V_D。

@@ -46,7 +46,7 @@
 | 通信 | **USB OTG FS**（设备模式，Type-C，CC×2 下拉 5.1 kΩ） | E.5.3、E.9 |
 | 引脚分配 | **LQFP-64 全表定稿**（SPI1/调试 USART2/I²C1/USB/SWD/控制 GPIO/预留 SPI2） | E.6 |
 | 时钟 | **MCU 免晶振**（MSIS→PLL 160 M；USB 用 HSI48+CRS←SOF）+ **ADC 自挂 16.384 MHz 晶振**；HSE 焊盘预留 | E.7 |
-| 电源域/电池 | BQ24040（OUT=电池节点）+ SGM2210-3.3（数字）/ TPS7A2033（模拟，EN 受控）；监测 VREFINT+PC0；**报警 3.65 V / 停测 3.50 V**；充电 500 mA/1 A（BC1.2 判 DCP 后切） | E.8 |
+| 电源域/电池 | BQ24040（OUT=电池节点）+ **双 LDO 两轨均 TPS7A2033**（数字常开 / 模拟 EN 受控）；监测 VREFINT+PC0；**报警 3.65 V / 停测 3.50 V**；充电 500 mA/1 A（BC1.2 判 DCP 后切） | E.8 |
 | 交互/连接器 | 2 键；档位 LED×4 + 状态 + 充电灯；XH2.54 样品座；Type-C；6P 调试排针；TMP117 外置 4 线探头（连接器用户自选） | E.9 |
 
 **数据流**：1S 锂电 → 双 LDO → OPA333 恒流源（8 µA）→ 样品 / Rsense → 跟随器 →
