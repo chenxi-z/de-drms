@@ -13,17 +13,42 @@
    **两者冲突时以附录 E 为准**；更早版本文档（V1.0~V2.2）仅是决策历史，不得据此实现。
 3. `docs/design/HANDOFF.md` — 新会话交接提示词（设计线 + Obsidian 归档线）
 
-## 仓库结构
+## 仓库结构（顶层实测清单）
 
-目录职责全表见根 `README.md`。要点：
+> 职责全表见根 `README.md` §仓库结构；本节是**给 agent 的一眼索引**（含当前状态）。
+> 快照日期 2026-10-12，文件数会增长，**以 `git ls-files` 为准**。
+> **纪律：工作区出现新目录/新文件时，先问用户再写进本节**——不要自行猜测职责，
+> 也不要把未确认的东西当既成事实引用（本节只登记已核对过的内容）。
 
-- `docs/design/` — 权威设计文档与选型记录（adc-selection/、mcu-selection/、diagram/）
-- `adc_ds/` — 选型期间候选 ADC 数据手册（PDF + txt 提取，已入库）；
-  完整器件手册库在 Obsidian `20-硬件工程/datasheets/`（另一会话管理，勿在本仓库重复存放）
-- `shared/protocol/`（机器可读）与 `docs/protocol/`（人读）是协议的单一事实来源，
-  **改协议必须成对更新、同一提交**
-- `tools/` — 仅 `svg_schematic_check.py`（示意图交付前体检，见文末规范）
-- 其余目录（host/firmware/hardware/…）目前为空
+### 顶层文件
+
+| 文件 | 作用 |
+| --- | --- |
+| `README.md` | 工作区总说明：产品定位、**目录职责全表**、开发约定、未决事项 |
+| `AGENTS.md` | 本文件：agent 工作规约（必读文档 / 硬约束 / 被否方案 / 示意图规范） |
+| `.gitattributes` | 文本统一 LF（Windows 批处理保留 CRLF） |
+| `.editorconfig` | 缩进与编码约定 |
+| `.gitignore` | 忽略规则（固件产物、EDA 输出、编译目录、`__pycache__/` 等） |
+
+### 顶层目录
+
+| 目录 | 职责 | 现状（实测） |
+| --- | --- | --- |
+| `docs/` | 文档中心 | **有效**：`design/`（权威设计文档 + 选型记录 + 图）；`protocol/`、`spec/`、`user_manual/` 仅 `.gitkeep` |
+| `adc_ds/` | 选型期候选 ADC 手册（PDF + txt 提取） | **有效**：6 组共 12 文件（ad7124 / ad779x / ads1220 / ads1235 / ads124s08 / ads1262） |
+| `tools/` | 研发辅助脚本 | **有效**：`svg_schematic_check.py`（示意图交付前体检，见文末规范） |
+| `shared/protocol/` | 上下位机协议的**机器可读**权威定义 | 空占位（`.gitkeep`） |
+| `firmware/` `host/` `hardware/` `mechanical/` | 下位机 / 上位机 / 硬件 / 结构 | 空占位（仅 `.gitkeep`） |
+| `calibration/` `test/` `production/` | 校准 / 测试 / 生产 | 空占位（仅 `.gitkeep`） |
+
+### 要点（沿用既有约定）
+
+- `docs/design/` 是设计与选型的**权威来源**（入口 `docs/design/README.md`）；
+  `shared/protocol/`（机器可读）与 `docs/protocol/`（人读）是协议的单一事实来源，
+  **改协议必须成对更新、同一提交**。
+- 完整器件手册库在 Obsidian `20-硬件工程/datasheets/`（另一会话管理），
+  **本仓库不重复存放**；`adc_ds/` 只留选型期候选。
+- 空目录一律以 `.gitkeep` 占位；新增目录沿用同一约定。
 
 ## 已定稿硬件决策（无新依据不要推翻）
 
@@ -66,6 +91,9 @@
 - 远端 `git@gitee.com:chenxi666/de-drms.git`（SSH 已配好）；提交后推送并核对远端 SHA
 - 提交用 Conventional Commits；文档中文、代码标识符英文；文本 LF（`.gitattributes` 固定）
 - 只提交源文件与文档；固件产物、EDA 输出、编译目录不入库；空目录用 `.gitkeep` 占位
+- **工作区出现新目录/新文件时一律先问用户**：不要自行猜测用途、不要擅自写进本文件的目录清单，
+  也不要把未确认的东西当既成事实引用或删除。发现异常文件先报告再处置
+  （实例：根目录 `ad779x.pdf` 名不副实、实为下载失败的 HTML，2026-10-12 问过用户后移除）
 - **规格必须查数据手册核实，不要凭记忆**——此前曾把 STM32U545 RAM 误报为 160 KB
   （实际 274 KB），也曾误判 ADS127L11 可做比例式（被基准输入电流否决）
 - 建议的下一步顺序：清理 E.10 挂起项（VSET 网络、TS 网络、抗混叠 RC、方向性 BOM）→
