@@ -4,10 +4,10 @@
 
 ## 结论
 
-**定稿接法（变体 A）**：运放同相端 = VSET，反相端 = BSS138 源极（E），Rsense 自源极到地，
-BSS138 漏极（B）接负载回线。I = VSET/Rsense，与 R_sample 无关。
+**定稿接法（变体 A）**：运放同相端 = VSET，反相端 = BSS138 源极（B），Rsense 自源极到地（E = GND），
+BSS138 漏极（X 节点）接负载回线。I = VSET/Rsense，与 R_sample 无关。
 
-| R_sample | I（推导自 V_sample/R） | V(e)=V_Rsense | V_sample | V_DS 裕量 | V_G |
+| R_sample | I（推导自 V_sample/R） | V(b)=V_Rsense | V_sample | V_DS 裕量 | V_G |
 | --- | --- | --- | --- | --- | --- |
 | 10 kΩ | 7.857 µA | 1.17857 V | 78.57 mV | 2.043 V | 2.710 V |
 | 20 kΩ | 7.857 µA | 1.17857 V | 157.14 mV | 1.964 V | 2.711 V |
@@ -16,8 +16,8 @@ BSS138 漏极（B）接负载回线。I = VSET/Rsense，与 R_sample 无关。
 
 （Rsense 与 Rsample 两路电流互推一致 <0.001%；VSET = 3.3×200k/560k = 1.178571 V，与 E.2.1 一致。）
 
-**证伪接法（变体 B，原 E.3.1/rref 图字面链：Rsense 在漏极路径、E 经调整管到地）**：
-环路为**正反馈**——V(e) 随栅压升高而降低，仿真显示其锁死在零电流态（调整管关断、V(e) 顶到 3.3 V），
+**证伪接法（变体 B，原 E.3.1/rref 图字面链：Rsense 在漏极路径、B 经调整管到地）**：
+环路为**正反馈**——V(b) 随栅压升高而降低，仿真显示其锁死在零电流态（调整管关断、V(b) 顶到 3.3 V），
 不能恒流。理论平衡点 I = (V_T−VSET)/(R_sample+Rsense) 随 R 变 13.2→7.8 µA，且该点不稳定。
 
 **CURR_DIS 暂态**（3 ms 拉高关断 / 8 ms 释放使能，R_sample = 10 kΩ）：

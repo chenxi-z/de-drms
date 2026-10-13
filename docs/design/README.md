@@ -37,9 +37,9 @@
 | 激励 | **8 µA** 恒流，Rsense = **150 kΩ 0.1%**，运放 **OPA333**（2026-10-13 落定）+ BSS138；VSET 360 kΩ/200 kΩ 分压，`CURR_DIS` 关断 | E.2、E.2.1 |
 | 信号电平 | V_sample 80 mV（基线）→ 960 mV（120 kΩ）；V_Rsense = 1.2 V | E.2 |
 | **ADC** | **ADS131A02**：2 通道**同步采样**、24 bit、128 kSPS、内部 **2.442 V** 基准（2026-10-12 勘误，原文"1.2 V"有误）、3.3 V 数字直连 | E.4 |
-| 前置 | **每条 ADC 输入线一颗跟随器，共 4 颗 OPA388**（2026-10-12 细化；原文"每通道一颗"指代不清），高阻源经跟随器驱动 ADC | E.4 |
+| 前置 | **3 颗跟随器 OPA388**（T、M、B 三线；AIN1N 直接经 RC 接 Rsense 底端）；T 点经 R_top 10 kΩ / R_b 150 kΩ 偏置，全角落距电源轨 ≥0.199 V（2026-10-13，销 E.10#8） | E.2、E.4 |
 | 保护 | **BAV199** 双二极管钳位（默认）/ 低漏电 ESD 阵列（备选焊盘） | E.4.1 |
-| 自校准 | **0.1% Rsense 打底 + 板上 R_ref 自检**（TMUX1101×2 + TMUX1102×2 切换、R_ref 100 kΩ 0.01%），校准 Rsense+ADC 综合系数 | E.3 |
+| 自校准 | **0.1% Rsense 打底 + 板上 R_ref 自检 + 零点模式**（TMUX1101×2 + TMUX1102×2，K1/K2 分控、新增 SEL_K2 = PC3；R_ref 100 kΩ 0.01%），校准 Rsense+ADC 综合系数，零点消 ADC 失调 | E.3 |
 | **MCU** | **STM32U575RGT6**：M33 160 MHz、1 MB Flash、**786 KB SRAM**、USB OTG FS、LQFP-64 | E.5 |
 | 温度传感 | **TMP117**（I²C，±0.1 ℃） | E.5.2 |
 | 电源 | **1S 锂电（可充电）+ 双 LDO 3.3 V**（数字 / 模拟低噪分离） | E.1 |
@@ -68,8 +68,8 @@ ADS131A02（双通道同步）→ STM32U575RGT6（SPI）→ USB → 上位机。
 
 | 文件 | 状态 |
 | --- | --- |
-| [frontend-ads131a02-final.svg](diagram/frontend-ads131a02-final.svg) / [@2x.png](diagram/frontend-ads131a02-final@2x.png) | ✅ **当前有效**：恒流源 + 跟随器 + ADS131A02 双通道同步实测 |
-| [rref-calibration-circuit.svg](diagram/rref-calibration-circuit.svg) / [@2x.png](diagram/rref-calibration-circuit@2x.png) | ✅ **当前有效**：R_ref 自校准切换电路示意（含测量/校准双模式电流路径；如另绘终稿替换同名文件即可） |
+| [frontend-ads131a02-final.svg](diagram/frontend-ads131a02-final.svg) / [@2x.png](diagram/frontend-ads131a02-final@2x.png) | ✅ **当前有效**（2026-10-13 按定稿拓扑重画）：T 点顶端偏置 + 低边恒流源（Rsense 在源极路径）+ 3 颗跟随器 + ADS131A02 双通道同步实测 |
+| [rref-calibration-circuit.svg](diagram/rref-calibration-circuit.svg) / [@2x.png](diagram/rref-calibration-circuit@2x.png) | ✅ **当前有效**（2026-10-13 重画）：R_ref 自校准切换电路示意，含测量 / 校准 / 零点三种模式（如另绘终稿替换同名文件即可） |
 
 被否方案的两张旧图（`ratiometric-measurement`、`ratiometric-divider-final`——分压激励 + 比例式路线）
 已于 2026-10-12 移除，并随仓库瘦身**从 git 历史中一并清除**（历史已改写，旧 SHA 作废）；
@@ -82,7 +82,7 @@ ADS131A02（双通道同步）→ STM32U575RGT6（SPI）→ USB → 上位机。
 3. ~~R_ref 自校准电路~~ → **已定稿（E.3，2026-10-12）**；原理图前挂起细项见主文档 **E.10**
    （✅ **#1–#5 已于 2026-10-13 清**：VSET/`CURR_DIS`（E.2.1）、运放落定 OPA333（E.2）、BQ24040 TS 网络（E.8.4）、
    抗混叠 RC（E.4）、LED/按键（E.9）；余 **#6 方向性 BOM**（设计侧规格已定，采购由用户）、**#7 TMP117 连接器（用户自选）**）；
-   **2026-10-13 审查新增 #8–#11**（跟随器轨压余量、ADC 失调校准、恒流源/Rsense 拓扑与图统一、ADC 待机 IOVDD 电流），其中 **#8–#10 阻塞原理图**。
+   **2026-10-13 审查新增 #8–#11**：✅ #8–#10 已于同日定稿（T 点顶端偏置 + 3 颗跟随器、零点校准、恒流源拓扑与两张图统一）；余 **#11 ADC 待机 IOVDD 电流**（待上板实测）。
 4. **"R₀ 的 1%"适用区间**与量程下限。
 5. **上位机功能范围**（曲线显示、温度补偿、数据导出）。
 6. **单位与命名**：Ω/cm² 与 Ω/sq 的定义待统一；`DE-DRMS` 正式展开未定。
@@ -111,8 +111,10 @@ E.6–E.9 引脚/时钟/电源域/交互定稿、E.5.5 销号；三处勘误（�
 信号正名 `CURR_DIS`，E.2.1）→ `135ff82` E.10#2–#5（运放落定 OPA333、BQ24040 TS → 10 kΩ、抗混叠 RC 1 kΩ+10 nF、
 LED/按键参数）→ `8a72852` 前端图对齐 → `8c0a6f5` E.10#6 设计侧规格定稿 →
 `715131d`/`30addd6`/`f1a4067` 双 LDO 定案（数字 TPS7A0233 常开 + 模拟 TPS7A2033 EN 受控）→
-**2026-10-13 审查勘误**：合规电压口径、`CURR_DIS` 节电量、U575 功耗数据、开关机路径、MEAS_BTN 改 PA0、
-BQ24040 RISET 下限；新增 E.8.6 待机预算与 E.10#8–#11。
+`dc9ee05` **2026-10-13 审查勘误 + 恒流源拓扑 LTspice 定案**：合规电压口径、`CURR_DIS` 节电量、U575 功耗数据、开关机路径、
+MEAS_BTN 改 PA0、BQ24040 RISET 下限；新增 E.8.6 待机预算与 E.10#8–#11；Rsense 移入源极路径、证伪漏极路径画法
+（销 E.10#10，`hardware/sim/ccsource/`）→ **2026-10-13 前端修复（销 E.10#8/#9）**：T 点顶端偏置 R_top 10 kΩ / R_b 150 kΩ、
+跟随器 4 → 3、零点模式（K1/K2 分控，新增 SEL_K2 = PC3）、两张示意图按定稿拓扑重画。
 
 > ⚠️ **历史改写只影响 `1831550` 之后的提交**：`e14eb60`…`1831550` 的 SHA 未变，其后全部变更；
 > 本节已用改写后的 SHA。外部文档中改写前的旧 SHA 一律作废，需要历史时请用提交信息检索（`git log --oneline --grep=...`）。
