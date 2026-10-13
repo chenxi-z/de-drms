@@ -17,8 +17,8 @@ def sym(name, x, y, rot, inst, val): S.append((name, x, y, rot, inst, val))
 # ---- V1 + TA rail (y=64) ----
 sym('voltage', 112, 272, 'R0', 'V1', '3.3')              # +(112,288) -(112,368)
 vline(112, 64, 288); vline(112, 368, 416); flag(112, 416, '0')
-hline(112, 384, 64); hline(384, 896, 64)                  # TA rail (split at R1.A)
-flag(112, 64, '3V3A'); flag(384, 64, '3V3A'); flag(896, 64, '3V3A')
+hline(112, 384, 64)                                       # TA rail (ends at R1.A)
+flag(112, 64, '3V3A'); flag(384, 64, '3V3A')
 
 # ---- R1/R2 VSET divider (col x=384) ----
 sym('res', 368, 48, 'R0', 'R1', '360k')                   # A(384,64) B(384,144)
@@ -39,15 +39,9 @@ vline(640, 336, 384); flag(640, 384, '0')
 sym('res', 768, 416, 'R0', 'Rg', '1Meg')                  # A(784,432) B(784,512)
 vline(784, 512, 560); flag(784, 560, '0')
 
-# ---- R3/R4 T-node bias (col x=896) ----
-sym('res', 880, 48, 'R0', 'R3', '10k')                    # A(896,64) B(896,144)
-sym('res', 880, 400, 'R0', 'R4', '150k')                  # A(896,416) B(896,496)
-vline(896, 144, 272); vline(896, 272, 416); flag(896, 272, 'T')
-vline(896, 496, 544); flag(896, 544, '0')
-
 # ---- Rsamp horizontal (T -> S), Rk1 vertical (col x=1216) ----
 sym('res', 1216, 256, 'R90', 'Rsamp', '10k')              # B(1120,272) A(1200,272) horizontal
-hline(896, 1120, 272)                                     # T rail right to Rsamp.B
+flag(1120, 272, 'T')                                       # T node at Rsamp.B (joins R3/R4 by net name)
 vline(1200, 272, 304); hline(1200, 1216, 304)             # Rsamp.A -> Rk1.A via S node
 flag(1208, 304, 'S')
 sym('res', 1200, 288, 'R0', 'Rk1', '2')                   # A(1216,304) B(1216,384)
@@ -58,6 +52,13 @@ sym('nmos', 1472, 496, 'R0', 'M1', 'nmosb')               # D(1520,496) G(1472,5
 sym('voltage', 1328, 432, 'M90', 'Vsm', '0')              # +(1344,432) -(1424,432)
 hline(1216, 1344, 432); hline(1424, 1520, 432); vline(1520, 432, 496)
 flag(1464, 432, 'X')
+
+# ---- R3/R4 T-node bias (col x=1648, right of M1; T joins by net name) ----
+sym('res', 1632, 176, 'R0', 'R3', '10k')                  # A(1648,192) B(1648,272)
+flag(1648, 192, '3V3A')                                    # top pin joins 3V3A by net name
+vline(1648, 272, 320); flag(1648, 296, 'T')                # R3.B -> R4.A, T node
+sym('res', 1632, 304, 'R0', 'R4', '150k')                  # A(1648,320) B(1648,400)
+vline(1648, 400, 448); flag(1648, 448, '0')
 
 # ---- Rsense (col x=1520) ----
 sym('res', 1504, 656, 'R0', 'Rsense', '150k')             # A(1520,672) B(1520,752)
