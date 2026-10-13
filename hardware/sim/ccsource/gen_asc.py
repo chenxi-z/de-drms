@@ -64,22 +64,21 @@ vline(1152, 864, 912); flag(1152, 912, '0')
 flag(1152, 336, 'S')                                       # S label on Rsamp.B drop segment? no: use node
 # (S node is the Rsamp.B/Rk1.A junction on the main column; label placed on that vertical, reads vertically)
 
-# ---- Opamp U1 + feedback (bottom channels, zero crossings) ----
-sym('opamp', 896, 560, 'R0', 'U1', 'opa333t3')             # in-(864,608) in+(864,640) out(928,624)
-# in+ feed: VSET -> x=240 -> y=736 -> x=864 -> pin (all clear)
+# ---- Opamp U1 + feedback (three parallel channels y=704/736/768, zero crossings) ----
+sym('opamp', 896, 624, 'R0', 'U1', 'opa333t3')             # in-(864,672) in+(864,704) out(928,688)
+# in+ feed: VSET -> x=240 -> y=768 -> x=864 -> pin
 hline(240, 384, 240)                                       # VSET left lead (joins VSET rail junction)
-vline(240, 240, 736); hline(240, 864, 736); vline(864, 640, 736)
-flag(240, 240, 'VSET'); flag(600, 736, 'VSET')
-# in- feed: B rail y=688; M1.S drop split at y=688 so rail endpoint meets it
-vline(1152, 656, 688); vline(1152, 688, 720)               # M1.S drop split at B node y=688
-hline(832, 1152, 688); vline(832, 608, 688); hline(832, 864, 608)
-flag(1000, 688, 'B')
-# out -> M1 gate (y=640)
-vline(928, 624, 640); hline(928, 1104, 640); vline(1104, 640, 704)
-flag(1000, 640, 'VG')
+vline(240, 240, 768); hline(240, 864, 768); vline(864, 704, 768)
+flag(240, 240, 'VSET'); flag(600, 768, 'VSET')
+# in- feed: B rail y=736; M1.S drop split at y=736 so rail endpoint meets it
+vline(1152, 720, 736); vline(1152, 736, 784)               # M1.S drop split at B node y=736
+hline(864, 880, 672); vline(880, 672, 736); hline(880, 1152, 736)  # x=880 avoids in+ column (T-junction trap)
+flag(1000, 736, 'B')
+# out -> M1 gate (y=704)
+vline(928, 688, 704); hline(928, 1104, 704); flag(1000, 704, 'VG')
 
 # ---------------- emit ----------------
-out = ["Version 4.1", "SHEET 1 1936 1000"]
+out = ["Version 4.1", "SHEET 1 1936 1080"]
 seen = set()
 def emit(l):
     p = l.split()
@@ -94,15 +93,15 @@ for name, x, y, rot, inst, val in S:
     out.append(f"SYMATTR InstName {inst}")
     out.append(f"SYMATTR Value {val}")
 out += [
- "TEXT 112 1000 Left 2 ;DE-DRMS constant current source (E.2/E.2.1): I = VSET/Rsense = 7.857uA",
- "TEXT 112 1032 Left 2 ;VSET = 3.3V x 200k/560k (R1/R2) ; M1 BSS138 pass ; Rsense 150k source-to-GND",
- "TEXT 112 1064 Left 2 ;T-node bias R3 10k + R4 150k (E.10#8) ; CURR_DIS: high -> M2 pulls VSET low",
- "TEXT 112 1096 Left 2 ;U1 = macro opa333t3 (models.inc) ; Vsm = 0V ammeter ; Rg 1Meg = gate bleed (reset-safe)",
- "TEXT 112 1128 Left 2 ;Nets: 3V3A=analog rail ; VSET=1.179V ref ; T=sample top ; S=sample bottom ;",
- "TEXT 112 1160 Left 2 ;      X=M1 drain ; B=M1 source (=Rsense top, op-amp in-) ; VG=M1 gate",
- "TEXT 112 1224 Left 2 !.include models.inc",
- "TEXT 112 1256 Left 2 !.tran 15m",
- "TEXT 112 1288 Left 2 ;.ac dec 100 0.1 10meg",
+ "TEXT 112 1080 Left 2 ;DE-DRMS constant current source (E.2/E.2.1): I = VSET/Rsense = 7.857uA",
+ "TEXT 112 1112 Left 2 ;VSET = 3.3V x 200k/560k (R1/R2) ; M1 BSS138 pass ; Rsense 150k source-to-GND",
+ "TEXT 112 1144 Left 2 ;T-node bias R3 10k + R4 150k (E.10#8) ; CURR_DIS: high -> M2 pulls VSET low",
+ "TEXT 112 1176 Left 2 ;U1 = macro opa333t3 (models.inc) ; Vsm = 0V ammeter ; Rg 1Meg = gate bleed (reset-safe)",
+ "TEXT 112 1208 Left 2 ;Nets: 3V3A=analog rail ; VSET=1.179V ref ; T=sample top ; S=sample bottom ;",
+ "TEXT 112 1240 Left 2 ;      X=M1 drain ; B=M1 source (=Rsense top, op-amp in-) ; VG=M1 gate",
+ "TEXT 112 1304 Left 2 !.include models.inc",
+ "TEXT 112 1336 Left 2 !.tran 15m",
+ "TEXT 112 1368 Left 2 ;.ac dec 100 0.1 10meg",
 ]
 open('ccsource.asc', 'w', encoding='ascii').write("\n".join(out) + "\n")
 print(f"written: {len(W)} wires, {len(F)} flags, {len(S)} symbols")
