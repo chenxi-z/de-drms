@@ -66,6 +66,9 @@ ADS131A02（双通道同步）→ STM32U575RGT6（SPI）→ USB → 上位机。
 
 | 文件 | 状态 |
 | --- | --- |
+| [整体方案框图.svg](diagram/整体方案框图.svg) / [@2x.png](diagram/整体方案框图@2x.png) | ✅ **当前有效**（2026-10-13 新增）：整体方案框图，展示电源链 + MCU + ADC + 前端模拟 + 样品接口 + 温度传感 + USB/SWD |
+| [电源树.svg](diagram/电源树.svg) / [@2x.png](diagram/电源树@2x.png) | ✅ **当前有效**（2026-10-13 新增）：电源树，USB → BQ24040 → 电池节点 → 双 LDO（数字 25nA 常开 / 模拟 6.5µA EN 受控）→ 负载分配 |
+| [恒流源拓扑.svg](diagram/恒流源拓扑.svg) / [@2x.png](diagram/恒流源拓扑@2x.png) | ✅ **当前有效**（2026-10-13 新增）：恒流源拓扑，OPA333 + BSS138 低边恒流源 8 µA、Rsense 150 kΩ、CURR_DIS 控制 |
 | [frontend-ads131a02-final.svg](diagram/frontend-ads131a02-final.svg) / [@2x.png](diagram/frontend-ads131a02-final@2x.png) | ✅ **当前有效**（2026-10-13 按定稿拓扑重画）：T 点顶端偏置 + 低边恒流源（Rsense 在源极路径）+ 3 颗跟随器 + ADS131A02 双通道同步实测 |
 | [rref-calibration-circuit.svg](diagram/rref-calibration-circuit.svg) / [@2x.png](diagram/rref-calibration-circuit@2x.png) | ✅ **当前有效**（2026-10-13 重画）：R_ref 自校准切换电路示意，含测量 / 校准 / 零点三种模式（如另绘终稿替换同名文件即可） |
 
