@@ -63,7 +63,16 @@ I(Vsm)=+7.857 µA、CURR_DIS 关断残流 0.163 µA、恢复 1 µs（PULSE 5–1
 - 再生成：`sed "s/{RL}/10k/" cca.tpl > cca_10k.net && ltspice-sim run cca_10k.net`
 - 产物（*.raw/*.log、按 RL 生成的 .net）不入库
 
-## 官方模型获取状态（2026-10-13）
+## 真实器件模型接入状态（2026-10-13）
+
+| 器件 | 状态 |
+| --- | --- |
+| U1 OPA333 | ✅ **TI 官方 OPAx333.LIB 已接入**（SBOC084G Rev.G Final 1.3，经 3 脚 wrapper）。⚠️ 已知边界：官方宏在 LTspice 单电源高阻环路 **DC OP 收敛失败**（Direct/Gmin/Source stepping 全败），须 `.ic`+`.tran uic` 启动；且官方宏在本电路暴露非物理输入电流（in+ 灌 1.72uA 拉低 VSET，MID 浮地节点兼容性）——**DC 结论以行为宏为准，官方宏供参考**。真实宏的建立/失调量级与手册自洽（+7.8562 vs 理论 7.8571，差=Vos/Ib） |
+| M1/M2 BSS138 | 🔸 onsemi 官方模型反爬未获取（直链 403/Nexperia 加密/Wayback 无存档），暂用 `nmosb` 行为级（VTO/KP/电容按手册） |
+| K1-K4 TMUX1101/1102 | 🔸 TMUX1101 官方 PSpice（SCDM242）已接入实测：**网表连接正常但开关不导通**（环路失效，I=0.15uA 恒定）——TI SCHEMATIC 导出的开关模型在 LTspice 存在兼容性问题，待查（或 PSpice for TI 验证）。暂回退 2Ω 电阻（Ron 已含） |
+| TMUX1102 | 🔸 TI 仅提供 IBIS（SCDM225），无 PSpice；行为等效 TMUX1101（NO/NC 仅控制极性） |
+
+
 
 **当前使用行为级模型**（手册典型参数），结论对拓扑判定与 DC 精度充分；官方模型接入只需两步：
 `SYMATTR Value` 改型号名 + `.include` 官方库。
