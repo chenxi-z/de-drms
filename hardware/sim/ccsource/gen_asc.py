@@ -66,14 +66,10 @@ flag(1152, 336, 'S')                                       # S label on Rsamp.B 
 
 # ---- Opamp U1 + feedback (three parallel channels y=704/736/768, zero crossings) ----
 sym('opamp', 896, 624, 'R0', 'U1', 'opa333t3')             # in-(864,672) in+(864,704) out(928,688)
-# in+ feed: VSET -> x=240 -> y=768 -> x=864 -> pin
-hline(240, 384, 240)                                       # VSET left lead (joins VSET rail junction)
-vline(240, 240, 768); hline(240, 864, 768); vline(864, 704, 768)
-flag(240, 240, 'VSET'); flag(600, 768, 'VSET')
-# in- feed: B rail y=736; M1.S drop split at y=736 so rail endpoint meets it
-vline(1152, 720, 736); vline(1152, 736, 784)               # M1.S drop split at B node y=736
-hline(864, 880, 672); vline(880, 672, 736); hline(880, 1152, 736)  # x=880 avoids in+ column (T-junction trap)
-flag(1000, 736, 'B')
+# inputs connect BY NET FLAGS on pins (no traces) - cleanest opamp wiring
+flag(864, 672, 'B'); flag(864, 704, 'VSET')
+# B node marker on M1.S drop (joins in- by net name)
+vline(1152, 720, 736); vline(1152, 736, 784); flag(1152, 736, 'B')
 # out -> M1 gate (y=704)
 vline(928, 688, 704); hline(928, 1104, 704); flag(1000, 704, 'VG')
 
