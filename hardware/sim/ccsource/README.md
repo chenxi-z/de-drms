@@ -63,8 +63,24 @@ I(Vsm)=+7.857 µA、CURR_DIS 关断残流 0.163 µA、恢复 1 µs（PULSE 5–1
 - 再生成：`sed "s/{RL}/10k/" cca.tpl > cca_10k.net && ltspice-sim run cca_10k.net`
 - 产物（*.raw/*.log、按 RL 生成的 .net）不入库
 
+## 官方模型获取状态（2026-10-13）
+
+**当前使用行为级模型**（手册典型参数），结论对拓扑判定与 DC 精度充分；官方模型接入只需两步：
+`SYMATTR Value` 改型号名 + `.include` 官方库。
+
+已尝试失败的自动获取路径（厂商反爬全被挡）：
+- TI OPA333：lit/zip 编号无法确定（tools-software 页 JS 渲染，sbom030 猜测为 ISO120 他件）
+- onsemi BSS138：pub/Collateral 与 download 直链全 403
+- Nexperia BSS138.prm：下载到的是加密 Challenge HTML
+- Diodes Inc：403；mikrocontroller 附件：403；Wayback：429 限流
+- LTspice 26 内置库（MDX）：实测无 BSS138、无 OPA333
+
+**人工获取路径**（浏览器 30 秒任选其一，拿到文件放本目录即接入）：
+1. TI 官网 OPA333 产品页 → Design & development → Simulation models → 下载 zip
+2. onsemi BSS138 产品页 → Simulation models → 下载 .lib
+3. SnapEDA（免费注册）两个器件都有 SPICE 模型
+
 ## 后续
 
-- 换 TI OPA333 官方 PSpice 宏模型 + onsemi BSS138 模型复核（本行为级模型未建 Vos/Ib/SR，
-  DC 精度结论对拓扑判定充分；环路稳定性仅见"无振铃"线索，PM 定量需官方模型 + TZ 环路测试）
+- 官方模型到手后重跑 cc2 套件复核（重点：真实 Vos/Ib 下 DC 精度、PM 定量、SR 暂态）
 - 原理图定稿后按实际网表回归
