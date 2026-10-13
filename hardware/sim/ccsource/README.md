@@ -46,6 +46,15 @@ ADS131A02 双通道同钟同沿（E.4）正是为此。
 方法备忘：`.tran` 首参数是**步长**非时长（`.tran 0 15m 1m 1u`）；LTspice 的 `tstart` 会把
 PULSE 时序前移 tstart，暂态判据一律从激励波形实际边沿起算；AC raw 的频率行带 `,0` 尾巴。
 
+## GUI 原理图（ccsource.asc，2026-10-13）
+
+**LTspice 双击打开即可看图并仿真**：定稿拓扑的可视化版本（R_top/R_b 偏置、CURR_DIS、
+Vsm 电流表）。由 `gen_asc.py` 程序化生成（引脚坐标/正交布线/T 接全部显式计算），
+改动请改脚本再生成，勿手编辑后混用。已验证：网表与 cc2_dc.net 逐节点一致（零 NC）、
+I(Vsm)=+7.857 µA、CURR_DIS 关断残流 0.163 µA、恢复 1 µs（PULSE 5–10 ms 高电平，
+15 ms 窗口内含完整关断+恢复）。注意：`opamp` 符号引脚顺序是 (invin, noninvin, out)，
+宏 `opa333t3` 已按此定义（arg1=反相）；U1 为 3 脚行为宏（内部固定 3.3 V 轨）。
+
 ## 文件与再生成
 
 - `models.inc`——行为级模型：OPA333 宏（Aol=2e6→GBW 350 kHz、输出钳位）与线性版（暂态用）；

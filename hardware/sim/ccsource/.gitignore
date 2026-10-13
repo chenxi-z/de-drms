@@ -12,3 +12,5 @@ cc2_*.raw
 cc2_*.log
 cc2_*.op.raw
 *.op.raw
+ccsource.net
+ccsource.op.raw
