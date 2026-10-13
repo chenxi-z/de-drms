@@ -96,8 +96,9 @@ out += [
  "TEXT 112 1208 Left 2 ;Nets: 3V3A=analog rail ; VSET=1.179V ref ; T=sample top ; S=sample bottom ;",
  "TEXT 112 1240 Left 2 ;      X=M1 drain ; B=M1 source (=Rsense top, op-amp in-) ; VG=M1 gate",
  "TEXT 112 1304 Left 2 !.include models.inc",
- "TEXT 112 1336 Left 2 !.tran 15m",
- "TEXT 112 1368 Left 2 ;.ac dec 100 0.1 10meg",
+ "TEXT 112 1336 Left 2 !.ic V(3v3a)=3.3 V(vset)=1.1786 V(b)=1.179 V(g)=2.71 V(t)=3.0 V(s)=2.92 V(n001)=2.92 V(n002)=2.9 V(curr_dis)=0 V(ta)=3.3",
+ "TEXT 112 1368 Left 2 !.tran 0 15m 0 1u uic",
+ "TEXT 112 1400 Left 2 ;.ac dec 100 0.1 10meg",
 ]
 open('ccsource.asc', 'w', encoding='ascii').write("\n".join(out) + "\n")
 print(f"written: {len(W)} wires, {len(F)} flags, {len(S)} symbols")
