@@ -1,0 +1,30 @@
+Version 4
+SymbolType CELL
+LINE Normal -16 -16 32 -16
+LINE Normal 32 -16 32 64
+LINE Normal 32 64 -16 64
+LINE Normal -16 64 -16 -16
+LINE Normal -32 0 -16 0
+LINE Normal -32 48 -16 48
+LINE Normal 32 -16 48 -16
+LINE Normal 32 64 48 64
+WINDOW 0 24 -8 Left 2
+WINDOW 3 24 72 Left 2
+SYMATTR Prefix X
+SYMATTR Description TMUX1101 1:1 SPST switch (low-leakage, TI)
+SYMATTR ModelFile tmux1101.lib
+PIN 0 -32 NONE 0
+PINATTR PinName S1
+PINATTR SpiceOrder 1
+PIN 0 48 NONE 0
+PINATTR PinName D1
+PINATTR SpiceOrder 2
+PIN -32 8 NONE 0
+PINATTR PinName SEL1
+PINATTR SpiceOrder 3
+PIN 32 -16 NONE 0
+PINATTR PinName VDD
+PINATTR SpiceOrder 4
+PIN 32 64 NONE 0
+PINATTR PinName GND
+PINATTR SpiceOrder 5
