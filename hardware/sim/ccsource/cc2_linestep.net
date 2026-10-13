@@ -1,0 +1,16 @@
+* cc2: supply step transient 3.25<->3.35V, RL=120k (worst compliance)
+.inc models.inc
+V1 ta 0 PULSE(3.25 3.35 4.999m 20u 20u 5m 10m)
+Rtop ta t 10k
+Rb t 0 150k
+Rsamp t sn 120k
+Rk1 sn x 2
+Vsm x dd 0
+M1 dd g b b nmosb
+Rs b 0 150k
+R1 vset ta 360k
+R2 vset 0 200k
+Xop vset b ta 0 g opa333t
+.tran 0 15m 1m 1u
+.options method=gear
+.end

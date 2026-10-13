@@ -1,0 +1,18 @@
+* cc2: load regulation sweep — latest topology (R_top/R_b, K1=2R, source-sense)
+.inc models.inc
+.param VS=3.3
+V1 ta 0 {VS}
+Rtop ta t 10k
+Rb t 0 150k
+Rsamp t sn R={RL}
+Rk1 sn x 2
+Vsm x dd 0
+M1 dd g b b nmosb
+Rs b 0 150k
+R1 vset ta 360k
+R2 vset 0 200k
+Xop vset b ta 0 g opa333t
+.param RL=120k
+.step param VS list 3.2 3.25 3.3 3.35 3.4
+.op
+.end

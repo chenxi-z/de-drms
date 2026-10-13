@@ -1,0 +1,15 @@
+* cc2: supply sensitivity (I vs 3.3V_A ripple), RL=120k
+.inc models.inc
+V1 ta 0 3.3 AC 1
+Rtop ta t 10k
+Rb t 0 150k
+Rsamp t sn 120k
+Rk1 sn x 2
+Vsm x dd 0
+M1 dd g b b nmosb
+Rs b 0 150k
+R1 vset ta 360k
+R2 vset 0 200k
+Xop vset b ta 0 g opa333t
+.ac dec 100 1 1meg
+.end

@@ -8,3 +8,7 @@ ccb_10k.net
 ccb_20k.net
 ccb_60k.net
 ccb_120k.net
+cc2_*.raw
+cc2_*.log
+cc2_*.op.raw
+*.op.raw
