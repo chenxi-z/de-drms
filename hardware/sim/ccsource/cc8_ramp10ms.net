@@ -1,0 +1,27 @@
+* 10ms 斜坡负载：R_sample 10k->120k 线性变化（冲击试验 10ms 场景）
+* LTspice 内部行为源直接输出：真实 R、比值反推 R、跟踪误差、电流误差
+.inc models.inc
+V1 ta 0 3.3
+Rtop ta t 10k
+Rb t 0 150k
+Rsamp t sn R={10k+110k*V(ctl)}
+Vctl ctl 0 PWL(0 0 5m 0 15m 1 20m 1)
+Rk1 sn x 2
+Vsm x dd 0
+M1 dd g b b nmosb
+Rs b 0 150k
+R1 vset ta 360k
+R2 vset 0 200k
+Xop vset b ta 0 g opa333t
+* ---- 行为源：LTspice 内部直接计算测量量 ----
+* 样品两端真实电阻（单位：欧姆，以电压形式输出 1V=1Ω）
+B_rtrue r_true 0 V={10k+110k*V(ctl)}
+* 比值反推电阻：R = (V(t)-V(sn))/V(b) * 150k
+B_rmeas r_meas 0 V={(V(t)-V(sn))/V(b)*150k}
+* 跟踪误差 %： (R_meas - R_true)/R_true * 100
+B_rerr r_err 0 V={(V(r_meas)-V(r_true))/V(r_true)*100}
+* 电流跟踪误差 %： (I(Vsm) - 7.857143u)/7.857143u * 100
+B_ierr i_err 0 V={(I(Vsm)-7.857143u)/7.857143u*100}
+.tran 0 20m 4m 2u
+.options method=gear
+.end

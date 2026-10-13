@@ -45,3 +45,41 @@ VVCC WR_VCC 0 3.3
 VEE_WR WR_VEE 0 0
 XTI INP INN WR_VCC WR_VEE OUT OPAx333
 .ends
+* ---- OPA391 行为宏（评估候选，2026-10-13）：参数取 SBOS979 典型值 ----
+* GBW 1MHz：Aol=2e6 × 主极点 0.5Hz（Rp 1Meg × Cp 0.318u）= 1MHz。
+* 结构与 opa333t 相同（纯线性 E 源），SR=1V/us 未建模——对本评估足够：
+* 环路速度由 GBW 主导，OPA333 SR 0.16V/us 已实测建立 0.87ms/µs 级，
+* OPA391 的 6× SR 只会更快；结论以 GBW/PM 为准。Vos typ 8uV 未建模
+* （比值测量下无关），Cin diff 2.5p/cm 5p。输出级同 opa333t3（B 源 tanh
+* 钳位 0.001..3.249V、Rout=100R），便于同套件直接对比。
+.subckt opa391t3 inp inn vsp vsn out
+E1 a 0 VALUE={2e6*(V(inp)-V(inn))}
+Rp a b 1meg
+Cp b 0 0.318u
+Cin1 inp 0 5p
+Cin2 inn 0 5p
+Cind inp inn 2.5p
+Rout b out 100
+.ends
+* ---- OPA388 跟随器行为宏（全链仿真用，2026-10-14）：SBOS777D 典型值 ----
+* GBW 10MHz：Aol=114dB（5e5）× 主极点 20Hz（Rp 1Meg × Cp 7.96n）。
+* RRIO 输出钳位 1mV..3.249V（B 源 tanh，同 opa333t3 工艺）；
+* SR 10V/us 未建模（跟随器工作于小信号，µs-ms 场景非瓶颈）。
+* Cin：cm 3.5p / diff 1p。跟随器用法：X1 in out vcc gnd out opa388t。
+.subckt opa388t inp inn vsp vsn out
+E1 a 0 VALUE={5e5*(V(inp)-V(inn))}
+Rp a b 1meg
+Cp b 0 7.96n
+Cin1 inp 0 3.5p
+Cin2 inn 0 3.5p
+Cind inp inn 1p
+Eb c 0 VALUE={0.001+1.6245*(1+tanh(6*V(b)-9))}
+Rout c out 100
+Cout out 0 5p
+.ends
+* ---- 开关模型（全链仿真）：TMUX1101/1102 行为级 ----
+* Ron typ 1.9Ω 取 2Ω；断态漏电 50pA@25C -> roff = 3V/50pA = 60GΩ。
+* swNO: NO 型（控制>vt 导通）；swNC 用反相控制信号驱动同一模型实现。
+.model swNO sw(ron=2 roff=60g vt=0.5 vh=0.05)
+* S/H 采样开关：ron 100Ω（τ=0.1ns，100ns 导通窗内 >>5τ）
+.model swsh sw(ron=100 roff=1t vt=0.5 vh=0.05)

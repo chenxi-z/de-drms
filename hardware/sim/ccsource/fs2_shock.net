@@ -1,0 +1,63 @@
+* 全链冲击仿真：零点->校准->10ms 斜坡 R 10k->120k，含 ADC 128kSPS 采样
+.inc models.inc
+V1 ta 0 3.3
+Rtop ta t 10k
+Rb t 0 150k
+Rsamp t s R={10k+110k*V(ctl)}
+Vctl ctl 0 PWL(0 0 10.5m 0 20.5m 1 24m 1)
+Rref t f 100k
+Vk1 k1c 0 PWL(0 1 5m 1 5.01m 0 10.21m 0 10.22m 1)
+S1 s x k1c 0 swNO
+Vk2 k2c 0 PWL(0 1 7m 1 7.01m 0 10.2m 0 10.21m 1)
+Bk2n k2n 0 V={1-V(k2c)}
+S2 f x k2n 0 swNO
+Vsen sensec 0 PWL(0 1 5m 1 5.01m 0 10.21m 0 10.22m 1)
+Bsenn sensen 0 V={1-V(sensec)}
+S3 s m sensec 0 swNO
+S4 f m sensen 0 swNO
+M1 x g b b nmosb
+Rs b 0 150k
+R1 vset ta 360k
+R2 vset 0 200k
+Cf vset 0 1n
+M2 vset xd 0 0 nmosb
+Rg xd 0 1meg
+Vdis dis 0 PWL(0 0 5m 0 5.01m 1 7m 1 7.01m 0 10m 0 10.01m 1 10.41m 1 10.42m 0)
+Bdis xd 0 V={3.3*V(dis)}
+Cg g 0 1n
+Xop vset b ta 0 g opa333t
+XT1 t tp ta 0 tp opa388t
+XM1 m mp ta 0 mp opa388t
+XB1 b bp ta 0 bp opa388t
+Rf0 tp a0p 1k
+Cf0 a0p 0 10n
+Rf1 mp a0n 1k
+Cf1 a0n 0 10n
+Rf2 bp a1p 1k
+Cf2 a1p 0 10n
+Rf3 0 a1n 1k
+Cf3 a1n 0 10n
+Rz0 a0p a0n 130k
+Rz1 a1p a1n 130k
+Bch0 ch0d 0 V={V(a0p)-V(a0n)+500u}
+Bch1 ch1d 0 V={V(a1p)-V(a1n)+500u}
+* ADC 采样保持 128kSPS (孔径 2us 近似 SigmaDelta 积分)
+Vsh shclk 0 PULSE(0 1 0 10n 10n 2u 7.8125u)
+Ssh0 ch0d sh0 shclk 0 swsh
+Csh0 sh0 0 1p
+Ssh1 ch1d sh1 shclk 0 swsh
+Csh1 sh1 0 1p
+Vzp zpulse 0 PULSE(0 1 6.5m 10n 10n 20u 1)
+Sz ch0d d0 zpulse 0 swsh
+Cd0 d0 0 10n
+Vcp cpulse 0 PULSE(0 1 9.5m 10n 10n 20u 1)
+Skc ch1d kc cpulse 0 swsh
+Ckc kc 0 10n
+Bkd kdin 0 V={V(ch0d)-V(d0)}
+Skd kdin kd cpulse 0 swsh
+Ckd kd 0 10n
+Brout rout 0 V={100k*V(kc)/max(V(kd),1u)*max(V(sh0)-V(d0),1u)/max(V(sh1),1u)}
+Brt rtrue 0 V={10k+110k*V(ctl)}
+.tran 0 24m 0 0.2u
+.options method=gear
+.end

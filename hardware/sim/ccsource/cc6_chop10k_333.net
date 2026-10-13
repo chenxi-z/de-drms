@@ -1,0 +1,19 @@
+* 10kHz 斩波式激励：CURR_DIS 以 10kHz 方波通断，观察电流波形占空比
+.inc models.inc
+V1 ta 0 3.3
+Rsample ta sn 10k
+Rk1 sn b 2
+Vsm b dd 0
+M1 dd g e e nmosb
+Rs e 0 150k
+R1 vset ta 360k
+R2 vset 0 200k
+Cf vset 0 1n
+M2 vset xd 0 0 nmosb
+Rg xd 0 1meg
+Vdis xd 0 PULSE(0 3.3 0 1u 1u 50u 100u)
+Cg g 0 1n
+Xop vset e ta 0 g opa333t
+.tran 0 1m 0.5m 0.05u uic
+.options method=gear
+.end

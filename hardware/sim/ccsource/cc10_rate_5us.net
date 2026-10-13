@@ -1,0 +1,20 @@
+* 极限：变化率跟踪 5us
+.inc models.inc
+V1 ta 0 3.3
+Rtop ta t 10k
+Rb t 0 150k
+Rsamp t sn R={10k+110k*V(ctl)}
+Vctl ctl 0 PWL(0 0 5m 0 5.005m 1 20m 1)
+Rk1 sn x 2
+Vsm x dd 0
+M1 dd g b b nmosb
+Rs b 0 150k
+R1 vset ta 360k
+R2 vset 0 200k
+Xop vset b ta 0 g opa333t
+B_rtrue r_true 0 V={10k+110k*V(ctl)}
+B_rmeas r_meas 0 V={(V(t)-V(sn))/V(b)*150k}
+B_rerr r_err 0 V={(V(r_meas)-V(r_true))/V(r_true)*100}
+.tran 0 20m 0 0.2u
+.options method=gear
+.end
