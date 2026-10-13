@@ -22,13 +22,13 @@ Cin2 inn 0 4p
 Cind inp inn 2p
 Rout b out 100
 .ends
-* 3-pin variant for LTspice 'opamp' symbol (internal 3.3V rails, tanh clamp)
-* NOTE: symbol pin order is (invin, noninvin, out) -> arg1 = inverting input!
-.subckt opa333t3 invin noninvin out
-E1 a 0 VALUE={2e6*(V(noninvin)-V(invin))}
-Rp a b 1meg
-Cp b 0 0.909u
-Eb c 0 VALUE={0.001+1.6245*(1+tanh(6*V(b)-9))}
-Rout c out 100
-Cout out 0 5p
+* ---- TI official OPAx333 PSpice macro (SBOC084G, Final 1.3, per SBOS351E) ----
+* 5-pin: IN+ IN- VCC VEE OUT; models Vos(-3uV+drift)/Ib(70pA)/SR/Aol/PSRR/noise/CL
+.include OPAx333.LIB
+* wrapper: adapt the 3-pin 'opamp' symbol (invin noninvin out) to TI 5-pin macro,
+* internal fixed 3.3V rails (= 3.3V_A, same as real circuit)
+.subckt opa333t3 INN INP OUT
+VVCC WR_VCC 0 3.3
+VEE_WR WR_VEE 0 0
+XTI INP INN WR_VCC WR_VEE OUT OPAx333
 .ends
