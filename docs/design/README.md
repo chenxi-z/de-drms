@@ -10,12 +10,10 @@
 | ① | [通用信号链方案 V3.0](2026-10-10-universal-signal-chain.md) | **主文档**（权威）。含总体架构、应用配置（附录 D）、硬件实现定稿（附录 E） |
 | ② | [ADC 选型记录](adc-selection/README.md) | ADC 决策链、被否方案、备选挂起 |
 | ③ | [MCU 选型记录](mcu-selection/README.md) | MCU 决策链、pin2pin 结论 |
-| ④ | [技术设计文档 V2.2](2026-10-10-dual-electrode-dc-resistance-meter-design.md) | **历史**：依据论文实测参数的 MWCNTs 准静态方案详情，作为主文档附录 C 的展开 |
-| ⑤ | [diagram/](diagram/) | 拓扑图（见 §5） |
+| ④ | [diagram/](diagram/) | 拓扑图（见 §5） |
 
 > **权威性规则**：主文档**附录 E**（硬件实现）是已定稿内容的唯一来源；
 > 附录 D 是应用需求与指标的来源。两者如冲突，以 **附录 E** 为准。
-> 版本更早的文档（V1.0 / V2.0 / V2.1 / V2.2）仅作决策历史保留，不应据此实现。
 
 ## 2 被测对象与目标（结论）
 
