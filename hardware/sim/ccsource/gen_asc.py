@@ -41,16 +41,17 @@ vline(784, 512, 560); flag(784, 560, '0')
 
 # ---- Rsamp horizontal (T -> S), Rk1 vertical (col x=1216) ----
 sym('res', 1216, 256, 'R90', 'Rsamp', '10k')              # B(1120,272) A(1200,272) horizontal
-flag(1120, 272, 'T')                                       # T node at Rsamp.B (joins R3/R4 by net name)
-vline(1200, 272, 304); hline(1200, 1216, 304)             # Rsamp.A -> Rk1.A via S node
-flag(1208, 304, 'S')
-sym('res', 1200, 288, 'R0', 'Rk1', '2')                   # A(1216,304) B(1216,384)
-vline(1216, 384, 432)                                     # Rk1.B down to X rail
+hline(1120, 1200, 272); hline(1200, 1648, 272)             # T rail split at Rsamp.A pin (pins need endpoints)
+flag(1384, 272, 'T')                                       # T label mid-rail (horizontal)
+vline(1200, 272, 304)                                     # Rsamp.A -> S node -> Rk1.A
+flag(1200, 288, 'S')
+sym('res', 1184, 288, 'R0', 'Rk1', '2')                   # A(1200,304) B(1200,384)
+vline(1200, 384, 432)                                     # Rk1.B down to X rail
 
 # ---- X rail: Rk1.B -> Vsm (M90) -> M1 drain ----
 sym('nmos', 1472, 496, 'R0', 'M1', 'nmosb')               # D(1520,496) G(1472,576) S(1520,592)
 sym('voltage', 1328, 432, 'M90', 'Vsm', '0')              # +(1344,432) -(1424,432)
-hline(1216, 1344, 432); hline(1424, 1520, 432); vline(1520, 432, 496)
+hline(1200, 1344, 432); hline(1424, 1520, 432); vline(1520, 432, 496)
 flag(1464, 432, 'X')
 
 # ---- R3/R4 T-node bias (col x=1648, right of M1; T joins by net name) ----
