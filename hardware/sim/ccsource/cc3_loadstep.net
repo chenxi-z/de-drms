@@ -1,0 +1,18 @@
+* cc2: load step transient 10k<->120k (behavioral resistor, tanh-smoothed)
+.inc models.inc
+.param VS=3.3
+V1 ta 0 {VS}
+Rtop ta t 10k
+Rb t 0 150k
+Rsamp t sn R={10k+110k*(0.5+0.5*tanh(1e6*(V(ctl)-0.5)))}
+Vctl ctl 0 PULSE(0 1 4.999m 2u 2u 5m 10m)
+Rk1 sn x 2
+Vsm x dd 0
+M1 dd g b b nmosb
+Rs b 0 150k
+R1 vset ta 360k
+R2 vset 0 200k
+Xop vset b ta 0 g OPAx333
+.tran 0 15m 1m 1u
+.options method=gear
+.end

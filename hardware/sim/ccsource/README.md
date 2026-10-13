@@ -63,11 +63,25 @@ I(Vsm)=+7.857 µA、CURR_DIS 关断残流 0.163 µA、恢复 1 µs（PULSE 5–1
 - 再生成：`sed "s/{RL}/10k/" cca.tpl > cca_10k.net && ltspice-sim run cca_10k.net`
 - 产物（*.raw/*.log、按 RL 生成的 .net）不入库
 
+## 恒流源拓扑与运放选型评审结论（2026-10-13，基于行为宏 cc2 套件）
+
+**拓扑：维持"运放+NMOS 源极采样低边恒流源"定稿**。替代方案逐一评审排除：
+- Howland 电流泵：四电阻匹配依赖，单向低边场景无收益，失配直进误差——排除
+- 专用恒流芯片（BCR/AL 系 LED 驱动）：最小档 20mA+，8uA 不覆盖——不可用
+- REF200 电流参考：固定 100uA 镜，8uA 需分流且精度降级——不适用
+- cascode 双管提输出阻抗：负载调整率已 0.00000%，无空间——无必要
+- 高边 PMOS：破坏 T 节点偏置架构（E.10#8 定稿）——不改
+
+**运放：维持 OPA333 定稿**，对照分析：
+- 更快零漂（OPA189 1MHz/Iq450uA、OPA378 900kHz/Iq350uA）：恢复已富余 3 个数量级（1.3us vs 1ms 预算），GBW 翻倍无收益，Iq 贵 20 倍——劣
+- 纳米功耗零漂 LPV821（Iq~325nA/GBW~8kHz，参数待核实）：省 ~16.7uA IQ 对电池待机有吸引力，但环路 fc 降至 ~8kHz、CURR_DIS/换路建立变慢，Vos max 略高——记录为**待验证低功耗候选**（需官方模型仿真验证 PM 与关断动态后再定）
+- 非零漂精密（OPA2277 类）：温漂回归软件补偿压力——劣
+
 ## 真实器件模型接入状态（2026-10-13）
 
 | 器件 | 状态 |
 | --- | --- |
-| U1 OPA333 | ✅ **TI 官方 OPAx333.LIB 已接入**（SBOC084G Rev.G Final 1.3，经 3 脚 wrapper）。⚠️ 已知边界：官方宏在 LTspice 单电源高阻环路 **DC OP 收敛失败**（Direct/Gmin/Source stepping 全败），须 `.ic`+`.tran uic` 启动；且官方宏在本电路暴露非物理输入电流（in+ 灌 1.72uA 拉低 VSET，MID 浮地节点兼容性）——**DC 结论以行为宏为准，官方宏供参考**。真实宏的建立/失调量级与手册自洽（+7.8562 vs 理论 7.8571，差=Vos/Ib） |
+| U1 OPA333 | ⚠️ **TI 官方 OPAx333.LIB（SBOC084G Rev.G）在 LTspice 判不可用**：DC OP 收敛失败，或收敛到**非物理解**（I=+23.3uA，理论 7.857；V(b)=nan）——1F 级建模电容+浮地 MID 节点与 LTspice 求解器不兼容。官方宏接入结构与 wrapper 保留在 models.inc/OPAx333.LIB 备用；**仿真结论以行为宏 opa333t3 为准**。如需官方宏级验证用免费 PSpice for TI |
 | M1/M2 BSS138 | 🔸 onsemi 官方模型反爬未获取（直链 403/Nexperia 加密/Wayback 无存档），暂用 `nmosb` 行为级（VTO/KP/电容按手册） |
 | K1-K4 TMUX1101/1102 | 🔸 TMUX1101 官方 PSpice（SCDM242）已接入实测：**网表连接正常但开关不导通**（环路失效，I=0.15uA 恒定）——TI SCHEMATIC 导出的开关模型在 LTspice 存在兼容性问题，待查（或 PSpice for TI 验证）。暂回退 2Ω 电阻（Ron 已含） |
 | TMUX1102 | 🔸 TI 仅提供 IBIS（SCDM225），无 PSpice；行为等效 TMUX1101（NO/NC 仅控制极性） |
