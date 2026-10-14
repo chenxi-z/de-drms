@@ -26,7 +26,6 @@
 | | VBAT_MON | PC0 | 电池分压（2×1 MΩ + 100 nF，常通 ~2 µA） |
 | | ISET_HI | PB4 | BQ24040 充电电流切换（500 mA↔1 A） |
 | **TMP117** | SCL / SDA | PB6 / PB7 | I²C1（AF4），4.7 kΩ 上拉在主板侧 |
-| | ALERT | PB8 | 可选（成品探头常不带此线） |
 | **NTC 备选** | AIN | PC1 | 2P 焊盘预留，不贴 |
 | **档位 LED ×4** | 绿 / 黄 / 橙 / 红 | PC6 / PC7 / PC8 / PC9 | 灌电流驱动，同一时刻只亮一档 |
 | **状态 LED** | PWR/USB | PA8 | — |
@@ -46,7 +45,7 @@
 
 ### 预留脚
 
-PA1（WKUP3）、PA15、PC2、PC10、PC11、PC12、PB5、PB9、PB13、PB14、PB15、PD2。
+PA1（WKUP3）、PA15、PC2、PC10、PC11、PC12、PB5、PB8、PB9、PB13、PB14、PB15、PD2。
 
 其中 **PB13/PB14/PB15 + PB9 恰为完整 SPI2**——留给未来 PT100+MAX31865 扩展。PC13 不用（经 VSW 供电，仅 3 mA/30 pF）。
 
@@ -127,7 +126,7 @@ PA1（WKUP3）、PA15、PC2、PC10、PC11、PC12、PB5、PB9、PB13、PB14、PB1
 | 3 | SCL (PB6) | I²C1，4.7 kΩ 上拉 |
 | 4 | SDA (PB7) | I²C1，4.7 kΩ 上拉 |
 
-> ALERT (PB8) 不在 4 线内则弃用；采购须 ADD0 接地版（地址 0x48）。
+> 采购须 ADD0 接地版（地址 0x48）。
 
 ### NTC 备选（J5）— 2P 焊盘，不贴
 
