@@ -31,7 +31,7 @@
 - ADC：**ADS131A02**（2 通道同步、24 bit、128 kSPS、**内部 2.442 V 基准**、3.3 V 直连）
 - 前端：**3 颗跟随器 OPA388**（T、M、B 三线；AIN1N 直接经 RC 接 Rsense 底端）；T 点顶端偏置 R_top 10 kΩ / R_b 150 kΩ（E.2）；保护 BAV199（默认）/ 低漏电 ESD 阵列（备选焊盘）；抗混叠 RC = 每线 1 kΩ + 10 nF（fc≈16 kHz）
 - 自校准：0.1% Rsense 打底 + 板上 R_ref（100 kΩ 0.01%）自检，**TMUX1101×2+TMUX1102×2 切换**；**零点模式**消 ADC 失调（K1/K2 分控：SEL_K1 = PC5、SEL_K2 = PC3；δ0 只存 RAM，k 只由上位机写 Flash）（电路见 E.3 + diagram/rref-calibration-circuit）
-- MCU：**STM32U575RET6Q**（M33 160 MHz、1 MB Flash、**786 KB SRAM**、USB OTG FS、LQFP-64）
+- MCU：**STM32U545RET6Q**（M33 160 MHz、512 KB Flash、**274 KB SRAM**、USB OTG FS、LQFP-64）
 - 温度：TMP117 外置 4 线探头（连接器用户自选）；通信：USB OTG FS（Type-C）
 - 电源：1S 锂电 103450 + **BQ24040**（OUT=电池节点）+ 双 LDO（**数字 TPS7A0233 25 nA 常开 / 模拟 TPS7A2033 6.5 µA、7 µVrms EN 受控**）
 - 引脚/时钟/电源域/交互/连接器已全部定稿（主文档 **E.6–E.9**）；E.5.5 三项待办已销号

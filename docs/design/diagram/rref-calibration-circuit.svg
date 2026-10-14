@@ -220,7 +220,7 @@
 
 <!-- ===== MCU GPIO panel ===== -->
 <rect x="1080" y="120" width="480" height="208" rx="8" fill="#faf5ff" stroke="#7c3aed" stroke-width="1.4"/>
-<text x="1100" y="146" font-size="13" font-weight="bold" fill="#7c3aed">MCU GPIO（STM32U575）-&gt; 开关 / 恒流</text>
+<text x="1100" y="146" font-size="13" font-weight="bold" fill="#7c3aed">MCU GPIO（STM32U545）-&gt; 开关 / 恒流</text>
 <text x="1100" y="172" font-size="11" font-weight="bold" fill="#7c3aed">SEL_K1（PC5）</text>
 <text x="1250" y="172" font-size="11" fill="#374151">-&gt; K1 样品回线 · NO：高 = 通</text>
 <text x="1100" y="194" font-size="11" font-weight="bold" fill="#7c3aed">SEL_K2（PC3）</text>

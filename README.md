@@ -10,7 +10,7 @@ ADC 同步采两者压降，按 `R = (V_sample / V_Rsense) × Rsense` 计算电�
 ## 当前状态
 
 - **已完成**：工作区骨架、忽略规则与文件属性约定；**设计文档见 [`docs/design/`](docs/design/README.md)**。
-- **已定稿的硬件选型与实现**：ADC = ADS131A02（双通道同步）、MCU = STM32U575RET6Q、
+- **已定稿的硬件选型与实现**：ADC = ADS131A02（双通道同步）、MCU = STM32U545RET6Q、
   电源 = 1S 锂电 + BQ24040 + 双 LDO（数字 TPS7A0233 / 模拟 TPS7A2033）、激励 = 8 µA 恒流源、
   温度传感 = TMP117（外置探头）、通信 = USB OTG FS；
   **引脚分配 / 时钟方案 / 电源域 / 交互连接器 / R_ref 自校准电路均已定稿**（主文档 E.3、E.6–E.9）。
@@ -65,7 +65,7 @@ ADC 同步采两者压降，按 `R = (V_sample / V_Rsense) × Rsense` 计算电�
 ## 待办与未决事项
 
 **已决策**（依据见 [`docs/design/`](docs/design/README.md)）：测量拓扑（恒流测电阻，不做电桥）、
-激励（8 µA + Rsense 150 kΩ）、ADC（ADS131A02 双通道同步）、MCU（STM32U575RET6Q）、
+激励（8 µA + Rsense 150 kΩ）、ADC（ADS131A02 双通道同步）、MCU（STM32U545RET6Q）、
 电源（1S 锂电 + BQ24040 + 双 LDO）、温度传感（TMP117 外置探头）、通信（USB OTG FS）、
 R_ref 自校准电路（TMUX110x 切换）、引脚/时钟/电源域/交互（主文档 E.6–E.9）。
 
