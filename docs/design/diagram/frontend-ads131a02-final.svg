@@ -177,7 +177,7 @@
 <line x1="1080" y1="370" x2="1280" y2="370" class="w"/>
 <text x="1180" y="364" font-size="10" fill="#64748b" text-anchor="middle">SPI</text>
 <rect x="1280" y="360" width="200" height="110" rx="8" fill="#faf5ff" stroke="#7c3aed" stroke-width="1.6"/>
-<text x="1380" y="386" font-size="12" font-weight="bold" fill="#5b21b6" text-anchor="middle">STM32U575RGT6</text>
+<text x="1380" y="386" font-size="12" font-weight="bold" fill="#5b21b6" text-anchor="middle">STM32U575RET6Q</text>
 <text x="1380" y="406" font-size="10" fill="#5b21b6" text-anchor="middle">SPI 3.3V 直连</text>
 <text x="1380" y="424" font-size="10" fill="#5b21b6" text-anchor="middle">786 KB SRAM</text>
 <text x="1380" y="442" font-size="10" fill="#5b21b6" text-anchor="middle">k：Flash / d0：RAM</text>

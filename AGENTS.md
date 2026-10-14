@@ -62,7 +62,7 @@
 | 前端 | **3 颗跟随器 OPA388**（T、M、B 三线；AIN1N 直接经 RC 接 Rsense 底端）；T 点顶端偏置 R_top 10 kΩ / R_b 150 kΩ（E.2）；保护 BAV199（默认）/ 低漏电 ESD 阵列（备选焊盘） |
 | 自校准 | 0.1% Rsense 打底 + 板上 R_ref（100 kΩ 0.01%）自检，TMUX1101×2+TMUX1102×2 切换；**零点模式**消 ADC 失调（K1/K2 分控：SEL_K1 = PC5、SEL_K2 = PC3）（切换电路已画：`docs/design/diagram/rref-calibration-circuit.svg`，方案见 E.3）；**全链仿真 2026-10-14 定版**：三层校准机构逐项实测验证（fs 套件） |
 | 测量能力 | **1% 可用范围 ~73 Ω–600 kΩ**（设计量程 10–120 kΩ @≤0.005%）；定级**随 R 变**：**@120 kΩ ≈4½ 位精度**、**@10 kΩ 降到 4 位（typ）/3½ 位（max）**（INL 主导，2026-10-14 按手册 TYP 8/MAX 20 ppm FS 修正，原写"4½ 位精度"未分 R）；5½ 位**分辨率**（准静态，分辨率≠精度）；绝对精度锚定 R_ref（Rsense 在 k 校准中约掉）；冲击 10 ms 级跟踪误差 <0.000023%（E.3.4/E.4.3） |
-| MCU | STM32U575RGT6（M33 160 MHz、1 MB Flash、786 KB SRAM、USB OTG FS、LQFP-64） |
+| MCU | STM32U575RET6Q（M33 160 MHz、1 MB Flash、786 KB SRAM、USB OTG FS、LQFP-64） |
 | 温度/电源/通信 | TMP117 外置 4 线探头（**PT100 已否**：贴装温差是瓶颈非传感器精度，2026-10-14 定稿，E.5.2；备选升级口：同位参考试件 K5/K6）；1S 锂电 + BQ24040 + 双 LDO（**数字 TPS7A0233 常开 / 模拟 TPS7A2033 EN 受控**）；USB OTG FS（Type-C） |
 | 引脚/时钟/电源域/交互 | 已全部定稿（主文档 E.6–E.9）；E.5.5 三项待办已销号 |
 
