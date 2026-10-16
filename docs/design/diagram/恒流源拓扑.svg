@@ -24,7 +24,7 @@
 <!-- ===== title ===== -->
 <text x="40" y="46" font-size="22" font-weight="bold" fill="#111827">恒流源拓扑</text>
 <text x="40" y="72" font-size="12.5" fill="#64748b">OPA333 + BSS138 低边恒流源 · 7.86 uA · Rsense 150 kOhm</text>
-<text x="1160" y="46" font-size="12" fill="#94a3b8" text-anchor="end">附录 E.2 · 2026-10-14</text>
+<text x="1160" y="46" font-size="12" fill="#94a3b8" text-anchor="end">附录 E.2 · 2026-10-17</text>
 
 <!-- ===== VSET divider ===== -->
 <text x="100" y="120" font-size="13" font-weight="bold" fill="#059669">3.3V_A</text>

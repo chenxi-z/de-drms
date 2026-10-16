@@ -24,7 +24,7 @@
 <!-- ===== title ===== -->
 <text x="40" y="58" font-size="27" font-weight="bold" fill="#111827">R_ref 自校准与零点电路</text>
 <text x="40" y="86" font-size="12.5" fill="#64748b">双电极直流电阻测量仪 · 低边恒流 7.86 uA（Rsense 在 BSS138 源极路径）· T 点经 R_top / R_b 偏置 · ADS131A02 双通道同步实测</text>
-<text x="1560" y="58" font-size="12" fill="#94a3b8" text-anchor="end">附录 E.3 自校准切换电路 · 原理示意（2026-10-14 重画）</text>
+<text x="1560" y="58" font-size="12" fill="#94a3b8" text-anchor="end">附录 E.3 自校准切换电路 · 原理示意（2026-10-17 重画）</text>
 <text x="1560" y="86" font-size="12" fill="#94a3b8" text-anchor="end">主图按控制脚默认电平（全低）绘制 = 校准态</text>
 
 <!-- ===== 3.3V_A -> R_top -> T ===== -->

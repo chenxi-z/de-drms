@@ -23,7 +23,7 @@
 
 <!-- ===== title ===== -->
 <text x="40" y="50" font-size="22" font-weight="bold" fill="#111827">前端拓扑（定稿）：顶端偏置 + 低边恒流源 + 3 颗跟随器 + ADS131A02</text>
-<text x="40" y="78" font-size="12" fill="#64748b">测量模式信号链 · R = k x (V_ch0 - d0) / V_ch1 x Rsense · 2026-10-14 补必接脚</text>
+<text x="40" y="78" font-size="12" fill="#64748b">测量模式信号链 · R = k x (V_ch0 - d0) / V_ch1 x Rsense · 2026-10-17 补必接脚</text>
 <text x="1560" y="50" font-size="12" fill="#94a3b8" text-anchor="end">E.2 / E.4</text>
 
 <!-- ===== 3.3V_A rail + R_top + R_b ===== -->

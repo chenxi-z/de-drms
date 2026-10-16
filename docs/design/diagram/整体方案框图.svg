@@ -24,7 +24,7 @@
 <!-- ===== title ===== -->
 <text x="40" y="46" font-size="22" font-weight="bold" fill="#111827">DE-DRMS 整体方案框图</text>
 <text x="40" y="72" font-size="12.5" fill="#64748b">双电极直流电阻测量仪 · 1S 锂电 + 双 LDO + STM32U545 + ADS131A02</text>
-<text x="1760" y="46" font-size="12" fill="#94a3b8" text-anchor="end">附录 E · 2026-10-14</text>
+<text x="1760" y="46" font-size="12" fill="#94a3b8" text-anchor="end">附录 E · 2026-10-17</text>
 
 <!-- ===== power chain ===== -->
 <rect x="60" y="100" width="120" height="70" rx="2" fill="#fef3c7" stroke="#374151" stroke-width="2"/>
