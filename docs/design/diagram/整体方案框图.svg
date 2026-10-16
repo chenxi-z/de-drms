@@ -49,7 +49,7 @@
 <text x="190" y="329" font-size="10" fill="#2563eb">PC0 VBAT_MON</text>
 <text x="190" y="343" font-size="9" fill="#94a3b8">(2x1MOhm 分压)</text>
 <text x="190" y="235" font-size="9" fill="#64748b">ISET: PB4</text>
-<text x="190" y="535" font-size="9" fill="#64748b">EN: PB12</text>
+<text x="190" y="535" font-size="9" fill="#64748b">EN: PB15</text>
 
 <!-- ===== MCU ===== -->
 <rect x="260" y="100" width="240" height="470" rx="2" fill="#f8fafc" stroke="#374151" stroke-width="2.5"/>
@@ -64,15 +64,15 @@
 <text x="275" y="276" font-size="10" font-weight="bold" fill="#111827">按键 x2</text>
 <text x="275" y="291" font-size="9" fill="#64748b">PB1 (PWR) · PA0</text>
 <text x="275" y="314" font-size="10" font-weight="bold" fill="#111827">LED x4 + 状态</text>
-<text x="275" y="329" font-size="9" fill="#64748b">PC6-9 · PA8 (PWR)</text>
+<text x="275" y="329" font-size="9" fill="#64748b">PC2/3/PB14/6 · PC7</text>
 <text x="485" y="205" font-size="10" font-weight="bold" fill="#7c3aed" text-anchor="end">SPI1</text>
-<text x="485" y="220" font-size="9" fill="#64748b" text-anchor="end">PA5/6/7 · PA4(nCS) · PC4(DRDY)</text>
+<text x="485" y="220" font-size="9" fill="#64748b" text-anchor="end">PA5/6/7 · PA4(nCS) · PA9(DRDY)</text>
 <text x="485" y="248" font-size="10" font-weight="bold" fill="#7c3aed" text-anchor="end">I2C1</text>
 <text x="485" y="263" font-size="9" fill="#64748b" text-anchor="end">PB6/7 · TMP117</text>
 <text x="485" y="291" font-size="10" font-weight="bold" fill="#7c3aed" text-anchor="end">SEL_K1 / SEL_K2</text>
-<text x="485" y="306" font-size="9" fill="#64748b" text-anchor="end">PC5 / PC3 · TMUX 切换</text>
+<text x="485" y="306" font-size="9" fill="#64748b" text-anchor="end">PB5 / PB8 · TMUX 切换</text>
 <text x="485" y="334" font-size="10" font-weight="bold" fill="#7c3aed" text-anchor="end">CURR_DIS/ANA_EN</text>
-<text x="485" y="349" font-size="9" fill="#64748b" text-anchor="end">PB10 / PB12</text>
+<text x="485" y="349" font-size="9" fill="#64748b" text-anchor="end">PB10 / PB15</text>
 
 <!-- ===== digital peripherals ===== -->
 <rect x="580" y="120" width="200" height="150" rx="2" fill="#eff6ff" stroke="#374151" stroke-width="2"/>
@@ -132,16 +132,23 @@
 <text x="420" y="588" font-size="11" font-weight="bold" fill="#2563eb">VDD -&gt; 3.3V_D</text>
 
 <!-- ===== power domain note ===== -->
-<rect x="40" y="700" width="800" height="90" rx="2" fill="#f8fafc" stroke="#374151" stroke-width="1.5"/>
+<rect x="580" y="480" width="200" height="110" rx="2" fill="#eff6ff" stroke="#2563eb" stroke-width="2"/>
+  <text x="680" y="504" font-size="11" font-weight="bold" fill="#1e3a8a" text-anchor="middle">TF 卡记录（SDMMC1 4-bit）</text>
+  <text x="680" y="526" font-size="9.5" fill="#374151" text-anchor="middle">33 Ohm 串阻 · CMD 上拉 10 kOhm</text>
+  <text x="680" y="544" font-size="9.5" fill="#374151" text-anchor="middle">3V3_SD &lt;- 高边开关 PB13</text>
+  <text x="680" y="562" font-size="9.5" fill="#374151" text-anchor="middle">SD_CD=PA15 · FatFS</text>
+  <text x="680" y="580" font-size="9.5" fill="#059669" text-anchor="middle">待机默认断电（省 50-100 uA）</text>
+  <line x1="500" y1="527" x2="580" y2="527" class="w"/>
+  <rect x="40" y="700" width="800" height="90" rx="2" fill="#f8fafc" stroke="#374151" stroke-width="1.5"/>
 <text x="55" y="722" font-size="13" font-weight="bold" fill="#111827">电源域划分</text>
-<text x="55" y="742" font-size="11" fill="#2563eb">3.3V_D（数字域，常开）：MCU、USB、LED、TMP117、ADS131A02 IOVDD</text>
+<text x="55" y="742" font-size="11" fill="#2563eb">3.3V_D（数字域，常开）：MCU、USB、LED、TMP117、ADS131A02 IOVDD、TF 卡（PB13 高边开关）</text>
 <text x="55" y="762" font-size="11" fill="#059669">3.3V_A（模拟域，EN 受控）：ADS131A02 AVDD、OPA388x3、OPA333、TMUX、VSET、R_top/R_b</text>
-<text x="55" y="782" font-size="10" fill="#64748b">双 LDO 天然隔离数模，无需磁珠；模拟域仅测量窗口上电，待机 ~17.6 uA</text>
+<text x="55" y="782" font-size="10" fill="#64748b">双 LDO 天然隔离数模，无需磁珠；模拟域仅测量窗口上电，待机 ~10.8 uA</text>
 
 <!-- ===== notes ===== -->
 <text x="40" y="820" font-size="13" font-weight="bold" fill="#111827">图注与自查要点：</text>
 <text x="40" y="845" font-size="11" fill="#374151">1. 电源树：USB 5V -&gt; BQ24040 -&gt; 电池节点 -&gt; 双 LDO（数字 25nA 常开 + 模拟 6.5uA EN 受控）</text>
-<text x="40" y="867" font-size="11" fill="#374151">  模拟域仅测量窗口上电（ANA_EN=PB12），待机时仅数字域耗电（~17.6uA）</text>
+<text x="40" y="867" font-size="11" fill="#374151">  模拟域仅测量窗口上电（ANA_EN=PB15），待机时仅数字域耗电（~10.8uA）</text>
 <text x="40" y="889" font-size="11" fill="#374151">3. ADC 双通道同步采样，恒流波动在 R=V/I 除法中抵消</text>
 <text x="40" y="911" font-size="11" fill="#374151">  前端 3 颗跟随器距轨 &gt;= 0.15V（T 点偏置 R_top/R_b 保证），AIN1N 直接经 RC 不进跟随器</text>
 <text x="40" y="933" font-size="11" fill="#374151">  校准三模式：测量（K1 通）/ 校准（K2 通）/ 零点（K1/K2 均断 + CURR_DIS=1）</text>

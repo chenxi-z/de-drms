@@ -63,7 +63,7 @@
 <line x1="260" y1="404" x2="261" y2="373" class="sym"/>
 <line x1="290.5" y1="388.5" x2="260.5" y2="388.5" class="p"/>
 <circle cx="260.5" cy="388.5" r="3" fill="#ffffff" stroke="#7c3aed" stroke-width="1.6"/>
-<text x="298" y="392" font-size="10" font-weight="bold" fill="#7c3aed">K1 (SEL_K1 PC5)</text>
+<text x="298" y="392" font-size="10" font-weight="bold" fill="#7c3aed">K1 (SEL_K1 PB5)</text>
 <line x1="260" y1="404" x2="260" y2="424" class="gw"/>
 <circle cx="260" cy="424" r="4.5" fill="#111827"/>
 <text x="248" y="420" font-size="12" font-weight="bold" fill="#111827" text-anchor="end">X</text>
