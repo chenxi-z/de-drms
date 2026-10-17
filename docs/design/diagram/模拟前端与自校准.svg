@@ -57,17 +57,17 @@
 <text x="536" y="318" font-size="10.5" fill="#374151">150 kOhm · 1%</text>
 
 <!-- ===== sample branch ===== -->
-<line x1="180" y1="250" x2="180" y2="276" class="w"/>
-<rect x="152" y="276" width="56" height="48" rx="2" fill="#f8fafc" stroke="#374151" stroke-width="1.6"/>
-<circle cx="180" cy="288" r="3.5" fill="#ffffff" stroke="#374151" stroke-width="2"/>
-<circle cx="180" cy="312" r="3.5" fill="#ffffff" stroke="#374151" stroke-width="2"/>
-<text x="216" y="293" font-size="12" font-weight="bold" fill="#334155">4×SMA（J5–J8）</text>
-<text x="216" y="310" font-size="10.5" fill="#94a3b8">外部端子（见下）</text>
-<line x1="180" y1="324" x2="180" y2="338" class="w"/>
 <rect x="110" y="338" width="140" height="66" rx="2" fill="#fffbeb" stroke="#d97706" stroke-width="1.8" stroke-dasharray="7,5"/>
+<text x="142" y="330" font-size="10.5" font-weight="bold" fill="#059669" text-anchor="middle">J5·I+</text>
+<text x="220" y="330" font-size="10.5" font-weight="bold" fill="#2563eb" text-anchor="middle">J6·V+</text>
+<text x="142" y="420" font-size="10.5" font-weight="bold" fill="#059669" text-anchor="middle">J7·I−</text>
+<text x="220" y="420" font-size="10.5" font-weight="bold" fill="#2563eb" text-anchor="middle">J8·V−</text>
 <text x="180" y="362" font-size="14" font-weight="bold" fill="#92400e" text-anchor="middle">被测样品</text>
 <text x="180" y="381" font-size="12" fill="#92400e" text-anchor="middle">R = 10 ~ 120 kOhm</text>
 <text x="180" y="397" font-size="10" fill="#b45309" text-anchor="middle">（板外器件 · 虚线框）</text>
+<circle cx="180" cy="250" r="4.5" fill="#111827"/>
+<line x1="180" y1="250" x2="180" y2="338" class="w"/>
+<line x1="180" y1="250" x2="255" y2="250" class="w"/>
 <line x1="180" y1="404" x2="180" y2="440" class="w"/>
 
 <!-- ===== BAV199 clamp ===== -->
@@ -166,6 +166,12 @@
 <text x="178" y="716" font-size="10.5" fill="#94a3b8" text-anchor="middle">OPA333</text>
 <line x1="144" y1="627.5" x2="110" y2="627.5" class="w"/>
 <rect x="30" y="610" width="80" height="36" rx="2" fill="#f8fafc" stroke="#374151" stroke-width="1.4"/>
+<text x="610" y="600" font-size="11" font-weight="bold" fill="#111827">外部端子（4×SMA，图上标 J5–J8）</text>
+<text x="610" y="618" font-size="10" fill="#059669">J5 = I+（力线）→ T</text>
+<text x="610" y="634" font-size="10" fill="#2563eb">J6 = V+（感线）→ OPA388(T) 输入</text>
+<text x="610" y="650" font-size="10" fill="#059669">J7 = I−（力线）→ K1/K2 → X</text>
+<text x="610" y="666" font-size="10" fill="#2563eb">J8 = V−（感线）→ K3/K4 → M</text>
+<text x="610" y="684" font-size="10" fill="#ea580c">JP1/JP2 焊上 = 两线制；不焊 = 四线制</text>
 <text x="70" y="625" font-size="11" font-weight="bold" fill="#111827" text-anchor="middle">VSET</text>
 <text x="70" y="640" font-size="10" fill="#64748b" text-anchor="middle">1.179 V</text>
 <line x1="70" y1="646" x2="70" y2="670" class="p"/>
@@ -272,28 +278,12 @@
 <text x="1100" y="664" font-size="10.5" fill="#64748b">上电 / 周期自检只做只读比对，超差报警，不覆盖 k</text>
 
 <!-- ===== notes ===== -->
-<rect x="320" y="880" width="680" height="240" rx="8" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.4"/>
-<text x="340" y="910" font-size="12.5" font-weight="bold" fill="#111827">外部端子（4 × SMA，J5–J8）— 两线 / 四线兼容</text>
-<text x="340" y="940" font-size="10" font-weight="bold" fill="#374151">端子</text>
-<text x="450" y="940" font-size="10" font-weight="bold" fill="#374151">接到板内</text>
 <text x="640" y="940" font-size="10" font-weight="bold" fill="#374151">说明</text>
-<text x="340" y="964" font-size="10.5" fill="#059669">J5 · I+</text>
-<text x="450" y="964" font-size="10.5" fill="#374151">T（力线）</text>
 <text x="640" y="964" font-size="10.5" fill="#374151">样品上端；与 R_top/R_b、R_ref 顶端共用</text>
-<text x="340" y="986" font-size="10.5" fill="#2563eb">J6 · V+</text>
-<text x="450" y="986" font-size="10.5" fill="#374151">OPA388(T) 输入</text>
 <text x="640" y="986" font-size="10.5" fill="#374151">样品上端感线（四线制走这路）</text>
-<text x="340" y="1008" font-size="10.5" fill="#059669">J7 · I−</text>
-<text x="450" y="1008" font-size="10.5" fill="#374151">K1/K2 → X</text>
 <text x="640" y="1008" font-size="10.5" fill="#374151">样品下端力线（回线）</text>
-<text x="340" y="1030" font-size="10.5" fill="#2563eb">J8 · V−</text>
-<text x="450" y="1030" font-size="10.5" fill="#374151">K3/K4 → M</text>
 <text x="640" y="1030" font-size="10.5" fill="#374151">样品下端感线</text>
-<text x="340" y="1052" font-size="10.5" fill="#ea580c">JP1 / JP2</text>
-<text x="450" y="1052" font-size="10.5" fill="#374151">J5↔J6 / J7↔J8</text>
 <text x="640" y="1052" font-size="10.5" fill="#374151">焊上 = 两线制（只接 J5、J7）；不焊 = 四线制</text>
-<text x="340" y="1078" font-size="9.5" fill="#94a3b8">Kelvin 接法：样品上端 J5/J6 夹同一点、下端 J7/J8 夹同一点；详见 diagram/两电极四线制接法.svg</text>
-<text x="340" y="1098" font-size="9.5" fill="#94a3b8">两线制误差 = (引线+接触)/R_sample：0.5 Ω 在 73 Ω 处 0.68%、10 kΩ 处 0.005%、120 kΩ 处 0.0004%</text>
 <rect x="30" y="1196" width="1540" height="92" rx="8" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.2"/>
 <text x="50" y="1220" font-size="13" font-weight="bold" fill="#111827">图注与自查要点</text>
 <text x="50" y="1242" font-size="10.5" fill="#374151">1. T 为样品与 R_ref 的共用顶端（经 R_top 10 kOhm 接 3.3V_A、R_b 150 kOhm 对地），到各支路顶端不经开关；2. 恒流源在低边，Rsense 在 BSS138 源极路径（I = VSET/Rsense）；3. 校准、零点时样品回线断开 -&gt; 零电流（不是短路）</text>
