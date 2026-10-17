@@ -1,0 +1,89 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="780" viewBox="0 0 1400 780"
+     font-family="'Noto Sans CJK SC','Noto Sans SC','Source Han Sans SC','PingFang SC','Microsoft YaHei',sans-serif">
+<style>
+  .w   { stroke:#374151; stroke-width:2;   fill:none }
+  .gw  { stroke:#059669; stroke-width:3;   fill:none }
+  .bw  { stroke:#2563eb; stroke-width:2.6; fill:none }
+  .p   { stroke:#ea580c; stroke-width:2.2; fill:none; stroke-dasharray:6,4 }
+</style>
+<defs>
+  <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
+    <path d="M20,0 L0,0 0,20" fill="none" stroke="#eef2f7" stroke-width="1"/>
+  </pattern>
+</defs>
+<rect x="0" y="0" width="1400" height="780" fill="#ffffff"/>
+<rect x="0" y="0" width="1400" height="780" fill="url(#grid)"/>
+
+<text x="40" y="46" font-size="22" font-weight="bold" fill="#111827">四线制模拟前端接法（J5–J8 → 偏置 / 跟随器 / 切换网络）</text>
+<text x="40" y="72" font-size="12" fill="#64748b">感线在内（贴样品）、力线在外；力线与感线只在样品端子处汇合（Kelvin）· 绿 = 力线（走电流）· 蓝 = 感线（不走电流）</text>
+<text x="1360" y="46" font-size="12" fill="#94a3b8" text-anchor="end">E.9 / E.3 · 2026-10-17</text>
+
+<!-- 样品（板外）-->
+<rect x="70" y="270" width="110" height="190" rx="4" fill="#fffbeb" stroke="#d97706" stroke-width="2" stroke-dasharray="7,5"/>
+<text x="125" y="352" font-size="13" font-weight="bold" fill="#92400e" text-anchor="middle">被测</text>
+<text x="125" y="372" font-size="13" font-weight="bold" fill="#92400e" text-anchor="middle">样品</text>
+<text x="125" y="392" font-size="9.5" fill="#b45309" text-anchor="middle">板外</text>
+<circle cx="180" cy="318" r="5" fill="#111827"/>
+<circle cx="180" cy="420" r="5" fill="#111827"/>
+<text x="168" y="310" font-size="9.5" fill="#94a3b8" text-anchor="end">A</text>
+<text x="168" y="412" font-size="9.5" fill="#94a3b8" text-anchor="end">B</text>
+
+<!-- 四只 SMA -->
+<circle cx="280" cy="300" r="6" fill="#ffffff" stroke="#059669" stroke-width="2"/>
+<circle cx="280" cy="340" r="6" fill="#ffffff" stroke="#2563eb" stroke-width="2"/>
+<circle cx="280" cy="400" r="6" fill="#ffffff" stroke="#059669" stroke-width="2"/>
+<circle cx="280" cy="440" r="6" fill="#ffffff" stroke="#2563eb" stroke-width="2"/>
+
+<!-- 样品到端子的电缆（力/感在样品端子处汇合）-->
+<line x1="185" y1="318" x2="240" y2="318" class="gw"/>
+<line x1="240" y1="318" x2="240" y2="300" class="gw"/>
+<line x1="240" y1="300" x2="274" y2="300" class="gw"/>
+<line x1="240" y1="318" x2="240" y2="340" class="bw"/>
+<line x1="240" y1="340" x2="274" y2="340" class="bw"/>
+<line x1="185" y1="420" x2="240" y2="420" class="gw"/>
+<line x1="240" y1="420" x2="240" y2="400" class="gw"/>
+<line x1="240" y1="400" x2="274" y2="400" class="gw"/>
+<line x1="240" y1="420" x2="240" y2="440" class="bw"/>
+<line x1="240" y1="440" x2="274" y2="440" class="bw"/>
+
+<!-- JP1 / JP2（两线制焊上）-->
+<line x1="280" y1="306" x2="280" y2="334" class="p"/>
+<text x="300" y="322" font-size="9.5" fill="#ea580c">JP1</text>
+<line x1="280" y1="406" x2="280" y2="434" class="p"/>
+<text x="300" y="418" font-size="9.5" fill="#ea580c">JP2</text>
+
+<!-- 板内去向（右侧四个块）-->
+<line x1="286" y1="300" x2="380" y2="300" class="gw"/>
+<line x1="286" y1="340" x2="380" y2="340" class="bw"/>
+<line x1="286" y1="400" x2="380" y2="400" class="gw"/>
+<line x1="286" y1="440" x2="380" y2="440" class="bw"/>
+<rect x="380" y="283" width="520" height="34" rx="5" fill="#f0fdf4" stroke="#059669" stroke-width="1.5"/>
+<text x="396" y="297" font-size="11" font-weight="bold" fill="#065f46">J5 · T（力线节点）</text>
+<text x="396" y="312" font-size="9" fill="#374151">R_top/R_b 偏置 + R_ref 顶端；样品与 R_ref 共用，顶端不经开关</text>
+<rect x="380" y="323" width="520" height="34" rx="5" fill="#eff6ff" stroke="#2563eb" stroke-width="1.5"/>
+<text x="396" y="337" font-size="11" font-weight="bold" fill="#1e40af">J6 · V+（感线）</text>
+<text x="396" y="352" font-size="9" fill="#374151">1 kΩ + 10 nF → OPA388(T) 同相端 → AIN0P（含 BAV199 钳位）</text>
+<rect x="380" y="383" width="520" height="34" rx="5" fill="#f0fdf4" stroke="#059669" stroke-width="1.5"/>
+<text x="396" y="397" font-size="11" font-weight="bold" fill="#065f46">J7 · I−（力线回线）</text>
+<text x="396" y="412" font-size="9" fill="#374151">K1 / K2 → X（BSS138 → Rsense → GND 低边电流沉）</text>
+<rect x="380" y="423" width="520" height="34" rx="5" fill="#eff6ff" stroke="#2563eb" stroke-width="1.5"/>
+<text x="396" y="437" font-size="11" font-weight="bold" fill="#1e40af">J8 · V−（感线）</text>
+<text x="396" y="452" font-size="9" fill="#374151">K3 / K4 → M → 1 kΩ + 10 nF → OPA388(M) → AIN1N</text>
+
+
+
+
+
+
+<!-- 备注 -->
+<rect x="40" y="500" width="1320" height="250" rx="8" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.2"/>
+<text x="60" y="526" font-size="13" font-weight="bold" fill="#111827">接法要点</text>
+<text x="60" y="550" font-size="10.5" fill="#374151">① 力/感只在样品端子汇合：样品上端 A 接 J5（I+ 力）与 J6（V+ 感）；下端 B 接 J7（I− 力）与 J8（V− 感）。四个夹子时，感线夹必须夹在力线夹与样品之间（感线在内、力线在外），力线夹的接触电阻才被排除。</text>
+<text x="60" y="570" font-size="10.5" fill="#374151">② 为什么四线制：误差 = (引线+接触电阻)/R_sample。0.5 Ω 引线在 120 kΩ 处 4 ppm ✓，但在 10 kΩ 处 50 ppm = 吃光 0.005% 全部预算、73 Ω 处 0.68% ×。四线制下感线无电流，该误差 ≈ 0。</text>
+<text x="60" y="590" font-size="10.5" fill="#374151">③ 切换网络不变：K1/K2 选力线回线（样品 / R_ref）、K3/K4 选感线对（样品 / R_ref）；零点模式全断 + CURR_DIS = 1；T 到样品与 R_ref 顶端不经开关。</text>
+<text x="60" y="610" font-size="10.5" fill="#374151">④ 两线制兼容：JP1 焊上（J5↔J6）、JP2 焊上（J7↔J8），只用 J5、J7 两根线；四线制时两只跳线都不焊。</text>
+<text x="60" y="630" font-size="10.5" fill="#374151">⑤ 屏蔽：4 只 SMA 外壳在仪器侧单端接 AGND；电缆 4 芯屏蔽（I+/I− 与 V+/V− 各双绞）。</text>
+<text x="60" y="650" font-size="10.5" fill="#374151">⑥ 与两线制图的关系：本图是原理级接法（J5–J8 的板内去向 + 样品处的 Kelvin 汇合）；物理接线示意见 diagram/两电极四线制接法.svg。</text>
+<text x="60" y="676" font-size="9.5" fill="#94a3b8">注意：四线制时 OPA388(T) 的输入来自 J6（V+），不再取自 T 力线节点；OPA388(M) 仍取自 K3/K4 汇合点 M。校准 R_ref 时靠「样品仍接、无电流 → J6 电位 = T」保证读数正确。</text>
+<text x="60" y="700" font-size="9.5" fill="#94a3b8">若要求「不接样品也能校准」，需再加一只切换开关把 T 力线接到 V+ 感线输入（K5，选配）。</text>
+</svg>
