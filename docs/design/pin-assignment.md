@@ -8,9 +8,13 @@
 > ① 新增 **SDMMC1 4-bit**（TF 卡记录）；② **VBUS 检测由 PA9/OTG 硬件改为 PC1 + ADC 分压**
 > （STM32U5 的 CubeMX 无 VBUS sensing 选项，且"PA9 5 V 容忍"未经 DS14216 核实）；
 > ③ 辅助 GPIO 按**同端口聚堆**重排（ADC 簇归 PA、TMUX 簇归 PB、LED 簇归 PC）；
-> ④ 取消 TMP117 ALERT（探头四线）、撤销 NTC 备选占位（PC1 让给 VBUS）。
+> ④ 取消 TMP117 ALERT（探头四线）、撤销 NTC 备选占位（PC1 让给 VBUS）；
+> ⑤ **二轮复核（同日晚，全表按 DS14216 Table 27/28 逐行核）**：LQFP64_SMPS **无 PC4/PC5/PB9/PB12** →
+> DRDY→**PA9**、SD_CD→**PA15**、ANA_EN→**PB15**、LED 橙→**PB14**；通道号更正 PC0=**IN1**、PC1=**IN2**；
+> 调试串口更正为 **LPUART1**（U545 无 USART2）；电源脚更正（无 VCAP、无 PDR_ON；VDD=19/33/64、VSS=18/32/47/63）。
 >
-> ⚠️ **凡未标"手册核实"的通道号/耐压/表号，均待对 DS14216 复核 → 见主文档 E.10 #12。**
+> ✅ **全表引脚存在性 / AF / 通道号已按 DS14216 核实（2026-10-14 二轮复核 + 2026-10-16 三次复核逐脚再验，结论不变）**；
+> 遗留待核仅 RM0456 四项（主文档 E.10 #17）+ PB4 复位态对默认充电档的影响（§ 1.1、E.8.4）。
 
 ---
 
@@ -23,15 +27,15 @@
 | **ADS131A02（PA 侧扇出）** | PA5 / PA6 / PA7 | SCLK / MISO / MOSI | SPI1（AF5），**模式 1**（CPOL=0 / CPHA=1） |
 | | PA4 | nCS | GPIO，默认**高** |
 | | **PA8** | nRESET | GPIO，默认**高**；低有效，脉宽 ≥800 ns（**原 PB0**） |
-| | PC4 | DRDY | **EXTI4**，内部上拉，**下降沿** |
-| | | | → PA4–PA8 成连续 5 脚；DRDY 留 PC4（PA10 引出情况未核，不占） |
-| **内部 ADC1 监测（PC 侧）** | PC0 | VBAT_MON | ADC1_IN5，电池分压 2×1 MΩ + 100 nF（常通 ~2 µA） |
-| | **PC1** | **VBUS_MON** | ADC，VBUS 分压 **1 MΩ / 1 MΩ + 100 nF**（比 0.5）；判"USB 在线"阈值 3.70 V |
-| | 内部 | VREFINT | 反推 VDDA（外部分压测轨是恒等式，测不出） |
-| | | | → **通道号待核**（E.10 #12①） |
+| | **PA9** | DRDY | **EXTI9**，内部上拉，**下降沿**（**二轮复核改**：原 PC4 在 LQFP64_SMPS 未引出；PA1 因 EXTI1 被 PB1 占用而不可用） |
+| | | | → PA4–PA9 成连续 6 脚 ADC 相关簇（PA9 紧邻 PA8） |
+| **内部 ADC1 监测（PC 侧）** | PC0 | VBAT_MON | **ADC1_IN1**，电池分压 2×1 MΩ + 100 nF（常通 ~2 µA） |
+| | **PC1** | **VBUS_MON** | **ADC1_IN2**，VBUS 分压 **1 MΩ / 1 MΩ + 100 nF**（比 0.5）；判"USB 在线"阈值 3.70 V |
+| | 内部 | VREFINT | 反推 VDDA（外部分压测轨是恒等式，测不出）。采样时间依据 **DS14216 Table 37 `tS_vrefint = 12.65 µs typ`** → @16 MHz 取 **≥320 周期**；旧文档"最小 ≥4 µs"系误引 `tstart_vrefint`（缓冲启动时间），2026-10-16 已勘误。离散档枚举 DS14216 未载 → E.10 #17④ |
+| | | | → 通道号已核（DS14216 Table 27）；高阻源合法性见主文档 E.6 注（100 nF 节点电容 + ≥100 ms 级轮询） |
 | **SDMMC1 4-bit TF（PC 侧扇出）** | PC8 / PC9 / PC10 / PC11 | D0 / D1 / D2 / D3 | AF12 |
 | | PC12 / PD2 | CK / CMD | AF12；CMD 10 kΩ 上拉到 **3V3_SD** |
-| | PB9 | SD_CD | **EXTI9**，内部上拉，下降沿（卡座机械开关） |
+| | **PA15** | SD_CD | **EXTI15**，内部上拉，下降沿（卡座机械开关）；**二轮复核改**：原 PB9 在 LQFP64_SMPS 未引出；PA15 复位默认 JTDI，SWD 模式不用 JTAG 故作 GPIO 合法 |
 | | PB13 | SD_PWR_EN | GPIO，默认**低 = 卡断电**；控制高边开关 |
 | | — | SD_CKIN | **不接**（SDR12/25 以下不需反馈时钟，本设计 24 MHz 起步） |
 | | — | SD_WP | **不接**（写保护由固件 FatFS 标志承担） |
@@ -39,15 +43,15 @@
 | | **PB5** | SEL_K1 | K1 样品回线（NO），**高 = 通**，默认**低**（**原 PC5**） |
 | | **PB8** | SEL_K2 | K2 R_ref 回线（NC），**低 = 通**，默认**高**；与 SEL_K1 互锁（**原 PC3**） |
 | **恒流源** | PB10 | CURR_DIS | **高 = 关断**、低 = 开启；复位/高阻默认 = 开启；零点模式置高 |
-| **电源管理** | PB12 | ANA_EN | TPS7A2033 EN，默认**低**；EN 内置 smart pulldown |
-| | PB4 | ISET_HI | BQ24040 充电电流切换（500 mA ↔ 1 A），默认**低**；判据见 E.8.4 勘误 |
-| **USB OTG FS（Device）** | PA11 / PA12 | DM / DP | AF10 固定复用，FT_u 由 VDDUSB 供电 |
-| | ~~PA9~~ | ~~VBUS~~ | ❌ **撤销**：本芯片 OTG_FS 无 VBUS sensing（CubeMX 无此项），PA9 释放为预留 |
+| **电源管理** | **PB15** | ANA_EN | TPS7A2033 EN，默认**低**；EN 内置 smart pulldown（**二轮复核改**：原 PB12 在 LQFP64_SMPS 未引出） |
+| | PB4 | ISET_HI | BQ24040 充电电流切换（500 mA ↔ 1 A），默认**低**；判据见 E.8.4 勘误。⚠️ **复位期不是低**：Table 27 **注 4** 说 PB4 复位后为 NJTRST 复用**且内部上拉使能**（高阻+上拉，上拉阻值 DS14216 未载）→ "复位默认 500 mA"须由**外部下拉（明显强于内部上拉）或反相驱动**保证，**原理图阶段必核**（见 E.8.4） |
+| **USB FS（Device，外设 USB_DRD_FS）** | PA11 / PA12 | DM / DP | AF10 固定复用，FT_u 由 VDDUSB 供电；设备模式片内支持 BC1.2 BCD（DS14216 §3.47，见主文档 E.8.4） |
+| | ~~PA9~~ | ~~VBUS~~ | ❌ **撤销**：本芯片 USB 无 VBUS sensing（CubeMX 无此项）；PA9 已改作 ADC_DRDY（见上） |
 | **I²C1（TMP117 四线探头）** | PB6 / PB7 | SCL / SDA | AF4，4.7 kΩ 上拉在主板侧 |
 | | ~~PB8~~ | ~~ALERT~~ | ❌ 取消（探头仅 VDD/GND/SDA/SCL），PB8 转予 SEL_K2 |
-| **调试日志** | PA2 / PA3 | USART2 TX / RX | 预留焊盘，115200 |
+| **调试日志** | PA2 / PA3 | LPUART1 TX / RX | 预留焊盘，115200；**U545 无 USART2**（DS14216 §3.32），PA2/PA3 上为 LPUART1（AF8） |
 | **SWD 调试口** | PA13 / PA14 / PB3 / 引脚 7 | SWDIO / SWCLK / SWO / NRST | `Trace_Asynchronous_SW`：SWO 占 PB3、**NJTRST(PB4) 释放**作 ISET_HI |
-| **档位 LED ×4** | PC2 / PC3 / PC5 / PC6 | 绿 / 黄 / 橙 / 红 | 灌电流，**默认高 = 灭**；同一时刻只亮一档 |
+| **档位 LED ×4** | PC2 / PC3 / **PB14** / PC6 | 绿 / 黄 / 橙 / 红 | 灌电流，**默认高 = 灭**；同一时刻只亮一档（**二轮复核改**：原 PC5 在 LQFP64_SMPS 未引出，橙灯改 PB14） |
 | **状态 LED** | PC7 | PWR/USB | 灌电流，默认高（**原 PA8**） |
 | **按键 ×2** | PA0 | MEAS_BTN | **WKUP1**，内部上拉，低有效，100 nF 去抖 |
 | | PB1 | PWR_BTN | **WKUP4**，内部上拉，低有效，100 nF 去抖 |
@@ -55,44 +59,46 @@
 | **LSE** | PC14 / PC15 | OSC32_IN / OUT | 32.768 kHz，供 RTC |
 | **BOOT0** | PH3（引脚 60） | — | PCB 10 kΩ 下拉，不在 CubeMX 配置 |
 
-> **LED 簇为何断在 PC4**：想让 5 颗 LED 占 PC2–PC6 完美连号，需把 ADC_DRDY 挪到 PA10；
-> 但 **PA10 是否引出 LQFP-64 未经 DS14216 核实**，不凭猜测占脚。
-> 故 DRDY 留 PC4，LED 落 PC2/PC3/PC5/PC6/PC7——同端口、仅隔一脚，扇出方向仍一致。
+> **LED 簇为何不连号（2026-10-14 二轮复核重写）**：原注"PA10 引出未核、DRDY 留 PC4"已过时——
+> 真实原因是 **LQFP64_SMPS 没有 PC4/PC5**（DS14216 Table 27，此前误按 LQFP64 非 SMPS 版核脚）。
+> 复核后 DRDY 改 PA9、橙灯改 PB14；绿/黄/红 + 状态灯仍在 PC 口一侧，仅橙灯跨到 PB14。
 
 ### 1.2 按端口顺序（装配/查表视图）
 
 | 端口 | 引脚分配 |
 | --- | --- |
-| **PA** | 0=MEAS_BTN · 1=预留(WKUP3) · 2=USART2_TX · 3=USART2_RX · 4=ADC_nCS · 5=SPI1_SCK · 6=SPI1_MISO · 7=SPI1_MOSI · 8=ADC_nRESET · 9=预留 · 10=预留 · 11=USB_DM · 12=USB_DP · 13=SWDIO · 14=SWCLK · 15=预留 |
-| **PB** | 0=预留 · 1=PWR_BTN · 2=SEL_SENSE · 3=SWO · 4=ISET_HI · 5=SEL_K1 · 6=I2C1_SCL · 7=I2C1_SDA · 8=SEL_K2 · 9=SD_CD · 10=CURR_DIS · 12=ANA_EN · 13=SD_PWR_EN · 14=预留 · 15=预留 |
-| **PC** | 0=VBAT_MON · 1=VBUS_MON · 2=LED_GREEN · 3=LED_YELLOW · 4=ADC_DRDY · 5=LED_ORANGE · 6=LED_RED · 7=PWR_LED · 8=SD_D0 · 9=SD_D1 · 10=SD_D2 · 11=SD_D3 · 12=SD_CK · 13=**不用**(VSW) · 14=LSE_IN · 15=LSE_OUT |
+| **PA** | 0=MEAS_BTN · 1=预留(WKUP3) · 2=LPUART1_TX · 3=LPUART1_RX · 4=ADC_nCS · 5=SPI1_SCK · 6=SPI1_MISO · 7=SPI1_MOSI · 8=ADC_nRESET · 9=ADC_DRDY · 10=预留 · 11=USB_DM · 12=USB_DP · 13=SWDIO · 14=SWCLK · 15=SD_CD |
+| **PB** | 0=预留 · 1=PWR_BTN · 2=SEL_SENSE · 3=SWO · 4=ISET_HI · 5=SEL_K1 · 6=I2C1_SCL · 7=I2C1_SDA · 8=SEL_K2 · ~~9~~**未引出** · 10=CURR_DIS · ~~11/12~~**未引出** · 13=SD_PWR_EN · 14=LED_ORANGE · 15=ANA_EN |
+| **PC** | 0=VBAT_MON · 1=VBUS_MON · 2=LED_GREEN · 3=LED_YELLOW · ~~4/5~~**未引出** · 6=LED_RED · 7=PWR_LED · 8=SD_D0 · 9=SD_D1 · 10=SD_D2 · 11=SD_D3 · 12=SD_CK · 13=**不用**(VSW) · 14=LSE_IN · 15=LSE_OUT |
 | **PD** | 2=SD_CMD |
 | **PH** | 0=HSE_IN · 1=HSE_OUT · 3=BOOT0 |
 
-> PB11 在 LQFP-64 未引出，故表中跳过。
+> **LQFP64_SMPS 未引出脚（DS14216 Table 27，2026-10-14 二轮复核）**：**PC4、PC5、PB9、PB12**（PB11 两版 LQFP-64 均不引出）。
+> 另：该封装 28=VLXSMPS、29=VDDSMPS、30=VSSSMPS、**31 与 62 均为 VDD11**（无 VCAP）。
 
-### 1.3 MCU 电源脚（手册核实）
+### 1.3 MCU 电源脚（DS14216 Table 27，2026-10-14 二轮复核）
 
 | 引脚 | 连接 | 去耦 |
 | --- | --- | --- |
-| VDD 19/32/64 + VSS 18/31/47/63 | 3.3V_D | 每对 100 nF + 共 10 µF |
+| VDD **19/33/64** + VSS **18/32/47/63** | 3.3V_D | 每对 100 nF + 共 10 µF |
 | VDDA(13) / VSSA(12) | 3.3V_D | 100 nF + 1 µF（内部 ADC 不用作测量） |
 | VDDUSB(48) | 3.3V_D | 100 nF |
 | VBAT(1) | 接 VDD | 无后备电池（锂电 4.2 V 超 VBAT 上限 3.6 V） |
-| VCAP(30) | 4.7 µF 到地 | ±20 %，ESR<20 mΩ @3 MHz，耐压 ≥10 V |
-| PDR_ON | 按手册接 | ⚠️ 待核 DS14216（RET6Q 有 SMPS，PDR_ON 处理方式需确认，E.10 #12） |
+| **VDD11 (31 与 62)** | 各 2.2 µF → VSS | 内核 LDO 输出（**RET6Q 无 VCAP**，原"VCAP(30)→4.7 µF"系按非 SMPS 版误写） |
+| VLXSMPS(28) / VDDSMPS(29) / VSSSMPS(30) | 内部 SMPS 不启用的处置 **待 RM0456**（同族 U575 写"接 GND"）→ 主文档 E.10 #17 | — |
 
 > ⚠️ **RET6Q 是 SMPS 版**：本设计用外部双 LDO、**内部 SMPS 不启用**。
-> 生成代码中 `HAL_PWREx_ConfigSupply()` 必须是 **`PWR_LDO_SUPPLY`**，
-> 不得选 `PWR_SMPS_1V8_SUPPLIES_LDO`，否则 MCU 不上电。
+> 生成代码中 `HAL_PWREx_ConfigSupply()` 应选 **`PWR_LDO_SUPPLY`**；
+> 复位后默认稳压器模式 DS14216 未载明（"选错则不上电"系推断，已降级）→ 待 RM0456（E.10 #17）。
+> ~~PDR_ON~~：**DS14216 无此脚**（F4/F7 遗绪），已删除。
 
 ### 1.4 预留脚
 
-**PA1（WKUP3）、PA9、PA10、PA15、PB0、PB14、PB15**；**PC13 不使用**（经 VSW 供电，仅 3 mA/30 pF）。
+**PA1（WKUP3）、PA10、PB0**；**PC13 不使用**（经 VSW 供电，仅 3 mA/30 pF）。
 
-> **原 SPI2 预留组已消耗**（2026-10-14）：PB9→SD_CD、PB13→SD_PWR_EN。
+> **原 SPI2 预留组已消耗（2026-10-14）**：PB9→SD_CD（后又因 PB9 未引出改 PA15）、PB13→SD_PWR_EN、
+> 二轮复核后 PB14→LED 橙、PB15→ANA_EN，四脚全部用尽。
 > 该预留本为 PT100+MAX31865 而留，**PT100 已于 E.5.2 否决**，预留失效，让位 TF 记录合理。
-> PB14/PB15 仍空，可作其它 SPI 从机或备用。
 
 ---
 
@@ -110,7 +116,7 @@
 | DIN | PA7（SPI1 MOSI） | — |
 | DOUT | PA6（SPI1 MISO） | — |
 | nCS | PA4（GPIO） | — |
-| DRDY | PC4（EXTI4） | 下降沿中断 |
+| DRDY | **PA9**（EXTI9） | 下降沿中断（**二轮复核改**：原 PC4 未引出） |
 | nRESET | **PA8**（GPIO） | 低有效，脉宽 ≥800 ns |
 | XTAL1 / XTAL2 | 16.384 MHz 晶振 | 负载电容按手册 Figure 36b |
 
@@ -142,18 +148,18 @@
 | CMD | SD_CMD | **PD2** | 33 Ω + **10 kΩ 上拉到 3V3_SD** |
 | VDD | 3V3_SD | — | 高边开关输出；**1 µF + 100 nF** 就地去耦 |
 | GND | GND | — | — |
-| CD | SD_CD | **PB9** | 卡座机械开关，插卡拉低；内部上拉，EXTI9 下降沿 |
+| CD | SD_CD | **PA15** | 卡座机械开关，插卡拉低；内部上拉，EXTI15 下降沿（**二轮复核改**：原 PB9 未引出） |
 | WP | — | — | **不接**（E.11） |
 
 **供电与控制**：`3.3V_D → 高边开关 → 3V3_SD`，开关使能 = **PB13 (SD_PWR_EN)**，默认低（断电）。
 高边开关 Rds(on) **< 100 mΩ**（写瞬态 80–100 mA）。
-**若省掉该开关，TF 卡待机 50–100 µA 会直接压垮 E.8.6 的 ≈7.4 µA 预算。**
+**若省掉该开关，TF 卡待机 50–100 µA 会直接压垮 E.8.6 的 ≈10.8 µA 预算。**
 
 **走线规则**：D0–D3 + CMD 等长 **±5 mm**；CK **±10 mm**（允许略短，不允许长）；
 串阻靠 MCU 端；6 根线从 PC 端口一侧扇出，**不穿越模拟区**。
 
 **时钟源**：SDMMC1 kernel clock **不得用 SYSCLK/PLL1R**；取 PLL2Q=48 MHz 或 CLK48。
-现 IOC 中 PLL2Q = 258 MHz，**生成代码前必须重配**（E.10 #14）。
+现 IOC 中 PLL2Q = 258 MHz、**`RCC.SDMMCFreq_Value` 实测 80 MHz**（2026-10-16 读文件核实），**生成代码前必须重配**（E.10 #14）。
 
 ---
 
@@ -171,12 +177,19 @@
 | A7 (D−) | PA11 (USB_DM) | — |
 | B1/B12 (GND) | GND | — |
 
-### 被测件接口（J2）— XH2.54-2P 卧式座
+### 被测件接口（J5–J8）— 4 × SMA 母座（2026-10-17 两线/四线兼容）
 
-| 引脚 | 网络 | 说明 |
+| 端子 | 网络 | 说明 |
 | --- | --- | --- |
-| 1 | T（顶端偏置 ~3.0 V） | 经 R_top 10 kΩ 接 3.3V_A |
-| 2 | S（样品底端） | 经 K3 到 M 点 → OPA388 → AIN0N |
+| **J5 · I+** | T（顶端偏置 ~3.0 V） | 经 R_top 10 kΩ 接 3.3V_A；**力线** |
+| **J6 · V+** | OPA388(T) 输入（经 1 kΩ+10 nF） | **感线**；与 J5 同夹 = Kelvin 夹 A |
+| **J7 · I−** | K1/K2 公共端 → X | **力线**回线（样品 / R_ref） |
+| **J8 · V−** | K3/K4 公共端 → M | **感线**；与 J7 同夹 = Kelvin 夹 B |
+| **JP1** | J5 ↔ J6 | 0 Ω 0603 / 插针：**焊上 = 两线制**（只接 J5、J7） |
+| **JP2** | J7 ↔ J8 | 同上 |
+
+> **两种模式**：四线制（JP1/JP2 不焊）4 线 + 2 只 Kelvin 夹，引线/接触/K1–K4 导通电阻不进结果（≈0 误差）；两线制（JP1/JP2 焊上）只用 J5、J7，误差 = (引线+接触)/R_sample —— 0.5 Ω 在 73 Ω 处 0.68%、10 kΩ 处 0.005%、120 kΩ 处 0.0004%。
+> **屏蔽**：4 只 SMA 外壳 → AGND（仪器侧单端）；电缆 4 芯屏蔽（I+/I− 与 V+/V− 各双绞）。接线示意见 `docs/design/diagram/两电极四线制接法.svg`。
 
 ### 调试口（J3）— 6P 排针
 
@@ -222,10 +235,11 @@
 | E | Rsense 底端 = GND | AIN1N（Kelvin 引线） | 0 V |
 | VSET | 360 kΩ/200 kΩ 分压 | OPA333 + → BSS138 Gate | 1.179 V |
 | CURR_DIS | PB10 | BSS138 关断控制 | 高 = 关断 |
-| ANA_EN | PB12 | TPS7A2033 EN | 高 = 模拟域上电 |
+| ANA_EN | **PB15** | TPS7A2033 EN | 高 = 模拟域上电（**二轮复核改**：原 PB12 未引出） |
 | **SD_PWR_EN** | **PB13** | 高边开关使能 | 高 = TF 卡上电，默认低 |
 | **VBUS_MON** | VBUS 分压中点 | **PC1**（ADC） | 比 0.5；阈值 3.70 V |
 | **VBAT_MON** | 电池分压中点 | **PC0**（ADC） | 比 0.5；报警 3.65 V / 停测 3.50 V |
+| **被测件端子** | **J5/J6/J7/J8** | 见「被测件接口」节 | J5=I+→T、J6=V+→OPA388(T)、J7=I−→K1/K2→X、J8=V−→K3/K4→M；JP1(J5↔J6)/JP2(J7↔J8) 焊上即退化为两线制 |
 
 ---
 
@@ -233,5 +247,15 @@
 
 - 手改 IOC 加 IP 块会被 CubeMX **静默丢弃**（已实测踩坑）——必须在 **GUI 里配**，配完 Save 让 CubeMX 重写 IOC。
 - 操作清单见 [`firmware/DE-DRM/CUBEMX_SETUP.md`](../../firmware/DE-DRM/CUBEMX_SETUP.md)。
-- 当前 `DE-DRM.ioc`（commit `cb91980` 版）仍缺：SPI1 IP、USART2、USB_OTG_FS、ADC1、SDMMC1、CRS、PC4 EXTI、PB12/PC5 等；
+- 当前 `DE-DRM.ioc`（回滚至 commit `cb91980` 基线）仍缺：SPI1 IP、LPUART1、USB（USB_DRD_FS）、ADC1、SDMMC1、CRS、
+  PA9/PA15 EXTI、PB14/PB15 等 GPIO 配置；
   且 PA6/PA7 已挂 SPI1 信号但 SPI1 IP 未启用 → **孤儿信号，CubeMX 打开会报冲突**。
+- ⚠️ IOC 里已有的 GPIO 标签也是**重排前**的：PA8=PWR_LED、PB0=ADC_nRESET、PC3=SEL_K2、PC6–PC9=四色 LED。
+  GUI 改脚位时**先清/移旧标签再设新标签**——尤其 PC8/PC9 现为 SD_D0/SD_D1，旧 LED 标签必须删除，
+  否则 SDMMC 信号名与 LED 宏错乱（固件 `main.h` 按 Label 生成宏）。
+- **2026-10-16 三次复核（全 45 脚 + 电源脚逐一对 Table 27/28/29 再核一遍）**：脚位分配**全部成立**，
+  AF 号亦对（SPI1=AF5、SDMMC=AF12、USB=AF10、I2C1=AF4、LPUART1=AF8）；`USART2` 在 DS14216 全文 **0 命中**（再次确认无此外设）。
+  另清出**三处引用层失实**（不影响脚位）：① VREFINT 采样依据应为 Table 37 `tS_vrefint = 12.65 µs typ`，
+  旧写"≥4 µs"是 `tstart_vrefint`（缓冲启动时间）误引；② 采样时间**离散档 DS14216 未列**（只给 ts=5…814 周期），
+  "47.5 / 247.5 Cycles"凭惯例填写 → 转 **E.10 #17④**，按 GUI 实际档就近取大；
+  ③ **PB4/PA15 复位期内部上拉使能**（Table 27 **注 4**），PB4 复位期不是 Low → 默认充电档须外部下拉保证（见 § 1.1、E.8.4）。

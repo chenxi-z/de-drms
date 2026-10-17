@@ -40,19 +40,19 @@
 | 前置 | **3 颗跟随器 OPA388**（T、M、B 三线；AIN1N 直接经 RC 接 Rsense 底端）；T 点经 R_top 10 kΩ / R_b 150 kΩ 偏置，全角落距电源轨 ≥0.199 V（2026-10-13，销 E.10#8） | E.2、E.4 |
 | 保护 | **BAV199** 双二极管钳位（默认）/ 低漏电 ESD 阵列（备选焊盘） | E.4.1 |
 | 自校准 | **0.1% Rsense 打底 + 板上 R_ref 自检 + 零点模式**（TMUX1101×2 + TMUX1102×2，K1/K2 分控；**2026-10-14 引脚重排 SEL_K1 = PB5、SEL_K2 = PB8**；R_ref 100 kΩ 0.01%），校准 Rsense+ADC 综合系数，零点消 ADC 失调 | E.3 |
-| **MCU** | **STM32U545RET6Q**：M33 160 MHz、512 KB Flash、**274 KB SRAM**、USB OTG FS、LQFP-64、**SMPS 版（本设计不启用内部 SMPS，外部双 LDO 供电）** | E.5 |
+| **MCU** | **STM32U545RET6Q**：M33 160 MHz、512 KB Flash、**274 KB SRAM**、USB FS 双角色（DRD）、LQFP-64、**SMPS 版（本设计不启用内部 SMPS，外部双 LDO 供电）** | E.5 |
 | 温度传感 | **TMP117**（I²C，±0.1 ℃） | E.5.2 |
 | 电源 | **1S 锂电（可充电）+ 双 LDO 3.3 V**（数字 / 模拟低噪分离） | E.1 |
 | 存储 | **两层**：校准系数存 MCU Flash（EEPROM 仿真）；**测量数据存外部 TF (micro SD) 卡**——768 KB/s 冲击采满与长时间记录远超 512 KB Flash | E.5.4、**E.11** |
-| 通信 | **USB OTG FS**（设备模式，Type-C，CC×2 下拉 5.1 kΩ） | E.5.3、E.9 |
-| 引脚分配 | **LQFP-64 全表 2026-10-14 重排定稿**：SPI1 / I²C1 / USART2 / USB / SWD / **SDMMC1 4-bit** / 控制 GPIO；原则「通信 AF 不动 + 辅助 GPIO 同端口聚堆」 | E.6、[pin-assignment.md](pin-assignment.md) |
+| 通信 | **USB FS**（设备模式，Type-C，CC×2 下拉 5.1 kΩ；**设备模式片内支持 BC1.2 BCD**，E.8.4） | E.5.3、E.9 |
+| 引脚分配 | **LQFP-64 全表 2026-10-14 重排定稿 + 二轮复核 + 2026-10-16 三次复核逐脚再验（脚位与 AF 全部成立）**（DS14216 Table 27/28/29 逐行核：LQFP64_SMPS 无 PC4/PC5/PB9/PB12）：SPI1 / I²C1 / **LPUART1** / USB / SWD / **SDMMC1 4-bit** / 控制 GPIO；原则「通信 AF 不动 + 辅助 GPIO 同端口聚堆」 | E.6、[pin-assignment.md](pin-assignment.md) |
 | 时钟 | **MCU 免晶振**（MSIS→PLL 160 M；USB 用 HSI48+CRS←SOF）+ **ADC 自挂 16.384 MHz 晶振**；HSE 焊盘预留不贴 | E.7 |
-| 电源域/电池 | BQ24040（OUT=电池节点）+ **双 LDO：数字 TPS7A0233（25 nA，常开）/ 模拟 TPS7A2033（6.5 µA、7 µVrms，EN 受控）**；监测 VREFINT + PC0(VBAT) + **PC1(VBUS)**；**报警 3.65 V / 停测 3.50 V**；充电 500 mA/1 A（**判据为启发式，非标准 BC1.2**——STM32 与 BQ24040 均无 BC1.2，E.8.4 勘误） | E.8 |
+| 电源域/电池 | BQ24040（OUT=电池节点）+ **双 LDO：数字 TPS7A0233（25 nA，常开）/ 模拟 TPS7A2033（6.5 µA、7 µVrms，EN 受控）**；监测 VREFINT + PC0(VBAT, IN1) + **PC1(VBUS, IN2)**（**VREFINT 采样 ≥320 周期 @16 MHz**，依据 Table 37 `tS_vrefint = 12.65 µs`）；**报警 3.65 V / 停测 3.50 V**；充电 500 mA/1 A（**判据 = MCU USB 外设片内 BCD 判 DCP**，E.8.4；BQ24040 无 BC1.2，分型由 MCU 侧完成；⚠️ **PB4 复位期内部上拉 → 默认档须外部下拉保证**，Table 27 注 4） | E.8 |
 | 交互/连接器 | 2 键；档位 LED×4 + 状态 + 充电灯；XH2.54 样品座；Type-C；6P 调试排针；TMP117 外置 4 线探头（连接器用户自选）；**micro SD 8P 卧贴（含 CD，无 WP）** | E.9 |
 
 **数据流**：1S 锂电 → 双 LDO → OPA333 恒流源（8 µA）→ 样品 / Rsense → 跟随器 →
 ADS131A02（双通道同步）→ STM32U545RET6Q（SPI）→ **本地 TF 卡（SDMMC 4-bit 记录）**
-＋ **USB OTG FS** → 上位机。
+＋ **USB FS** → 上位机。
 
 ## 4 关键设计决策与理由（含被否方案）
 
@@ -68,20 +68,25 @@ ADS131A02（双通道同步）→ STM32U545RET6Q（SPI）→ **本地 TF 卡（S
 
 ## 5 图的状态
 
-> ⚠️ **2026-10-14 引脚重排后，全部四张图待返工**（根 `README.md` 未决 #10）：
-> 拓扑与电气连接**仍然正确**，但**引脚标注是重排前的**——
-> `SEL_K1(PC5)`/`SEL_K2(PC3)` 应为 **PB5/PB8**；`"PC6-9 · PA8 (PWR)"` 应为 **PC2/3/5/6/7**；
-> `ADC_nRESET(PB0)` 应为 **PA8**；且**缺 TF 卡支路（SDMMC1 4-bit）与 VBUS 分压检测**。
+> ⚠️ **2026-10-14 引脚重排 + 二轮复核后，全部四张图待返工**（根 `README.md` 未决 #10）：
+> 拓扑与电气连接**仍然正确**，但**引脚标注是复核前的**——
+> `SEL_K1(PC5)`/`SEL_K2(PC3)` 应为 **PB5/PB8**；LED 簇应为 **PC2/PC3/PB14/PC6 + 状态 PC7**；
+> `ADC_nRESET(PB0)` 应为 **PA8**；`ADC_DRDY(PC4)` 应为 **PA9**；SD_CD 应为 **PA15**；
+> ANA_EN 应为 **PB15**；且**缺 TF 卡支路（SDMMC1 4-bit）与 VBUS 分压检测**。
 > 容量标注（512 KB Flash / 274 KB SRAM）本轮已改对。**重画后必跑**
 > `python3 tools/svg_schematic_check.py` **并分区放大目视**。
 
 | 文件 | 状态 |
 | --- | --- |
-| [整体方案框图.svg](diagram/整体方案框图.svg) / [@2x.png](diagram/整体方案框图@2x.png) | ⚠️ **拓扑有效、标注待返工**（2026-10-13 新增；2026-10-14 已改 MCU 容量标注）：电源链 + MCU + ADC + 前端模拟 + 样品接口 + 温度传感 + USB/SWD；**需加 TF 卡支路** |
-| [电源树.svg](diagram/电源树.svg) / [@2x.png](diagram/电源树@2x.png) | ⚠️ **拓扑有效、待补**（2026-10-13 新增）：USB → BQ24040 → 电池节点 → 双 LDO → 负载分配；**需加 3V3_SD 高边开关（PB13 控制）** |
-| [恒流源拓扑.svg](diagram/恒流源拓扑.svg) / [@2x.png](diagram/恒流源拓扑@2x.png) | ✅ **当前有效**（2026-10-13 新增，2026-10-14 终审封存）：OPA333 + BSS138 低边恒流源 8 µA、Rsense 150 kΩ、CURR_DIS 控制；**无引脚标注改动需求** |
-| [frontend-ads131a02-final.svg](diagram/frontend-ads131a02-final.svg) / [@2x.png](diagram/frontend-ads131a02-final@2x.png) | ⚠️ **拓扑有效、标注待返工**（2026-10-13 按定稿拓扑重画；2026-10-14 已改 MCU 容量标注）：T 点顶端偏置 + 低边恒流源 + 3 颗跟随器 + ADS131A02 双通道同步；**K1(PC5) 应改 PB5** |
-| [rref-calibration-circuit.svg](diagram/rref-calibration-circuit.svg) / [@2x.png](diagram/rref-calibration-circuit@2x.png) | ⚠️ **拓扑有效、标注待返工**（2026-10-13 重画）：R_ref 自校准切换，测量 / 校准 / 零点三模式；**SEL_K1(PC5)→PB5、SEL_K2(PC3)→PB8** |
+| [整体方案框图.svg](diagram/整体方案框图.svg) / [@2x.png](diagram/整体方案框图@2x.png) | ✅ **已对齐新 E.6**（2026-10-17 复核修正）：电源链 + MCU + ADC + 前端模拟 + 样品接口 + 温度传感 + USB/SWD + **TF 卡记录支路**；引脚标注（ANA_EN=PB15、DRDY=PA9、SEL=PB5/PB8、LED 簇 PC2/3/PB14/6+PC7）与待机 ~10.8 µA 均已改对 |
+| [电源树.svg](diagram/电源树.svg) / [@2x.png](diagram/电源树@2x.png) | ✅ **已对齐新 E.6**（2026-10-17 复核修正）：新增 **3V3_SD 支路方块**（高边开关 SD_PWR_EN=PB13、默认断电）、EN 改 PB15、OPA333 Iq 0.017 mA、待机 ~10.8 µA、图注补 TF/VBUS_MON 两条 |
+| [模拟前端与自校准.svg](diagram/模拟前端与自校准.svg) / [@2x.png](diagram/模拟前端与自校准@2x.png) | ✅ **2026-10-17 由「前端拓扑 + 自校准与零点电路」两图合并**：T/M/B 三跟随器 + E→AIN1N 直连 + 三模式切换（SEL_K1=PB5 / SEL_K2=PB8 / SEL_SENSE=PB2）+ **ADS131A02 必接脚框**（RESV/CAP/NC24/NC5-8/解耦/VNCP）+ 输入每线 1 kΩ+10 nF + 电源域提示 + **外部端子插板（J5–J8 两线/四线兼容，2026-10-17 加）**；原「前端拓扑」已退役 |
+| [恒流源电路图.svg](diagram/恒流源电路图.svg) / [@2x.png](diagram/恒流源电路图@2x.png) | ✅ **2026-10-17 新增（原理图施工级）**：VSET 生成（R1 360 kΩ/R2 200 kΩ 1% → 1.179 V）、OPA333 引脚级接法、Q1/Q2 BSS138 关断与恒流、Rsense 150 kΩ 0.1%、B/E Kelvin 出线与 ADC RC；**可直接照抄进 EDA** |
+| [两电极四线制接法.svg](diagram/两电极四线制接法.svg) / [@2x.png](diagram/两电极四线制接法@2x.png) | ✅ **2026-10-17 新增（两线/四线兼容）**：4 × SMA（**J5** I+/**J6** V+/**J7** I−/**J8** V−）+ **JP1（J5↔J6）/ JP2（J7↔J8）跳线** —— 焊上 = 两线制（2 根线）、不焊 = 四线制（4 根线 + 2 只 Kelvin 夹）；两模式并排物理接线示意 + 板内连接对照表 + 误差对比 + K1–K4 映射 + 屏蔽单端接地规则 |
+
+**2026-10-17 图名统一为中文 + 复核修正 + 合并**：`frontend-ads131a02-final`、`rref-calibration-circuit` 改中文名后，
+进一步把**「前端拓扑」与「自校准与零点电路」合并为一张** `模拟前端与自校准.svg`（含跟随器、切换、ADC 必接脚），
+并新增**原理图施工级** `恒流源电路图.svg`（其关断路径按 E.2.1 正确画出，取代原「恒流源拓扑」方块图——后者已删，可从 git 历史取回）；现为 4 张：整体方案框图 / 电源树 / 模拟前端与自校准 / 恒流源电路图。
 
 被否方案的两张旧图（`ratiometric-measurement`、`ratiometric-divider-final`——分压激励 + 比例式路线）
 已于 2026-10-12 移除，并随仓库瘦身**从 git 历史中一并清除**（历史已改写，旧 SHA 作废）；
@@ -97,13 +102,12 @@ ADS131A02（双通道同步）→ STM32U545RET6Q（SPI）→ **本地 TF 卡（S
    **#11 ADC 待机 IOVDD 电流**：✅ **合法性已于 2026-10-14 定案**（手册 §11.3 "power supplies can be sequenced in any order"——
    AVDD 门控 + IOVDD 常开合法，"输入不得超过各自电源"本设计天然满足，推导见 E.8.6），**只剩电流数值待上板实测，不阻塞原理图**；
    "改 IOVDD 供电方式"备选已放弃（反引入数字脚倒灌约束、无收益）。
-   **🔴 2026-10-14 新增 #12–#15**：
-   **#12 DS14216 / SLUS941 待核 5 项**（**阻塞原理图**）：PC1 的 ADC 通道号、ADC 允许源阻抗与采样时间
-   （VBAT_MON 2×1 MΩ 与 VBUS_MON 1 MΩ 均属高阻源，**此条是既有隐患的暴露**）、SMPS 版低功耗表号、
-   BQ24040 有无 PG 脚、SDMMC1 备选脚映射；
+   **✅ 2026-10-14 二轮复核：#12 全清、#15 销号**（详见文末修订记录第三轮）；**2026-10-16 三次复核逐脚再验，脚位结论不变**；
    **#13 TF 持续写实测**（768 KB/s 是否丢帧，不阻塞）；
-   **#14 SDMMC 时钟源**（现 IOC PLL2Q = 258 MHz 非 48 MHz，**生成代码前必须改**）；
-   **#15 USB SOF 是否占 PA8**（PA8 现为 ADC_nRESET，本设计不需对外 SOF，须确认不占引脚）；
+   **#14 SDMMC 时钟源**（现 IOC PLL2Q = 258 MHz、`SDMMCFreq_Value` 实测 **80 MHz**，非 48 MHz，**生成代码前必须改**）；
+   **#17 RM0456 待核（四项）**：① USB_DRD_FS 片内 BCD 使能路径；② SMPS 不启用的 VLXSMPS/VDDSMPS 处置；
+   ③ 复位默认稳压器；④ **ADC1 采样时间离散档**（DS14216 只给 ts=5…814 周期，未列可选值）。
+   ②影响原理图，①③④ 固件/核对项；
    **🔴 #16 IOC 时钟源与设计矛盾（2026-10-14 新发现，阻塞固件）**：E.7 定稿"MCU 免晶振、HSE 焊盘**不贴**、走 MSIS→PLL1"，
    但 `DE-DRM.ioc` 现配 `RCC.PLLSourceVirtual = RCC_PLLSOURCE_HSE` + `HSE_VALUE=16000000` + PH0/PH1 设 HSE 模式。
    **晶振不贴 → HSE 起振失败 → PLL 锁不住 → MCU 跑不起来。**须在 CubeMX 里把 PLL 源改 **MSIS**（或 MSI），
@@ -182,6 +186,43 @@ E.8.4 改为"VBUS 有 + 3 s 内无 SOF/未枚举 → 判 DCP"**启发式**，兜
 **#13**（TF 持续写实测）、**#15**（USB SOF 是否占 PA8）；
 ⑦ 新增交付件 [`firmware/DE-DRM/CUBEMX_SETUP.md`](../../firmware/DE-DRM/CUBEMX_SETUP.md)（GUI 点击清单）。
 **实测教训：手改 IOC 增删 IP 块会被 CubeMX 静默丢弃**（已回滚到 `cb91980` 版），只能走 GUI。
+**2026-10-14（第三轮：DS14216 全表二轮复核——4 处换脚 + 多项数值/结论更正）**：
+① **封装真相**：**LQFP64_SMPS 无 PC4/PC5/PB9/PB12**（Table 27 文本列位分析；此前误按位图与非 SMPS 版核脚，
+曾一度误判"SDMMC 六脚缺失要砍 TF"——实为六脚齐全，TF 方案不变）。
+→ 换脚 4 处：**DRDY PC4→PA9**（EXTI9；PA1 因 EXTI1 被 PB1 占用出局）、**SD_CD PB9→PA15**（EXTI15）、
+**ANA_EN PB12→PB15**、**LED 橙 PC5→PB14**；预留池剩 PA1/PA10/PB0；
+② **通道号/外设清单更正**：PC0=**ADC1_IN1**、PC1=**ADC1_IN2**（原写 IN5 是 PA0 的通道）；
+**U545 无 USART2**（§3.32：USART1/3+UART4/5+LPUART1）→ 调试串口正名 **LPUART1**；
+USB 外设正名 **USB_DRD_FS**（device/host 双角色）；**PDR_ON/VCAP 在本封装不存在**（F4/F7 与非 SMPS 版遗绪）；
+电源脚更正 VDD=19/33/64、VSS=18/32/47/63、VDD11=31+62；
+③ **BC1.2 结论反转**：DS14216 §3.47 末条——**设备模式片内支持 BC1.2 BCD**（上轮"STM32 无 BC1.2"系把
+F4/F7 OTG_FS 结论误套 U5）；E.8.4 判据定稿为 **片内 BCD 判 DCP 才切 1 A**，
+弃用"VBUS 有 + 3 s 无 SOF"启发式（挂起/枚举失败/断线皆无 SOF ≠ DCP，不安全）；BQ24040 **PG 脚确有**（pin 5）；
+④ **低功耗数值全部更正**（原 1.9/4.3/0.21/0.16 µA 四值在 DS14216 查无出处，疑出自 U575 DS13737）：
+**Stop3 LDO 4.6/7.7 µA（Table 62）**、SMPS 1.55/2.30 µA（Table 65，不启用）、**Standby 0.52 µA（Table 68）**、
+**Shutdown 0.40 µA（Table 70）**；E.8.6 已知项合计 **≈10.8 µA（全 SRAM）/ ≈7.7 µA（8 KB SRAM2）**；
+⑤ **#12 五项全清**：①②通道号如上；**ADC 高阻源合法**（Table 106 注 3 "Values without external capacitor"，
+100 nF ≫ 2^12×CADC(5 pF)；代价 = ≥100 ms 级轮询约束，τ=50 ms）；③表号已补；④PG 确有；
+⑤ SDMMC 信号**全手册仅映射 PC8–PC12/PD2**；**#15 销号**（CRS 用内部 SOF，不占引脚）；
+⑥ **新增 #17（RM0456 待核）**：片内 BCD 使能路径、SMPS 不启用的 VLXSMPS/VDDSMPS 处置（同族 U575 写"接 GND"）、
+复位默认稳压器模式（"选错 PWR_LDO_SUPPLY 则不上电"原注系推断，已降级）。
+**2026-10-16（第四轮：全表逐脚三次复核 + 三处引用失实勘误）**：
+① **脚位与 AF 全部复核成立**（45 个 GPIO + 电源脚逐一对 DS14216 Table 27/28/29 再验；方法改为
+**PDF bbox 坐标列位分析 + AF 网格文本双轨**，不再读位图/压缩摘要）：PA13=46、PA14=49、**PA15=50**、PB3=55、PB4=56、
+PC14=3、PC15=4、PH0=5、PH1=6、NRST=7；缺脚确认为 **PC4/PC5/PB9/PB12（+PB11）**；VCAP 在 SMPS 封装为 `-`、
+**PDR_ON 全文 0 命中**；SPI1=AF5、LPUART1=AF8、USB=AF10、I2C1=AF4、SDMMC1=AF12、**CMD 全手册仅 PD2**；
+PC0=**ADC1_IN1**、PC1=**ADC1_IN2**、PA0=WKUP1、**PB1=WKUP4**、PA1=WKUP3；`USART2` 全文 **0 命中**（正名 LPUART1 成立）。
+② **VREFINT 采样依据勘误**：正确出处是 DS14216 **Table 37 `tS_vrefint = 12.65 µs typ`**（@16 MHz ≈202 周期 → 取 ≥320），
+旧写"手册规定最小 ≥4 µs"**误引了同一张表的 `tstart_vrefint`（基准缓冲启动时间 4/6 µs）**，两者不是一回事。
+③ **ADC 采样时间离散档手册未载**（Table 105 只给 `ts = 5…814` 周期）→ 清单里的 "47.5 / 247.5 Cycles" 系凭惯例，
+**转 E.10 #17④**，按 GUI 实际档就近取大（VBAT/VBUS ≥64、VREFINT ≥320）。
+④ **PB4 复位态新发现（Table 27 注 4）**：*"the internal pull-up on PA15, PA13, PB4 pins and the internal pull-down on
+PA14 pin are activated"* —— PB4=ISET_HI 复位期是 **NJTRST + 内部上拉，不是被驱动的 Low**，
+故 E.8.4"默认 500 mA"**取决于外部 ISET 网络**，原理图阶段须加外部下拉或改反相驱动（内部 RPU 阻值 DS14216 未载，待 RM0456）；
+PA15=SD_CD 复位期同为上拉，与本设计所需方向一致故无害。
+⑤ **#14 现值补硬**：读 IOC 文件实测 `RCC.SDMMCFreq_Value = 80 MHz`（PLL2Q 258 MHz），比"PLL2Q 非 48"更直白地错。
+⑥ 附带核实：PC13/PC14/PC15 经 VSW 供电，**3 mA、≤30 pF、≤2 MHz、不得作电流源驱动 LED**（Table 27 注 2 原文）；
+Table 106 的 470 Ω（12 bit）还另带注 5 最坏情形条件（扫描模式 + 相邻通道跨接 VREF±），本设计余量更大。
 
 > ⚠️ **历史改写只影响 `1831550` 之后的提交**：`e14eb60`…`1831550` 的 SHA 未变，其后全部变更；
 > 本节已用改写后的 SHA。外部文档中改写前的旧 SHA 一律作废，需要历史时请用提交信息检索（`git log --oneline --grep=...`）。
