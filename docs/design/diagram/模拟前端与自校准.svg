@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1300" viewBox="0 0 1600 1300"
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1340" viewBox="0 0 1600 1340"
      font-family="'Noto Sans CJK SC','Noto Sans SC','Source Han Sans SC','PingFang SC','Microsoft YaHei',sans-serif">
 <style>
   .w   { stroke:#374151; stroke-width:2;   fill:none }
@@ -18,76 +18,98 @@
   <marker id="arrB" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="11" refX="10" refY="4.5" orient="auto"><path d="M0,0 L10,4.5 L0,9 z" fill="#2563eb"/></marker>
   <marker id="arrK" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="11" refX="10" refY="4.5" orient="auto"><path d="M0,0 L10,4.5 L0,9 z" fill="#374151"/></marker>
 </defs>
-<rect x="0" y="0" width="1600" height="1300" fill="#ffffff"/>
-<rect x="0" y="0" width="1600" height="1300" fill="url(#grid)"/>
+<rect x="0" y="0" width="1600" height="1340" fill="#ffffff"/>
+<rect x="0" y="0" width="1600" height="1340" fill="url(#grid)"/>
 
 <!-- ===== title ===== -->
 <text x="40" y="58" font-size="27" font-weight="bold" fill="#111827">模拟前端与自校准电路</text>
-<text x="40" y="86" font-size="12.5" fill="#64748b">双电极直流电阻测量仪 · 低边恒流 7.86 uA（Rsense 在 BSS138 源极路径）· T 点经 R_top / R_b 偏置 · ADS131A02 双通道同步实测</text>
-<text x="1560" y="58" font-size="12" fill="#94a3b8" text-anchor="end">附录 E.2–E.4 · 模拟前端 + 自校准 · 原理示意（2026-10-17 合并前端拓扑）</text>
-<text x="1560" y="86" font-size="12" fill="#94a3b8" text-anchor="end">主图按控制脚默认电平（全低）绘制 = 校准态</text>
+<text x="40" y="86" font-size="12.5" fill="#64748b">双电极直流电阻测量仪 · 低边恒流 7.86 uA（Rsense 在 BSS138 源极路径）· T 点经 R_top / R_b 偏置 · 两线/四线兼容 · 单颗 TMUX1134 开关矩阵</text>
+<text x="1560" y="58" font-size="12" fill="#94a3b8" text-anchor="end">附录 E.2–E.4 · 模拟前端 + 自校准 · 原理示意（2026-10-18 v3：K5 + TMUX1134 单芯片开关矩阵）</text>
+<text x="1560" y="86" font-size="12" fill="#94a3b8" text-anchor="end">主图按控制脚默认电平（全低）绘制 = 校准态（CH2/CH4·NC 默认导通）</text>
 
 <!-- ===== 3.3V_A -> R_top -> T ===== -->
-<line x1="70" y1="150" x2="255" y2="150" class="wr"/>
+<line x1="70" y1="150" x2="120" y2="150" class="wr"/>
 <line x1="70" y1="150" x2="70" y2="138" class="sym"/>
 <line x1="56" y1="138" x2="84" y2="138" stroke="#374151" stroke-width="2.5" fill="none"/>
 <text x="88" y="142" font-size="12.5" font-weight="bold" fill="#374151">3.3V_A</text>
-<line x1="255" y1="150" x2="255" y2="170" class="w"/>
-<rect x="241" y="170" width="28" height="52" rx="2" fill="#f1f5f9" stroke="#374151" stroke-width="1.8"/>
-<text x="271" y="192" font-size="13" font-weight="bold" fill="#111827">R_top</text>
-<text x="271" y="210" font-size="10.5" fill="#374151">10 kOhm · 1%</text>
-<line x1="255" y1="222" x2="255" y2="250" class="w"/>
+<line x1="120" y1="150" x2="120" y2="170" class="w"/>
+<rect x="106" y="170" width="28" height="52" rx="2" fill="#f1f5f9" stroke="#374151" stroke-width="1.8"/>
+<text x="140" y="192" font-size="13" font-weight="bold" fill="#111827">R_top</text>
+<text x="140" y="210" font-size="10.5" fill="#374151">10 kOhm · 1%</text>
+<line x1="120" y1="222" x2="120" y2="250" class="w"/>
 
-<!-- ===== T node ===== -->
-<line x1="180" y1="250" x2="760" y2="250" class="w"/>
-<circle cx="255" cy="250" r="4.5" fill="#111827"/>
+<!-- ===== T bus (ends at K5) ===== -->
+<line x1="120" y1="250" x2="640" y2="250" class="w"/>
+<circle cx="180" cy="250" r="4.5" fill="#111827"/>
 <circle cx="330" cy="250" r="4.5" fill="#111827"/>
-<circle cx="520" cy="250" r="4.5" fill="#111827"/>
+<circle cx="500" cy="250" r="4.5" fill="#111827"/>
 <text x="292" y="243" font-size="16" font-weight="bold" fill="#111827">T</text>
-<text x="340" y="238" font-size="10.5" fill="#2563eb">T：样品与 R_ref 共用顶端，到各支路顶端不经开关；工作时 ~3.0 V（零点 ~3.1 V）</text>
+<text x="310" y="241" font-size="10" fill="#2563eb">~3.0 V</text>
 
 <!-- ===== R_b ===== -->
-<line x1="520" y1="250" x2="520" y2="278" class="w"/>
-<rect x="506" y="278" width="28" height="52" rx="2" fill="#f1f5f9" stroke="#374151" stroke-width="1.8"/>
-<line x1="520" y1="330" x2="520" y2="350" class="w"/>
-<line x1="504" y1="350" x2="536" y2="350" stroke="#374151" stroke-width="2.5" fill="none"/>
-<line x1="510" y1="356" x2="530" y2="356" stroke="#374151" stroke-width="2" fill="none"/>
-<line x1="516" y1="362" x2="524" y2="362" stroke="#374151" stroke-width="2" fill="none"/>
-<text x="536" y="300" font-size="13" font-weight="bold" fill="#111827">R_b</text>
-<text x="536" y="318" font-size="10.5" fill="#374151">150 kOhm · 1%</text>
+<line x1="500" y1="250" x2="500" y2="278" class="w"/>
+<rect x="486" y="278" width="28" height="52" rx="2" fill="#f1f5f9" stroke="#374151" stroke-width="1.8"/>
+<line x1="500" y1="330" x2="500" y2="350" class="w"/>
+<line x1="484" y1="350" x2="516" y2="350" stroke="#374151" stroke-width="2.5" fill="none"/>
+<line x1="490" y1="356" x2="510" y2="356" stroke="#374151" stroke-width="2" fill="none"/>
+<line x1="496" y1="362" x2="504" y2="362" stroke="#374151" stroke-width="2" fill="none"/>
+<text x="516" y="300" font-size="13" font-weight="bold" fill="#111827">R_b</text>
+<text x="516" y="318" font-size="10.5" fill="#374151">150 kOhm · 1%</text>
 
-<!-- ===== sample branch ===== -->
-<rect x="110" y="338" width="140" height="66" rx="2" fill="#fffbeb" stroke="#d97706" stroke-width="1.8" stroke-dasharray="7,5"/>
-<text x="142" y="330" font-size="10.5" font-weight="bold" fill="#059669" text-anchor="middle">J5·I+</text>
-<text x="220" y="330" font-size="10.5" font-weight="bold" fill="#2563eb" text-anchor="middle">J6·V+</text>
-<text x="142" y="420" font-size="10.5" font-weight="bold" fill="#059669" text-anchor="middle">J7·I−</text>
-<text x="220" y="420" font-size="10.5" font-weight="bold" fill="#2563eb" text-anchor="middle">J8·V−</text>
-<text x="180" y="362" font-size="14" font-weight="bold" fill="#92400e" text-anchor="middle">被测样品</text>
-<text x="180" y="381" font-size="12" fill="#92400e" text-anchor="middle">R = 10 ~ 120 kOhm</text>
-<text x="180" y="397" font-size="10" fill="#b45309" text-anchor="middle">（板外器件 · 虚线框）</text>
-<circle cx="180" cy="250" r="4.5" fill="#111827"/>
+<!-- ===== V_P sense-high bus (J6 -> buffer A) ===== -->
+<line x1="250" y1="190" x2="720" y2="190" class="w"/>
+<line x1="720" y1="190" x2="720" y2="250" class="w"/>
+<line x1="720" y1="250" x2="760" y2="250" class="w"/>
+<circle cx="250" cy="190" r="4.5" fill="#111827"/>
+<text x="240" y="182" font-size="14" font-weight="bold" fill="#111827" text-anchor="end">V_P</text>
+
+<!-- ===== K5 (TMUX1102 NC, default ON: V_P tied to T) ===== -->
+<circle cx="640" cy="250" r="3.5" fill="#ffffff" stroke="#374151" stroke-width="2"/>
+<circle cx="640" cy="190" r="3.5" fill="#ffffff" stroke="#374151" stroke-width="2"/>
+<line x1="640" y1="250" x2="640" y2="196" class="sym"/>
+<text x="628" y="207" font-size="10.5" font-weight="bold" fill="#7c3aed" text-anchor="end">CH2·NC</text>
+<line x1="580" y1="223" x2="640" y2="223" class="p"/>
+<circle cx="640" cy="223" r="3" fill="#ffffff" stroke="#7c3aed" stroke-width="1.6"/>
+<text x="574" y="227" font-size="9.5" fill="#7c3aed" text-anchor="end">SEL_SENSE（同上）</text>
+
+<!-- ===== sample (4-terminal, off-board) ===== -->
+<rect x="110" y="338" width="180" height="66" rx="2" fill="#fffbeb" stroke="#d97706" stroke-width="1.8" stroke-dasharray="7,5"/>
+<text x="168" y="332" font-size="10.5" font-weight="bold" fill="#059669" text-anchor="end">J5·I+</text>
+<text x="258" y="332" font-size="10.5" font-weight="bold" fill="#2563eb">J6·V+</text>
+<text x="168" y="418" font-size="10.5" font-weight="bold" fill="#059669" text-anchor="end">J7·I−</text>
+<text x="258" y="418" font-size="10.5" font-weight="bold" fill="#2563eb">J8·V−</text>
+<text x="200" y="362" font-size="14" font-weight="bold" fill="#92400e" text-anchor="middle">被测样品</text>
+<text x="200" y="381" font-size="12" fill="#92400e" text-anchor="middle">R = 10 ~ 120 kOhm</text>
+<text x="200" y="397" font-size="10" fill="#b45309" text-anchor="middle">（板外器件 · 虚线框）</text>
+<!-- force leads -->
 <line x1="180" y1="250" x2="180" y2="338" class="w"/>
-<line x1="180" y1="250" x2="255" y2="250" class="w"/>
 <line x1="180" y1="404" x2="180" y2="440" class="w"/>
+<!-- sense-high lead with hop over T bus -->
+<path d="M 250,338 L 250,258 A 7,7 0 0 0 250,244 L 250,190" class="w"/>
+<!-- JP1 / JP2 (2-wire bridges) -->
+<line x1="180" y1="300" x2="250" y2="300" stroke="#ea580c" stroke-width="2" stroke-dasharray="4,4" fill="none"/>
+<text x="215" y="290" font-size="9.5" font-weight="bold" fill="#ea580c" text-anchor="middle">JP1</text>
+<line x1="180" y1="414" x2="250" y2="414" stroke="#ea580c" stroke-width="2" stroke-dasharray="4,4" fill="none"/>
+<text x="215" y="427" font-size="9.5" font-weight="bold" fill="#ea580c" text-anchor="middle">JP2</text>
 
-<!-- ===== BAV199 clamp ===== -->
-<circle cx="180" cy="424" r="4.5" fill="#111827"/>
-<line x1="180" y1="424" x2="70" y2="424" class="w"/>
-<line x1="70" y1="424" x2="70" y2="404" class="sym"/>
-<polygon points="62,404 78,404 70,388" fill="none" stroke="#374151" stroke-width="1.6"/>
-<line x1="60" y1="386" x2="80" y2="386" stroke="#374151" stroke-width="2.5" fill="none"/>
-<line x1="70" y1="386" x2="70" y2="372" class="sym"/>
-<line x1="58" y1="370" x2="82" y2="370" stroke="#374151" stroke-width="2.5" fill="none"/>
-<text x="70" y="362" font-size="10.5" font-weight="bold" fill="#374151" text-anchor="middle">AVDD</text>
-<line x1="70" y1="424" x2="70" y2="444" class="sym"/>
-<polygon points="62,466 78,466 70,448" fill="none" stroke="#374151" stroke-width="1.6"/>
-<line x1="60" y1="446" x2="80" y2="446" stroke="#374151" stroke-width="2.5" fill="none"/>
-<line x1="54" y1="482" x2="86" y2="482" stroke="#374151" stroke-width="2.5" fill="none"/>
-<line x1="60" y1="488" x2="80" y2="488" stroke="#374151" stroke-width="2" fill="none"/>
-<line x1="66" y1="494" x2="74" y2="494" stroke="#374151" stroke-width="2" fill="none"/>
-<text x="24" y="514" font-size="10.5" font-weight="bold" fill="#6b7280">BAV199</text>
-<text x="24" y="528" font-size="9.5" fill="#6b7280">双二极管钳位</text>
-<text x="24" y="542" font-size="9.5" fill="#94a3b8">-&gt; AVDD / GND</text>
+<!-- ===== BAV199 clamp on J7/S (recommend x4 for J5-J8) ===== -->
+<circle cx="180" cy="436" r="4.5" fill="#111827"/>
+<line x1="180" y1="436" x2="70" y2="436" class="w"/>
+<line x1="70" y1="436" x2="70" y2="416" class="sym"/>
+<polygon points="62,416 78,416 70,400" fill="none" stroke="#374151" stroke-width="1.6"/>
+<line x1="60" y1="398" x2="80" y2="398" stroke="#374151" stroke-width="2.5" fill="none"/>
+<line x1="70" y1="398" x2="70" y2="384" class="sym"/>
+<line x1="58" y1="382" x2="82" y2="382" stroke="#374151" stroke-width="2.5" fill="none"/>
+<text x="70" y="374" font-size="10.5" font-weight="bold" fill="#374151" text-anchor="middle">AVDD</text>
+<line x1="70" y1="436" x2="70" y2="456" class="sym"/>
+<polygon points="62,478 78,478 70,460" fill="none" stroke="#374151" stroke-width="1.6"/>
+<line x1="60" y1="458" x2="80" y2="458" stroke="#374151" stroke-width="2.5" fill="none"/>
+<line x1="54" y1="494" x2="86" y2="494" stroke="#374151" stroke-width="2.5" fill="none"/>
+<line x1="60" y1="500" x2="80" y2="500" stroke="#374151" stroke-width="2" fill="none"/>
+<line x1="66" y1="506" x2="74" y2="506" stroke="#374151" stroke-width="2" fill="none"/>
+<text x="24" y="526" font-size="10.5" font-weight="bold" fill="#6b7280">BAV199 ×4</text>
+<text x="24" y="540" font-size="9.5" fill="#6b7280">J5–J8 各一</text>
+<text x="24" y="554" font-size="9.5" fill="#94a3b8">图示画于 J7 侧</text>
 
 <!-- ===== R_ref branch ===== -->
 <line x1="330" y1="250" x2="330" y2="285" class="w"/>
@@ -97,31 +119,40 @@
 <text x="362" y="326" font-size="10.5" fill="#374151">100 kOhm +/-0.01%</text>
 <text x="362" y="342" font-size="10" fill="#94a3b8">&lt;= 25 ppm/C</text>
 
-<!-- ===== S/F nodes and K3/K4 ===== -->
+<!-- ===== S / F nodes ===== -->
 <circle cx="180" cy="440" r="4.5" fill="#111827"/>
-<text x="166" y="436" font-size="14" font-weight="bold" fill="#111827" text-anchor="end">S</text>
+<text x="192" y="434" font-size="14" font-weight="bold" fill="#111827">S</text>
 <circle cx="330" cy="470" r="4.5" fill="#111827"/>
 <text x="318" y="466" font-size="14" font-weight="bold" fill="#111827" text-anchor="end">F</text>
-<line x1="180" y1="440" x2="322" y2="440" class="w"/>
-<line x1="322" y1="440" x2="338" y2="440" class="w"/>
-<circle cx="338" cy="440" r="3.5" fill="#ffffff" stroke="#374151" stroke-width="2"/>
-<circle cx="390" cy="440" r="3.5" fill="#ffffff" stroke="#374151" stroke-width="2"/>
-<line x1="338" y1="440" x2="378" y2="425" class="sym"/>
-<text x="320" y="418" font-size="10.5" font-weight="bold" fill="#7c3aed" text-anchor="end">K3·NO</text>
-<line x1="364" y1="406" x2="364" y2="432" class="p"/>
-<circle cx="364" cy="432" r="3" fill="#ffffff" stroke="#7c3aed" stroke-width="1.6"/>
-<text x="380" y="398" font-size="9.5" fill="#7c3aed">SEL_SENSE（PB2）</text>
-<line x1="390" y1="440" x2="600" y2="440" class="w"/>
+
+<!-- ===== V_N sense-low route -> K3 ===== -->
+<line x1="250" y1="404" x2="250" y2="430" class="w"/>
+<line x1="250" y1="430" x2="322" y2="430" class="w"/>
+<circle cx="250" cy="430" r="4.5" fill="#111827"/>
+<text x="240" y="448" font-size="14" font-weight="bold" fill="#111827" text-anchor="end">V_N</text>
+
+<!-- ===== K3 (NO, default open) : V_N -> M ===== -->
+<circle cx="322" cy="430" r="3.5" fill="#ffffff" stroke="#374151" stroke-width="2"/>
+<circle cx="390" cy="430" r="3.5" fill="#ffffff" stroke="#374151" stroke-width="2"/>
+<line x1="322" y1="430" x2="378" y2="417" class="sym"/>
+<text x="312" y="444" font-size="10.5" font-weight="bold" fill="#7c3aed" text-anchor="end">CH1·NO</text>
+<line x1="350" y1="398" x2="350" y2="419" class="p"/>
+<circle cx="350" cy="423" r="3" fill="#ffffff" stroke="#7c3aed" stroke-width="1.6"/>
+<text x="356" y="394" font-size="9.5" fill="#7c3aed">SEL_SENSE（PB2）</text>
+<line x1="390" y1="430" x2="600" y2="430" class="w"/>
+
+<!-- ===== K4 (NC, default on) : F -> M ===== -->
 <line x1="330" y1="470" x2="390" y2="470" class="w"/>
 <circle cx="390" cy="470" r="3.5" fill="#ffffff" stroke="#374151" stroke-width="2"/>
 <circle cx="440" cy="470" r="3.5" fill="#ffffff" stroke="#374151" stroke-width="2"/>
 <line x1="390" y1="470" x2="437" y2="469" class="sym"/>
-<text x="350" y="462" font-size="10.5" font-weight="bold" fill="#7c3aed">K4·NC</text>
+<text x="350" y="462" font-size="10.5" font-weight="bold" fill="#7c3aed">CH1·NC</text>
 <line x1="414" y1="496" x2="414" y2="470" class="p"/>
 <circle cx="414" cy="470" r="3" fill="#ffffff" stroke="#7c3aed" stroke-width="1.6"/>
 <text x="414" y="510" font-size="10.5" font-weight="bold" fill="#7c3aed" text-anchor="middle">SEL_SENSE（同上）</text>
 <line x1="440" y1="470" x2="600" y2="470" class="w"/>
 <line x1="600" y1="470" x2="600" y2="440" class="w"/>
+<line x1="600" y1="430" x2="600" y2="440" class="w"/>
 <circle cx="600" cy="440" r="4.5" fill="#111827"/>
 <text x="608" y="432" font-size="14" font-weight="bold" fill="#111827">M</text>
 <line x1="600" y1="440" x2="760" y2="440" class="w"/>
@@ -131,16 +162,16 @@
 <circle cx="180" cy="500" r="3.5" fill="#ffffff" stroke="#374151" stroke-width="2"/>
 <circle cx="180" cy="550" r="3.5" fill="#ffffff" stroke="#374151" stroke-width="2"/>
 <line x1="180" y1="550" x2="195" y2="512" class="sym"/>
-<text x="140" y="535" font-size="10.5" font-weight="bold" fill="#7c3aed" text-anchor="end">K1·NO</text>
+<text x="140" y="495" font-size="10.5" font-weight="bold" fill="#7c3aed" text-anchor="end">CH3·NO</text>
 <line x1="222" y1="531" x2="188" y2="531" class="p"/>
 <circle cx="188" cy="531" r="3" fill="#ffffff" stroke="#7c3aed" stroke-width="1.6"/>
-<text x="226" y="535" font-size="10.5" font-weight="bold" fill="#7c3aed">SEL_K1（PB5）</text>
+<text x="226" y="535" font-size="10.5" font-weight="bold" fill="#7c3aed">SEL_SENSE（PB2）</text>
 <line x1="180" y1="550" x2="180" y2="590" class="w"/>
 <line x1="330" y1="470" x2="330" y2="500" class="w"/>
 <circle cx="330" cy="500" r="3.5" fill="#ffffff" stroke="#374151" stroke-width="2"/>
 <circle cx="330" cy="550" r="3.5" fill="#ffffff" stroke="#374151" stroke-width="2"/>
 <line x1="330" y1="550" x2="331" y2="503" class="sym"/>
-<text x="322" y="512" font-size="10.5" font-weight="bold" fill="#7c3aed" text-anchor="end">K2·NC</text>
+<text x="322" y="512" font-size="10.5" font-weight="bold" fill="#7c3aed" text-anchor="end">CH4·NC</text>
 <line x1="365" y1="527" x2="331" y2="527" class="p"/>
 <circle cx="331" cy="527" r="3" fill="#ffffff" stroke="#7c3aed" stroke-width="1.6"/>
 <text x="369" y="530" font-size="10.5" font-weight="bold" fill="#7c3aed">SEL_K2（PB8）</text>
@@ -166,12 +197,6 @@
 <text x="178" y="716" font-size="10.5" fill="#94a3b8" text-anchor="middle">OPA333</text>
 <line x1="144" y1="627.5" x2="110" y2="627.5" class="w"/>
 <rect x="30" y="610" width="80" height="36" rx="2" fill="#f8fafc" stroke="#374151" stroke-width="1.4"/>
-<text x="610" y="600" font-size="11" font-weight="bold" fill="#111827">外部端子（4×SMA，图上标 J5–J8）</text>
-<text x="610" y="618" font-size="10" fill="#059669">J5 = I+（力线）→ T</text>
-<text x="610" y="634" font-size="10" fill="#2563eb">J6 = V+（感线）→ OPA388(T) 输入</text>
-<text x="610" y="650" font-size="10" fill="#059669">J7 = I−（力线）→ K1/K2 → X</text>
-<text x="610" y="666" font-size="10" fill="#2563eb">J8 = V−（感线）→ K3/K4 → M</text>
-<text x="610" y="684" font-size="10" fill="#ea580c">JP1/JP2 焊上 = 两线制；不焊 = 四线制</text>
 <text x="70" y="625" font-size="11" font-weight="bold" fill="#111827" text-anchor="middle">VSET</text>
 <text x="70" y="640" font-size="10" fill="#64748b" text-anchor="middle">1.179 V</text>
 <line x1="70" y1="646" x2="70" y2="670" class="p"/>
@@ -194,11 +219,20 @@
 <text x="24" y="760" font-size="11" font-weight="bold" fill="#374151">低边恒流源（I = VSET/Rsense）</text>
 <text x="24" y="776" font-size="10" fill="#94a3b8">Rsense 在源极路径（E.3.1）</text>
 
+<!-- ===== external terminals table ===== -->
+<text x="550" y="578" font-size="11" font-weight="bold" fill="#111827">外部端子（4×SMA · J5–J8）与两线/四线</text>
+<text x="550" y="596" font-size="10" fill="#059669">J5·I+ 力线 → T（顶端偏置/恒流顶端）</text>
+<text x="550" y="612" font-size="10" fill="#2563eb">J6·V+ 感线 → V_P → 跟随器 → AIN0P</text>
+<text x="550" y="628" font-size="10" fill="#059669">J7·I− 力线 → S → K1 → X（电流沉）</text>
+<text x="550" y="644" font-size="10" fill="#2563eb">J8·V− 感线 → V_N → K3 → M → 跟随器</text>
+<text x="550" y="660" font-size="10" fill="#ea580c">CH2（NC）：V_P 与 T 间，校准/零点通、测量断</text>
+<text x="550" y="676" font-size="10" fill="#ea580c">JP1/JP2：焊 = 两线制，不焊 = 四线制</text>
+
 <!-- ===== followers + ADC ===== -->
 <line x1="255" y1="692" x2="760" y2="692" class="w"/>
 <polygon points="760,227 760,273 816,250" fill="#ffffff" stroke="#374151" stroke-width="1.8"/>
 <text x="776" y="255" font-size="13" font-weight="bold" fill="#111827">×1</text>
-<text x="788" y="289" font-size="10.5" fill="#94a3b8" text-anchor="middle">OPA388(T)</text>
+<text x="788" y="289" font-size="10.5" fill="#94a3b8" text-anchor="middle">OPA388(V_P)</text>
 <line x1="816" y1="250" x2="900" y2="250" class="w"/>
 <polygon points="760,417 760,463 816,440" fill="#ffffff" stroke="#374151" stroke-width="1.8"/>
 <text x="776" y="445" font-size="13" font-weight="bold" fill="#111827">×1</text>
@@ -227,46 +261,42 @@
 <!-- ===== MCU GPIO panel ===== -->
 <rect x="1080" y="120" width="480" height="208" rx="8" fill="#faf5ff" stroke="#7c3aed" stroke-width="1.4"/>
 <text x="1100" y="146" font-size="13" font-weight="bold" fill="#7c3aed">MCU GPIO（STM32U545）-&gt; 开关 / 恒流</text>
-<text x="1100" y="172" font-size="11" font-weight="bold" fill="#7c3aed">SEL_K1（PB5）</text>
-<text x="1250" y="172" font-size="11" fill="#374151">-&gt; K1 样品回线 · NO：高 = 通</text>
+<text x="1100" y="172" font-size="11" font-weight="bold" fill="#7c3aed">SEL_SENSE（PB2）</text>
+<text x="1250" y="172" font-size="11" fill="#374151">-&gt; IN1/IN2/IN3：CH1+CH2+CH3 同沿</text>
 <text x="1100" y="194" font-size="11" font-weight="bold" fill="#7c3aed">SEL_K2（PB8）</text>
-<text x="1250" y="194" font-size="11" fill="#374151">-&gt; K2 R_ref 回线 · NC：低 = 通</text>
-<text x="1100" y="216" font-size="11" font-weight="bold" fill="#7c3aed">SEL_SENSE（PB2）</text>
-<text x="1250" y="216" font-size="11" fill="#374151">-&gt; K3（NO）/ K4（NC）互补</text>
-<text x="1100" y="238" font-size="11" font-weight="bold" fill="#7c3aed">CURR_DIS（PB10）</text>
-<text x="1250" y="238" font-size="11" fill="#374151">-&gt; 高 = 拉低 VSET -&gt; 零电流</text>
-<text x="1100" y="268" font-size="10.5" fill="#64748b">K1、K2 不得同时导通（固件互锁）；切换电流回线先关流、先断后通</text>
-<text x="1100" y="288" font-size="10.5" fill="#64748b">复位时模拟域不上电：固件先设开关态，再拉高 ANA_EN</text>
-<text x="1100" y="308" font-size="10.5" fill="#64748b">所有切换都在测量窗口外完成（硬约束）</text>
+<text x="1250" y="194" font-size="11" fill="#374151">-&gt; IN4：CH4（R_ref 回线）独立</text>
+<text x="1100" y="216" font-size="11" font-weight="bold" fill="#7c3aed">CURR_DIS（PB10）</text>
+<text x="1250" y="216" font-size="11" fill="#374151">-&gt; 高 = 拉低 VSET -&gt; 零电流</text>
+<text x="1100" y="240" font-size="10.5" fill="#64748b">PB5 腾出（原 SEL_K1 已并入 SEL_SENSE 同沿）</text>
+<text x="1100" y="262" font-size="10.5" fill="#64748b">互锁：SEL_SENSE=1 时 SEL_K2 不得为 0（否则样品与 R_ref 并联）</text>
+<text x="1100" y="284" font-size="10.5" fill="#64748b">复位时模拟域不上电：固件先设开关态，再拉高 ANA_EN（1134 fail-safe）</text>
+<text x="1100" y="306" font-size="10.5" fill="#64748b">所有切换都在测量窗口外完成（硬约束）</text>
 
 <!-- ===== truth table ===== -->
-<rect x="1080" y="344" width="480" height="164" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.2"/>
+<rect x="1080" y="344" width="480" height="172" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.2"/>
 <text x="1100" y="368" font-size="13" font-weight="bold" fill="#111827">开关状态真值表（主图按默认态 = 校准态绘制）</text>
 <text x="1100" y="394" font-size="10.5" font-weight="bold" fill="#64748b">模式</text>
-<text x="1162" y="394" font-size="10.5" font-weight="bold" fill="#64748b">SEL_K1</text>
-<text x="1230" y="394" font-size="10.5" font-weight="bold" fill="#64748b">SEL_K2</text>
-<text x="1300" y="394" font-size="10.5" font-weight="bold" fill="#64748b">SEL_SENSE</text>
-<text x="1392" y="394" font-size="10.5" font-weight="bold" fill="#64748b">CURR_DIS</text>
-<text x="1470" y="394" font-size="10.5" font-weight="bold" fill="#64748b">导通</text>
+<text x="1190" y="394" font-size="10.5" font-weight="bold" fill="#64748b">SEL_SENSE</text>
+<text x="1285" y="394" font-size="10.5" font-weight="bold" fill="#64748b">SEL_K2</text>
+<text x="1365" y="394" font-size="10.5" font-weight="bold" fill="#64748b">CURR_DIS</text>
+<text x="1440" y="394" font-size="10.5" font-weight="bold" fill="#64748b">导通（CH）</text>
 <text x="1100" y="420" font-size="11.5" font-weight="bold" fill="#059669">测量</text>
-<text x="1162" y="420" font-size="11.5" fill="#059669">1</text>
-<text x="1230" y="420" font-size="11.5" fill="#059669">1</text>
-<text x="1300" y="420" font-size="11.5" fill="#059669">1</text>
-<text x="1392" y="420" font-size="11.5" fill="#059669">0</text>
-<text x="1470" y="420" font-size="11.5" font-weight="bold" fill="#059669">K1、K3</text>
+<text x="1190" y="420" font-size="11.5" fill="#059669">1</text>
+<text x="1285" y="420" font-size="11.5" fill="#059669">1</text>
+<text x="1365" y="420" font-size="11.5" fill="#059669">0</text>
+<text x="1440" y="420" font-size="11.5" font-weight="bold" fill="#059669">CH1-&gt;V_N、CH3</text>
 <text x="1100" y="444" font-size="11.5" font-weight="bold" fill="#ea580c">校准</text>
-<text x="1162" y="444" font-size="11.5" fill="#ea580c">0</text>
-<text x="1230" y="444" font-size="11.5" fill="#ea580c">0</text>
-<text x="1300" y="444" font-size="11.5" fill="#ea580c">0</text>
-<text x="1392" y="444" font-size="11.5" fill="#ea580c">0</text>
-<text x="1470" y="444" font-size="11.5" font-weight="bold" fill="#ea580c">K2、K4</text>
+<text x="1190" y="444" font-size="11.5" fill="#ea580c">0</text>
+<text x="1285" y="444" font-size="11.5" fill="#ea580c">0</text>
+<text x="1365" y="444" font-size="11.5" fill="#ea580c">0</text>
+<text x="1440" y="444" font-size="11.5" font-weight="bold" fill="#ea580c">CH1-&gt;F、CH2/CH4</text>
 <text x="1100" y="468" font-size="11.5" font-weight="bold" fill="#2563eb">零点</text>
-<text x="1162" y="468" font-size="11.5" fill="#2563eb">0</text>
-<text x="1230" y="468" font-size="11.5" fill="#2563eb">1</text>
-<text x="1300" y="468" font-size="11.5" fill="#2563eb">0</text>
-<text x="1392" y="468" font-size="11.5" fill="#2563eb">1</text>
-<text x="1470" y="468" font-size="11.5" font-weight="bold" fill="#2563eb">仅 K4</text>
-<text x="1100" y="494" font-size="10.5" fill="#64748b">K2 为 NC：SEL_K2 = 1 时断开；零点时 K1、K2 均断，恒流关断</text>
+<text x="1190" y="468" font-size="11.5" fill="#2563eb">0</text>
+<text x="1285" y="468" font-size="11.5" fill="#2563eb">1</text>
+<text x="1365" y="468" font-size="11.5" fill="#2563eb">1</text>
+<text x="1440" y="468" font-size="11.5" font-weight="bold" fill="#2563eb">CH1-&gt;F、CH2</text>
+<text x="1100" y="490" font-size="10.5" fill="#64748b">CH2/CH4 为 NC（低 = 通）；零点 = CH3、CH4 双断 + 恒流关断（保留）</text>
+<text x="1100" y="506" font-size="10.5" fill="#64748b">互锁：SEL_SENSE=1 时 SEL_K2 不得为 0；两线/四线共用本表（两线时 V_P = T、V_N = S）</text>
 
 <!-- ===== formula panel ===== -->
 <rect x="1080" y="524" width="480" height="150" rx="8" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.2"/>
@@ -277,26 +307,44 @@
 <text x="1100" y="646" font-size="10.5" fill="#64748b">d0 每次测量会话自动刷新；k 只由上位机指令写入</text>
 <text x="1100" y="664" font-size="10.5" fill="#64748b">上电 / 周期自检只做只读比对，超差报警，不覆盖 k</text>
 
-<!-- ===== notes ===== -->
-<text x="640" y="940" font-size="10" font-weight="bold" fill="#374151">说明</text>
-<text x="640" y="964" font-size="10.5" fill="#374151">样品上端；与 R_top/R_b、R_ref 顶端共用</text>
-<text x="640" y="986" font-size="10.5" fill="#374151">样品上端感线（四线制走这路）</text>
-<text x="640" y="1008" font-size="10.5" fill="#374151">样品下端力线（回线）</text>
-<text x="640" y="1030" font-size="10.5" fill="#374151">样品下端感线</text>
-<text x="640" y="1052" font-size="10.5" fill="#374151">焊上 = 两线制（只接 J5、J7）；不焊 = 四线制</text>
-<rect x="30" y="1196" width="1540" height="92" rx="8" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.2"/>
+<!-- ===== TMUX1134 channel map panel ===== -->
+<rect x="1080" y="940" width="480" height="220" rx="8" fill="#faf5ff" stroke="#7c3aed" stroke-width="1.4"/>
+<text x="1100" y="966" font-size="13" font-weight="bold" fill="#7c3aed">TMUX1134（单颗 · TSSOP-20 · 4×SPDT 精密开关）</text>
+<text x="1100" y="992" font-size="10.5" fill="#374151">CH1：COM=M · NO=V_N · NC=F —— 原 K3+K4（感线/校准选择，BBM）</text>
+<text x="1100" y="1014" font-size="10.5" fill="#374151">CH2：COM=V_P · NC=T · NO 悬空 —— 原 K5（感线高端并回 T）</text>
+<text x="1100" y="1036" font-size="10.5" fill="#374151">CH3：COM=S · NO=X · NC 悬空 —— 原 K1（样品电流回线）</text>
+<text x="1100" y="1058" font-size="10.5" fill="#374151">CH4：COM=F · NC=X · NO 悬空 —— 原 K2（R_ref 回线 · PB8 独立）</text>
+<text x="1100" y="1080" font-size="10.5" fill="#374151">IN1/IN2/IN3 &lt;- PB2（同沿）；IN4 &lt;- PB8；VDD=AVCC、GND=AGND</text>
+<text x="1100" y="1102" font-size="10.5" fill="#374151">Ron 2 Ω · 导通漏电 3 pA 级 · 每通道先断后合 · fail-safe 上电</text>
+<text x="1100" y="1124" font-size="10.5" fill="#94a3b8">NO/NC 按 IN=1 -&gt; NO 惯例标注（真值表方向待核，反则对调）</text>
+
+<!-- ===== node legend ===== -->
+<text x="640" y="940" font-size="10" font-weight="bold" fill="#374151">图例与节点说明</text>
+<text x="640" y="962" font-size="10.5" fill="#374151">T：样品与 R_ref 共用顶端（R_top/R_b 偏置，~3.0 V）</text>
+<text x="640" y="982" font-size="10.5" fill="#374151">V_P：高端感线（J6）→ 跟随器 → AIN0P；CH2 通时 = T</text>
+<text x="640" y="1002" font-size="10.5" fill="#374151">V_N：低端感线（J8）→ CH1·NO → M；两线制（JP2）时 = S</text>
+<text x="640" y="1022" font-size="10.5" fill="#374151">S / F：样品 / R_ref 的力线低端（电流回线）</text>
+<text x="640" y="1042" font-size="10.5" fill="#374151">CH1–CH4：单颗 TMUX1134 的四路 SPDT（旧编号 K3+K4 / K5 / K1 / K2）</text>
+<text x="640" y="1062" font-size="10.5" fill="#374151">JP1/JP2：焊上 = 两线制（感线并在力线上）；不焊 = 四线制</text>
+
+<!-- ===== ADS131A02 must-connect pins ===== -->
+<rect x="1080" y="700" width="480" height="220" rx="8" fill="#eff6ff" stroke="#2563eb" stroke-width="1.6"/>
+<text x="1320" y="726" font-size="13" font-weight="bold" fill="#1d4ed8" text-anchor="middle">ADS131A02 必接脚（原理图阶段勿漏）</text>
+<text x="1100" y="752" font-size="10.5" fill="#1e3a8a">RESV(16) → IOVDD（手册明写 "connect to IOVDD"，不得悬空）</text>
+<text x="1100" y="774" font-size="10.5" fill="#1e3a8a">CAP(28) → 1 uF → GND（内部数字 LDO 输出）</text>
+<text x="1100" y="796" font-size="10.5" fill="#1e3a8a">NC(24) → 10 kOhm 下拉（数字输出脚）</text>
+<text x="1100" y="818" font-size="10.5" fill="#1e3a8a">NC(5–8) → AVSS 或悬空</text>
+<text x="1100" y="840" font-size="10.5" fill="#1e3a8a">AVDD / IOVDD 各 ≥1 uF 解耦（手册 §11.4）</text>
+<text x="1100" y="862" font-size="10.5" fill="#1e3a8a">REFP/REFN：内部 2.442 V；REFEXT 不接；VNCP → 1 uF → AVSS</text>
+<text x="1100" y="884" font-size="10.5" fill="#059669">输入每线 1 kOhm + 10 nF（fc ≈ 16 kHz）；AVDD 受 ANA_EN 门控</text>
+
+<!-- ===== footer notes ===== -->
+<rect x="30" y="1196" width="1540" height="132" rx="8" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.2"/>
 <text x="50" y="1220" font-size="13" font-weight="bold" fill="#111827">图注与自查要点</text>
-<text x="50" y="1242" font-size="10.5" fill="#374151">1. T 为样品与 R_ref 的共用顶端（经 R_top 10 kOhm 接 3.3V_A、R_b 150 kOhm 对地），到各支路顶端不经开关；2. 恒流源在低边，Rsense 在 BSS138 源极路径（I = VSET/Rsense）；3. 校准、零点时样品回线断开 -&gt; 零电流（不是短路）</text>
-<text x="50" y="1260" font-size="10.5" fill="#374151">4. 通道 1（Rsense 压降）永远在线、不参与切换；5. 3 颗跟随器只缓冲高阻节点 T、M、B，距电源轨均 &gt;= 0.15 V，AIN1N（地）直接经 RC 进 ADC；6. 零点：K1、K2 均断 + CURR_DIS = 1，ch0 读出失调 d0</text>
-<text x="50" y="1278" font-size="10.5" fill="#374151">7. 虚线框 = 板外器件；信号交叉处画小跳线 = 跨越不连接。图例：深灰 = 导线；绿 = 测量；橙 = 校准；蓝 = 零点读数 / 注释；紫虚线 = 控制；灰虚线 = 未选中支路</text>
-  <!-- ===== ADS131A02 必接脚（自 前端拓扑.svg 并入） ===== -->
-  <rect x="1080" y="700" width="480" height="220" rx="8" fill="#eff6ff" stroke="#2563eb" stroke-width="1.6"/>
-  <text x="1320" y="726" font-size="13" font-weight="bold" fill="#1d4ed8" text-anchor="middle">ADS131A02 必接脚（原理图阶段勿漏）</text>
-  <text x="1100" y="752" font-size="10.5" fill="#1e3a8a">RESV(16) → IOVDD（手册明写 "connect to IOVDD"，不得悬空）</text>
-  <text x="1100" y="774" font-size="10.5" fill="#1e3a8a">CAP(28) → 1 uF → GND（内部数字 LDO 输出）</text>
-  <text x="1100" y="796" font-size="10.5" fill="#1e3a8a">NC(24) → 10 kOhm 下拉（数字输出脚）</text>
-  <text x="1100" y="818" font-size="10.5" fill="#1e3a8a">NC(5–8) → AVSS 或悬空</text>
-  <text x="1100" y="840" font-size="10.5" fill="#1e3a8a">AVDD / IOVDD 各 ≥1 uF 解耦（手册 §11.4）</text>
-  <text x="1100" y="862" font-size="10.5" fill="#1e3a8a">REFP/REFN：内部 2.442 V；REFEXT 不接；VNCP → 1 uF → AVSS</text>
-  <text x="1100" y="884" font-size="10.5" fill="#059669">输入每线 1 kOhm + 10 nF（fc ≈ 16 kHz）；AVDD 受 ANA_EN 门控</text>
+<text x="50" y="1242" font-size="10.5" fill="#374151">1. T 为样品与 R_ref 共用顶端（R_top/R_b 偏置），到各支路不经开关；恒流源在低边，Rsense 在 BSS138 源极路径；校准/零点时样品回线断开 -&gt; 零电流（不是短路）</text>
+<text x="50" y="1258" font-size="10.5" fill="#374151">2. 四线制：J5/J7 走力线、J6/J8 走感线（感线无电流 -&gt; 真 Kelvin，引线电阻不计入）；两线制：JP1/JP2 焊上，感线并在力线上（引线+接触电阻计入 R）</text>
+<text x="50" y="1274" font-size="10.5" fill="#374151">3. CH2（原 K5·NC，随 SEL_SENSE）：校准/零点把 V_P 并回 T——样品未接或开路也能校准/零点；测量时断开，不破坏四线制</text>
+<text x="50" y="1290" font-size="10.5" fill="#374151">4. 通道 1（Rsense 压降）永远在线不切换；跟随器只缓冲 V_P、M、B（距轨 ≥ 0.15 V），AIN1N 直接经 RC 进 ADC；零点 = CH3、CH4 双断 + CURR_DIS = 1</text>
+<text x="50" y="1306" font-size="10.5" fill="#374151">5. 全部开关 = 单颗 TMUX1134：CH1/CH2/CH3 由 PB2 同沿驱动（晶圆内同步）、CH4 独立（PB8），每通道先断后合，三个悬空掷为板上孤岛</text>
+<text x="50" y="1322" font-size="10.5" fill="#374151">6. 互锁：SEL_SENSE=1 时 SEL_K2 不得为 0；BAV199 建议 ×4（J5–J8 各一，图示 J7 侧）；虚线框 = 板外器件；交叉小跳线 = 跨越不连接</text>
 </svg>

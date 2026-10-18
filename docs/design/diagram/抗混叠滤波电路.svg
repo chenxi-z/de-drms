@@ -1,0 +1,147 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="950" viewBox="0 0 1500 950"
+     font-family="'Noto Sans CJK SC','Noto Sans SC','Source Han Sans SC','PingFang SC','Microsoft YaHei',sans-serif">
+<style>
+  .w   { stroke:#374151; stroke-width:2;   fill:none }
+  .sym { stroke:#374151; stroke-width:1.8; fill:none; stroke-linejoin:round }
+</style>
+<defs>
+  <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
+    <path d="M20,0 L0,0 0,20" fill="none" stroke="#eef2f7" stroke-width="1"/>
+  </pattern>
+</defs>
+<rect x="0" y="0" width="1500" height="950" fill="#ffffff"/>
+<rect x="0" y="0" width="1500" height="950" fill="url(#grid)"/>
+
+<!-- ===== title ===== -->
+<text x="40" y="58" font-size="27" font-weight="bold" fill="#111827">抗混叠滤波电路（ADS131A02 前端 · 128 kSPS）</text>
+<text x="40" y="86" font-size="12.5" fill="#64748b">双电极直流电阻测量仪 · 每线 1 kOhm + 10 nF 对地 + 每通道 10 nF 差分 · SigmaDelta 两级采样的抗混叠分工</text>
+<text x="1460" y="58" font-size="12" fill="#94a3b8" text-anchor="end">附录 E.4 · 2026-10-18 重设计</text>
+<text x="1460" y="86" font-size="12" fill="#94a3b8" text-anchor="end">混叠锚点 fMOD = 4.096 MHz（16.384 MHz / 4）</text>
+
+<!-- ===== ch0 ===== -->
+<text x="60" y="150" font-size="15" font-weight="bold" fill="#111827">通道 0（ch0 = V_P - M，样品电压）</text>
+<text x="120" y="176" font-size="12" font-weight="bold" fill="#111827">OPA388(V_P) 输出</text>
+<text x="120" y="316" font-size="12" font-weight="bold" fill="#111827">OPA388(M) 输出</text>
+<line x1="120" y1="200" x2="960" y2="200" class="w"/>
+<line x1="120" y1="340" x2="960" y2="340" class="w"/>
+<circle cx="120" cy="200" r="3.5" fill="#ffffff" stroke="#374151" stroke-width="2"/>
+<circle cx="120" cy="340" r="3.5" fill="#ffffff" stroke="#374151" stroke-width="2"/>
+<rect x="240" y="186" width="56" height="28" rx="2" fill="#f1f5f9" stroke="#374151" stroke-width="1.8"/>
+<rect x="240" y="326" width="56" height="28" rx="2" fill="#f1f5f9" stroke="#374151" stroke-width="1.8"/>
+<text x="268" y="178" font-size="12" font-weight="bold" fill="#374151" text-anchor="middle">1 kOhm</text>
+<text x="268" y="318" font-size="12" font-weight="bold" fill="#374151" text-anchor="middle">1 kOhm</text>
+<circle cx="560" cy="200" r="4.5" fill="#111827"/>
+<circle cx="560" cy="340" r="4.5" fill="#111827"/>
+<circle cx="700" cy="200" r="4.5" fill="#111827"/>
+<circle cx="700" cy="340" r="4.5" fill="#111827"/>
+<line x1="560" y1="200" x2="560" y2="235" class="w"/>
+<line x1="546" y1="235" x2="574" y2="235" stroke="#374151" stroke-width="2.5" fill="none"/>
+<line x1="546" y1="243" x2="574" y2="243" stroke="#374151" stroke-width="2.5" fill="none"/>
+<line x1="560" y1="243" x2="560" y2="340" class="w"/>
+<text x="540" y="238" font-size="12" font-weight="bold" fill="#374151" text-anchor="end">C_diff 10 nF</text>
+<text x="540" y="256" font-size="10" fill="#94a3b8" text-anchor="end">差模 + 电荷储罐</text>
+<line x1="700" y1="200" x2="700" y2="235" class="w"/>
+<line x1="686" y1="235" x2="714" y2="235" stroke="#374151" stroke-width="2.5" fill="none"/>
+<line x1="686" y1="243" x2="714" y2="243" stroke="#374151" stroke-width="2.5" fill="none"/>
+<line x1="700" y1="243" x2="700" y2="252" class="w"/>
+<line x1="686" y1="252" x2="714" y2="252" stroke="#374151" stroke-width="2.5" fill="none"/>
+<line x1="692" y1="258" x2="708" y2="258" stroke="#374151" stroke-width="2" fill="none"/>
+<line x1="698" y1="264" x2="702" y2="264" stroke="#374151" stroke-width="2" fill="none"/>
+<text x="716" y="240" font-size="12" font-weight="bold" fill="#374151">C_cm 10 nF</text>
+<line x1="700" y1="340" x2="700" y2="375" class="w"/>
+<line x1="686" y1="375" x2="714" y2="375" stroke="#374151" stroke-width="2.5" fill="none"/>
+<line x1="686" y1="383" x2="714" y2="383" stroke="#374151" stroke-width="2.5" fill="none"/>
+<line x1="700" y1="383" x2="700" y2="392" class="w"/>
+<line x1="686" y1="392" x2="714" y2="392" stroke="#374151" stroke-width="2.5" fill="none"/>
+<line x1="692" y1="398" x2="708" y2="398" stroke="#374151" stroke-width="2" fill="none"/>
+<line x1="698" y1="404" x2="702" y2="404" stroke="#374151" stroke-width="2" fill="none"/>
+<text x="676" y="396" font-size="12" font-weight="bold" fill="#374151" text-anchor="end">C_cm 10 nF</text>
+
+<!-- ===== ch1 ===== -->
+<text x="60" y="450" font-size="15" font-weight="bold" fill="#111827">通道 1（ch1 = B - E，Rsense 压降）</text>
+<text x="120" y="476" font-size="12" font-weight="bold" fill="#111827">OPA388(B) 输出</text>
+<text x="120" y="616" font-size="12" font-weight="bold" fill="#111827">E（Rsense 底端 Kelvin）</text>
+<text x="120" y="660" font-size="10" fill="#94a3b8">低阻地参考（E.4）</text>
+<line x1="120" y1="500" x2="960" y2="500" class="w"/>
+<line x1="120" y1="640" x2="960" y2="640" class="w"/>
+<circle cx="120" cy="500" r="3.5" fill="#ffffff" stroke="#374151" stroke-width="2"/>
+<circle cx="120" cy="640" r="3.5" fill="#ffffff" stroke="#374151" stroke-width="2"/>
+<rect x="240" y="486" width="56" height="28" rx="2" fill="#f1f5f9" stroke="#374151" stroke-width="1.8"/>
+<rect x="240" y="626" width="56" height="28" rx="2" fill="#f1f5f9" stroke="#374151" stroke-width="1.8"/>
+<text x="268" y="478" font-size="12" font-weight="bold" fill="#374151" text-anchor="middle">1 kOhm</text>
+<text x="268" y="668" font-size="12" font-weight="bold" fill="#374151" text-anchor="middle">1 kOhm</text>
+<circle cx="560" cy="500" r="4.5" fill="#111827"/>
+<circle cx="560" cy="640" r="4.5" fill="#111827"/>
+<circle cx="700" cy="500" r="4.5" fill="#111827"/>
+<circle cx="700" cy="640" r="4.5" fill="#111827"/>
+<line x1="560" y1="500" x2="560" y2="535" class="w"/>
+<line x1="546" y1="535" x2="574" y2="535" stroke="#374151" stroke-width="2.5" fill="none"/>
+<line x1="546" y1="543" x2="574" y2="543" stroke="#374151" stroke-width="2.5" fill="none"/>
+<line x1="560" y1="543" x2="560" y2="640" class="w"/>
+<text x="540" y="538" font-size="12" font-weight="bold" fill="#374151" text-anchor="end">C_diff 10 nF</text>
+<text x="540" y="556" font-size="10" fill="#94a3b8" text-anchor="end">差模 + 电荷储罐</text>
+<line x1="700" y1="500" x2="700" y2="535" class="w"/>
+<line x1="686" y1="535" x2="714" y2="535" stroke="#374151" stroke-width="2.5" fill="none"/>
+<line x1="686" y1="543" x2="714" y2="543" stroke="#374151" stroke-width="2.5" fill="none"/>
+<line x1="700" y1="543" x2="700" y2="552" class="w"/>
+<line x1="686" y1="552" x2="714" y2="552" stroke="#374151" stroke-width="2.5" fill="none"/>
+<line x1="692" y1="558" x2="708" y2="558" stroke="#374151" stroke-width="2" fill="none"/>
+<line x1="698" y1="564" x2="702" y2="564" stroke="#374151" stroke-width="2" fill="none"/>
+<text x="716" y="540" font-size="12" font-weight="bold" fill="#374151">C_cm 10 nF</text>
+<line x1="700" y1="640" x2="700" y2="675" class="w"/>
+<line x1="686" y1="675" x2="714" y2="675" stroke="#374151" stroke-width="2.5" fill="none"/>
+<line x1="686" y1="683" x2="714" y2="683" stroke="#374151" stroke-width="2.5" fill="none"/>
+<line x1="700" y1="683" x2="700" y2="692" class="w"/>
+<line x1="686" y1="692" x2="714" y2="692" stroke="#374151" stroke-width="2.5" fill="none"/>
+<line x1="692" y1="698" x2="708" y2="698" stroke="#374151" stroke-width="2" fill="none"/>
+<line x1="698" y1="704" x2="702" y2="704" stroke="#374151" stroke-width="2" fill="none"/>
+<text x="676" y="676" font-size="12" font-weight="bold" fill="#374151" text-anchor="end">C_cm 10 nF</text>
+
+<!-- ===== ADC box ===== -->
+<rect x="960" y="160" width="190" height="540" rx="8" fill="#eff6ff" stroke="#2563eb" stroke-width="2"/>
+<text x="1055" y="192" font-size="15" font-weight="bold" fill="#1d4ed8" text-anchor="middle">ADS131A02</text>
+<text x="1055" y="218" font-size="10" fill="#2563eb" text-anchor="middle">双通道同步 24 bit SigmaDelta</text>
+<text x="968" y="204" font-size="11" font-weight="bold" fill="#1e3a8a">AIN0P</text>
+<text x="968" y="344" font-size="11" font-weight="bold" fill="#1e3a8a">AIN0N</text>
+<text x="968" y="504" font-size="11" font-weight="bold" fill="#1e3a8a">AIN1P</text>
+<text x="968" y="644" font-size="11" font-weight="bold" fill="#1e3a8a">AIN1N</text>
+<text x="1142" y="276" font-size="11" fill="#2563eb" text-anchor="end">通道 0</text>
+<text x="1142" y="576" font-size="11" fill="#2563eb" text-anchor="end">通道 1</text>
+<text x="1055" y="678" font-size="9.5" fill="#1e3a8a" text-anchor="middle">fMOD 4.096 MHz · OSR 32</text>
+<text x="1055" y="694" font-size="9.5" fill="#1e3a8a" text-anchor="middle">128 kSPS · 内部基准 2.442 V</text>
+
+<!-- ===== panel 1: two-stage sampling ===== -->
+<rect x="1190" y="160" width="280" height="232" rx="8" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.2"/>
+<text x="1210" y="186" font-size="13" font-weight="bold" fill="#111827">两级采样与抗混叠分工（香农落点）</text>
+<text x="1210" y="212" font-size="10.5" fill="#374151">模拟信号 → RC 网络（本图）</text>
+<text x="1210" y="232" font-size="10.5" fill="#374151">→ 调制器采样 @ fMOD 4.096 MHz</text>
+<text x="1210" y="252" font-size="10.5" fill="#374151">→ 数字抽取 OSR = 32 → 128 kSPS</text>
+<text x="1210" y="280" font-size="10.5" fill="#2563eb">模拟 RC：压制 fMOD 附近折叠与</text>
+<text x="1210" y="296" font-size="10.5" fill="#2563eb">开关噪声 + 采样电荷储罐</text>
+<text x="1210" y="324" font-size="10.5" fill="#2563eb">64 kHz ~ fMOD 混叠：数字滤波器</text>
+<text x="1210" y="340" font-size="10.5" fill="#2563eb">负责（SigmaDelta 固有；无需 64 kHz 阻带）</text>
+
+<!-- ===== panel 2: response ===== -->
+<rect x="1190" y="420" width="280" height="280" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.2"/>
+<text x="1210" y="446" font-size="13" font-weight="bold" fill="#111827">频响 / 衰减 / 瞬态（设计值）</text>
+<text x="1210" y="472" font-size="10.5" fill="#374151">共模极点 fc = 15.9 kHz（每线 1k+10n）</text>
+<text x="1210" y="492" font-size="10.5" fill="#374151">差模 fc = 5.3 kHz（C_eff = 30 nF）</text>
+<text x="1210" y="512" font-size="10.5" fill="#374151">@4.096 MHz：CM -48 dB · DM -58 dB</text>
+<text x="1210" y="532" font-size="10.5" fill="#374151">@16.384 MHz：CM -60 dB · DM -70 dB</text>
+<text x="1210" y="552" font-size="10.5" fill="#374151">tau：CM 10 us · DM 30 us（7tau = 210 us）</text>
+<text x="1210" y="572" font-size="10.5" fill="#374151">换路预算 1 ms（E.3.3）：裕量约 5 倍</text>
+<text x="1210" y="600" font-size="10.5" fill="#64748b">C 全 C0G/NP0 · 四线同批同值 · R 用 1%</text>
+<text x="1210" y="620" font-size="10.5" fill="#64748b">1 kOhm 热噪声 4 nV/√Hz，积分后</text>
+<text x="1210" y="636" font-size="10.5" fill="#64748b">远低于 128 kSPS 噪声底（DR 85.1 dB）</text>
+<text x="1210" y="656" font-size="10.5" fill="#94a3b8">待核：OSR=32 数字阻带曲线（SBAS590）</text>
+
+<!-- ===== footer notes ===== -->
+<rect x="30" y="760" width="1440" height="160" rx="8" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.2"/>
+<text x="50" y="786" font-size="13" font-weight="bold" fill="#111827">图注与自查要点</text>
+<text x="50" y="810" font-size="10.5" fill="#374151">1. 拓扑：每线 1 kOhm 串阻 + 10 nF 对 AGND（V_P / M / B 在跟随器输出后，E 从 Rsense 底端 Kelvin 引线引出）+ 每通道 10 nF 跨 P-N——共 4R + 6C；C 全 C0G/NP0、四线同批同值（比值抵消前提）。</text>
+<text x="50" y="828" font-size="10.5" fill="#374151">2. 差模等效电容 = C_cm + 2 × C_diff = 30 nF → fc_DM = 5.3 kHz；共模 fc = 15.9 kHz；C_diff 兼作调制器开关电容输入的电荷储罐（10 nF 远大于 ~7 pF 采样电容，注入扰动 &lt; 0.1%）。</text>
+<text x="50" y="846" font-size="10.5" fill="#374151">3. 香农落点：模拟域采样发生在 fMOD = 4.096 MHz，128 kSPS 只是数字抽取输出——抽取级抗混叠由数字滤波器阻带承担，模拟 RC 只需覆盖 k·fMOD ± fB 折叠区（教科书式 64 kHz 阻带对一阶 RC 既不必要也做不到）。</text>
+<text x="50" y="864" font-size="10.5" fill="#374151">4. 比值法：通带跌落与群延迟在 ch0 / ch1 中同构抵消；残余失配项 @100 Hz &lt; 0.002%、@1 kHz 约 0.1%（C0G 5% 失配 + R 1%；冲击信号能量集中于百 Hz 以下，实际影响远小）。</text>
+<text x="50" y="882" font-size="10.5" fill="#374151">5. 负载与直流：对 Zin ≈ 130 kOhm 分压 -0.08%，被比值吸收；E 线 1 kOhm 上输入泄漏压降 µV 级，被 d0/k 吸收；50 Hz 工频在通带内，模拟侧不动，靠准静态平均压制。</text>
+<text x="50" y="900" font-size="10.5" fill="#374151">6. 位置纪律：R 靠信号源（跟随器输出）侧，C 靠 ADC 引脚侧；四组走线同长同构；C_diff 两颗对称居中。待核一项：SBAS590 Filter Characteristics 的 OSR=32 阻带曲线（定 64k~fMOD 区间裕量数值）。</text>
+</svg>
