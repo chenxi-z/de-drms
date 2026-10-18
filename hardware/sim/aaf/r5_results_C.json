@@ -1,0 +1,393 @@
+{
+  "candidate": "C",
+  "n_stages": 4,
+  "stages": [
+    [
+      3.6,
+      1e-07,
+      0.0
+    ],
+    [
+      4.7,
+      8.2e-08,
+      0.0
+    ],
+    [
+      5.6,
+      4.7e-08,
+      0.0
+    ],
+    [
+      5.1,
+      3.9e-08,
+      2.7e-08
+    ]
+  ],
+  "theory_pred": {
+    "A_dm": 80.6902091135097,
+    "A_cm": 73.40148658167416,
+    "A_mclk": 127.96897549565179,
+    "dG_16k": 0.40329208738425026,
+    "t_settle_wc_s": 3.234322805695912e-05,
+    "group_delay_flat_s": 2.42465617122206e-07,
+    "f_c_hz": 50723.444963448615,
+    "V_n_lsb": 0.9727125359795618,
+    "sigma_dG_db": 0.019102592709445924,
+    "CMRR_pb_db": 45.437179892015685,
+    "tau_kb_ns": 0.02135,
+    "kickback_droop": 3.763096921249133e-05,
+    "kickback_ok": true,
+    "tau_dc_us": 3.782126735899465,
+    "r_sum_ohm": 19.0,
+    "c_max_f": 1e-07,
+    "n_parts": 17
+  },
+  "dir": "C:\\Users\\chenx\\Desktop\\de-drms\\hardware\\sim\\aaf",
+  "raw": {
+    "V1": "C:\\Users\\chenx\\Desktop\\de-drms\\hardware\\sim\\aaf\\r5_C_v1.raw",
+    "V2": "C:\\Users\\chenx\\Desktop\\de-drms\\hardware\\sim\\aaf\\r5_C_v2.raw",
+    "V3": "C:\\Users\\chenx\\Desktop\\de-drms\\hardware\\sim\\aaf\\r5_C_v3.raw",
+    "V4": "C:\\Users\\chenx\\Desktop\\de-drms\\hardware\\sim\\aaf\\r5_C_v4.raw",
+    "V4b": "C:\\Users\\chenx\\Desktop\\de-drms\\hardware\\sim\\aaf\\r5_C_v4b.raw",
+    "V7": "C:\\Users\\chenx\\Desktop\\de-drms\\hardware\\sim\\aaf\\r5_C_v7.raw",
+    "V8": "C:\\Users\\chenx\\Desktop\\de-drms\\hardware\\sim\\aaf\\r5_C_v8_ron1.raw",
+    "V9a": "C:\\Users\\chenx\\Desktop\\de-drms\\hardware\\sim\\aaf\\r5_C_v9a.raw",
+    "V9C": "C:\\Users\\chenx\\Desktop\\de-drms\\hardware\\sim\\aaf\\r5_C_v9c.raw",
+    "V9F": "C:\\Users\\chenx\\Desktop\\de-drms\\hardware\\sim\\aaf\\r5_C_v9f.raw"
+  },
+  "V1": {
+    "g_dc_db": -0.0025385813640751687,
+    "g_16k_db": -0.3402483531766599,
+    "D4_dG_16k_db": 0.33770977181258477,
+    "D1_A_dm_db": 78.5956468902899,
+    "D3_A_mclk_db": 125.84186149262503,
+    "D10_dtau_us": 0.20140597393381682,
+    "tau_at_100Hz_us": 3.460232135982149,
+    "tau_at_16k_us": 3.2588261620487633,
+    "tau_p_16k_us": 3.2588261620487633,
+    "tau_n_16k_us": 3.258826162049053,
+    "CH_tau_diff_us": -2.8954616482224083e-13
+  },
+  "g_dc_db": -0.0025385813640751687,
+  "g_16k_db": -0.3402483531766599,
+  "D4_dG_16k_db": 0.33770977181258477,
+  "D1_A_dm_db": 78.5956468902899,
+  "D3_A_mclk_db": 125.84186149262503,
+  "D10_dtau_us": 0.20140597393381682,
+  "tau_at_100Hz_us": 3.460232135982149,
+  "tau_at_16k_us": 3.2588261620487633,
+  "CH_tau_diff_us": -2.8954616482224083e-13,
+  "tau_p_16k_us": 3.2588261620487633,
+  "tau_n_16k_us": 3.258826162049053,
+  "V2": {
+    "D2_A_cm_db": 71.30679497355209,
+    "g_cm_dc_db": -6.3192378883259896e-12,
+    "g_cm_fmod_db": -71.30679497355841
+  },
+  "D2_A_cm_db": 71.30679497355209,
+  "V3": {
+    "D8_CMRR_db": 46.521317118437544,
+    "D8_worst_f_hz": 15940.42880711776,
+    "cmrr_10": 110.19524169871495,
+    "cmrr_16k": 46.521317118437544
+  },
+  "D8_CMRR_db": 46.521317118437544,
+  "V4": {
+    "tset_us": 27.994006813413957,
+    "tset_engine_band_us": 29.504406705994775,
+    "vfinal_v": 1.9994097127323154,
+    "err_final_uv": 0.0,
+    "raw": "C:\\Users\\chenx\\Desktop\\de-drms\\hardware\\sim\\aaf\\r5_C_v4.raw"
+  },
+  "V4b": {
+    "tset_us": 52.13288695490534,
+    "tset_engine_band_us": 54.738715638738135,
+    "vfinal_v": 1.9994097127317705,
+    "err_final_uv": 0.0,
+    "raw": "C:\\Users\\chenx\\Desktop\\de-drms\\hardware\\sim\\aaf\\r5_C_v4b.raw"
+  },
+  "D5_tset_us": 27.994006813413957,
+  "V5": {
+    "n": 30,
+    "sigma_db": 0.008646015295233643,
+    "mean_db": -0.33925981679111056,
+    "min_db": -0.35348506285621384,
+    "max_db": -0.3218801211110983,
+    "p2p_db": 0.03160494174511552
+  },
+  "D7_sigma_dG_db": 0.008646015295233643,
+  "V6": {
+    "n": 30,
+    "min_us": 25.747813710652057,
+    "mean_us": 26.458307633664074,
+    "max_us": 27.031223555951893
+  },
+  "V7": {
+    "D6_Vn_nv": 283.895122603039,
+    "D6_Vn_lsb": 0.9752190403885478,
+    "D6_Vn_uv": 0.283895122603039,
+    "f_max_hz": 2048000.0,
+    "dens_1k_nv": 0.7934280653960185
+  },
+  "D6_Vn_nv": 283.895122603039,
+  "D6_Vn_lsb": 0.9752190403885478,
+  "V8": {
+    "ron1": {
+      "D9": 1.0,
+      "criterion": "residual <= 0.01% of steady-state value within 122.07 ns",
+      "n_cycles": 160,
+      "worst_resid_uv": 0.8917039941991334,
+      "worst_rel_to_ss": 2.7870269908984973e-07,
+      "worst_rel_to_fs": 3.651531507776959e-07,
+      "worst_rel_to_kick": 0.02363584149071599,
+      "kick_amp_uv": 37.72677162983129,
+      "detail": [
+        {
+          "k": 2,
+          "t_on_ns": 488.28,
+          "v_ss": 3.1996053635179154,
+          "kick_amp_uv": 37.94886052554958,
+          "resid_end_uv": 0.5087819308080554,
+          "resid_max_uv": 26.412556248800456,
+          "rel_to_ss": 1.590139635997665e-07,
+          "rel_to_fs": 2.083464090123077e-07,
+          "rel_to_kick": 0.013407041048452858,
+          "pass": true
+        },
+        {
+          "k": 3,
+          "t_on_ns": 732.42,
+          "v_ss": 3.1995939297974103,
+          "kick_amp_uv": 37.91639986649997,
+          "resid_end_uv": 0.5646932295100271,
+          "resid_max_uv": 25.580582276862884,
+          "rel_to_ss": 1.7648903013945335e-07,
+          "rel_to_fs": 2.3124210872646482e-07,
+          "rel_to_kick": 0.014893113046023834,
+          "pass": true
+        },
+        {
+          "k": 4,
+          "t_on_ns": 976.56,
+          "v_ss": 3.1995839039570253,
+          "kick_amp_uv": 37.89346820015638,
+          "resid_end_uv": 0.6018642646488104,
+          "resid_max_uv": 24.975642449742708,
+          "rel_to_ss": 1.8810704226398504e-07,
+          "rel_to_fs": 2.4646366283735067e-07,
+          "rel_to_kick": 0.01588306093994127,
+          "pass": true
+        }
+      ]
+    },
+    "ron100": {
+      "D9": 1.0,
+      "criterion": "residual <= 0.01% of steady-state value within 122.07 ns",
+      "n_cycles": 160,
+      "worst_resid_uv": 0.8796739963123912,
+      "worst_rel_to_ss": 2.74942738311551e-07,
+      "worst_rel_to_fs": 3.602268617167859e-07,
+      "worst_rel_to_kick": 0.023301592150015576,
+      "kick_amp_uv": 37.751669098362584,
+      "detail": [
+        {
+          "k": 2,
+          "t_on_ns": 488.28,
+          "v_ss": 3.199605364252888,
+          "kick_amp_uv": 37.97442911768201,
+          "resid_end_uv": 0.4964903799198339,
+          "resid_max_uv": 26.413057592211686,
+          "rel_to_ss": 1.5517238015250205e-07,
+          "rel_to_fs": 2.0331301389018587e-07,
+          "rel_to_kick": 0.01307433426796806,
+          "pass": true
+        },
+        {
+          "k": 3,
+          "t_on_ns": 732.42,
+          "v_ss": 3.1995939403235187,
+          "kick_amp_uv": 37.94195822992563,
+          "resid_end_uv": 0.5414631703004602,
+          "resid_max_uv": 25.569895949484334,
+          "rel_to_ss": 1.6922871476800944e-07,
+          "rel_to_fs": 2.217293899674284e-07,
+          "rel_to_kick": 0.014270828274577475,
+          "pass": true
+        },
+        {
+          "k": 4,
+          "t_on_ns": 976.56,
+          "v_ss": 3.1995839210210564,
+          "kick_amp_uv": 37.91902196503827,
+          "resid_end_uv": 0.5712430177773342,
+          "resid_max_uv": 24.95743970243325,
+          "rel_to_ss": 1.7853665722730543e-07,
+          "rel_to_fs": 2.3392424970406805e-07,
+          "rel_to_kick": 0.015064814126905125,
+          "pass": true
+        }
+      ]
+    },
+    "ron1000": {
+      "D9": 1.0,
+      "criterion": "residual <= 0.01% of steady-state value within 122.07 ns",
+      "n_cycles": 160,
+      "worst_resid_uv": 0.7360082174834304,
+      "worst_rel_to_ss": 2.3003989049789424e-07,
+      "worst_rel_to_fs": 3.0139566645513117e-07,
+      "worst_rel_to_kick": 0.03083731460186783,
+      "kick_amp_uv": 23.86745496441023,
+      "detail": [
+        {
+          "k": 2,
+          "t_on_ns": 488.28,
+          "v_ss": 3.199605354041941,
+          "kick_amp_uv": 24.072530226959543,
+          "resid_end_uv": 0.400623756835472,
+          "resid_max_uv": 26.435003655844724,
+          "rel_to_ss": 1.252103658125772e-07,
+          "rel_to_fs": 1.6405559247971827e-07,
+          "rel_to_kick": 0.016642361773288025,
+          "pass": true
+        },
+        {
+          "k": 3,
+          "t_on_ns": 732.42,
+          "v_ss": 3.1995939257898858,
+          "kick_amp_uv": 24.040312535777986,
+          "resid_end_uv": 0.43946316541365604,
+          "resid_max_uv": 25.583430146358666,
+          "rel_to_ss": 1.3734966861620277e-07,
+          "rel_to_fs": 1.7996034619723833e-07,
+          "rel_to_kick": 0.01828026007397471,
+          "pass": true
+        },
+        {
+          "k": 4,
+          "t_on_ns": 976.56,
+          "v_ss": 3.1995838762635396,
+          "kick_amp_uv": 24.016989168984537,
+          "resid_end_uv": 0.49169773363999525,
+          "resid_max_uv": 24.992289032521597,
+          "rel_to_ss": 1.53675525523087e-07,
+          "rel_to_fs": 2.013504232760013e-07,
+          "rel_to_kick": 0.020472913160779208,
+          "pass": true
+        }
+      ]
+    }
+  },
+  "D9": 1.0,
+  "V9": {
+    "A_dm": 101.03830723300419,
+    "A_mclk": 160.5053436425614,
+    "dG_16k": 0.3391298169326774,
+    "raw_v9a": "C:\\Users\\chenx\\Desktop\\de-drms\\hardware\\sim\\aaf\\r5_C_v9a.raw",
+    "A_cm": 93.74945698734177,
+    "t_settle_us": 37.87166922249961,
+    "raw_v9c": "C:\\Users\\chenx\\Desktop\\de-drms\\hardware\\sim\\aaf\\r5_C_v9c.raw",
+    "t_settle_us_600k": 38.23658535325775,
+    "raw_v9f": "C:\\Users\\chenx\\Desktop\\de-drms\\hardware\\sim\\aaf\\r5_C_v9f.raw",
+    "Vn_nv": 3158.329270215102,
+    "A_dm_600k": 141.0429595045707,
+    "A_mclk_600k": 212.57043729036977
+  },
+  "dims": {
+    "D1": 78.5956468902899,
+    "D2": 71.30679497355209,
+    "D3": 125.84186149262503,
+    "D4": 0.33770977181258477,
+    "D5": 52.13288695490534,
+    "D6": 283.895122603039,
+    "D7": 0.008646015295233643,
+    "D8": 46.521317118437544,
+    "D9": 1.0,
+    "D10": 0.20140597393381682
+  },
+  "xcheck": {
+    "mirror_dir": "C:\\Users\\chenx\\Desktop\\de-drms\\hardware\\sim\\aaf\\r5_work\\rs1",
+    "rs_mirror_ohm": 1.0,
+    "note": "引擎 rs 硬编码 1 Ω；镜像网表同取 1 Ω 后对拍（规格 0 Ω 口径见 dims）",
+    "ac_rows": [
+      {
+        "item": "D1 A_dm@fMOD",
+        "theory": 80.6902091135097,
+        "ltspice": 80.69010116978632,
+        "abs_diff": 0.00010794372337841196,
+        "pass": true
+      },
+      {
+        "item": "D3 A_mclk@MCLK",
+        "theory": 127.96897549565179,
+        "ltspice": 127.96856400102148,
+        "abs_diff": 0.0004114946303133138,
+        "pass": true
+      },
+      {
+        "item": "D4 dG@16k",
+        "theory": 0.40329208738425026,
+        "ltspice": 0.40330124206275453,
+        "abs_diff": 9.154678504263991e-06,
+        "pass": true
+      },
+      {
+        "item": "D2 A_cm@fMOD",
+        "theory": 73.40148658167416,
+        "ltspice": 73.40138312429012,
+        "abs_diff": 0.00010345738404282656,
+        "pass": true
+      }
+    ],
+    "worst_ac_diff_db": 0.0004114946303133138,
+    "settle": {
+      "theory_us": 32.34322805695912,
+      "ltspice_us": 32.319576562418014,
+      "rel_diff": 0.0007312657382081244,
+      "pass": true
+    },
+    "noise": {
+      "theory_lsb": 0.9727125359795618,
+      "ltspice_lsb": 0.9752190403885478,
+      "rel_diff": 0.0025768192721623336,
+      "pass": true
+    },
+    "pass": true
+  },
+  "scores": {
+    "D1": 0.0,
+    "D2": 0.2826698743388022,
+    "D3": 0.5168372298525006,
+    "D4": 0.36064495152758935,
+    "D5": 1.0,
+    "D6": 0.035401370873503035,
+    "D7": 1.0,
+    "D8": 0.0,
+    "D9": 1.0,
+    "D10": 1.0
+  },
+  "pass": {
+    "D1": false,
+    "D2": true,
+    "D3": true,
+    "D4": true,
+    "D5": true,
+    "D6": true,
+    "D7": true,
+    "D8": false,
+    "D9": true,
+    "D10": true
+  },
+  "min_score": 0.0,
+  "units": {
+    "D1": "dB (attenuation, positive)",
+    "D2": "dB",
+    "D3": "dB",
+    "D4": "dB",
+    "D5": "us",
+    "D6": "nVrms",
+    "D7": "dB",
+    "D8": "dB",
+    "D9": "1.0 pass / 0.0 fail",
+    "D10": "us"
+  }
+}
