@@ -214,3 +214,8 @@ temp/
 *.gz
 *.tgz
 adc_ds/
+
+# LTspice 仿真产物（波形/工作点，不入库）
+*.raw
+*.op.raw
+hardware/sim/**/*.net
