@@ -1,0 +1,194 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1546" height="720" viewBox="0 0 1546 720"
+     font-family="'Noto Sans CJK SC','Microsoft YaHei',sans-serif">
+<rect width="100%" height="100%" fill="#ffffff"/>
+<text x="36" y="52" font-size="24" font-weight="bold" fill="#111827">方案 C · V10a 六级（性能极限） — 抗混叠滤波（每通道对，ch1 同构）</text>
+<text x="36" y="80" font-size="12.5" fill="#64748b">DM@fMOD −199 dB · CM −171 · DM@MCLK −271 · 建立 0.01% 392 µs(wc) · 27 件/通道对</text>
+<text x="1510" y="104" font-size="11" fill="#94a3b8" text-anchor="end">C 全 C0G · R 1% · 四线同构（E 线镜像）· 2026-10-18</text>
+<text x="120" y="194" font-size="12" font-weight="bold" fill="#111827" text-anchor="end">跟随器输出 +</text>
+<text x="120" y="394" font-size="12" font-weight="bold" fill="#111827" text-anchor="end">跟随器输出 −</text>
+<line x1="48" y1="208" x2="192" y2="208" stroke="#374151" stroke-width="2"/>
+<line x1="48" y1="408" x2="192" y2="408" stroke="#374151" stroke-width="2"/>
+<line x1="272" y1="208" x2="352" y2="208" stroke="#374151" stroke-width="2"/>
+<line x1="272" y1="408" x2="352" y2="408" stroke="#374151" stroke-width="2"/>
+<line x1="432" y1="208" x2="512" y2="208" stroke="#374151" stroke-width="2"/>
+<line x1="432" y1="408" x2="512" y2="408" stroke="#374151" stroke-width="2"/>
+<line x1="472" y1="208" x2="472" y2="276" stroke="#374151" stroke-width="2"/>
+<line x1="472" y1="340" x2="472" y2="408" stroke="#374151" stroke-width="2"/>
+<line x1="592" y1="208" x2="672" y2="208" stroke="#374151" stroke-width="2"/>
+<line x1="592" y1="408" x2="672" y2="408" stroke="#374151" stroke-width="2"/>
+<line x1="752" y1="208" x2="832" y2="208" stroke="#374151" stroke-width="2"/>
+<line x1="752" y1="408" x2="832" y2="408" stroke="#374151" stroke-width="2"/>
+<line x1="792" y1="208" x2="792" y2="276" stroke="#374151" stroke-width="2"/>
+<line x1="792" y1="340" x2="792" y2="408" stroke="#374151" stroke-width="2"/>
+<line x1="912" y1="208" x2="992" y2="208" stroke="#374151" stroke-width="2"/>
+<line x1="912" y1="408" x2="992" y2="408" stroke="#374151" stroke-width="2"/>
+<line x1="1072" y1="208" x2="1152" y2="208" stroke="#374151" stroke-width="2"/>
+<line x1="1072" y1="408" x2="1152" y2="408" stroke="#374151" stroke-width="2"/>
+<line x1="1112" y1="208" x2="1112" y2="276" stroke="#374151" stroke-width="2"/>
+<line x1="1112" y1="340" x2="1112" y2="408" stroke="#374151" stroke-width="2"/>
+<line x1="1232" y1="208" x2="1296" y2="208" stroke="#374151" stroke-width="2"/>
+<line x1="1232" y1="408" x2="1296" y2="408" stroke="#374151" stroke-width="2"/>
+<rect x="304" y="194" width="80" height="28" rx="2" fill="#f1f5f9" stroke="#374151" stroke-width="1.8"/>
+<text x="344" y="188" font-size="12" font-weight="bold" fill="#374151" text-anchor="middle">170Ω</text>
+<rect x="304" y="394" width="80" height="28" rx="2" fill="#f1f5f9" stroke="#374151" stroke-width="1.8"/>
+<text x="344" y="388" font-size="12" font-weight="bold" fill="#374151" text-anchor="middle">170Ω</text>
+<circle cx="192" cy="208" r="4" fill="#111827"/>
+<line x1="192" y1="208" x2="192" y2="254" stroke="#374151" stroke-width="2"/>
+<rect x="178" y="254" width="28" height="22" rx="2" fill="#f1f5f9" stroke="#374151" stroke-width="1.8"/>
+<text x="214" y="270" font-size="11" fill="#374151">4.7nF</text>
+<line x1="192" y1="276" x2="192" y2="286" stroke="#374151" stroke-width="2"/>
+<line x1="178" y1="286" x2="206" y2="286" stroke="#374151" stroke-width="2.4"/>
+<line x1="183" y1="292" x2="201" y2="292" stroke="#374151" stroke-width="1.8"/>
+<line x1="188" y1="298" x2="196" y2="298" stroke="#374151" stroke-width="1.6"/>
+<text x="210" y="298" font-size="10" fill="#6b7280">AGND</text>
+<circle cx="192" cy="408" r="4" fill="#111827"/>
+<line x1="192" y1="408" x2="192" y2="454" stroke="#374151" stroke-width="2"/>
+<rect x="178" y="454" width="28" height="22" rx="2" fill="#f1f5f9" stroke="#374151" stroke-width="1.8"/>
+<text x="214" y="470" font-size="11" fill="#374151">4.7nF</text>
+<line x1="192" y1="476" x2="192" y2="486" stroke="#374151" stroke-width="2"/>
+<line x1="178" y1="486" x2="206" y2="486" stroke="#374151" stroke-width="2.4"/>
+<line x1="183" y1="492" x2="201" y2="492" stroke="#374151" stroke-width="1.8"/>
+<line x1="188" y1="498" x2="196" y2="498" stroke="#374151" stroke-width="1.6"/>
+<text x="210" y="498" font-size="10" fill="#6b7280">AGND</text>
+<rect x="464" y="194" width="80" height="28" rx="2" fill="#f1f5f9" stroke="#374151" stroke-width="1.8"/>
+<text x="504" y="188" font-size="12" font-weight="bold" fill="#374151" text-anchor="middle">170Ω</text>
+<rect x="464" y="394" width="80" height="28" rx="2" fill="#f1f5f9" stroke="#374151" stroke-width="1.8"/>
+<text x="504" y="388" font-size="12" font-weight="bold" fill="#374151" text-anchor="middle">170Ω</text>
+<circle cx="352" cy="208" r="4" fill="#111827"/>
+<line x1="352" y1="208" x2="352" y2="254" stroke="#374151" stroke-width="2"/>
+<rect x="338" y="254" width="28" height="22" rx="2" fill="#f1f5f9" stroke="#374151" stroke-width="1.8"/>
+<text x="374" y="270" font-size="11" fill="#374151">4.7nF</text>
+<line x1="352" y1="276" x2="352" y2="286" stroke="#374151" stroke-width="2"/>
+<line x1="338" y1="286" x2="366" y2="286" stroke="#374151" stroke-width="2.4"/>
+<line x1="343" y1="292" x2="361" y2="292" stroke="#374151" stroke-width="1.8"/>
+<line x1="348" y1="298" x2="356" y2="298" stroke="#374151" stroke-width="1.6"/>
+<text x="370" y="298" font-size="10" fill="#6b7280">AGND</text>
+<circle cx="352" cy="408" r="4" fill="#111827"/>
+<line x1="352" y1="408" x2="352" y2="454" stroke="#374151" stroke-width="2"/>
+<rect x="338" y="454" width="28" height="22" rx="2" fill="#f1f5f9" stroke="#374151" stroke-width="1.8"/>
+<text x="374" y="470" font-size="11" fill="#374151">4.7nF</text>
+<line x1="352" y1="476" x2="352" y2="486" stroke="#374151" stroke-width="2"/>
+<line x1="338" y1="486" x2="366" y2="486" stroke="#374151" stroke-width="2.4"/>
+<line x1="343" y1="492" x2="361" y2="492" stroke="#374151" stroke-width="1.8"/>
+<line x1="348" y1="498" x2="356" y2="498" stroke="#374151" stroke-width="1.6"/>
+<text x="370" y="498" font-size="10" fill="#6b7280">AGND</text>
+<circle cx="472" cy="208" r="4" fill="#111827"/>
+<circle cx="472" cy="408" r="4" fill="#111827"/>
+<line x1="472" y1="208" x2="472" y2="278" stroke="#2563eb" stroke-width="2"/>
+<rect x="458" y="278" width="28" height="22" rx="2" fill="#eff6ff" stroke="#2563eb" stroke-width="1.8"/>
+<line x1="472" y1="300" x2="472" y2="316" stroke="#2563eb" stroke-width="2"/>
+<rect x="458" y="316" width="28" height="22" rx="2" fill="#eff6ff" stroke="#2563eb" stroke-width="1.8"/>
+<line x1="472" y1="338" x2="472" y2="408" stroke="#2563eb" stroke-width="2"/>
+<text x="494" y="354" font-size="11" font-weight="bold" fill="#2563eb">6.8nF</text>
+<rect x="624" y="194" width="80" height="28" rx="2" fill="#f1f5f9" stroke="#374151" stroke-width="1.8"/>
+<text x="664" y="188" font-size="12" font-weight="bold" fill="#374151" text-anchor="middle">170Ω</text>
+<rect x="624" y="394" width="80" height="28" rx="2" fill="#f1f5f9" stroke="#374151" stroke-width="1.8"/>
+<text x="664" y="388" font-size="12" font-weight="bold" fill="#374151" text-anchor="middle">170Ω</text>
+<circle cx="512" cy="208" r="4" fill="#111827"/>
+<line x1="512" y1="208" x2="512" y2="254" stroke="#374151" stroke-width="2"/>
+<rect x="498" y="254" width="28" height="22" rx="2" fill="#f1f5f9" stroke="#374151" stroke-width="1.8"/>
+<text x="534" y="270" font-size="11" fill="#374151">4.7nF</text>
+<line x1="512" y1="276" x2="512" y2="286" stroke="#374151" stroke-width="2"/>
+<line x1="498" y1="286" x2="526" y2="286" stroke="#374151" stroke-width="2.4"/>
+<line x1="503" y1="292" x2="521" y2="292" stroke="#374151" stroke-width="1.8"/>
+<line x1="508" y1="298" x2="516" y2="298" stroke="#374151" stroke-width="1.6"/>
+<text x="530" y="298" font-size="10" fill="#6b7280">AGND</text>
+<circle cx="512" cy="408" r="4" fill="#111827"/>
+<line x1="512" y1="408" x2="512" y2="454" stroke="#374151" stroke-width="2"/>
+<rect x="498" y="454" width="28" height="22" rx="2" fill="#f1f5f9" stroke="#374151" stroke-width="1.8"/>
+<text x="534" y="470" font-size="11" fill="#374151">4.7nF</text>
+<line x1="512" y1="476" x2="512" y2="486" stroke="#374151" stroke-width="2"/>
+<line x1="498" y1="486" x2="526" y2="486" stroke="#374151" stroke-width="2.4"/>
+<line x1="503" y1="492" x2="521" y2="492" stroke="#374151" stroke-width="1.8"/>
+<line x1="508" y1="498" x2="516" y2="498" stroke="#374151" stroke-width="1.6"/>
+<text x="530" y="498" font-size="10" fill="#6b7280">AGND</text>
+<rect x="784" y="194" width="80" height="28" rx="2" fill="#f1f5f9" stroke="#374151" stroke-width="1.8"/>
+<text x="824" y="188" font-size="12" font-weight="bold" fill="#374151" text-anchor="middle">170Ω</text>
+<rect x="784" y="394" width="80" height="28" rx="2" fill="#f1f5f9" stroke="#374151" stroke-width="1.8"/>
+<text x="824" y="388" font-size="12" font-weight="bold" fill="#374151" text-anchor="middle">170Ω</text>
+<circle cx="672" cy="208" r="4" fill="#111827"/>
+<line x1="672" y1="208" x2="672" y2="254" stroke="#374151" stroke-width="2"/>
+<rect x="658" y="254" width="28" height="22" rx="2" fill="#f1f5f9" stroke="#374151" stroke-width="1.8"/>
+<text x="694" y="270" font-size="11" fill="#374151">4.7nF</text>
+<line x1="672" y1="276" x2="672" y2="286" stroke="#374151" stroke-width="2"/>
+<line x1="658" y1="286" x2="686" y2="286" stroke="#374151" stroke-width="2.4"/>
+<line x1="663" y1="292" x2="681" y2="292" stroke="#374151" stroke-width="1.8"/>
+<line x1="668" y1="298" x2="676" y2="298" stroke="#374151" stroke-width="1.6"/>
+<text x="690" y="298" font-size="10" fill="#6b7280">AGND</text>
+<circle cx="672" cy="408" r="4" fill="#111827"/>
+<line x1="672" y1="408" x2="672" y2="454" stroke="#374151" stroke-width="2"/>
+<rect x="658" y="454" width="28" height="22" rx="2" fill="#f1f5f9" stroke="#374151" stroke-width="1.8"/>
+<text x="694" y="470" font-size="11" fill="#374151">4.7nF</text>
+<line x1="672" y1="476" x2="672" y2="486" stroke="#374151" stroke-width="2"/>
+<line x1="658" y1="486" x2="686" y2="486" stroke="#374151" stroke-width="2.4"/>
+<line x1="663" y1="492" x2="681" y2="492" stroke="#374151" stroke-width="1.8"/>
+<line x1="668" y1="498" x2="676" y2="498" stroke="#374151" stroke-width="1.6"/>
+<text x="690" y="498" font-size="10" fill="#6b7280">AGND</text>
+<circle cx="792" cy="208" r="4" fill="#111827"/>
+<circle cx="792" cy="408" r="4" fill="#111827"/>
+<line x1="792" y1="208" x2="792" y2="278" stroke="#2563eb" stroke-width="2"/>
+<rect x="778" y="278" width="28" height="22" rx="2" fill="#eff6ff" stroke="#2563eb" stroke-width="1.8"/>
+<line x1="792" y1="300" x2="792" y2="316" stroke="#2563eb" stroke-width="2"/>
+<rect x="778" y="316" width="28" height="22" rx="2" fill="#eff6ff" stroke="#2563eb" stroke-width="1.8"/>
+<line x1="792" y1="338" x2="792" y2="408" stroke="#2563eb" stroke-width="2"/>
+<text x="814" y="354" font-size="11" font-weight="bold" fill="#2563eb">6.8nF</text>
+<rect x="944" y="194" width="80" height="28" rx="2" fill="#f1f5f9" stroke="#374151" stroke-width="1.8"/>
+<text x="984" y="188" font-size="12" font-weight="bold" fill="#374151" text-anchor="middle">170Ω</text>
+<rect x="944" y="394" width="80" height="28" rx="2" fill="#f1f5f9" stroke="#374151" stroke-width="1.8"/>
+<text x="984" y="388" font-size="12" font-weight="bold" fill="#374151" text-anchor="middle">170Ω</text>
+<circle cx="832" cy="208" r="4" fill="#111827"/>
+<line x1="832" y1="208" x2="832" y2="254" stroke="#374151" stroke-width="2"/>
+<rect x="818" y="254" width="28" height="22" rx="2" fill="#f1f5f9" stroke="#374151" stroke-width="1.8"/>
+<text x="854" y="270" font-size="11" fill="#374151">4.7nF</text>
+<line x1="832" y1="276" x2="832" y2="286" stroke="#374151" stroke-width="2"/>
+<line x1="818" y1="286" x2="846" y2="286" stroke="#374151" stroke-width="2.4"/>
+<line x1="823" y1="292" x2="841" y2="292" stroke="#374151" stroke-width="1.8"/>
+<line x1="828" y1="298" x2="836" y2="298" stroke="#374151" stroke-width="1.6"/>
+<text x="850" y="298" font-size="10" fill="#6b7280">AGND</text>
+<circle cx="832" cy="408" r="4" fill="#111827"/>
+<line x1="832" y1="408" x2="832" y2="454" stroke="#374151" stroke-width="2"/>
+<rect x="818" y="454" width="28" height="22" rx="2" fill="#f1f5f9" stroke="#374151" stroke-width="1.8"/>
+<text x="854" y="470" font-size="11" fill="#374151">4.7nF</text>
+<line x1="832" y1="476" x2="832" y2="486" stroke="#374151" stroke-width="2"/>
+<line x1="818" y1="486" x2="846" y2="486" stroke="#374151" stroke-width="2.4"/>
+<line x1="823" y1="492" x2="841" y2="492" stroke="#374151" stroke-width="1.8"/>
+<line x1="828" y1="498" x2="836" y2="498" stroke="#374151" stroke-width="1.6"/>
+<text x="850" y="498" font-size="10" fill="#6b7280">AGND</text>
+<rect x="1104" y="194" width="80" height="28" rx="2" fill="#f1f5f9" stroke="#374151" stroke-width="1.8"/>
+<text x="1144" y="188" font-size="12" font-weight="bold" fill="#374151" text-anchor="middle">170Ω</text>
+<rect x="1104" y="394" width="80" height="28" rx="2" fill="#f1f5f9" stroke="#374151" stroke-width="1.8"/>
+<text x="1144" y="388" font-size="12" font-weight="bold" fill="#374151" text-anchor="middle">170Ω</text>
+<circle cx="992" cy="208" r="4" fill="#111827"/>
+<line x1="992" y1="208" x2="992" y2="254" stroke="#374151" stroke-width="2"/>
+<rect x="978" y="254" width="28" height="22" rx="2" fill="#f1f5f9" stroke="#374151" stroke-width="1.8"/>
+<text x="1014" y="270" font-size="11" fill="#374151">4.7nF</text>
+<line x1="992" y1="276" x2="992" y2="286" stroke="#374151" stroke-width="2"/>
+<line x1="978" y1="286" x2="1006" y2="286" stroke="#374151" stroke-width="2.4"/>
+<line x1="983" y1="292" x2="1001" y2="292" stroke="#374151" stroke-width="1.8"/>
+<line x1="988" y1="298" x2="996" y2="298" stroke="#374151" stroke-width="1.6"/>
+<text x="1010" y="298" font-size="10" fill="#6b7280">AGND</text>
+<circle cx="992" cy="408" r="4" fill="#111827"/>
+<line x1="992" y1="408" x2="992" y2="454" stroke="#374151" stroke-width="2"/>
+<rect x="978" y="454" width="28" height="22" rx="2" fill="#f1f5f9" stroke="#374151" stroke-width="1.8"/>
+<text x="1014" y="470" font-size="11" fill="#374151">4.7nF</text>
+<line x1="992" y1="476" x2="992" y2="486" stroke="#374151" stroke-width="2"/>
+<line x1="978" y1="486" x2="1006" y2="486" stroke="#374151" stroke-width="2.4"/>
+<line x1="983" y1="492" x2="1001" y2="492" stroke="#374151" stroke-width="1.8"/>
+<line x1="988" y1="498" x2="996" y2="498" stroke="#374151" stroke-width="1.6"/>
+<text x="1010" y="498" font-size="10" fill="#6b7280">AGND</text>
+<circle cx="1112" cy="208" r="4" fill="#111827"/>
+<circle cx="1112" cy="408" r="4" fill="#111827"/>
+<line x1="1112" y1="208" x2="1112" y2="278" stroke="#2563eb" stroke-width="2"/>
+<rect x="1098" y="278" width="28" height="22" rx="2" fill="#eff6ff" stroke="#2563eb" stroke-width="1.8"/>
+<line x1="1112" y1="300" x2="1112" y2="316" stroke="#2563eb" stroke-width="2"/>
+<rect x="1098" y="316" width="28" height="22" rx="2" fill="#eff6ff" stroke="#2563eb" stroke-width="1.8"/>
+<line x1="1112" y1="338" x2="1112" y2="408" stroke="#2563eb" stroke-width="2"/>
+<text x="1134" y="354" font-size="11" font-weight="bold" fill="#2563eb">6.8nF</text>
+<rect x="1296" y="138" width="170" height="340" rx="8" fill="#eff6ff" stroke="#2563eb" stroke-width="2"/>
+<text x="1381" y="172" font-size="14" font-weight="bold" fill="#1d4ed8" text-anchor="middle">ADS131A02</text>
+<text x="1302" y="212" font-size="11" font-weight="bold" fill="#1e3a8a">AIN0P</text>
+<text x="1302" y="412" font-size="11" font-weight="bold" fill="#1e3a8a">AIN0N</text>
+<text x="1381" y="448" font-size="10" fill="#1e3a8a" text-anchor="middle">ch1 同构：B/E → AIN1P/AIN1N</text>
+<text x="36" y="662" font-size="11" fill="#374151">结构：跟随器输出 → 170Ω(4.7n‖0n差分) → 170Ω(4.7n‖6.8n差分) → 170Ω(4.7n‖0n差分) → 170Ω(4.7n‖6.8n差分) → 170Ω(4.7n‖0n差分) → 170Ω(4.7n‖6.8n差分) → ADS131A02。级间/引脚节点各挂对地 Ccm，差分 Cd 跨两线（蓝色）。</text>
+<text x="36" y="684" font-size="11" fill="#64748b">全部无源 R/C：C0G，四线同构（E 线镜像）；建立/衰减指标见 README 第四、五、六轮。</text>
+</svg>
