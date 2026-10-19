@@ -1,0 +1,561 @@
+[
+  {
+    "candidate": "B",
+    "n_stages": 3,
+    "total": 0.3195489408155958,
+    "gate_pass": false,
+    "short_board": [
+      "D6"
+    ],
+    "fail_dims": [
+      "D1",
+      "D8"
+    ],
+    "rows": {
+      "D1": {
+        "measured": 66.673,
+        "unit": "dB",
+        "score": 0.5556083333333334,
+        "pass": false
+      },
+      "D2": {
+        "measured": 66.536,
+        "unit": "dB",
+        "score": 0.6653600000000001,
+        "pass": true
+      },
+      "D3": {
+        "measured": 102.461,
+        "unit": "dB",
+        "score": 0.6830733333333333,
+        "pass": true
+      },
+      "D4": {
+        "measured": 0.2654,
+        "unit": "dB",
+        "score": 0.5213333333333332,
+        "pass": true
+      },
+      "D5": {
+        "measured": 34.68,
+        "unit": "us",
+        "score": 1.0,
+        "pass": true
+      },
+      "D6": {
+        "measured": 273.3,
+        "unit": "LSB",
+        "score": 0.3195489408155958,
+        "pass": true
+      },
+      "D7": {
+        "measured": 0.0067,
+        "unit": "dB",
+        "score": 1.0,
+        "pass": true
+      },
+      "D8": {
+        "measured": 44.85,
+        "unit": "dB",
+        "score": 0.4485,
+        "pass": false
+      },
+      "D9": {
+        "measured": 1.0,
+        "unit": "-",
+        "score": 1.0,
+        "pass": true
+      },
+      "D10": {
+        "measured": 0.1417,
+        "unit": "us",
+        "score": 1.0,
+        "pass": true
+      }
+    },
+    "ch_delay": {
+      "note": "单通道内 p/n 两线的延迟差（不是 CH1 vs CH2）",
+      "V1": {
+        "raw": "C:\\Users\\chenx\\Desktop\\de-drms\\hardware\\sim\\aaf\\r5_B_v1.raw",
+        "tau_p_16k_us": 2.810104809191847,
+        "tau_n_16k_us": 2.810104809191461,
+        "diff_16k_ns": 3.8624702394796095e-10,
+        "max_abs_diff_ns": 0.0001374427373128373
+      },
+      "V3": {
+        "raw": "C:\\Users\\chenx\\Desktop\\de-drms\\hardware\\sim\\aaf\\r5_B_v3.raw",
+        "tau_p_16k_us": 2.7886873869559095,
+        "tau_n_16k_us": 2.8391813442591998,
+        "diff_16k_ns": -50.49395730329008,
+        "max_abs_diff_ns": 58.80706385027123
+      }
+    },
+    "ch1_ch2": {
+      "nominal": {
+        "raw": "C:\\Users\\chenx\\Desktop\\de-drms\\hardware\\sim\\aaf\\r5_work\\ch\\ch_B_nominal.raw",
+        "tau_ch1_16k_us": 2.810104809191654,
+        "tau_ch2_16k_us": 2.8101048091915573,
+        "diff_16k_ns": 9.656175598699024e-11,
+        "max_abs_diff_ns": 3.2526065174565133e-10
+      },
+      "mismatch1pct": {
+        "raw": "C:\\Users\\chenx\\Desktop\\de-drms\\hardware\\sim\\aaf\\r5_work\\ch\\ch_B_mismatch1pct.raw",
+        "tau_ch1_16k_us": 2.810104809191654,
+        "tau_ch2_16k_us": 2.860840134558412,
+        "diff_16k_ns": -50.73532536675798,
+        "max_abs_diff_ns": 59.06360156266322
+      }
+    },
+    "xcheck_rows": [
+      {
+        "item": "D1 A_dm@fMOD",
+        "theory": 66.6734,
+        "ltspice": 66.673,
+        "diff": -0.0004,
+        "kind": "abs",
+        "limit": 0.5,
+        "pass": true
+      },
+      {
+        "item": "D2 A_cm@fMOD",
+        "theory": 66.5357,
+        "ltspice": 66.536,
+        "diff": 0.0003,
+        "kind": "abs",
+        "limit": 0.5,
+        "pass": true
+      },
+      {
+        "item": "D3 A_mclk@MCLK",
+        "theory": 102.4615,
+        "ltspice": 102.461,
+        "diff": -0.0005,
+        "kind": "abs",
+        "limit": 0.5,
+        "pass": true
+      },
+      {
+        "item": "D4 ΔG@16k",
+        "theory": 0.2654,
+        "ltspice": 0.2654,
+        "diff": 0.0,
+        "kind": "abs",
+        "limit": 0.5,
+        "pass": true
+      },
+      {
+        "item": "D8 CMRR@通带",
+        "theory": 44.8136,
+        "ltspice": 44.85,
+        "diff": 0.0364,
+        "kind": "abs",
+        "limit": 0.5,
+        "pass": true
+      },
+      {
+        "item": "D10 Δτ",
+        "theory": 0.1395,
+        "ltspice": 0.1417,
+        "diff": 0.0022,
+        "kind": "abs",
+        "limit": 0.5,
+        "pass": true
+      },
+      {
+        "item": "D6 噪声",
+        "theory": 272.46,
+        "ltspice": 273.3,
+        "diff": 0.31,
+        "kind": "rel%",
+        "limit": 5.0,
+        "pass": true
+      },
+      {
+        "item": "D7 σ",
+        "theory": 0.0063,
+        "ltspice": 0.0067,
+        "diff": 6.4,
+        "kind": "rel%",
+        "limit": 5.0,
+        "pass": true
+      },
+      {
+        "item": "D5 建立",
+        "theory": 24.649,
+        "ltspice": 24.653,
+        "diff": 0.02,
+        "kind": "rel%",
+        "limit": 5.0,
+        "pass": true
+      }
+    ],
+    "scores_json_inconsistent": []
+  },
+  {
+    "candidate": "A",
+    "n_stages": 2,
+    "total": 0.31004201338900883,
+    "gate_pass": false,
+    "short_board": [
+      "D6"
+    ],
+    "fail_dims": [
+      "D1",
+      "D2",
+      "D3",
+      "D8"
+    ],
+    "rows": {
+      "D1": {
+        "measured": 59.19579456761476,
+        "unit": "dB",
+        "score": 0.4932982880634563,
+        "pass": false
+      },
+      "D2": {
+        "measured": 59.05804361192712,
+        "unit": "dB",
+        "score": 0.5905804361192711,
+        "pass": false
+      },
+      "D3": {
+        "measured": 83.25071167287079,
+        "unit": "dB",
+        "score": 0.5550047444858053,
+        "pass": false
+      },
+      "D4": {
+        "measured": 0.3553758084777682,
+        "unit": "dB",
+        "score": 0.3213870922716263,
+        "pass": true
+      },
+      "D5": {
+        "measured": 52.118034790060406,
+        "unit": "us",
+        "score": 1.0,
+        "pass": true
+      },
+      "D6": {
+        "measured": 281.6802941326736,
+        "unit": "LSB",
+        "score": 0.31004201338900883,
+        "pass": true
+      },
+      "D7": {
+        "measured": 0.010392593193439817,
+        "unit": "dB",
+        "score": 0.9901851701640045,
+        "pass": true
+      },
+      "D8": {
+        "measured": 43.89227242962596,
+        "unit": "dB",
+        "score": 0.4389227242962596,
+        "pass": false
+      },
+      "D9": {
+        "measured": 1.0,
+        "unit": "-",
+        "score": 1.0,
+        "pass": true
+      },
+      "D10": {
+        "measured": 0.2171424288288884,
+        "unit": "us",
+        "score": 1.0,
+        "pass": true
+      }
+    },
+    "ch_delay": {
+      "note": "单通道内 p/n 两线的延迟差（不是 CH1 vs CH2）",
+      "V1": {
+        "raw": "C:\\Users\\chenx\\Desktop\\de-drms\\hardware\\sim\\aaf\\r5_work\\rs0\\r5_A_v1.raw",
+        "tau_p_16k_us": 3.1237021244522913,
+        "tau_n_16k_us": 3.123702124452581,
+        "diff_16k_ns": -2.896852679609707e-10,
+        "max_abs_diff_ns": 0.00010952436874100968
+      },
+      "V3": {
+        "raw": "C:\\Users\\chenx\\Desktop\\de-drms\\hardware\\sim\\aaf\\r5_work\\rs0\\r5_A_v3.raw",
+        "tau_p_16k_us": 3.0916327001118207,
+        "tau_n_16k_us": 3.1454240528177544,
+        "diff_16k_ns": -53.791352705933555,
+        "max_abs_diff_ns": 66.30513286938624
+      }
+    },
+    "ch1_ch2": {
+      "nominal": {
+        "raw": "C:\\Users\\chenx\\Desktop\\de-drms\\hardware\\sim\\aaf\\r5_work\\ch\\ch_A_nominal.raw",
+        "tau_ch1_16k_us": 3.1237021244524845,
+        "tau_ch2_16k_us": 3.1237021244524845,
+        "diff_16k_ns": 0.0,
+        "max_abs_diff_ns": 2.1684043449710089e-10
+      },
+      "mismatch1pct": {
+        "raw": "C:\\Users\\chenx\\Desktop\\de-drms\\hardware\\sim\\aaf\\r5_work\\ch\\ch_A_mismatch1pct.raw",
+        "tau_ch1_16k_us": 3.1237021244524845,
+        "tau_ch2_16k_us": 3.177855636123314,
+        "diff_16k_ns": -54.15351167082963,
+        "max_abs_diff_ns": 66.71622687230749
+      }
+    },
+    "xcheck_rows": [
+      {
+        "item": "D1 A_dm@fMOD",
+        "theory": 60.27914358035676,
+        "ltspice": 60.27911216546717,
+        "diff": 3.1414889591019346e-05,
+        "kind": "abs",
+        "limit": 0.5,
+        "pass": true
+      },
+      {
+        "item": "D3 A_mclk@MCLK",
+        "theory": 84.33760260604593,
+        "ltspice": 84.33749865328129,
+        "diff": 0.0001039527646469196,
+        "kind": "abs",
+        "limit": 0.5,
+        "pass": true
+      },
+      {
+        "item": "D4 dG@16k",
+        "theory": 0.3967026665338791,
+        "ltspice": 0.39671124014970177,
+        "diff": 8.573615822682346e-06,
+        "kind": "abs",
+        "limit": 0.5,
+        "pass": true
+      },
+      {
+        "item": "D2 A_cm@fMOD",
+        "theory": 60.141526270374385,
+        "ltspice": 60.14149485730344,
+        "diff": 3.141307094267631e-05,
+        "kind": "abs",
+        "limit": 0.5,
+        "pass": true
+      },
+      {
+        "item": "D8 CMRR@通带",
+        "theory": 43.37619810321591,
+        "ltspice": 43.67241042442684,
+        "diff": 0.29621232121093044,
+        "kind": "abs",
+        "limit": 0.5,
+        "pass": true
+      },
+      {
+        "item": "D5 建立",
+        "theory": 31.823720985002517,
+        "ltspice": 31.810986655815096,
+        "diff": 0.04001521127407361,
+        "kind": "rel%",
+        "limit": 5.0,
+        "pass": true
+      },
+      {
+        "item": "D6 噪声(LSB)",
+        "theory": null,
+        "ltspice": null,
+        "diff": 0.24739591369946765,
+        "kind": "rel%",
+        "limit": 5.0,
+        "pass": true
+      }
+    ],
+    "scores_json_inconsistent": []
+  },
+  {
+    "candidate": "C",
+    "n_stages": 4,
+    "total": 0.3076231980463319,
+    "gate_pass": false,
+    "short_board": [
+      "D6"
+    ],
+    "fail_dims": [
+      "D1",
+      "D8"
+    ],
+    "rows": {
+      "D1": {
+        "measured": 78.5956468902899,
+        "unit": "dB",
+        "score": 0.6549637240857492,
+        "pass": false
+      },
+      "D2": {
+        "measured": 71.30679497355209,
+        "unit": "dB",
+        "score": 0.7130679497355209,
+        "pass": true
+      },
+      "D3": {
+        "measured": 125.84186149262503,
+        "unit": "dB",
+        "score": 0.8389457432841668,
+        "pass": true
+      },
+      "D4": {
+        "measured": 0.33770977181258477,
+        "unit": "dB",
+        "score": 0.36064495152758935,
+        "pass": true
+      },
+      "D5": {
+        "measured": 52.13288695490534,
+        "unit": "us",
+        "score": 1.0,
+        "pass": true
+      },
+      "D6": {
+        "measured": 283.895122603039,
+        "unit": "LSB",
+        "score": 0.3076231980463319,
+        "pass": true
+      },
+      "D7": {
+        "measured": 0.008646015295233643,
+        "unit": "dB",
+        "score": 1.0,
+        "pass": true
+      },
+      "D8": {
+        "measured": 46.521317118437544,
+        "unit": "dB",
+        "score": 0.46521317118437544,
+        "pass": false
+      },
+      "D9": {
+        "measured": 1.0,
+        "unit": "-",
+        "score": 1.0,
+        "pass": true
+      },
+      "D10": {
+        "measured": 0.20140597393381682,
+        "unit": "us",
+        "score": 1.0,
+        "pass": true
+      }
+    },
+    "ch_delay": {
+      "note": "单通道内 p/n 两线的延迟差（不是 CH1 vs CH2）",
+      "V1": {
+        "raw": "C:\\Users\\chenx\\Desktop\\de-drms\\hardware\\sim\\aaf\\r5_C_v1.raw",
+        "tau_p_16k_us": 3.2588261620487633,
+        "tau_n_16k_us": 3.258826162049053,
+        "diff_16k_ns": -2.896852679609707e-10,
+        "max_abs_diff_ns": 8.567094516437335e-05
+      },
+      "V3": {
+        "raw": "C:\\Users\\chenx\\Desktop\\de-drms\\hardware\\sim\\aaf\\r5_C_v3.raw",
+        "tau_p_16k_us": 2.3727685445524673,
+        "tau_n_16k_us": 2.412520809979222,
+        "diff_16k_ns": -39.75226542675466,
+        "max_abs_diff_ns": 48.92806639851167
+      }
+    },
+    "ch1_ch2": {
+      "nominal": {
+        "raw": "C:\\Users\\chenx\\Desktop\\de-drms\\hardware\\sim\\aaf\\r5_work\\ch\\ch_C_nominal.raw",
+        "tau_ch1_16k_us": 3.25882616204857,
+        "tau_ch2_16k_us": 3.25882616204857,
+        "diff_16k_ns": 0.0,
+        "max_abs_diff_ns": 0.0
+      },
+      "mismatch1pct": {
+        "raw": "C:\\Users\\chenx\\Desktop\\de-drms\\hardware\\sim\\aaf\\r5_work\\ch\\ch_C_mismatch1pct.raw",
+        "tau_ch1_16k_us": 3.25882616204857,
+        "tau_ch2_16k_us": 3.3082787089750516,
+        "diff_16k_ns": -49.452546926481816,
+        "max_abs_diff_ns": 59.18238549320458
+      }
+    },
+    "xcheck_rows": [
+      {
+        "item": "D1 A_dm@fMOD",
+        "theory": 80.6902091135097,
+        "ltspice": 80.69010116978632,
+        "diff": 0.00010794372337841196,
+        "kind": "abs",
+        "limit": 0.5,
+        "pass": true
+      },
+      {
+        "item": "D3 A_mclk@MCLK",
+        "theory": 127.96897549565179,
+        "ltspice": 127.96856400102148,
+        "diff": 0.0004114946303133138,
+        "kind": "abs",
+        "limit": 0.5,
+        "pass": true
+      },
+      {
+        "item": "D4 dG@16k",
+        "theory": 0.40329208738425026,
+        "ltspice": 0.40330124206275453,
+        "diff": 9.154678504263991e-06,
+        "kind": "abs",
+        "limit": 0.5,
+        "pass": true
+      },
+      {
+        "item": "D2 A_cm@fMOD",
+        "theory": 73.40148658167416,
+        "ltspice": 73.40138312429012,
+        "diff": 0.00010345738404282656,
+        "kind": "abs",
+        "limit": 0.5,
+        "pass": true
+      },
+      {
+        "item": "D5 建立",
+        "theory": 32.34322805695912,
+        "ltspice": 32.319576562418014,
+        "diff": 0.07312657382081245,
+        "kind": "rel%",
+        "limit": 5.0,
+        "pass": true
+      },
+      {
+        "item": "D6 噪声(LSB)",
+        "theory": 0.9727125359795618,
+        "ltspice": 0.9752190403885478,
+        "diff": 0.25768192721623334,
+        "kind": "rel%",
+        "limit": 5.0,
+        "pass": true
+      }
+    ],
+    "scores_json_inconsistent": [
+      [
+        "D1",
+        0.0,
+        0.6549637240857492
+      ],
+      [
+        "D2",
+        0.2826698743388022,
+        0.7130679497355209
+      ],
+      [
+        "D3",
+        0.5168372298525006,
+        0.8389457432841668
+      ],
+      [
+        "D6",
+        0.035401370873503035,
+        0.3076231980463319
+      ],
+      [
+        "D8",
+        0.0,
+        0.46521317118437544
+      ]
+    ]
+  }
+]

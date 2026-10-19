@@ -1,0 +1,362 @@
+{
+  "scheme": "C",
+  "grade": "C",
+  "round": 4,
+  "round_scope": "D8 补测（第 3 轮复核：C 案 D8 网表为 0 Ω 理想源，未实例化 OPA388）",
+  "n_stages": 4,
+  "stages": [
+    [
+      1.8,
+      3.3e-08,
+      0.0
+    ],
+    [
+      3.9,
+      3.9e-08,
+      0.0
+    ],
+    [
+      10.0,
+      3.9e-08,
+      0.0
+    ],
+    [
+      22.0,
+      2.7e-08,
+      8.2e-09
+    ]
+  ],
+  "dims": {
+    "D1": 93.22289555864707,
+    "D2": 89.12657699624675,
+    "D3": 152.20243578592437,
+    "D4": 0.1804086428676763,
+    "D5": 89.8718031056544,
+    "D6a": 0.5942920145960702,
+    "D6b": 13.739964774598938,
+    "D7": 0.004915322854434722,
+    "D8": 95.52380484225338,
+    "D9": 1.0,
+    "D10": 0.08645662336034796
+  },
+  "dims_provenance": {
+    "D1": "r5_results_r3_C.json",
+    "D2": "r5_results_r3_C.json",
+    "D3": "r5_results_r3_C.json",
+    "D4": "r5_results_r3_C.json",
+    "D5": "r5_results_r3_C.json",
+    "D6a": "r5_results_r3_C.json",
+    "D6b": "r5_results_r3_C.json",
+    "D7": "r5_results_r3_C.json",
+    "D8": "round4 real-OPA388 re-measure",
+    "D9": "r5_results_r3_C.json",
+    "D10": "r5_results_r3_C.json"
+  },
+  "dims_note": "D8 = 本轮真实 OPA388、**1% 配对档**实测（ask 指定口径）；D1–D7、D9、D10 原样沿用 r5_results_r3_C.json（第 3 轮实测，含 D6a/D6b 两个子键）。第 3 轮 dims.D8=135.474 dB 是「配对三档取最优（m=0.1%）」的 **0 Ω 理想源**值，口径与本轮不同，不可直接相减；同档可比数见 D8_detail_r4.like_for_like_1pct。",
+  "units": {
+    "D1/D2/D3/D4/D8/D10": "dB",
+    "D5": "µs",
+    "D6a": "%",
+    "D6b": "LSB",
+    "D9": "binary"
+  },
+  "D8_detail_r4": {
+    "scheme": "C",
+    "round": 4,
+    "dim_fixed": "D8",
+    "dir": "C:\\Users\\chenx\\Desktop\\de-drms\\hardware\\sim\\aaf\\r5_work\\r4_C_d8",
+    "netlist_generator": "gen_netlists_r4_C_d8.py",
+    "netlist_form": "同方案 B 第 3 轮 v9b_p*/v9b_s*：.include OPAx388.LIB + Xfa/Xfb，Vp/Vn DC 2 V AC 1，.ac dec 400 1 40k",
+    "note": "r3 复核发现 C 案 D8 网表（gen_v3）从未实例化 OPA388，故 94.66 dB 是 0 Ω 理想源值；本轮用真实 OPA388 重测",
+    "paired_real": {
+      "0.1%": {
+        "cm_pin": {
+          "CMRR_db": 138.09341960663377,
+          "worst_f_hz": 15940.42880711776,
+          "cmrr_10Hz_db": 199.26371908056734,
+          "cmrr_16k_db": 138.09341960663377
+        },
+        "cm_half": {
+          "CMRR_db": 138.0934201169312,
+          "worst_f_hz": 15940.42880711776,
+          "cmrr_10Hz_db": 199.26371908056737,
+          "cmrr_16k_db": 138.0934201169312
+        },
+        "n_pts": 1281,
+        "g_cm_dc_db": 5.228024345682545e-07,
+        "theory_opa388": {
+          "CMRR_db": 137.97147172207065,
+          "worst_f_hz": 16000.00000000001,
+          "n_pts": 60
+        }
+      },
+      "0.5%": {
+        "cm_pin": {
+          "CMRR_db": 108.62427532843407,
+          "worst_f_hz": 15940.42880711776,
+          "cmrr_10Hz_db": 170.57633258961368,
+          "cmrr_16k_db": 108.62427532843407
+        },
+        "cm_half": {
+          "CMRR_db": 108.62428068875415,
+          "worst_f_hz": 15940.42880711776,
+          "cmrr_10Hz_db": 170.57633258961505,
+          "cmrr_16k_db": 108.62428068875415
+        },
+        "n_pts": 1281,
+        "g_cm_dc_db": 5.228024249249805e-07,
+        "theory_opa388": {
+          "CMRR_db": 108.6146032728251,
+          "worst_f_hz": 16000.00000000001,
+          "n_pts": 60
+        }
+      },
+      "1%": {
+        "cm_pin": {
+          "CMRR_db": 95.52380484225338,
+          "worst_f_hz": 15940.42880711776,
+          "cmrr_10Hz_db": 158.44822243398846,
+          "cmrr_16k_db": 95.52380484225338
+        },
+        "cm_half": {
+          "CMRR_db": 95.52382259487752,
+          "worst_f_hz": 15940.42880711776,
+          "cmrr_10Hz_db": 158.44822243399418,
+          "cmrr_16k_db": 95.52382259487752
+        },
+        "n_pts": 1281,
+        "g_cm_dc_db": 5.228024172103612e-07,
+        "theory_opa388": {
+          "CMRR_db": 95.50273413670067,
+          "worst_f_hz": 16000.00000000001,
+          "n_pts": 60
+        }
+      }
+    },
+    "same_direction_real": {
+      "0.1%": {
+        "cm_pin": {
+          "CMRR_db": 68.50540099271045,
+          "worst_f_hz": 15940.42880711776,
+          "cmrr_10Hz_db": 132.3367683757579,
+          "cmrr_16k_db": 68.50540099271045
+        },
+        "cm_half": {
+          "CMRR_db": 68.50511942259456,
+          "worst_f_hz": 15940.42880711776,
+          "cmrr_10Hz_db": 132.33676837564147,
+          "cmrr_16k_db": 68.50511942259456
+        },
+        "n_pts": 1281,
+        "g_cm_dc_db": 5.228028434430758e-07,
+        "theory_opa388": {
+          "CMRR_db": 68.47396925146899,
+          "worst_f_hz": 16000.00000000001,
+          "n_pts": 60
+        }
+      },
+      "0.5%": {
+        "cm_pin": {
+          "CMRR_db": 54.51087611744065,
+          "worst_f_hz": 15940.42880711776,
+          "cmrr_10Hz_db": 118.34003344720459,
+          "cmrr_16k_db": 54.51087611744065
+        },
+        "cm_half": {
+          "CMRR_db": 54.50945828795361,
+          "worst_f_hz": 15940.42880711776,
+          "cmrr_10Hz_db": 118.34003344661792,
+          "cmrr_16k_db": 54.50945828795361
+        },
+        "n_pts": 1281,
+        "g_cm_dc_db": 5.228044615844673e-07,
+        "theory_opa388": {
+          "CMRR_db": 54.47831578351415,
+          "worst_f_hz": 16000.00000000001,
+          "n_pts": 60
+        }
+      },
+      "1%": {
+        "cm_pin": {
+          "CMRR_db": 48.47144778936933,
+          "worst_f_hz": 15940.42880711776,
+          "cmrr_10Hz_db": 112.29781357536763,
+          "cmrr_16k_db": 48.47144778936933
+        },
+        "cm_half": {
+          "CMRR_db": 48.468587054848115,
+          "worst_f_hz": 15940.42880711776,
+          "cmrr_10Hz_db": 112.29781357418332,
+          "cmrr_16k_db": 48.468587054848115
+        },
+        "n_pts": 1281,
+        "g_cm_dc_db": 5.228064905293347e-07,
+        "theory_opa388": {
+          "CMRR_db": 48.43745417671884,
+          "worst_f_hz": 16000.00000000001,
+          "n_pts": 60
+        }
+      }
+    },
+    "ideal_control_1pct": {
+      "ltspice": {
+        "cm_pin": {
+          "CMRR_db": 94.61188869692171,
+          "worst_f_hz": 15940.42880711776,
+          "cmrr_10Hz_db": 158.4482225319146,
+          "cmrr_16k_db": 94.61188869692171
+        },
+        "cm_half": {
+          "CMRR_db": 94.6119026120929,
+          "worst_f_hz": 15940.42880711776,
+          "cmrr_10Hz_db": 158.44822253192038,
+          "cmrr_16k_db": 94.6119026120929
+        },
+        "n_pts": 1281,
+        "g_cm_dc_db": -3.726325266511147e-10
+      },
+      "theory_ideal": 94.58063997076103
+    },
+    "nominal_real": {
+      "cm_pin": {
+        "CMRR_db": 298.20950044352446,
+        "worst_f_hz": 7079.457843839581,
+        "cmrr_10Hz_db": 300.0,
+        "cmrr_16k_db": 300.0
+      },
+      "cm_half": {
+        "CMRR_db": 298.20950044352446,
+        "worst_f_hz": 7079.457843839581,
+        "cmrr_10Hz_db": 300.0,
+        "cmrr_16k_db": 300.0
+      },
+      "n_pts": 1281,
+      "g_cm_dc_db": 5.228024345682545e-07
+    },
+    "D8_value": {
+      "D8_db": 95.52380484225338,
+      "m": "1%",
+      "mode": "paired",
+      "source_model": "opa388",
+      "cmrr_def": "|V(pa)| / |V(pa)-V(na)|，10 Hz–16 kHz 最差",
+      "theory_db": 95.50273413670067,
+      "abs_diff_vs_theory": 0.021070705552716618
+    },
+    "comparison_r3": {
+      "r3_D8_1pct_db": 94.66006697923933,
+      "r3_netlist_had_opa388": false,
+      "r3_theory_same_direction_db": 48.43745417671884,
+      "r4_D8_1pct_db": 95.52380484225338,
+      "delta_db": 0.8637378630140518,
+      "r4_ideal_source_control_db": 94.61188869692171
+    },
+    "xcheck": {
+      "item": "D8 CMRR 1% paired (real OPA388)",
+      "theory_db": 95.50273413670067,
+      "ltspice_db": 95.52380484225338,
+      "abs_diff": 0.021070705552716618,
+      "criterion": "≤0.5 dB",
+      "pass": true
+    },
+    "xcheck_all": [
+      {
+        "m": "0.1%",
+        "mode": "paired",
+        "theory_db": 137.97147172207065,
+        "ltspice_db": 138.09341960663377,
+        "abs_diff": 0.12194788456312722,
+        "pass_0p5": true
+      },
+      {
+        "m": "0.5%",
+        "mode": "paired",
+        "theory_db": 108.6146032728251,
+        "ltspice_db": 108.62427532843407,
+        "abs_diff": 0.009672055608973551,
+        "pass_0p5": true
+      },
+      {
+        "m": "1%",
+        "mode": "paired",
+        "theory_db": 95.50273413670067,
+        "ltspice_db": 95.52380484225338,
+        "abs_diff": 0.021070705552716618,
+        "pass_0p5": true
+      },
+      {
+        "m": "0.1%",
+        "mode": "same",
+        "theory_db": 68.47396925146899,
+        "ltspice_db": 68.50540099271045,
+        "abs_diff": 0.03143174124146242,
+        "pass_0p5": true
+      },
+      {
+        "m": "0.5%",
+        "mode": "same",
+        "theory_db": 54.47831578351415,
+        "ltspice_db": 54.51087611744065,
+        "abs_diff": 0.03256033392650437,
+        "pass_0p5": true
+      },
+      {
+        "m": "1%",
+        "mode": "same",
+        "theory_db": 48.43745417671884,
+        "ltspice_db": 48.47144778936933,
+        "abs_diff": 0.033993612650490945,
+        "pass_0p5": true
+      }
+    ],
+    "dims": {
+      "D8": 95.52380484225338
+    },
+    "like_for_like_1pct": {
+      "r3_1pct_paired_db": 94.66006697923933,
+      "r4_1pct_paired_real_db": 95.52380484225338,
+      "delta_db": 0.8637378630140518,
+      "r4_ideal_source_control_db": 94.61188869692171,
+      "note": "r3 的 1% 档在 0 Ω 理想源下为 94.66 dB；本轮同档理想源对照 94.61 dB（差 0.05 dB 来自 r3 用 dec 200/无 C_diff 缩放）；真实 OPA388 把该档抬到 95.52 dB（跟随器输出阻抗使两线 失配电流略有衰减）。"
+    }
+  },
+  "D8_score": {
+    "value_db": 95.52380484225338,
+    "full_scale_db": 100.0,
+    "score": 0.9552380484225338,
+    "pass_threshold_db": 80.0,
+    "pass": true
+  },
+  "xcheck_D8": {
+    "item": "D8 CMRR 1% paired (real OPA388)",
+    "theory_db": 95.50273413670067,
+    "ltspice_db": 95.52380484225338,
+    "abs_diff": 0.021070705552716618,
+    "criterion": "≤0.5 dB",
+    "pass": true
+  },
+  "xcheck_pass": true,
+  "raw_files": {
+    "work_dir": "C:\\Users\\chenx\\Desktop\\de-drms\\hardware\\sim\\aaf\\r5_work\\r4_C_d8",
+    "netlists": [
+      "chk_cd_nom.net",
+      "r4_C_d8_v3p010.net",
+      "r4_C_d8_v9b_nom.net",
+      "r4_C_d8_v9b_p001.net",
+      "r4_C_d8_v9b_p005.net",
+      "r4_C_d8_v9b_p010.net",
+      "r4_C_d8_v9b_s001.net",
+      "r4_C_d8_v9b_s005.net",
+      "r4_C_d8_v9b_s010.net"
+    ],
+    "generator": "hardware/sim/aaf/gen_netlists_r4_C_d8.py",
+    "parser": "hardware/sim/aaf/parse_r4_C_d8.py",
+    "primary": "r5_work/r4_C_d8/r4_C_d8_v9b_p010.net|.raw|.log（1% 配对，真实 OPA388）"
+  },
+  "notes": [
+    "第 3 轮 C 案 D8 网表 r5_work/r3_C/r5_C_r3_v3p010.net 中 OPAx388 出现 0 次、无 Xfa/Xfb（grep -c OPAx388 = 0），故其 94.66 dB（1% 档）与 135.47 dB（dims 取值）均为 0 Ω 理想源口径。",
+    "本轮按方案 B 第 3 轮 r5_B_v9b_p*_r3.net 的同形网表重生成：.include lib/OPAx388.LIB、Xfa/Xfb 单位增益跟随器、Vp/Vn DC 2 V AC 1、.ac dec 400 1 40k、B 线 R×(1+m) 配 C_gnd×(1−m) 且 C_diff×(1−m)。",
+    "C_diff 是否随配对缩放对结果无影响（实测 LT 两侧均 95.5238 dB；理论同样逐位相同），因共模激励下 C_diff 两端等电位不载流，仅在两线失配时承接二阶不平衡电流。",
+    "全部 8 个网表 LTspice -b -ascii 均 OK（1–2.2 s/个，0 失败），见 D8_detail_r4.dir 下的 .log。",
+    "xcheck_pass 判据：D8 理论（opt_round5 双线 MNA，源模型 opa388）vs LTspice 实测，|Δ| ≤ 0.5 dB → 实测 0.021 dB，通过。三档配对 + 三档同向共 6 项全部 ≤0.122 dB。"
+  ]
+}

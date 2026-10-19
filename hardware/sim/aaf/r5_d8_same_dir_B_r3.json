@@ -1,0 +1,25 @@
+{
+  "note": "B 案 D8 曲线补齐：同向失配 0.1 %/0.5 % 两个档位本轮补测（原 r5_results_r3_B.json 只测了 1 % 同向档）。LTspice 真实 OPA388 模型，共模 1 V AC / DC 2 V，10 Hz–16 kHz 最差。",
+  "method": "score_r5_r3.py 生成网表 r5_work/r3_B/r5_B_v9b_s{001,05}_r3.net，两线均 R×(1+m)、C_gnd×(1+m)（同向、无配对）",
+  "f_min_hz": 10.0,
+  "f_max_hz": 16000.0,
+  "dec": 400,
+  "same_dir": {
+    "0.1%": {
+      "cmrr_min_db": 68.401,
+      "f_worst_hz": 15940.0,
+      "cmrr_10hz_db": 152.3,
+      "cmrr_16k_db": 61.3
+    },
+    "0.5%": {
+      "cmrr_min_db": 54.407,
+      "f_worst_hz": 15940.0,
+      "cmrr_10hz_db": 138.3,
+      "cmrr_16k_db": 47.3
+    }
+  },
+  "raw": [
+    "r5_work/r3_B/r5_B_v9b_s001_r3.raw",
+    "r5_work/r3_B/r5_B_v9b_s05_r3.raw"
+  ]
+}

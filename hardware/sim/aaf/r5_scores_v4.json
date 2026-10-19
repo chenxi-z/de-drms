@@ -1,0 +1,259 @@
+{
+  "A": {
+    "stages": [
+      [
+        2.4,
+        1e-07,
+        0.0
+      ],
+      [
+        13.0,
+        1e-07,
+        1.8e-08
+      ]
+    ],
+    "dims": {
+      "D1": 0.6215418586151339,
+      "D2": 0.7192025455640889,
+      "D3": 0.7400188892650572,
+      "D4": 0.6694928546166449,
+      "D5": 1.0,
+      "D6a": 1.0,
+      "D7": 1.0,
+      "D8": 0.9660598041565498,
+      "D9": 1.0,
+      "D10": 1.0
+    },
+    "pass": {
+      "D1": false,
+      "D2": true,
+      "D3": true,
+      "D4": true,
+      "D5": true,
+      "D6a": true,
+      "D7": true,
+      "D8": true,
+      "D9": true,
+      "D10": true
+    },
+    "failing": [
+      "D1"
+    ],
+    "min_score": 0.6215418586151339,
+    "d6a_pct_literal": 0.1403870528587266,
+    "d6a_pct_rms_ratio": 5.300671570315901,
+    "d6a_score_alt": 1.0,
+    "d6b_lsb": 15.746732118811993,
+    "D6b_brickwall_lsb": 4.3038657093146275,
+    "cmrr_rc_paired_db": 96.60598041565498,
+    "cmrr_same_dir_db": 49.086436298827174,
+    "peaking_db": 1.7100014388281997,
+    "peaking_f_hz": 276931.655215799,
+    "hard": {
+      "fc_in_range": true,
+      "r_sum": true,
+      "c_max": true,
+      "settle": true,
+      "dG_16k": true,
+      "cdiff_layout": true,
+      "peaking": true,
+      "peaking_c9": true
+    },
+    "hard_ok": true,
+    "pred": {
+      "A_dm": 74.58502303381607,
+      "A_cm": 71.92025455640889,
+      "A_mclk": 111.00283338975858,
+      "dG_16k": 0.19872821542250982,
+      "t_settle_wc_s": 2.3303314195111115e-05,
+      "t_settle_highz_s": 5.3020150858991156e-05,
+      "V_n_lsb": 15.746732118811993,
+      "V_n_lsb_passive": 0.8334801119722809,
+      "V_n_lsb_follower": 15.724658448582337,
+      "sigma_dG_db": 0.009017740089355037,
+      "f_c_hz": 78622.65517129154,
+      "group_delay_flat_s": 9.740437154504492e-08,
+      "tau_kb_ns": 0.049,
+      "kickback_droop": 2.5733685762286918e-05,
+      "kickback_ok": true,
+      "r_sum_ohm": 15.4,
+      "c_max_f": 1e-07,
+      "peaking_ok": true
+    }
+  },
+  "B": {
+    "stages": [
+      [
+        2.74,
+        6.8e-08,
+        0.0
+      ],
+      [
+        6.04,
+        5.6e-08,
+        0.0
+      ],
+      [
+        13.700000000000001,
+        5.6e-08,
+        1.2e-08
+      ]
+    ],
+    "dims": {
+      "D1": 0.717887968587015,
+      "D2": 0.8306372262097419,
+      "D3": 0.895837952863485,
+      "D4": 0.6939631235746442,
+      "D5": 1.0,
+      "D6a": 1.0,
+      "D7": 1.0,
+      "D8": 0.9563298350651306,
+      "D9": 1.0,
+      "D10": 1.0
+    },
+    "pass": {
+      "D1": true,
+      "D2": true,
+      "D3": true,
+      "D4": true,
+      "D5": true,
+      "D6a": true,
+      "D7": true,
+      "D8": true,
+      "D9": true,
+      "D10": true
+    },
+    "failing": [],
+    "min_score": 0.6939631235746442,
+    "d6a_pct_literal": 0.30150680053534806,
+    "d6a_pct_rms_ratio": 7.771246132882219,
+    "d6a_score_alt": 1.0,
+    "d6b_lsb": 13.90500586683929,
+    "D6b_brickwall_lsb": 4.3038657093146275,
+    "cmrr_rc_paired_db": 95.63298350651306,
+    "cmrr_same_dir_db": 48.33366685484716,
+    "peaking_db": -7.359805084694489e-10,
+    "peaking_f_hz": 1.0,
+    "hard": {
+      "fc_in_range": true,
+      "r_sum": true,
+      "c_max": true,
+      "settle": true,
+      "dG_16k": true,
+      "cdiff_layout": true,
+      "peaking": true,
+      "peaking_c9": true
+    },
+    "hard_ok": true,
+    "pred": {
+      "A_dm": 86.1465562304418,
+      "A_cm": 83.06372262097419,
+      "A_mclk": 134.37569292952276,
+      "dG_16k": 0.18771659439141014,
+      "t_settle_wc_s": 2.2626414607493923e-05,
+      "t_settle_highz_s": 5.308304363545348e-05,
+      "V_n_lsb": 13.90500586683929,
+      "V_n_lsb_passive": 1.0773269750382657,
+      "V_n_lsb_follower": 13.863208674246016,
+      "sigma_dG_db": 0.0065704938958905754,
+      "f_c_hz": 79940.95738745447,
+      "group_delay_flat_s": 8.713006393225958e-08,
+      "tau_kb_ns": 0.05145000000000001,
+      "kickback_droop": 4.3745352056344007e-05,
+      "kickback_ok": true,
+      "r_sum_ohm": 22.480000000000004,
+      "c_max_f": 6.8e-08,
+      "peaking_ok": true
+    }
+  },
+  "C": {
+    "stages": [
+      [
+        1.8,
+        3.3e-08,
+        0.0
+      ],
+      [
+        3.9,
+        3.9e-08,
+        0.0
+      ],
+      [
+        10.0,
+        3.9e-08,
+        0.0
+      ],
+      [
+        22.0,
+        2.7e-08,
+        8.2e-09
+      ]
+    ],
+    "dims": {
+      "D1": 0.7740144443638654,
+      "D2": 0.8878541465882911,
+      "D3": 1.0,
+      "D4": 0.7100483012663417,
+      "D5": 1.0,
+      "D6a": 1.0,
+      "D7": 1.0,
+      "D8": 0.9550273413670066,
+      "D9": 1.0,
+      "D10": 1.0
+    },
+    "pass": {
+      "D1": true,
+      "D2": true,
+      "D3": true,
+      "D4": true,
+      "D5": true,
+      "D6a": true,
+      "D7": true,
+      "D8": true,
+      "D9": true,
+      "D10": true
+    },
+    "failing": [],
+    "min_score": 0.7100483012663417,
+    "d6a_pct_literal": 0.5678263766188895,
+    "d6a_pct_rms_ratio": 10.671818126156287,
+    "d6a_score_alt": 0.9370474535627924,
+    "d6b_lsb": 13.735543063487075,
+    "D6b_brickwall_lsb": 4.3038657093146275,
+    "cmrr_rc_paired_db": 95.50273413670067,
+    "cmrr_same_dir_db": 48.43745417671884,
+    "peaking_db": -7.076504961546921e-10,
+    "peaking_f_hz": 1.0,
+    "hard": {
+      "fc_in_range": true,
+      "r_sum": true,
+      "c_max": true,
+      "settle": true,
+      "dG_16k": true,
+      "cdiff_layout": true,
+      "peaking": true,
+      "peaking_c9": true
+    },
+    "hard_ok": true,
+    "pred": {
+      "A_dm": 92.88173332366384,
+      "A_cm": 88.78541465882911,
+      "A_mclk": 152.04611682006586,
+      "dG_16k": 0.18047826443014628,
+      "t_settle_wc_s": 2.1929724818257063e-05,
+      "t_settle_highz_s": 5.3045530218867047e-05,
+      "V_n_lsb": 13.735543063487075,
+      "V_n_lsb_passive": 1.4575409682598095,
+      "V_n_lsb_follower": 13.657990978718365,
+      "sigma_dG_db": 0.004634370512963841,
+      "f_c_hz": 79854.14649158093,
+      "group_delay_flat_s": 7.940897935421783e-08,
+      "tau_kb_ns": 0.0805,
+      "kickback_droop": 8.062936982388242e-05,
+      "kickback_ok": true,
+      "r_sum_ohm": 37.7,
+      "c_max_f": 3.9e-08,
+      "peaking_ok": true
+    }
+  }
+}

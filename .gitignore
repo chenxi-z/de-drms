@@ -219,3 +219,6 @@ adc_ds/
 *.raw
 *.op.raw
 hardware/sim/**/*.net
+hardware/sim/aaf/lib/
+hardware/sim/aaf/nul
+nul

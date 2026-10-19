@@ -1,0 +1,203 @@
+{
+  "scheme": "B",
+  "grade": "B",
+  "n_stages": 3,
+  "stages": [
+    [
+      5.1,
+      1e-07,
+      0.0
+    ],
+    [
+      5.1,
+      8.2e-08,
+      0.0
+    ],
+    [
+      5.6,
+      1e-07,
+      8.2e-10
+    ]
+  ],
+  "dims": {
+    "D1": 66.673,
+    "D2": 66.536,
+    "D3": 102.461,
+    "D4": 0.2654,
+    "D5": 34.68,
+    "D6": 273.3,
+    "D7": 0.0067,
+    "D8": 44.85,
+    "D9": 1.0,
+    "D10": 0.1417
+  },
+  "xcheck_pass": true,
+  "xcheck": {
+    "A_dm": {
+      "lt": 66.673,
+      "th": 66.6734,
+      "delta": -0.0004,
+      "pass_0p5": true
+    },
+    "A_cm": {
+      "lt": 66.536,
+      "th": 66.5357,
+      "delta": 0.0003,
+      "pass_0p5": true
+    },
+    "A_mclk": {
+      "lt": 102.461,
+      "th": 102.4615,
+      "delta": -0.0005,
+      "pass_0p5": true
+    },
+    "dG_16k": {
+      "lt": 0.2654,
+      "th": 0.2654,
+      "delta": 0.0,
+      "pass_0p5": true
+    },
+    "CMRR": {
+      "lt": 44.85,
+      "th": 44.8136,
+      "delta": 0.0364,
+      "pass_0p5": true
+    },
+    "dtau_us": {
+      "lt": 0.1417,
+      "th": 0.1395,
+      "delta": 0.0022,
+      "pass_0p5": true
+    },
+    "Vn_nv": {
+      "lt": 273.3,
+      "th": 272.46,
+      "delta": 0.84,
+      "rel_pct": 0.31,
+      "pass_5pct": true
+    },
+    "D7_sigma": {
+      "lt": 0.0067,
+      "th": 0.0063,
+      "delta": 0.0004,
+      "rel_pct": 6.4,
+      "se_1sigma": 0.0008,
+      "z_score": 0.49,
+      "criterion": "|z| <= 2（30 样本 σ̂ 抽样标准误 13.1%，5% 判据不适用）",
+      "pass_stat": true
+    },
+    "D7_opt_round5_proxy": {
+      "value": 0.02066,
+      "note": "opt_round5 代理为 +tol 单点扰动 RSS，非均匀分布 sigma；比实测高 ~3x（漏了 √3 与逐元件独立抽样）"
+    },
+    "t_settle": {
+      "lt": 24.653,
+      "th": 24.649,
+      "delta": 0.005,
+      "rel_pct": 0.02,
+      "pass_5pct": true
+    }
+  },
+  "xcheck_fail_dims": [],
+  "D5_candidates_us": {
+    "V4_0ohm_ideal_follower_us": 24.65,
+    "V9c_0ohm_real_follower_us": 34.68,
+    "V9f_600k_real_follower_us": 30.32,
+    "V4b_600k_ideal_unbootstrapped_us_UPPER_BOUND": 51.18
+  },
+  "theory_zero_source": {
+    "A_dm": 66.6734,
+    "A_cm": 66.5357,
+    "A_mclk": 102.4615,
+    "dG_16k": 0.2654,
+    "t_settle_wc_us": 24.6485,
+    "t_settle_nom_us": 23.2424,
+    "CMRR_pb_db": 44.8136,
+    "Vn_nv": 272.4559,
+    "dtau_us": 0.1395
+  },
+  "theory_engine_1ohm_pred": {
+    "A_dm": 68.2133,
+    "A_cm": 68.0757,
+    "A_mclk": 104.0156,
+    "dG_16k": 0.3213,
+    "CMRR_pb_db": 44.0691,
+    "V_n_lsb": 0.9365
+  },
+  "detail": {
+    "V1_g_dc_db": -0.00211,
+    "V1_g_16k_db": -0.26747,
+    "D10_tau_100Hz_us": 2.9518,
+    "D10_tau_16k_us": 2.8101,
+    "D8_worst_f_hz": 15940.4,
+    "D8_cmrr_10Hz_db": 108.6,
+    "D8_cmrr_16k_db": 44.85,
+    "D5_V4_final_v": 1.999509,
+    "D5_V4_strict_band_120uV_us": 25.99,
+    "D5_V4b_600k_ideal_follower_us": 51.18,
+    "D5_V6_mc_min_us": 22.58,
+    "D5_V6_mc_mean_us": 23.29,
+    "D5_V6_mc_max_us": 23.9,
+    "D5_V6_n": 30,
+    "D7_n": 30,
+    "D7_mean_db": -0.266,
+    "D7_min_db": -0.2801,
+    "D7_max_db": -0.2507,
+    "D7_p2p_db": 0.0294,
+    "D6_LSB": 0.939,
+    "D6_dens_1k_nV": 0.7236,
+    "D6_f_max_hz": 2048000.0,
+    "D9_criterion": "residual <= 0.01% of steady-state value within 122.07 ns",
+    "D9_kick_amp_uv": 20.481,
+    "D9_worst_resid_uv": 0.6322,
+    "D9_worst_rel_to_ss": 1.9757632526426706e-07,
+    "D9_ron100": 1.0,
+    "D9_ron1000": 1.0,
+    "CH1_CH2_group_delay_diff_nominal_us": 0.0,
+    "CH1_CH2_group_delay_diff_1pct_mismatch_ns": 58.821,
+    "temp_corners": {
+      "-20C": {
+        "dG_16k_db": 0.2661,
+        "A_dm_db": 66.708
+      },
+      "+85C": {
+        "dG_16k_db": 0.2644,
+        "A_dm_db": 66.628
+      }
+    }
+  },
+  "V9": {
+    "A_dm": 86.3208,
+    "A_mclk": 134.2154,
+    "dG_16k": 0.2666,
+    "A_cm": 86.183,
+    "t_settle_us": 34.68,
+    "t_settle_us_600k": 30.3166,
+    "Vn_nv": 3292.6221,
+    "A_dm_600k": 126.3001,
+    "A_mclk_600k": 186.2764
+  },
+  "V9_600k": {
+    "A_dm_db": 126.3,
+    "A_mclk_db": 186.28,
+    "dG_16k_db": 0.5743,
+    "input_rc_droop_16k_db": -0.3077,
+    "implied_Cin_pF": 4.49
+  },
+  "raw_files": {
+    "V1": "hardware/sim/aaf/r5_B_v1.raw",
+    "V2": "hardware/sim/aaf/r5_B_v2.raw",
+    "V3": "hardware/sim/aaf/r5_B_v3.raw",
+    "V4": "hardware/sim/aaf/r5_B_v4.raw",
+    "V4b": "hardware/sim/aaf/r5_B_v4b.raw",
+    "V5": "hardware/sim/aaf/r5_B_v5mc01..30.raw",
+    "V6": "hardware/sim/aaf/r5_B_v6mc01..30.raw",
+    "V7": "hardware/sim/aaf/r5_B_v7.raw",
+    "V8": "hardware/sim/aaf/r5_B_v8_ron1|100|1000.raw",
+    "V9": "hardware/sim/aaf/r5_B_v9a..v9f.raw",
+    "T": [
+      "hardware/sim/aaf/r5_B_v1t-20C.raw",
+      "hardware/sim/aaf/r5_B_v1t+85C.raw"
+    ]
+  }
+}

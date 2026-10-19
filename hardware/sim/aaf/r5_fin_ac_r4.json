@@ -1,0 +1,18 @@
+{
+  "FINAC_dm_rs0": {
+    "pin_peak_db": 0.0,
+    "pin_peak_khz": 0.0001,
+    "foll_peak_db": 4.691583355318149,
+    "foll_peak_khz": 274.1574171926941,
+    "g_16k_db": -0.18636035124760245,
+    "g_fmod_db": 84.68136292883915
+  },
+  "FINAC_dm_rs600k": {
+    "pin_peak_db": 0.0,
+    "pin_peak_khz": 0.0001,
+    "foll_peak_db": 0.0,
+    "foll_peak_khz": 0.0001,
+    "g_16k_db": -0.493858767390472,
+    "g_fmod_db": 124.63572961123806
+  }
+}

@@ -1,0 +1,77 @@
+{
+  "note": "C 案振荡真伪判别：R1=1.8（冻结）/3.3（缓解）在 Rs=0/100k 用三套数值设置",
+  "rows": {
+    "1.8|0|gear20n_400us": {
+      "tail_pp_uV": 203391.60810358092,
+      "f_osc_kHz": 387.5663640573216,
+      "stable": false,
+      "t_end_us": 400.0
+    },
+    "1.8|0|trap60us": {
+      "tail_pp_uV": 205150.57525951107,
+      "f_osc_kHz": 394.88284570341074,
+      "stable": false,
+      "t_end_us": 59.999999999999986
+    },
+    "1.8|0|gear5n_150us": {
+      "tail_pp_uV": 203213.88762299053,
+      "f_osc_kHz": 395.2342902914458,
+      "stable": false,
+      "t_end_us": 150.0
+    },
+    "1.8|100000|gear20n_400us": {
+      "tail_pp_uV": 691732.4353734044,
+      "f_osc_kHz": 272.16263500575906,
+      "stable": false,
+      "t_end_us": 400.0
+    },
+    "1.8|100000|trap60us": {
+      "tail_pp_uV": 697234.9784216431,
+      "f_osc_kHz": 0.0,
+      "stable": false,
+      "t_end_us": 59.999999999999986
+    },
+    "1.8|100000|gear5n_150us": {
+      "tail_pp_uV": 692965.89120593,
+      "f_osc_kHz": 218.2450077159204,
+      "stable": false,
+      "t_end_us": 150.0
+    },
+    "3.3|0|gear20n_400us": {
+      "tail_pp_uV": 0.0014509899948222937,
+      "f_osc_kHz": 0.0,
+      "stable": true,
+      "t_end_us": 400.0
+    },
+    "3.3|0|trap60us": {
+      "tail_pp_uV": 26.496273006104687,
+      "f_osc_kHz": 0.0,
+      "stable": true,
+      "t_end_us": 59.999999999999986
+    },
+    "3.3|0|gear5n_150us": {
+      "tail_pp_uV": 0.014470409981370835,
+      "f_osc_kHz": 0.0,
+      "stable": true,
+      "t_end_us": 150.0
+    },
+    "3.3|100000|gear20n_400us": {
+      "tail_pp_uV": 0.003118156177706055,
+      "f_osc_kHz": 634.9206349209528,
+      "stable": true,
+      "t_end_us": 400.0
+    },
+    "3.3|100000|trap60us": {
+      "tail_pp_uV": 102784.42020490597,
+      "f_osc_kHz": 649.6148041442457,
+      "stable": false,
+      "t_end_us": 59.999999999999986
+    },
+    "3.3|100000|gear5n_150us": {
+      "tail_pp_uV": 0.014530046943406205,
+      "f_osc_kHz": 0.0,
+      "stable": true,
+      "t_end_us": 150.0
+    }
+  }
+}

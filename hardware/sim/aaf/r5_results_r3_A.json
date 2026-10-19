@@ -1,0 +1,569 @@
+{
+  "candidate": "A",
+  "n_stages": 2,
+  "stages": [
+    [
+      2.4,
+      1e-07,
+      0.0
+    ],
+    [
+      13.0,
+      1e-07,
+      1.8e-08
+    ]
+  ],
+  "primary_model": "TI OPAx388 SBOS777D Rev D (lib/OPAx388.LIB)",
+  "dir": "C:\\Users\\chenx\\Desktop\\de-drms\\hardware\\sim\\aaf\\r5_work\\r3",
+  "raw": {
+    "V9a": "C:\\Users\\chenx\\Desktop\\de-drms\\hardware\\sim\\aaf\\r5_work\\r3\\r5_A_r3_v9a.raw",
+    "V9b": "C:\\Users\\chenx\\Desktop\\de-drms\\hardware\\sim\\aaf\\r5_work\\r3\\r5_A_r3_v9b.raw",
+    "V9e": "C:\\Users\\chenx\\Desktop\\de-drms\\hardware\\sim\\aaf\\r5_work\\r3\\r5_A_r3_v9e.raw",
+    "V9d": "C:\\Users\\chenx\\Desktop\\de-drms\\hardware\\sim\\aaf\\r5_work\\r3\\r5_A_r3_v9d.raw",
+    "V9dn": "C:\\Users\\chenx\\Desktop\\de-drms\\hardware\\sim\\aaf\\r5_work\\r3\\r5_A_r3_v9dn.raw",
+    "v9p_m0.001_pair": "C:\\Users\\chenx\\Desktop\\de-drms\\hardware\\sim\\aaf\\r5_work\\r3\\r5_A_r3_v9p_m0.001_pair.raw",
+    "v9p_m0.001_same": "C:\\Users\\chenx\\Desktop\\de-drms\\hardware\\sim\\aaf\\r5_work\\r3\\r5_A_r3_v9p_m0.001_same.raw",
+    "v9p_m0.005_pair": "C:\\Users\\chenx\\Desktop\\de-drms\\hardware\\sim\\aaf\\r5_work\\r3\\r5_A_r3_v9p_m0.005_pair.raw",
+    "v9p_m0.005_same": "C:\\Users\\chenx\\Desktop\\de-drms\\hardware\\sim\\aaf\\r5_work\\r3\\r5_A_r3_v9p_m0.005_same.raw",
+    "v9p_m0.01_pair": "C:\\Users\\chenx\\Desktop\\de-drms\\hardware\\sim\\aaf\\r5_work\\r3\\r5_A_r3_v9p_m0.01_pair.raw",
+    "v9p_m0.01_same": "C:\\Users\\chenx\\Desktop\\de-drms\\hardware\\sim\\aaf\\r5_work\\r3\\r5_A_r3_v9p_m0.01_same.raw",
+    "V9C": "C:\\Users\\chenx\\Desktop\\de-drms\\hardware\\sim\\aaf\\r5_work\\r3\\r5_A_r3_v9c.raw",
+    "V9F": "C:\\Users\\chenx\\Desktop\\de-drms\\hardware\\sim\\aaf\\r5_work\\r3\\r5_A_r3_v9f.raw",
+    "V9m": "C:\\Users\\chenx\\Desktop\\de-drms\\hardware\\sim\\aaf\\r5_work\\r3\\r5_A_r3_v9m_mc01.raw"
+  },
+  "dims": {
+    "D1": 74.92623767887191,
+    "D2": 72.26146937812099,
+    "D3": 111.15932225670932,
+    "D4": 0.19865948032238953,
+    "D5": null,
+    "D6a": 0.16985192998561957,
+    "D6b": 15.76127943156859,
+    "D7": 0.004996247090236879,
+    "D8": 96.64593471667942,
+    "D9": 1.0,
+    "D10": 0.10665497305360597
+  },
+  "notes": [
+    "主评分口径 = TI OPAx388 SBOS777D Rev D 模型（lib/OPAx388.LIB），全部 AC/噪声/瞬态均由 LTspice -b -ascii 实测；0 Ω 理想源（V1–V8）仅作对照报告，不参与打分。",
+    "D6a 定义：同带宽下（真实模型总积分噪声 − 阶梯与负载强制 noiseless 的跟随器自身噪声）/ 跟随器自身噪声，算术比 = 0.17 %；正交分解 5.83 %（阶梯约翰逊噪声）+ 0.08 %（130 kΩ 负载）。",
+    "D8 主口径 = R·C 乘积异向配对、m = 1 %（规格 v4 §5.1 考核条件）；m = 0.1/0.5 % 与同向失配全部实测并列在 D8 段。",
+    "D9 判据按规格 §5.1：引脚残差在 122.07 ns 内回落到 0.01 % 带内；测量窗口按 V(swp) 过 0.5 V 的真实开关沿对齐；Ron = 1/100/1000 Ω 三档全过。",
+    "D5 未取得有效实测值：真实模型瞬态自激（见 stability / D5_invalid_reason），0 Ω 与 600 kΩ 两个最坏角都呈等幅极限环，0.01 % 带永不满足。按『最坏角不建立』判淘汰。"
+  ],
+  "V9a": {
+    "g_dc_db": -0.0020571207900046576,
+    "g_16k_db": -0.2007166011123942,
+    "g_fmod_db": -74.92829479966191,
+    "g_mclk_db": -111.16137937749932
+  },
+  "primary": {
+    "D1": 74.92623767887191,
+    "D3": 111.15932225670932,
+    "D4": 0.19865948032238953,
+    "D10": 0.10665497305360597,
+    "tau_100Hz_us": 2.3500168085605324,
+    "tau_16k_us": 2.243361843890203,
+    "CH_tau_diff_us": 1.648635655077113e-07,
+    "tau_p_16k_us": 2.243361843889987,
+    "tau_n_16k_us": 2.243361843890709
+  },
+  "V9b": {
+    "D2": 72.26146937812099,
+    "g_cm_dc_db": 5.231707285634503e-07,
+    "g_cm_fmod_db": -72.26146885495027
+  },
+  "V9e_600k": {
+    "g_dc_db": -0.002083777010755934,
+    "g_16k_db": -0.5083239201155374,
+    "g_fmod_db": -114.95193995375351,
+    "A_dm_fmod_db": 114.94985617674276,
+    "dG_16k_db": 0.5062401431047815,
+    "input_rc_droop_16k_db": -0.3076055990102855
+  },
+  "C9": {
+    "peaking_db": 1.733685285393485,
+    "f_hz": 277971.3267761077,
+    "band": "1 Hz - 2 MHz",
+    "npts": 14604,
+    "nodes": {
+      "V(pa2)": {
+        "peak_db": 1.7336852853934785,
+        "f_hz": 277971.3267761077
+      }
+    },
+    "worst_node_db": 1.7336852853934785,
+    "C9_limit_db": 6.0,
+    "C9_pass_diff_pin": true,
+    "C9_pass_any_node": true,
+    "C9_pass": true
+  },
+  "stability": {
+    "V9c_0ohm_corner": {
+      "tail_pp_mv": 169.35124240161502,
+      "osc_f_hz": 181084.4370881498,
+      "osc_amp_mv": 61.90638330218849,
+      "envelope_start_mv": 169.35302576385115,
+      "envelope_end_mv": 169.35124240161502,
+      "sustained": true,
+      "t_max_us": 500.0,
+      "note": "等幅极限环 → 电路不稳定；0.01% 建立带永远进不去"
+    },
+    "V9f_600k_corner": {
+      "tail_pp_mv": 604.4711991997887,
+      "osc_f_hz": 94138.32057343039,
+      "osc_amp_mv": 229.137513253432,
+      "envelope_start_mv": 604.4971169399407,
+      "envelope_end_mv": 604.4711991997887,
+      "sustained": true,
+      "t_max_us": 500.0,
+      "note": "等幅极限环 → 电路不稳定；0.01% 建立带永远进不去"
+    }
+  },
+  "stability_threshold": {
+    "closed_loop_peak_vs_Riso_100nF": {
+      "2.4": 23.69,
+      "3.0": 26.32,
+      "3.3": 19.58,
+      "3.6": 15.85,
+      "3.9": 13.26,
+      "4.3": 10.71,
+      "5.1": 7.19,
+      "6.8": 2.71,
+      "10.0": 0.0,
+      "13.0": 0.0
+    },
+    "peak_f_hz": 302000.0,
+    "transient": {
+      "Riso_2p4_us": "never settles (limit cycle)",
+      "Riso_10_us": 27.02,
+      "Riso_13_us": 38.27
+    },
+    "conclusion": "候选 A 的 R1 = 2.4 Ω 直接驱动 100 nF 使 OPA388 跟随器在闭环外另成回路：AC 在 302 kHz 出现 +23.7 dB 尖峰（该处H(fpa) 已 >1，即跟随器输出端被负载网络推成增益峰），瞬态表现为 158–185 kHz 等幅极限环（幅值不衰减、与阶跃幅度无关），0.01 % 建立带永不进入。把 R1 提高到 ≥10 Ω（对跟随器隔离足够，−3 dB 点仍在通带之外）即恢复稳定：R1=10 Ω 时27 µs 建立、R1=13 Ω 时 38 µs。",
+    "source": "r5_work/r3/probe_loopcheck.py, probe_stab_final.py, probe_d9_iso.py"
+  },
+  "D6": {
+    "total_nv": 4588.251635061562,
+    "total_lsb": 15.76127943156859,
+    "dens_1k_nv": 9.927077004588174,
+    "follower_only_nv": 4580.471615619988,
+    "follower_only_lsb": 15.734553987945436,
+    "dens_1k_foll_nv": 9.90133965529877,
+    "D6a_pct": 0.16985192998561957,
+    "D6a_quadrature_pct": 5.830886354169847,
+    "D6b_lsb": 15.76127943156859,
+    "brickwall_4p3_lsb": 4.3038657093146275,
+    "decomposition": {
+      "full": {
+        "nv": 4588.251635061562,
+        "lsb": 15.76127943156859,
+        "dens_1k_nv": 9.927077004588174
+      },
+      "ladder_nl": {
+        "nv": 4580.473168742197,
+        "lsb": 15.734559323135192,
+        "dens_1k_nv": 9.901345759532633
+      },
+      "load_nl": {
+        "nv": 4588.250084572363,
+        "lsb": 15.761274105423588,
+        "dens_1k_nv": 9.927070916176655
+      },
+      "all_nl": {
+        "nv": 4580.471615619988,
+        "lsb": 15.734553987945436,
+        "dens_1k_nv": 9.90133965529877
+      }
+    },
+    "ladder_only_pct_quadrature": 5.830304810157942,
+    "load130k_pct_quadrature": 0.08234983844251648
+  },
+  "D8": {
+    "m0.001_pair": {
+      "cmrr_min_db": 133.7582923818635,
+      "f_worst_hz": 15848.93192461181,
+      "cmrr_10hz_db": 199.41416571391105,
+      "cmrr_16k_db": 133.7582923818635
+    },
+    "m0.001_same": {
+      "cmrr_min_db": 69.20115639471659,
+      "f_worst_hz": 15848.93192461181,
+      "cmrr_10hz_db": 133.00493178961807,
+      "cmrr_16k_db": 69.20115639471659
+    },
+    "m0.005_pair": {
+      "cmrr_min_db": 110.17428943607374,
+      "f_worst_hz": 15848.93192461181,
+      "cmrr_10hz_db": 171.14673953046858,
+      "cmrr_16k_db": 110.17428943607374
+    },
+    "m0.005_same": {
+      "cmrr_min_db": 55.20568578726444,
+      "f_worst_hz": 15848.93192461181,
+      "cmrr_10hz_db": 119.00819042668957,
+      "cmrr_16k_db": 55.20568578726444
+    },
+    "m0.01_pair": {
+      "cmrr_min_db": 96.64593471667942,
+      "f_worst_hz": 15848.93192461181,
+      "cmrr_10hz_db": 159.0677257460017,
+      "cmrr_16k_db": 96.64593471667942
+    },
+    "m0.01_same": {
+      "cmrr_min_db": 49.16505686667157,
+      "f_worst_hz": 15848.93192461181,
+      "cmrr_10hz_db": 112.96596251437288,
+      "cmrr_16k_db": 49.16505686667157
+    },
+    "D8_primary_db": 96.64593471667942,
+    "D8_condition": "R·C 乘积异向配对，m=1% 单体失配（规格 v4 §5.1 D8）"
+  },
+  "V9c": {
+    "tset_us": 489.9971295660114,
+    "vfinal_v": 2.049029802888181,
+    "err_final_uv": 0.0,
+    "tail_pp_uv": 169351.24240161502,
+    "converged": false,
+    "t_max_us": 500.0,
+    "npts": 258222,
+    "tail_pp_mv": 169.35124240161502
+  },
+  "V9f": {
+    "tset_us": 489.9832482634942,
+    "vfinal_v": 1.6890314846906882,
+    "err_final_uv": 0.0,
+    "tail_pp_uv": 602277.4313818428,
+    "converged": false,
+    "t_max_us": 500.0,
+    "npts": 265711,
+    "tail_pp_mv": 602.2774313818429
+  },
+  "V4": {
+    "tset_us": 21.08212794017077,
+    "vfinal_v": 1.9995215298785536,
+    "err_final_uv": 0.0,
+    "tail_pp_uv": 0.0,
+    "converged": true,
+    "t_max_us": 500.0,
+    "npts": 50240,
+    "tail_pp_mv": 0.0
+  },
+  "V4B": {
+    "tset_us": 50.185423880233124,
+    "vfinal_v": 1.9995215298780935,
+    "err_final_uv": 0.0,
+    "tail_pp_uv": 0.0,
+    "converged": true,
+    "t_max_us": 500.0,
+    "npts": 50317,
+    "tail_pp_mv": 0.0
+  },
+  "D5_candidates_us": {
+    "V9c_0ohm_real": 489.9971295660114,
+    "V9f_600k_real": 489.9832482634942,
+    "V4_0ohm_ideal_corner": 21.08212794017077,
+    "V4b_600k_ideal": 50.185423880233124
+  },
+  "D5_real_us": 489.9971295660114,
+  "D5_valid": false,
+  "D5_theory_reference_only_NOT_measured": {
+    "t_settle_wc_us_0ohm": 23.303314195111113,
+    "t_settle_highz_us_600k": 53.02015085899116,
+    "d5_worst_us": 53.02015085899116,
+    "note": "opt_round5 的无源网络理论值，**不含跟随器的稳定性问题**；因真实模型瞬态自激，该值不能作为 D5 实测，仅列出以便对照。"
+  },
+  "D5_invalid_reason": "真实 OPA388 模型瞬态为**等幅极限环**（0 Ω 时 158–185 kHz / 169 mV pp；600 kΩ 时 94 kHz / 604 mV pp），500 µs 内不衰减 → 0.01 % 建立带永不满足。settle_us 给出的 489.997 µs = t_end − 10 µs 的窗口伪值，不作为实测值。判据按『最坏角不建立』= 淘汰。",
+  "D7_mc": {
+    "n": 30,
+    "sigma_db": 0.004996247090236879,
+    "mean_db": -0.2011355950181374,
+    "min_db": -0.21179574169979498,
+    "max_db": -0.19119163969073572,
+    "p2p_db": 0.020604102009059266
+  },
+  "D9": {
+    "real_model": {
+      "ron1": {
+        "available": true,
+        "ron_ohm": 1.0,
+        "n_cycles": 17,
+        "worst_resid90_uv": 10.684013558304173,
+        "worst_resid90_rel": 3.339179921057397e-06,
+        "worst_resid100_rel": 2.949349858986729e-06,
+        "worst_kick_uv": 18.02856252730578,
+        "worst_droop_uv": 18.096868834138746,
+        "worst_cs90_rel": 3.643132218467953e-11,
+        "pin_pass_0p01pct": true,
+        "cs_pass_0p01pct": true,
+        "detail": [
+          {
+            "t0_ns": 4306.89,
+            "kick_uv": -18.028530591518432,
+            "droop_uv": 18.096847320236975,
+            "resid90_uv": 10.682878862411371,
+            "resid90_rel": 3.3388252800803185e-06,
+            "cs90_rel": 3.6427435837342174e-11,
+            "resid100_uv": 9.435238671251511,
+            "resid100_rel": 2.948888010891019e-06
+          },
+          {
+            "t0_ns": 4551.03,
+            "kick_uv": -18.02853865839893,
+            "droop_uv": 18.096852759885707,
+            "resid90_uv": 10.683173009340408,
+            "resid90_rel": 3.338917212579517e-06,
+            "cs90_rel": 3.642618667489271e-11,
+            "resid100_uv": 9.435699596327396,
+            "resid100_rel": 2.9490320682218645e-06
+          },
+          {
+            "t0_ns": 4795.17,
+            "kick_uv": -18.02854539745269,
+            "droop_uv": 18.096857284710666,
+            "resid90_uv": 10.683405962552683,
+            "resid90_rel": 3.338990020243667e-06,
+            "cs90_rel": 3.642493751872358e-11,
+            "resid100_uv": 9.435782137856563,
+            "resid100_rel": 2.9490578661833895e-06
+          }
+        ],
+        "sim_s": 32.5
+      },
+      "ron100": {
+        "available": true,
+        "ron_ohm": 100.0,
+        "n_cycles": 17,
+        "worst_resid90_uv": 10.685361334861199,
+        "worst_resid90_rel": 3.3396011656484876e-06,
+        "worst_resid100_rel": 3.0901046586189795e-06,
+        "worst_kick_uv": 17.971527813465116,
+        "worst_droop_uv": 17.99933480661764,
+        "worst_cs90_rel": 3.6439040763913896e-09,
+        "pin_pass_0p01pct": true,
+        "cs_pass_0p01pct": true,
+        "detail": [
+          {
+            "t0_ns": 4306.89,
+            "kick_uv": -17.971494912227826,
+            "droop_uv": 17.999298894899596,
+            "resid90_uv": 10.684191749987804,
+            "resid90_rel": 3.339235620290275e-06,
+            "cs90_rel": 3.6435230752562965e-09,
+            "resid100_uv": 9.885762697781075,
+            "resid100_rel": 3.0896947290566115e-06
+          },
+          {
+            "t0_ns": 4551.03,
+            "kick_uv": -17.971502965341557,
+            "droop_uv": 17.99930768742186,
+            "resid90_uv": 10.68448549768064,
+            "resid90_rel": 3.339327427948478e-06,
+            "cs90_rel": 3.6433824749885703e-09,
+            "resid100_uv": 9.88608998264695,
+            "resid100_rel": 3.089797018432568e-06
+          },
+          {
+            "t0_ns": 4795.17,
+            "kick_uv": -17.971509732372937,
+            "droop_uv": 17.999315071737243,
+            "resid90_uv": 10.684720051834518,
+            "resid90_rel": 3.339400735907518e-06,
+            "cs90_rel": 3.643276713156933e-09,
+            "resid100_uv": 9.885676798937482,
+            "resid100_rel": 3.0896678824680717e-06
+          }
+        ],
+        "sim_s": 31.1
+      },
+      "ron1000": {
+        "available": true,
+        "ron_ohm": 1000.0,
+        "n_cycles": 17,
+        "worst_resid90_uv": 10.697573466611487,
+        "worst_resid90_rel": 3.3434180377123036e-06,
+        "worst_resid100_rel": 3.095043886168754e-06,
+        "worst_kick_uv": 7.7543247551936645,
+        "worst_droop_uv": 17.38708918397336,
+        "worst_cs90_rel": 3.6506623806280226e-08,
+        "pin_pass_0p01pct": true,
+        "cs_pass_0p01pct": true,
+        "detail": [
+          {
+            "t0_ns": 4306.89,
+            "kick_uv": -7.753724432291165,
+            "droop_uv": 17.386988735434983,
+            "resid90_uv": 10.696460970294197,
+            "resid90_rel": 3.3430703353721646e-06,
+            "cs90_rel": 3.650280561135159e-08,
+            "resid100_uv": 9.901723962091324,
+            "resid100_rel": 3.0946833479448293e-06
+          },
+          {
+            "t0_ns": 4551.03,
+            "kick_uv": -7.754301020845844,
+            "droop_uv": 17.38701805864551,
+            "resid90_uv": 10.696734249915352,
+            "resid90_rel": 3.3431557460515066e-06,
+            "cs90_rel": 3.650150329020656e-08,
+            "resid100_uv": 9.902069301848115,
+            "resid100_rel": 3.0947912802952665e-06
+          },
+          {
+            "t0_ns": 4795.17,
+            "kick_uv": -7.753517161201984,
+            "droop_uv": 17.387026306270315,
+            "resid90_uv": 10.69694884581196,
+            "resid90_rel": 3.3432228163223365e-06,
+            "cs90_rel": 3.650054616063037e-08,
+            "resid100_uv": 9.902294143770973,
+            "resid100_rel": 3.094861552820417e-06
+          }
+        ],
+        "sim_s": 30.4
+      }
+    },
+    "ideal_0ohm": {
+      "v8_ron1": {
+        "D9": 1.0,
+        "worst_rel_to_ss": 1.5246960018824602e-07,
+        "worst_resid_uv": 0.48783893946691137,
+        "n_cycles": 160
+      },
+      "v8_ron100": {
+        "D9": 1.0,
+        "worst_rel_to_ss": 1.477117957533592e-07,
+        "worst_resid_uv": 0.4726159610335401,
+        "n_cycles": 160
+      },
+      "v8_ron1000": {
+        "D9": 1.0,
+        "worst_rel_to_ss": 1.269443086377498e-07,
+        "worst_resid_uv": 0.4061688438916633,
+        "n_cycles": 160
+      }
+    },
+    "D9_real": 1.0,
+    "criterion_used": "pin residual <= 0.01% of pre-kick value within 122.07 ns measured from the real S1 edge (V(swp) crossing 0.5 V), Ron=1/100/1000 ohm",
+    "worst_pin_rel": 3.339179921057397e-06,
+    "worst_pin_resid_uv": 10.684013558304173,
+    "charge_bucket_cs_rel": 3.643132218467953e-11,
+    "all_ron_pass": true
+  },
+  "comparison_0ohm": {
+    "V1": {
+      "g_dc_db": -0.0020576439647052597,
+      "g_16k_db": -0.19944443188336866,
+      "g_fmod_db": -49.14020754910118,
+      "g_mclk_db": -73.0685389775815,
+      "D4_dG_16k_db": 0.1973867879186634,
+      "D1_A_dm_db": 49.13814990513647,
+      "D3_A_mclk_db": 73.06648133361679,
+      "D10_dtau_us": 0.09295850473158747,
+      "tau_at_100Hz_us": 2.3339720281617886,
+      "tau_at_16k_us": 2.24101352343021
+    },
+    "V2": {
+      "D2": 46.473280229940784,
+      "g_cm_dc_db": -4.362617458688166e-12,
+      "g_cm_fmod_db": -46.473280229945146
+    },
+    "V3": {
+      "D8_CMRR_db": 49.1128085273545,
+      "D8_worst_f_hz": 15940.42880711776,
+      "cmrr_10": 112.91596251716037,
+      "cmrr_16k": 49.1128085273545
+    },
+    "V7": {
+      "D6_Vn_nv": 243.41461987715672,
+      "D6_Vn_lsb": 0.8361629105726764,
+      "D6_Vn_uv": 0.24341461987715673,
+      "f_max_hz": 2048000.0,
+      "dens_1k_nv": 0.714374473491961
+    },
+    "V5_mc": {
+      "n": 30,
+      "sigma_db": 0.004990891399759593
+    }
+  },
+  "scores": {
+    "D1": 0.6243853139905993,
+    "D2": 0.7226146937812099,
+    "D3": 0.7410621483780621,
+    "D4": 0.6696455992835788,
+    "D5": null,
+    "D6a": 1.0,
+    "D6b": null,
+    "D7": 1.0,
+    "D8": 0.9664593471667942,
+    "D9": 1.0,
+    "D10": 1.0
+  },
+  "pass": {
+    "D1": false,
+    "D2": true,
+    "D3": true,
+    "D4": true,
+    "D5": false,
+    "D5_valid": false,
+    "D6a": true,
+    "D7": true,
+    "D8": true,
+    "D9": true,
+    "D10": true
+  },
+  "min_score": 0.6243853139905993,
+  "xcheck": {
+    "ac_rows_primary": [
+      {
+        "item": "D1 A_dm@4.096MHz",
+        "ltspice": 74.92623767887191,
+        "theory": 74.58502303381607,
+        "abs_diff": 0.3412146450558424,
+        "pass": true
+      },
+      {
+        "item": "D2 A_cm@4.096MHz",
+        "ltspice": 72.26146937812099,
+        "theory": 71.92025455640889,
+        "abs_diff": 0.34121482171210005,
+        "pass": true
+      },
+      {
+        "item": "D3 A_mclk@16.384MHz",
+        "ltspice": 111.15932225670932,
+        "theory": 111.00283338975858,
+        "abs_diff": 0.15648886695073827,
+        "pass": true
+      },
+      {
+        "item": "D4 dG@16kHz",
+        "ltspice": 0.19865948032238953,
+        "theory": 0.19872821542250982,
+        "abs_diff": 6.873510012028738e-05,
+        "pass": true
+      }
+    ],
+    "worst_ac_diff_db": 0.34121482171210005,
+    "ac_rows_0ohm": [
+      {
+        "item": "D2 (0Ω)",
+        "ltspice": 46.473280229940784,
+        "theory": 46.47331221524369,
+        "abs_diff": 3.198530290404733e-05,
+        "pass": true
+      }
+    ],
+    "worst_ac_diff_0ohm_db": 3.198530290404733e-05,
+    "settle": {
+      "ltspice_us": 22.23887739403269,
+      "theory_us": 23.177433388195116,
+      "rel_diff": 0.04049438859094968,
+      "band_uv": 120.0,
+      "pass": true,
+      "condition": "0 Ω ideal source, R+1%/C+5%, theory source='ideal'",
+      "note": "真实模型 V9c 自激不收敛，D5 见 D5 段；本条只验证无源网络模型"
+    },
+    "primary_model": "TI OPAx388 vs opt_round5(source='opa388')",
+    "pass": true
+  }
+}

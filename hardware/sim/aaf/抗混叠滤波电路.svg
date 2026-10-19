@@ -1,0 +1,194 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1200" viewBox="0 0 1600 1200"
+     font-family="'Noto Sans CJK SC','Noto Sans SC','Source Han Sans SC','PingFang SC','Microsoft YaHei',sans-serif">
+<style>
+  .w   { stroke:#374151; stroke-width:2;   fill:none }
+  .wg  { stroke:#059669; stroke-width:3.5; fill:none }
+  .box { fill:#f1f5f9; stroke:#374151; stroke-width:1.8 }
+  .adcbx { fill:#eff6ff; stroke:#2563eb; stroke-width:2 }
+  .panel { fill:#ffffff; stroke:#cbd5e1; stroke-width:1.4 }
+</style>
+<defs>
+  <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
+    <path d="M20,0 L0,0 0,20" fill="none" stroke="#eef2f7" stroke-width="1"/>
+  </pattern>
+</defs>
+<rect width="1600" height="1200" fill="#ffffff"/>
+<rect width="1600" height="1200" fill="url(#grid)"/>
+<text x="40" y="56" font-size="27" font-weight="bold" fill="#111827">抗混叠滤波电路（B 案定版 · 三级无源阶梯）</text>
+<text x="40" y="84" font-size="12.5" fill="#64748b">每线 6.19Ω+68nF → 6.04Ω+68nF → 13.7Ω+27nF（对地）+ 末级 12nF 差分 · 真实 OPA388 模型口径 · 规格 v4</text>
+<text x="1560" y="56" font-size="12" fill="#94a3b8" text-anchor="end">R5 第4轮定档 · 2026-10-19</text>
+<text x="1560" y="84" font-size="12" fill="#94a3b8" text-anchor="end">抗混叠锚点 fMOD = 4.096 MHz · MCLK = 16.384 MHz</text>
+<text x="60" y="212" font-size="12.5" font-weight="bold" fill="#111827">低阻源（跟随器输出）</text>
+<text x="60" y="230" font-size="11" fill="#94a3b8">高阻节点止于跟随器输入（E.2），</text>
+<text x="60" y="246" font-size="11" fill="#94a3b8">本段全部工作在低阻世界。</text>
+<rect x="60" y="260" width="170" height="80" class="box" rx="4"/>
+<text x="145" y="290" font-size="13" font-weight="bold" fill="#111827" text-anchor="middle">OPA388 跟随器</text>
+<text x="145" y="310" font-size="11" fill="#64748b" text-anchor="middle">V_P 支路（T 点）· U5:A</text>
+<text x="145" y="328" font-size="10" fill="#94a3b8" text-anchor="middle">详见《模拟前端与自校准》</text>
+<rect x="60" y="480" width="170" height="80" class="box" rx="4"/>
+<text x="145" y="510" font-size="13" font-weight="bold" fill="#111827" text-anchor="middle">OPA388 跟随器</text>
+<text x="145" y="530" font-size="11" fill="#64748b" text-anchor="middle">M 线支路 · U5:B</text>
+<text x="145" y="548" font-size="10" fill="#94a3b8" text-anchor="middle">详见《模拟前端与自校准》</text>
+<text x="305" y="170" font-size="15" font-weight="bold" fill="#111827">通道 1（CH1 = AIN1P − AIN1N；CH2 同构，见表）</text>
+<line x1="230" y1="300" x2="348" y2="300" class="wg"/>
+<line x1="412" y1="300" x2="568" y2="300" class="wg"/>
+<line x1="632" y1="300" x2="788" y2="300" class="wg"/>
+<line x1="852" y1="300" x2="990" y2="300" class="wg"/>
+<line x1="990" y1="300" x2="1060" y2="300" class="wg"/>
+<line x1="1060" y1="300" x2="1140" y2="300" class="wg"/>
+<circle cx="1060" cy="300" r="4" fill="#ffffff" stroke="#374151" stroke-width="2"/>
+<line x1="230" y1="520" x2="348" y2="520" class="wg"/>
+<line x1="412" y1="520" x2="568" y2="520" class="wg"/>
+<line x1="632" y1="520" x2="788" y2="520" class="wg"/>
+<line x1="852" y1="520" x2="990" y2="520" class="wg"/>
+<line x1="990" y1="520" x2="1060" y2="520" class="wg"/>
+<line x1="1060" y1="520" x2="1140" y2="520" class="wg"/>
+<circle cx="1060" cy="520" r="4" fill="#ffffff" stroke="#374151" stroke-width="2"/>
+<line x1="{L}" y1="300" x2="348" y2="300" class="w"/>
+<rect x="348" y="287" width="64" height="26" class="box"/>
+<line x1="412" y1="300" x2="{R}" y2="300" class="w"/>
+<text x="380" y="284" font-size="12.5" font-weight="bold" fill="#374151" text-anchor="middle">R1 6.19Ω</text>
+<line x1="{L}" y1="520" x2="348" y2="520" class="w"/>
+<rect x="348" y="507" width="64" height="26" class="box"/>
+<line x1="412" y1="520" x2="{R}" y2="520" class="w"/>
+<text x="380" y="504" font-size="12.5" font-weight="bold" fill="#374151" text-anchor="middle">R4 6.19Ω</text>
+<line x1="{L}" y1="300" x2="568" y2="300" class="w"/>
+<rect x="568" y="287" width="64" height="26" class="box"/>
+<line x1="632" y1="300" x2="{R}" y2="300" class="w"/>
+<text x="600" y="284" font-size="12.5" font-weight="bold" fill="#374151" text-anchor="middle">R2 6.04Ω</text>
+<line x1="{L}" y1="520" x2="568" y2="520" class="w"/>
+<rect x="568" y="507" width="64" height="26" class="box"/>
+<line x1="632" y1="520" x2="{R}" y2="520" class="w"/>
+<text x="600" y="504" font-size="12.5" font-weight="bold" fill="#374151" text-anchor="middle">R5 6.04Ω</text>
+<line x1="{L}" y1="300" x2="788" y2="300" class="w"/>
+<rect x="788" y="287" width="64" height="26" class="box"/>
+<line x1="852" y1="300" x2="{R}" y2="300" class="w"/>
+<text x="820" y="284" font-size="12.5" font-weight="bold" fill="#374151" text-anchor="middle">R3 13.7Ω</text>
+<line x1="{L}" y1="520" x2="788" y2="520" class="w"/>
+<rect x="788" y="507" width="64" height="26" class="box"/>
+<line x1="852" y1="520" x2="{R}" y2="520" class="w"/>
+<text x="820" y="504" font-size="12.5" font-weight="bold" fill="#374151" text-anchor="middle">R6 13.7Ω</text>
+<circle cx="380" cy="300" r="4.5" fill="#111827"/>
+<circle cx="380" cy="520" r="4.5" fill="#111827"/>
+<circle cx="600" cy="300" r="4.5" fill="#111827"/>
+<circle cx="600" cy="520" r="4.5" fill="#111827"/>
+<circle cx="820" cy="300" r="4.5" fill="#111827"/>
+<circle cx="820" cy="520" r="4.5" fill="#111827"/>
+<line x1="412" y1="300" x2="416" y2="300" class="wg"/>
+<circle cx="416" cy="300" r="4.5" fill="#111827"/>
+<line x1="416" y1="249" x2="416" y2="285" class="w"/>
+<line x1="400" y1="241" x2="432" y2="241" stroke="#374151" stroke-width="2.6"/>
+<line x1="400" y1="249" x2="432" y2="249" stroke="#374151" stroke-width="2.6"/>
+<line x1="416" y1="241" x2="416" y2="208" class="w"/>
+<circle cx="416" cy="208" r="4" fill="#111827"/>
+<text x="438" y="257" font-size="12" font-weight="bold" fill="#7c3aed">C1 68nF</text>
+<line x1="632" y1="300" x2="636" y2="300" class="wg"/>
+<circle cx="636" cy="300" r="4.5" fill="#111827"/>
+<line x1="636" y1="249" x2="636" y2="285" class="w"/>
+<line x1="620" y1="241" x2="652" y2="241" stroke="#374151" stroke-width="2.6"/>
+<line x1="620" y1="249" x2="652" y2="249" stroke="#374151" stroke-width="2.6"/>
+<line x1="636" y1="241" x2="636" y2="208" class="w"/>
+<circle cx="636" cy="208" r="4" fill="#111827"/>
+<text x="658" y="257" font-size="12" font-weight="bold" fill="#7c3aed">C2 68nF</text>
+<line x1="852" y1="300" x2="856" y2="300" class="wg"/>
+<circle cx="856" cy="300" r="4.5" fill="#111827"/>
+<line x1="856" y1="249" x2="856" y2="285" class="w"/>
+<line x1="840" y1="241" x2="872" y2="241" stroke="#374151" stroke-width="2.6"/>
+<line x1="840" y1="249" x2="872" y2="249" stroke="#374151" stroke-width="2.6"/>
+<line x1="856" y1="241" x2="856" y2="208" class="w"/>
+<circle cx="856" cy="208" r="4" fill="#111827"/>
+<text x="878" y="257" font-size="12" font-weight="bold" fill="#7c3aed">C3 27nF</text>
+<line x1="380" y1="535" x2="380" y2="571" class="w"/>
+<line x1="364" y1="571" x2="396" y2="571" stroke="#374151" stroke-width="2.6"/>
+<line x1="364" y1="579" x2="396" y2="579" stroke="#374151" stroke-width="2.6"/>
+<line x1="380" y1="579" x2="380" y2="640" class="w"/>
+<circle cx="380" cy="640" r="4" fill="#111827"/>
+<text x="402" y="579" font-size="12" font-weight="bold" fill="#7c3aed">C4 68nF</text>
+<line x1="600" y1="535" x2="600" y2="571" class="w"/>
+<line x1="584" y1="571" x2="616" y2="571" stroke="#374151" stroke-width="2.6"/>
+<line x1="584" y1="579" x2="616" y2="579" stroke="#374151" stroke-width="2.6"/>
+<line x1="600" y1="579" x2="600" y2="640" class="w"/>
+<circle cx="600" cy="640" r="4" fill="#111827"/>
+<text x="622" y="579" font-size="12" font-weight="bold" fill="#7c3aed">C5 68nF</text>
+<line x1="820" y1="535" x2="820" y2="571" class="w"/>
+<line x1="804" y1="571" x2="836" y2="571" stroke="#374151" stroke-width="2.6"/>
+<line x1="804" y1="579" x2="836" y2="579" stroke="#374151" stroke-width="2.6"/>
+<line x1="820" y1="579" x2="820" y2="640" class="w"/>
+<circle cx="820" cy="640" r="4" fill="#111827"/>
+<text x="842" y="579" font-size="12" font-weight="bold" fill="#7c3aed">C6 27nF</text>
+<line x1="990" y1="300" x2="990" y2="388" class="w"/>
+<line x1="990" y1="432" x2="990" y2="520" class="w"/>
+<line x1="974" y1="388" x2="1006" y2="388" stroke="#374151" stroke-width="2.6"/>
+<line x1="974" y1="432" x2="1006" y2="432" stroke="#374151" stroke-width="2.6"/>
+<text x="966" y="402" font-size="12.5" font-weight="bold" fill="#7c3aed" text-anchor="end">C7</text>
+<text x="966" y="420" font-size="12" font-weight="bold" fill="#7c3aed" text-anchor="end">12nF</text>
+<circle cx="990" cy="300" r="4.5" fill="#111827"/>
+<circle cx="990" cy="520" r="4.5" fill="#111827"/>
+<line x1="340" y1="208" x2="860" y2="208" class="w"/>
+<line x1="728" y1="208" x2="772" y2="208" stroke="#374151" stroke-width="2.2"/>
+<line x1="736" y1="214" x2="764" y2="214" stroke="#374151" stroke-width="2"/>
+<line x1="744" y1="220" x2="756" y2="220" stroke="#374151" stroke-width="1.8"/>
+<text x="340" y="198" font-size="11" fill="#94a3b8">GND（3V3_A 参考地，同网络）</text>
+<line x1="340" y1="640" x2="860" y2="640" class="w"/>
+<line x1="728" y1="640" x2="772" y2="640" stroke="#374151" stroke-width="2.2"/>
+<line x1="736" y1="646" x2="764" y2="646" stroke="#374151" stroke-width="2"/>
+<line x1="744" y1="652" x2="756" y2="652" stroke="#374151" stroke-width="1.8"/>
+<text x="340" y="670" font-size="11" fill="#94a3b8">GND（3V3_A 参考地）</text>
+<rect x="1140" y="180" width="220" height="470" class="adcbx" rx="6"/>
+<circle cx="1140" cy="300" r="4" fill="#ffffff" stroke="#2563eb" stroke-width="2"/>
+<circle cx="1140" cy="520" r="4" fill="#ffffff" stroke="#2563eb" stroke-width="2"/>
+<text x="1250" y="212" font-size="15" font-weight="bold" fill="#1d4ed8" text-anchor="middle">ADS131A02</text>
+<text x="1250" y="232" font-size="11" fill="#64748b" text-anchor="middle">ΣΔ 24bit · 128 kSPS · OSR=32</text>
+<text x="1154" y="290" font-size="12" font-weight="bold" fill="#2563eb">AIN1P</text>
+<text x="1154" y="542" font-size="12" font-weight="bold" fill="#2563eb">AIN1N</text>
+<text x="1250" y="380" font-size="11.5" fill="#334155" text-anchor="middle">内部：sinc³ 数字滤波器</text>
+<text x="1250" y="400" font-size="11.5" fill="#334155" text-anchor="middle">−3dB ≈ 33.5 kHz @OSR=32</text>
+<text x="1250" y="420" font-size="11.5" fill="#334155" text-anchor="middle">C_S = 3.5 pF（采样电容）</text>
+<text x="1250" y="440" font-size="11.5" fill="#334155" text-anchor="middle">fMOD = 4.096 MHz 吞吐</text>
+<text x="1250" y="480" font-size="11" fill="#94a3b8" text-anchor="middle">采样开关：S1/S2 180°反相</text>
+<text x="1250" y="498" font-size="11" fill="#94a3b8" text-anchor="middle">各占 50%（SBAS590E Fig.37/38）</text>
+<rect x="1368" y="180" width="212" height="470" class="panel" rx="6"/>
+<text x="1384" y="208" font-size="13.5" font-weight="bold" fill="#111827">两级采样抗混叠分工</text>
+<text x="1384" y="232" font-size="11" fill="#334155">① 无源阶梯（本图）</text>
+<text x="1384" y="250" font-size="10.5" fill="#64748b">守 k·fMOD 折叠 + 开关噪声</text>
+<text x="1384" y="266" font-size="10.5" fill="#64748b">+ 电荷桶 + 噪声带宽</text>
+<text x="1384" y="290" font-size="11" fill="#334155">② 片内 sinc³（OSR=32）</text>
+<text x="1384" y="308" font-size="10.5" fill="#64748b">守 64k～fMOD 折叠带</text>
+<text x="1384" y="324" font-size="10.5" fill="#64748b">−3dB ≈ 33.5 kHz（M1）</text>
+<text x="1384" y="352" font-size="11" fill="#334155">通带：DC ~ 16 kHz（扫频）</text>
+<text x="1384" y="370" font-size="10.5" fill="#64748b">模拟 fc ≈ 80 kHz</text>
+<text x="1384" y="386" font-size="10.5" fill="#64748b">D4 = 0.185 dB @16 kHz</text>
+<text x="1384" y="414" font-size="11" fill="#334155">本段口径（真实 OPA388）：</text>
+<text x="1384" y="432" font-size="10.5" fill="#64748b">跟随器只缓冲不进环路；</text>
+<text x="1384" y="448" font-size="10.5" fill="#64748b">R1 兼容性负载隔离（C9 修复）</text>
+<text x="1384" y="464" font-size="10.5" fill="#64748b">peaking 10.7 → 4.8 dB</text>
+<text x="1384" y="492" font-size="11" fill="#334155">关键衰减（LTspice 实测）：</text>
+<text x="1384" y="510" font-size="10.5" fill="#64748b">DM@fMOD −84.6 dB（线 80）</text>
+<text x="1384" y="526" font-size="10.5" fill="#64748b">CM@fMOD −79.2 dB（线 60）</text>
+<text x="1384" y="542" font-size="10.5" fill="#64748b">DM@MCLK −132.6 dB</text>
+<text x="1384" y="560" font-size="10.5" fill="#64748b">CMRR(配对1%) 95.5 dB</text>
+<text x="1384" y="578" font-size="10.5" fill="#64748b">建立最坏 30.1 µs（全量程）</text>
+<rect x="60" y="690" width="1480" height="460" class="panel" rx="6"/>
+<text x="80" y="722" font-size="15" font-weight="bold" fill="#111827">四线全配通道分配表（比值/相位测量靠两线对称；CH2 与 CH1 同构）</text>
+<g font-size="12" fill="#334155">
+<text x="80" y="752">通道</text><text x="300" y="752">P 线来源</text><text x="600" y="752">N 线来源</text><text x="920" y="752">阶梯（P 线 = N 线镜像）</text><text x="1360" y="752">差分电容</text>
+<line x1="80" y1="760" x2="1510" y2="760" stroke="#cbd5e1" stroke-width="1.2"/>
+<text x="80" y="784">CH1 = AIN1P−AIN1N</text><text x="300" y="784">V_P（T 点跟随器）</text><text x="600" y="784">M（Rsense 顶跟随器）</text><text x="920" y="784">6.19+6.04+13.7 Ω / 68+68+27 nF</text><text x="1360" y="784">C7 = 12 nF</text>
+<text x="80" y="808">CH2 = AIN2P−AIN2N</text><text x="300" y="808">B（Rsense 底跟随器）</text><text x="600" y="808">AIN1N 参考经 RC 直连*</text><text x="920" y="808">同 CH1（四线统一全配）</text><text x="1360" y="808">12 nF</text>
+</g>
+<text x="80" y="834" font-size="10.5" fill="#94a3b8">* E.2：地参考为低阻，可不加跟随器；统一全配是为 CH1/CH2 对称（比值与相位精度），通带增益均为 1。</text>
+
+<text x="80" y="870" font-size="14" font-weight="bold" fill="#111827">设计与验收要点（R5 第4轮定档 · 真实 OPA388 模型口径）</text>
+<g font-size="11.5" fill="#334155">
+<text x="80" y="896">1. 拓扑：三级无源 RC 低通（fc ≈ 80 kHz）。无源是 fMOD=4.096 MHz 频段唯一可靠滤波手段；跟随器只缓冲、不进反馈环路（GBW=10 MHz 在 4 MHz 环路增益不足，有源拓扑阻带翘曲判死）。</text>
+<text x="80" y="920">2. 元件：R 全 E96 1%（6.19 / 6.04 / 13.7 Ω）；C 全 C0G/NP0（68 / 68 / 27 + 12 nF）。ΣR = 25.93 Ω ≪ 5 kΩ（C2）；单电容 ≤68 nF，SRF &gt; fMOD 已核（C3）；有源谐振 peaking 4.8 dB ≤ 6 dB（C9）。</text>
+<text x="80" y="944">3. R·C 乘积配对（D8 关键，BOM 加工序）：两线按「R×(1+m) 配 C×(1−m)」异向配对，1% 单体失配下 CMRR = 95.5 dB；不配对仅 48.5 dB（+47 dB 收益）。每对 R/C 实测后按乘积配对贴片。</text>
+<text x="80" y="968">4. C9 修复：R1 2.74→6.19 Ω 使跟随器节点 peaking 10.66→4.77 dB（278.6 kHz 处，限 6 dB）。该峰源于 OPA388 闭环输出阻抗中频负实部与阶梯电容的谐振——手册曲线不可见，须用 TI 模型实测输出阻抗。</text>
+<text x="80" y="992">5. D5 建立时间：73 Ω–600 kΩ 十六点全建立（最坏 30.1 µs @220 kΩ，0.01% 带，含 600 kΩ∥8.5 pF 高阻工况与 R×1.01/C×1.05 容差角）；三种数值设置交叉验证一致。</text>
+<text x="80" y="1016">6. 噪声：无源网络增量 D6a = 0.64%（限 10%）；总噪声 D6b = 12.0 LSB ≈ 3.5 µVrms（跟随器 9.9 nV/√Hz 主导，砖墙极限 4.3 LSB），对最小信号 80 mV 折 0.004%，软参考项不淘汰。</text>
+<text x="80" y="1040">7. 温度：−20 / +85 ℃ 全维复测 D4/D10/D1 漂移 &lt; 0.001 dB（C0G ±30 ppm/℃），免温度补偿。CH1/CH2 群延迟匹配由四线统一全配保证；扫频相位为两通道相对值。</text>
+<text x="80" y="1064">8. 评分（规格 v4 十槽位 min 制）：min = 0.700，短板 D4（0.185 dB vs 满分线 0.05 dB；及格线 0.5 dB 已过，16 kHz 扫频幅值偏差 ≈2.1%）。用户 2026-10-19 按「能力包线内最优」定档。</text>
+<text x="80" y="1088">9. 采集页待修提醒：ADS131A02 的 CAP 脚电容与 IOVDD 解耦电容必须接 GND（现图误接 VCC，即 C34/C35）。</text>
+</g>
+<text x="80" y="1126" font-size="11" fill="#94a3b8">图注自查：级间三路交汇均实心结点；器件端子与 ADC 引脚白底圆；C7 跨 AIN1P/AIN1N；六颗对地电容统一接 GND 母线；绿色主干 = 差分测量路径。</text>
+</svg>

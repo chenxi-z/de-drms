@@ -1,0 +1,81 @@
+{
+  "note": "第 3 轮复测的 D5 覆盖缺口专项：规格 §5.1 D5 只强制 0 Ω 与 600 kΩ 两个工况；本轮补测中间源阻抗，发现三案在 50–300 kΩ 存在**大信号等幅极限环**。判据同 D5：引脚残差在 200 µV（2 V×0.01%）带内。",
+  "method": "LTspice -b -ascii，真实 OPA388 模型（lib/OPAx388.LIB），2 V 差分阶跃（PULSE 2→3 / 2→1，10 ns 沿），R+1%/C+5% 最坏角可选；网表 r5_work/loz_r3/*.net",
+  "criterion": "0.01% 建立带（200 µV），尾段（后 20%）峰峰值 ≤ 200 µV 判为回稳",
+  "settings": {
+    "gear20n": ".options method=gear reltol=1e-5 ... trtol=7, maxstep 20n",
+    "trap40n": ".options method=trap reltol=1e-4 ... trtol=3, maxstep 40n"
+  },
+  "results": {
+    "A_R1_2.4": {
+      "Rs_73": "27443 uV LIMIT-CYCLE",
+      "Rs_1k": "27890 LIMIT",
+      "Rs_10k": "31348 LIMIT",
+      "Rs_100k": "145407 LIMIT",
+      "Rs_600k": "132770 LIMIT",
+      "Rs_0": "28433 LIMIT",
+      "osc_f_khz": "176–208"
+    },
+    "A_R1_4.3": {
+      "Rs_73": "0 OK 38.7us",
+      "Rs_73_corner": "0 OK 39.4us",
+      "Rs_10k": "0 OK 38.9us",
+      "Rs_100k": "0 OK 95.0us",
+      "Rs_220k": "0 OK 111.3us",
+      "Rs_600k": "0 OK 37.4us",
+      "verdict": "全部工况回稳（D5 层面），但 C9 跟随器节点仍 +7.58 dB（>6 dB），只解 D5 不解 C9"
+    },
+    "B_2.74": {
+      "Rs_73": "0 OK 52.8us",
+      "Rs_10k": "0 OK 66.6us",
+      "Rs_50k": "44854 LIMIT",
+      "Rs_100k": "65637 LIMIT",
+      "Rs_220k": "77177 LIMIT",
+      "Rs_600k": "0 OK 74.6us",
+      "two_settings_agree": true,
+      "amplitude_dependence_100k": {
+        "0.05V": "settled",
+        "0.1V": "settled",
+        "0.2V": "settled",
+        "1.0V": "LIMIT"
+      },
+      "edge_dependence_100k": {
+        "10ns": "LIMIT",
+        "1us": "LIMIT",
+        "10us": "settled"
+      }
+    },
+    "C_R1_1.8": {
+      "Rs_73": "41145 LIMIT",
+      "Rs_10k": "48705 LIMIT",
+      "Rs_100k": "101355 LIMIT",
+      "Rs_0": "41092 LIMIT",
+      "Rs_600k": "0 OK 82.9us"
+    },
+    "C_R1_3.3": {
+      "Rs_73": "0 OK 31.1us",
+      "Rs_10k": "0 OK 34.3us",
+      "Rs_100k": "59899 LIMIT",
+      "Rs_220k": "71778 LIMIT",
+      "Rs_600k": "0 OK 37.3us",
+      "C9_follower_db": 7.61
+    },
+    "A_R1_10.0": {
+      "Rs_73": "0 OK 31.3us",
+      "Rs_600k": "0 OK 45.8us",
+      "C9_follower_db": 3.01,
+      "verdict": "同时满足 D5 与 C9，但 D4 升到 0.557 dB（越 0.5 及格线）"
+    },
+    "B_R1_6.8": {
+      "C9_follower_db": 4.43,
+      "verdict": "满足 C9（4.43 dB）；D5 的 100-220k 未复测"
+    }
+  },
+  "interpretation": [
+    "三案在 0 Ω 端（A/C）与中间阻值（三案）都出现等幅极限环；B 在 600 kΩ 稳定、220 kΩ 不稳，说明它不是单纯随源阻抗单调变化的线性环路失稳。",
+    "对幅度强依赖（B@100 kΩ：0.05/0.1/0.2 V 稳定，1.0 V 失稳）且对边沿强依赖（10 ns/1 µs 失稳，10 µs 稳定）——典型**宏模型大信号非线性/过载恢复块**行为，与 C 案 parse 里记录的 Z_o 负实部机理一致。",
+    "**未做硅验证**，不能断言真实 OPA388 会失稳；但 D5 的评分数据（B 77.3 µs / C 89.9 µs）只在 0 Ω 与 600 kΩ 两个点取得，**未覆盖 100–300 kΩ**，所以这两案的 D5 满分只对本轮采样点成立。",
+    "A 的 R1=2.4 Ω 在 0 Ω 与 600 kΩ 都不稳（本轮 D5 已判无效）；把 R1 提到 4.3 Ω 后全范围回稳，D1 仅 +0.22 dB（74.59→74.81），是低成本修复。"
+  ],
+  "recommendation": "D5 工况点应加入 100 kΩ / 220 kΩ 两个中间阻值（设计量程 10–120 kΩ 与 1% 可用范围到 600 kΩ 都覆盖），否则 0 Ω / 600 kΩ 双点会漏判。另：C9 与 D5 同源但要求更严——A 需 R1=10 Ω（C9 3.01 dB）却使 D4 越线；B 需 R1=6.8 Ω（C9 4.43 dB）；C 的 R1=3.3 Ω 仍 7.61 dB。"
+}

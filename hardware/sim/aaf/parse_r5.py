@@ -501,6 +501,22 @@ def analyze(key: str, d: str = HERE, mirror: str = "") -> dict:
         res["V9"] = v9
 
     # ---------------- 十维实测
+    # D5 = §5.1「最坏角 + **测试须覆盖高源阻抗工况（样品 600 kΩ 端）**」：
+    # V4 只是 0 Ω 基线，V4b（600 kΩ + 未自举输入电容）与 V9f（600 kΩ + 真实 OPA388）
+    # 才是规格点名的工况。取全部候选的最大值（最悲观）作为 D5。
+    d5c = {}
+    if res.get("V4"):
+        d5c["V4_0ohm_corner"] = res["V4"]["tset_us"]
+    if res.get("V4b"):
+        d5c["V4b_600k_ideal"] = res["V4b"]["tset_us"]
+    if v9.get("t_settle_us") is not None:
+        d5c["V9c_0ohm_real"] = v9["t_settle_us"]
+    if v9.get("t_settle_us_600k") is not None:
+        d5c["V9f_600k_real"] = v9["t_settle_us_600k"]
+    if d5c:
+        res["D5_candidates_us"] = d5c
+        res["D5_tset_us"] = max(d5c.values())
+
     dims = {}
     for src, dst in (("D1_A_dm_db", "D1"), ("D2_A_cm_db", "D2"), ("D3_A_mclk_db", "D3"),
                      ("D4_dG_16k_db", "D4"), ("D5_tset_us", "D5"), ("D6_Vn_nv", "D6"),
@@ -509,9 +525,66 @@ def analyze(key: str, d: str = HERE, mirror: str = "") -> dict:
         if src in res:
             dims[dst] = res[src]
     res["dims"] = dims
+    res["scores"] = dim_score(dims)
+    res["pass"] = dim_pass(dims)
+    res["min_score"] = min((v for v in res["scores"].values() if v is not None),
+                           default=None)
 
     res["xcheck"] = crosscheck(key, ns, d, mirror, res)
     return res
+
+
+# ---------------------------------------------------------------- 评分（规格 sec 5.1）
+_SCORE_TH = {"D1": 120.0, "D2": 100.0, "D3": 150.0, "D8": 100.0}
+
+
+def dim_score(dims: dict) -> dict:
+    """规格 §5.1「归一化方式」逐条实现。
+
+    D1/D2/D3/D8 = min(实测/满分阈值, 1)      D5/D6 = min(满分阈值/实测, 1)
+    D4 = ΔG≤0.05→1，0.05<ΔG≤0.5 线性 1−(ΔG−0.05)/0.45
+    D7 = σ≤0.01→1，0.01<σ≤0.05 线性 1−(σ−0.01)/0.04
+    D10 = Δτ≤1→1，1<Δτ≤5 线性 1−(Δτ−1)/4      D9 = 二值
+    """
+    def lin(x, full, bare):
+        if x <= full:
+            return 1.0
+        if x > bare:
+            return 0.0
+        return 1.0 - (x - full) / (bare - full)
+
+    out = {}
+    for k, v in dims.items():
+        if v is None:
+            out[k] = None
+        elif k == "D9":
+            out[k] = float(v)
+        elif k in _SCORE_TH:
+            out[k] = min(float(v) / _SCORE_TH[k], 1.0)
+        elif k == "D5":
+            out[k] = 1.0 if v <= 500.0 else min(500.0 / float(v), 1.0)
+        elif k == "D6":
+            v_lsb = float(v) / (LSB_V * 1e9)   # dims["D6"] 是 nV → LSB 也换成 nV（290.98）
+            out[k] = 1.0 if v_lsb <= 0.3 else min(0.3 / v_lsb, 1.0)
+        elif k == "D4":
+            out[k] = lin(float(v), 0.05, 0.5)
+        elif k == "D7":
+            out[k] = lin(float(v), 0.01, 0.05)
+        elif k == "D10":
+            out[k] = lin(float(v), 1.0, 5.0)
+    return out
+
+
+def dim_pass(dims: dict) -> dict:
+    """规格 §5.1「及格线（越线淘汰）」逐维判定 —— 与归一化分数相互独立。"""
+    d = dims
+    return {
+        "D1": d["D1"] >= 80.0, "D2": d["D2"] >= 60.0, "D3": d["D3"] >= 100.0,
+        "D4": d["D4"] <= 0.5, "D5": d["D5"] <= 900.0,
+        "D6": d["D6"] <= LSB_V * 1e9 * 1.0,   # 1 LSB = 290.98 nV
+        "D7": d["D7"] is not None and d["D7"] <= 0.05,
+        "D8": d["D8"] >= 80.0, "D9": d["D9"] == 1.0, "D10": d["D10"] <= 5.0,
+    }
 
 
 def main(argv=None) -> int:

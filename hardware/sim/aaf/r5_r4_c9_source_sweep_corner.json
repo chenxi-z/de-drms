@@ -1,0 +1,42 @@
+{
+  "20000": {
+    "follower_peak_db": 5.221903087195264,
+    "follower_peak_hz": 286417.7969905594
+  },
+  "30000": {
+    "follower_peak_db": 5.434366336500652,
+    "follower_peak_hz": 289734.3587700324
+  },
+  "40000": {
+    "follower_peak_db": 5.598546167655417,
+    "follower_peak_hz": 290402.2654463449
+  },
+  "50000": {
+    "follower_peak_db": 5.703309505485231,
+    "follower_peak_hz": 290402.2654463449
+  },
+  "60000": {
+    "follower_peak_db": 5.744604498974457,
+    "follower_peak_hz": 289067.9882364479
+  },
+  "80000": {
+    "follower_peak_db": 5.649087858121761,
+    "follower_peak_hz": 285101.8267502928
+  },
+  "100000": {
+    "follower_peak_db": 5.362394200403601,
+    "follower_peak_hz": 280543.3637950749
+  },
+  "150000": {
+    "follower_peak_db": 4.183453657741876,
+    "follower_peak_hz": 269153.4803925992
+  },
+  "220000": {
+    "follower_peak_db": 2.2345177071819493,
+    "follower_peak_hz": 258226.0190633712
+  },
+  "300000": {
+    "follower_peak_db": 0.16555867359978507,
+    "follower_peak_hz": 250034.5361695578
+  }
+}

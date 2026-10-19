@@ -1,0 +1,939 @@
+{
+  "scheme": "B",
+  "grade": "B",
+  "n_stages": 3,
+  "stages": [
+    [
+      2.74,
+      6.8e-08,
+      0.0
+    ],
+    [
+      6.04,
+      5.6e-08,
+      0.0
+    ],
+    [
+      13.700000000000001,
+      5.6e-08,
+      1.2e-08
+    ]
+  ],
+  "sources": {
+    "D1": "r5_B_v9a_r3.raw @4.096 MHz（真实 OPA388）",
+    "D3": "r5_B_v9a_r3.raw @16.384 MHz",
+    "D4": "r5_B_v9a_r3.raw @16 kHz 相对 DC",
+    "D10": "r5_B_v9a_r3.raw 群延迟 0.1 Hz–16 kHz",
+    "D2": "r5_B_v9b_r3.raw @4.096 MHz 共模（真实 OPA388）",
+    "D5": "r5_B_v9f_r3.raw（600 kΩ 样品端 + R1%/C5% 最坏角 + 真实 OPA388）",
+    "D6a": "V9d(真实阶梯) vs V9df(无噪等值阶梯) 同带宽积分噪声增量",
+    "D6b": "r5_B_v9d_r3.raw 积分 0.1 Hz–2.048 MHz",
+    "D7": "r5_B_v9mc01..30_r3.raw（真实 OPA388，逐元件 MC，C 5%/R 1%）",
+    "D8": "r5_B_v9b_p001_r3.raw（R×1.001 配 C×0.999，10 Hz–16 kHz 最差）",
+    "D9": "r5_B_v9kb_ron1_r3.raw（真实 OPA388 + ADC 采样开关模型）"
+  },
+  "re": {
+    "V9a": {
+      "g_dc_db": -0.0030029397551390767,
+      "g_16k_db": -0.19064900331299314,
+      "D4_dG_16k_db": 0.18764606355785407,
+      "D1_A_dm_db": 86.4877939629146,
+      "D3_A_mclk_db": 134.5321939908533,
+      "D10_dtau_us": 0.0958702538057441,
+      "tau_100Hz_us": 2.491861126861709,
+      "tau_16k_us": 2.395990924024448,
+      "CH_tau_diff_us": 4.7320567603259533e-07,
+      "C9_peak_db_rel_dc": 7.363411668795475e-10,
+      "C9_peak_f_hz": 0.1,
+      "C9_peak_100k_2M_db": -2.320542442125548,
+      "C9_peak_100k_2M_f_hz": 280543.3637950749,
+      "C9_peak_f_ge_1Hz_db": -3.434934435863488e-12,
+      "C9_local_extrema_50k_2M": [
+        {
+          "f_hz": 173380.4,
+          "gain_db": -5.461
+        },
+        {
+          "f_hz": 280543.4,
+          "gain_db": -2.321
+        }
+      ],
+      "g_at_200k_db": -5.2215982623957515,
+      "g_at_1M_db": -43.24998095773259
+    },
+    "V9b_nominal": {
+      "g_cm_dc_db": 5.227533830902932e-07,
+      "g_cm_16k_db": -0.1077999860541009,
+      "D2_A_cm_db": 83.40492671771128,
+      "D8_CMRR_db": 299.0907390079779,
+      "D8_worst_f_hz": 12.80855094536185,
+      "cmrr_10Hz_db": 300.0,
+      "cmrr_16k_db": 300.0
+    },
+    "V9_D5": {
+      "V9c_0ohm_real_corner": {
+        "tset_us": 46.037495352057086,
+        "tset_engine_band_us": 47.87480599755173,
+        "vfinal_v": 1.99930175611115,
+        "err_final_uv": 0.0,
+        "t_end_us": 400.0
+      },
+      "V9f_600k_real_corner": {
+        "tset_us": 77.29947002657252,
+        "tset_engine_band_us": 83.2858900249355,
+        "vfinal_v": 1.9992958847900628,
+        "err_final_uv": 0.0,
+        "t_end_us": 400.0
+      },
+      "V9c_MC30_real": {
+        "n": 30,
+        "min_us": 42.98854192346411,
+        "mean_us": 46.87868201715917,
+        "max_us": 52.925261924473304
+      }
+    },
+    "V9d_total_noise": {
+      "vn_nv": 4050.215511281097,
+      "vn_lsb": 13.913050876190294,
+      "dens_1k_nv": 9.93786046887876,
+      "dens_10k_nv": 9.854367255922023,
+      "dens_100k_nv": 6.351935134772266,
+      "f_max_hz": 2048000.0
+    },
+    "V9df_follower_only_noise": {
+      "vn_nv": 4037.0144115001435,
+      "vn_lsb": 13.867703271263471,
+      "dens_1k_nv": 9.900312559411251,
+      "dens_10k_nv": 9.81710287961517,
+      "dens_100k_nv": 6.327309023916421,
+      "f_max_hz": 2048000.0
+    },
+    "V9_MC_AC": {
+      "n": 30,
+      "sigma_db": 0.0043934558147386655,
+      "mean_db": -0.188135364747859,
+      "min_db": -0.1958691261734353,
+      "max_db": -0.1795008713832602,
+      "p2p_db": 0.01636825479017509
+    },
+    "D8": {
+      "paired_0.1pct": {
+        "g_cm_dc_db": 5.227533830902932e-07,
+        "g_cm_16k_db": -0.10779995807813697,
+        "D8_CMRR_db": 135.20108745232469,
+        "D8_worst_f_hz": 15940.42880711776,
+        "cmrr_10Hz_db": 198.7666239823504,
+        "cmrr_16k_db": 135.20108745232469
+      },
+      "paired_0.5pct": {
+        "g_cm_dc_db": 5.227533753756739e-07,
+        "g_cm_16k_db": -0.10780068536757863,
+        "D8_CMRR_db": 108.99677015568031,
+        "D8_worst_f_hz": 15940.42880711776,
+        "cmrr_10Hz_db": 170.38995955735032,
+        "cmrr_16k_db": 108.99677015568031
+      },
+      "paired_1pct": {
+        "g_cm_dc_db": 5.227533657323998e-07,
+        "g_cm_16k_db": -0.10780348241762203,
+        "D8_CMRR_db": 95.65087794943912,
+        "D8_worst_f_hz": 15940.42880711776,
+        "cmrr_10Hz_db": 158.29791908488258,
+        "cmrr_16k_db": 95.65087794943912,
+        "CH_tau_diff_us": 0.0001925001226672253
+      },
+      "paired_1pct_strict_recip": {
+        "g_cm_dc_db": 5.227533830902932e-07,
+        "g_cm_16k_db": -0.10779929335363951,
+        "D8_CMRR_db": 110.42568682574534,
+        "D8_worst_f_hz": 15940.42880711776,
+        "cmrr_10Hz_db": 202.97527097845608,
+        "cmrr_16k_db": 110.42568682574534
+      },
+      "same_dir_1pct": {
+        "g_cm_dc_db": 5.227569761742173e-07,
+        "g_cm_16k_db": -0.10695870392256307,
+        "D8_CMRR_db": 48.36770121127148,
+        "D8_worst_f_hz": 15940.42880711776,
+        "cmrr_10Hz_db": 112.1831949691925,
+        "cmrr_16k_db": 48.36770121127148
+      }
+    },
+    "V9_kickback": {
+      "ron1": {
+        "D9": 1.0,
+        "criterion": "residual <= 0.01% of steady-state value within 122.07 ns",
+        "n_cycles": 160,
+        "worst_resid_uv": 1.1076338144455633,
+        "worst_rel_to_ss": 3.4620169674598946e-07,
+        "worst_rel_to_fs": 4.5357650059195874e-07,
+        "worst_rel_to_kick": 0.03524457441689516,
+        "kick_amp_uv": 31.42707303949166,
+        "detail": [
+          {
+            "k": 2,
+            "t_on_ns": 488.28,
+            "v_ss": 3.1995303017712877,
+            "kick_amp_uv": 31.735414126821127,
+            "resid_end_uv": 0.27343450037520256,
+            "resid_max_uv": 26.532945512247608,
+            "rel_to_ss": 8.546082536671925e-08,
+            "rel_to_fs": 1.1197153987518532e-07,
+            "rel_to_kick": 0.008616068449036243,
+            "pass": true
+          },
+          {
+            "k": 3,
+            "t_on_ns": 732.42,
+            "v_ss": 3.1995140050123148,
+            "kick_amp_uv": 31.696758345134413,
+            "resid_end_uv": 0.27650709544246865,
+            "resid_max_uv": 25.449922876230602,
+            "rel_to_ss": 8.642159246976148e-08,
+            "rel_to_fs": 1.1322976881345972e-07,
+            "rel_to_kick": 0.008723513377351841,
+            "pass": true
+          },
+          {
+            "k": 4,
+            "t_on_ns": 976.56,
+            "v_ss": 3.1994993620087437,
+            "kick_amp_uv": 31.666726005852297,
+            "resid_end_uv": 0.4439004572809324,
+            "resid_max_uv": 24.75905130827627,
+            "rel_to_ss": 1.3874059877987852e-07,
+            "rel_to_fs": 1.8177741903396084e-07,
+            "rel_to_kick": 0.014017882909616093,
+            "pass": true
+          }
+        ],
+        "cap_lock": {
+          "available": true,
+          "worst_rel": 7.647021863107572e-09,
+          "worst_resid_nv": 24.466200621020562,
+          "worst_kick_uv": 31.735414126821127,
+          "n_cycles": 10,
+          "pass": true,
+          "detail": [
+            {
+              "k": 2,
+              "kick_uv": 31.735414126821127,
+              "resid_nv": 10.773580250145187,
+              "rel": 3.3672377859374512e-09
+            },
+            {
+              "k": 3,
+              "kick_uv": 31.696758345134413,
+              "resid_nv": 13.576520796476643,
+              "rel": 4.2433068277939275e-09
+            },
+            {
+              "k": 4,
+              "kick_uv": 31.666726005852297,
+              "resid_nv": 14.600426645472453,
+              "rel": 4.563346626369904e-09
+            }
+          ]
+        }
+      },
+      "ron100": {
+        "D9": 1.0,
+        "criterion": "residual <= 0.01% of steady-state value within 122.07 ns",
+        "n_cycles": 160,
+        "worst_resid_uv": 1.0526725260362468,
+        "worst_rel_to_ss": 3.290230252538343e-07,
+        "worst_rel_to_fs": 4.310698304816735e-07,
+        "worst_rel_to_kick": 0.03349049264169658,
+        "kick_amp_uv": 31.43198092958599,
+        "detail": [
+          {
+            "k": 2,
+            "t_on_ns": 488.28,
+            "v_ss": 3.1995302735941107,
+            "kick_amp_uv": 31.74040740949735,
+            "resid_end_uv": 0.29451232830268737,
+            "resid_max_uv": 26.55848353949608,
+            "rel_to_ss": 9.204861436483752e-08,
+            "rel_to_fs": 1.206029190428695e-07,
+            "rel_to_kick": 0.009278782231842541,
+            "pass": true
+          },
+          {
+            "k": 3,
+            "t_on_ns": 732.42,
+            "v_ss": 3.1995140532576425,
+            "kick_amp_uv": 31.70176802136382,
+            "resid_end_uv": 0.21972608266196403,
+            "resid_max_uv": 25.397384713521376,
+            "rel_to_ss": 6.86748296786651e-08,
+            "rel_to_fs": 8.997792082799509e-08,
+            "rel_to_kick": 0.0069310355975695315,
+            "pass": true
+          },
+          {
+            "k": 4,
+            "t_on_ns": 976.56,
+            "v_ss": 3.199499542046452,
+            "kick_amp_uv": 31.671723541126795,
+            "resid_end_uv": 0.25415671478512536,
+            "resid_max_uv": 24.573442046982308,
+            "rel_to_ss": 7.943639667551337e-08,
+            "rel_to_fs": 1.040772787817876e-07,
+            "rel_to_kick": 0.008024720045787668,
+            "pass": true
+          }
+        ],
+        "cap_lock": {
+          "available": true,
+          "worst_rel": 1.2703783775718745e-08,
+          "worst_resid_nv": 40.645015353391045,
+          "worst_kick_uv": 31.74040740949735,
+          "n_cycles": 10,
+          "pass": true,
+          "detail": [
+            {
+              "k": 2,
+              "kick_uv": 31.74040740949735,
+              "resid_nv": 18.128132772687877,
+              "rel": 5.665872660604796e-09
+            },
+            {
+              "k": 3,
+              "kick_uv": 31.70176802136382,
+              "resid_nv": 18.14669747801645,
+              "rel": 5.671703868032803e-09
+            },
+            {
+              "k": 4,
+              "kick_uv": 31.671723541126795,
+              "resid_nv": 21.570032426865282,
+              "rel": 6.741688951599994e-09
+            }
+          ]
+        }
+      },
+      "ron1000": {
+        "D9": 1.0,
+        "criterion": "residual <= 0.01% of steady-state value within 122.07 ns",
+        "n_cycles": 160,
+        "worst_resid_uv": 0.8664228192678536,
+        "worst_rel_to_ss": 2.7080851475617954e-07,
+        "worst_rel_to_fs": 3.5480049929068533e-07,
+        "worst_rel_to_kick": 0.04377814674880233,
+        "kick_amp_uv": 19.79121739070777,
+        "detail": [
+          {
+            "k": 2,
+            "t_on_ns": 488.28,
+            "v_ss": 3.1995302092916575,
+            "kick_amp_uv": 20.079233620240444,
+            "resid_end_uv": 0.29402539247769255,
+            "resid_max_uv": 26.598769694352598,
+            "rel_to_ss": 9.189642642654925e-08,
+            "rel_to_fs": 1.204035186231337e-07,
+            "rel_to_kick": 0.014643257707869214,
+            "pass": true
+          },
+          {
+            "k": 3,
+            "t_on_ns": 732.42,
+            "v_ss": 3.199513907387741,
+            "kick_amp_uv": 20.029210945349263,
+            "resid_end_uv": 0.2876437208421123,
+            "resid_max_uv": 25.50415717594845,
+            "rel_to_ss": 8.99023192797935e-08,
+            "rel_to_fs": 1.1779022147506645e-07,
+            "rel_to_kick": 0.014361210814892462,
+            "pass": true
+          },
+          {
+            "k": 4,
+            "t_on_ns": 976.56,
+            "v_ss": 3.1994993001307055,
+            "kick_amp_uv": 20.005111519783014,
+            "resid_end_uv": 0.4075338755349378,
+            "resid_max_uv": 24.76457110445196,
+            "rel_to_ss": 1.2737426619167858e-07,
+            "rel_to_fs": 1.6688528891684595e-07,
+            "rel_to_kick": 0.020371487313726212,
+            "pass": true
+          }
+        ],
+        "cap_lock": {
+          "available": true,
+          "worst_rel": 5.8041458661597024e-08,
+          "worst_resid_nv": 185.6999305438478,
+          "worst_kick_uv": 20.079233620240444,
+          "n_cycles": 10,
+          "pass": true,
+          "detail": [
+            {
+              "k": 2,
+              "kick_uv": 20.079233620240444,
+              "resid_nv": 85.38404872027172,
+              "rel": 2.668643059703712e-08
+            },
+            {
+              "k": 3,
+              "kick_uv": 20.029210945349263,
+              "resid_nv": 102.1311448745621,
+              "rel": 3.192082880349454e-08
+            },
+            {
+              "k": 4,
+              "kick_uv": 20.005111519783014,
+              "resid_nv": 115.61171087137723,
+              "rel": 3.6134308933857686e-08
+            }
+          ]
+        }
+      }
+    },
+    "D5_numeric_variants": {
+      "V9c gear reltol=1e-6 maxstep=5n": {
+        "tset_us": 46.017,
+        "raw": "r5_work/r3_B/d5var/B_gear_1e6.raw"
+      },
+      "V9c trap reltol=1e-4 maxstep=20n": {
+        "tset_us": 46.021,
+        "raw": "r5_work/r3_B/d5var/G_trap_1e4.raw"
+      },
+      "V9f gear reltol=1e-6 maxstep=5n": {
+        "tset_us": 77.27,
+        "raw": "r5_work/r3_B/d5var/H_v9f_gear_1e6.raw"
+      }
+    },
+    "V9a_fine_sweep_C9": {
+      "n_points": 12001,
+      "f_lo_hz": 20000.0,
+      "f_hi_hz": 20000000.0,
+      "max_gain_20k_20M_db": -0.28993843615370196,
+      "max_gain_f_hz": 20000.0,
+      "max_100k_2M_db": -2.320418132209706,
+      "max_100k_2M_f_hz": 280885.936715538,
+      "min_100k_2M_db": -63.33849165299661,
+      "min_100k_2M_f_hz": 1999999.999999361,
+      "verdict": "细扫（dec 4000）内 20 kHz–20 MHz 无正峰；100k–2M 最大值 -2.320 dB @ 280886 Hz（远低于 C9 的 +6 dB 上限）"
+    },
+    "V9e_600k_AC": {
+      "D1_A_dm_db": 126.5148256926135,
+      "D3_A_mclk_db": 186.59990337388916,
+      "D4_dG_16k_db": 0.49518307396229205,
+      "input_rc_droop_16k_db": -0.30755569405750194,
+      "implied_Cin_pF": 4.491101754309692,
+      "note": "样品端 600 kΩ 与 OPA388 输入电容形成输入极点：16 kHz 处额外 -0.31 dB，把 D4 从 0.188 dB 推到 0.495 dB（~ 及格线 0.50 dB）"
+    }
+  },
+  "control_ideal": {
+    "V1": {
+      "g_dc_db": -0.0030034621934999207,
+      "g_16k_db": -0.189545834372398,
+      "D4_dG_16k_db": 0.18654237217889807,
+      "D1_A_dm_db": 62.01502592744171,
+      "D3_A_mclk_db": 97.57865148828046,
+      "D10_dtau_us": 0.08354947254466465,
+      "tau_100Hz_us": 2.475816363395729,
+      "tau_16k_us": 2.3922668908511566,
+      "CH_tau_diff_us": 1.0933089286332964e-07,
+      "C9_peak_db_rel_dc": 0.0,
+      "C9_peak_f_hz": 0.1,
+      "C9_peak_100k_2M_db": -4.481086698320639,
+      "C9_peak_100k_2M_f_hz": 100577.306300134,
+      "C9_peak_f_ge_1Hz_db": -7.449169311027601e-10,
+      "C9_local_extrema_50k_2M": [],
+      "g_at_200k_db": -9.55097973165423,
+      "g_at_1M_db": -30.73228648613942
+    },
+    "V2": {
+      "g_cm_dc_db": -4.2167339996492444e-10,
+      "g_cm_16k_db": -0.10673157140389239,
+      "D2_A_cm_db": 58.932202668535204,
+      "D8_CMRR_db": 300.0,
+      "D8_worst_f_hz": 10.05773063001605,
+      "cmrr_10Hz_db": 300.0,
+      "cmrr_16k_db": 300.0
+    },
+    "V3_same_dir_1pct": {
+      "g_cm_dc_db": -4.180812801518398e-10,
+      "g_cm_16k_db": -0.1058889530294786,
+      "D8_CMRR_db": 48.36143568027445,
+      "D8_worst_f_hz": 15940.42880711776,
+      "cmrr_10Hz_db": 112.18319496981732,
+      "cmrr_16k_db": 48.36143568027445
+    },
+    "V3p1_paired_1pct": {
+      "g_cm_dc_db": -4.2169075785932326e-10,
+      "g_cm_16k_db": -0.10673574628039181,
+      "D8_CMRR_db": 94.47061762220903,
+      "D8_worst_f_hz": 15940.42880711776,
+      "cmrr_10Hz_db": 158.29791920680938,
+      "cmrr_16k_db": 94.47061762220903
+    },
+    "V4": {
+      "tset_us": 20.566794652625887,
+      "tset_engine_band_us": 21.68085619807773,
+      "vfinal_v": 1.9993016347113275,
+      "err_final_uv": 0.0,
+      "t_end_us": 500.0
+    },
+    "V4b": {
+      "tset_us": 50.27874411764407,
+      "tset_engine_band_us": 52.883956059386335,
+      "vfinal_v": 1.9993016347111896,
+      "err_final_uv": 0.0,
+      "t_end_us": 500.0
+    },
+    "V5_MC_AC": {
+      "n": 30,
+      "sigma_db": 0.004390928824068723,
+      "mean_db": -0.18702638811412445,
+      "min_db": -0.19475664323317268,
+      "max_db": -0.17839575762639184,
+      "p2p_db": 0.01636088560678084
+    },
+    "V6_MC_tran": {
+      "n": 30,
+      "min_us": 18.957816107319832,
+      "mean_us": 19.4224829043348,
+      "max_us": 19.824049788801403
+    },
+    "V7": {
+      "vn_nv": 314.6305745754611,
+      "vn_lsb": 1.0807995720427146,
+      "dens_1k_nv": 0.8630654250840005,
+      "dens_10k_nv": 0.8561947136174555,
+      "dens_100k_nv": 0.5386106281692227,
+      "f_max_hz": 2048000.0
+    },
+    "V8_kickback": {
+      "ron1": {
+        "D9": 1.0,
+        "criterion": "residual <= 0.01% of steady-state value within 122.07 ns",
+        "n_cycles": 160,
+        "worst_resid_uv": 0.8487197367124111,
+        "worst_rel_to_ss": 2.652755807157192e-07,
+        "worst_rel_to_fs": 3.4755107973481205e-07,
+        "worst_rel_to_kick": 0.027006455309160272,
+        "kick_amp_uv": 31.426550689328536,
+        "detail": [
+          {
+            "k": 2,
+            "t_on_ns": 488.28,
+            "v_ss": 3.19953035337682,
+            "kick_amp_uv": 31.734381749970453,
+            "resid_end_uv": 0.3105113388635061,
+            "resid_max_uv": 26.52659688706649,
+            "rel_to_ss": 9.704903675496905e-08,
+            "rel_to_fs": 1.2715452041912618e-07,
+            "rel_to_kick": 0.009784697912502903,
+            "pass": true
+          },
+          {
+            "k": 3,
+            "t_on_ns": 732.42,
+            "v_ss": 3.199514173902393,
+            "kick_amp_uv": 31.693747552186124,
+            "resid_end_uv": 0.3815005569229868,
+            "resid_max_uv": 25.443636187727492,
+            "rel_to_ss": 1.1923702668198435e-07,
+            "rel_to_fs": 1.5622463428459736e-07,
+            "rel_to_kick": 0.012037092057189438,
+            "pass": true
+          },
+          {
+            "k": 4,
+            "t_on_ns": 976.56,
+            "v_ss": 3.1994999974797405,
+            "kick_amp_uv": 31.66103420415567,
+            "resid_end_uv": 0.4286002117659393,
+            "resid_max_uv": 24.55049739857884,
+            "rel_to_ss": 1.3395849729756198e-07,
+            "rel_to_fs": 1.7551196223011438e-07,
+            "rel_to_kick": 0.013537151345159894,
+            "pass": true
+          }
+        ]
+      },
+      "ron100": {
+        "D9": 1.0,
+        "criterion": "residual <= 0.01% of steady-state value within 122.07 ns",
+        "n_cycles": 160,
+        "worst_resid_uv": 0.8177582069279765,
+        "worst_rel_to_ss": 2.555982534675663e-07,
+        "worst_rel_to_fs": 3.3487232060932695e-07,
+        "worst_rel_to_kick": 0.026017242109998024,
+        "kick_amp_uv": 31.431394744707575,
+        "detail": [
+          {
+            "k": 2,
+            "t_on_ns": 488.28,
+            "v_ss": 3.1995303532458843,
+            "kick_amp_uv": 31.73920771493144,
+            "resid_end_uv": 0.30345440560353154,
+            "resid_max_uv": 26.52404304370748,
+            "rel_to_ss": 9.484342140892046e-08,
+            "rel_to_fs": 1.242647033593495e-07,
+            "rel_to_kick": 0.009560868952024093,
+            "pass": true
+          },
+          {
+            "k": 3,
+            "t_on_ns": 732.42,
+            "v_ss": 3.1995141808854854,
+            "kick_amp_uv": 31.69856665508064,
+            "resid_end_uv": 0.36578057249769813,
+            "resid_max_uv": 25.432228873523144,
+            "rel_to_ss": 1.143237853680855e-07,
+            "rel_to_fs": 1.497872942251016e-07,
+            "rel_to_kick": 0.011539341083710197,
+            "pass": true
+          },
+          {
+            "k": 4,
+            "t_on_ns": 976.56,
+            "v_ss": 3.1994999970066247,
+            "kick_amp_uv": 31.665848878592584,
+            "resid_end_uv": 0.4190588001051765,
+            "resid_max_uv": 24.545147349286367,
+            "rel_to_ss": 1.3097634020854442e-07,
+            "rel_to_fs": 1.7160475024782e-07,
+            "rel_to_kick": 0.013233777553598997,
+            "pass": true
+          }
+        ]
+      },
+      "ron1000": {
+        "D9": 1.0,
+        "criterion": "residual <= 0.01% of steady-state value within 122.07 ns",
+        "n_cycles": 160,
+        "worst_resid_uv": 0.6963761425282655,
+        "worst_rel_to_ss": 2.1765911660319998e-07,
+        "worst_rel_to_fs": 2.8516631553164026e-07,
+        "worst_rel_to_kick": 0.035228148905123165,
+        "kick_amp_uv": 19.767605286435952,
+        "detail": [
+          {
+            "k": 2,
+            "t_on_ns": 488.28,
+            "v_ss": 3.199530347442101,
+            "kick_amp_uv": 20.05369138480262,
+            "resid_end_uv": 0.24370749995838992,
+            "resid_max_uv": 26.505388122100015,
+            "rel_to_ss": 7.616977290220876e-08,
+            "rel_to_fs": 9.97983210312817e-08,
+            "rel_to_kick": 0.012152750098821202,
+            "pass": true
+          },
+          {
+            "k": 3,
+            "t_on_ns": 732.42,
+            "v_ss": 3.1995141710059274,
+            "kick_amp_uv": 20.013319019795972,
+            "resid_end_uv": 0.2960018368192152,
+            "resid_max_uv": 25.401805430647073,
+            "rel_to_ss": 9.251461971995336e-08,
+            "rel_to_fs": 1.21212873390342e-07,
+            "rel_to_kick": 0.014790242264485366,
+            "pass": true
+          },
+          {
+            "k": 4,
+            "t_on_ns": 976.56,
+            "v_ss": 3.19949998568633,
+            "kick_amp_uv": 19.98087356192002,
+            "resid_end_uv": 0.33908903773749444,
+            "resid_max_uv": 24.503426768962555,
+            "rel_to_ss": 1.0598188443646949e-07,
+            "rel_to_fs": 1.3885709981060378e-07,
+            "rel_to_kick": 0.016970681321147922,
+            "pass": true
+          }
+        ]
+      }
+    }
+  },
+  "dims": {
+    "D1": 86.487794,
+    "D2": 83.404927,
+    "D3": 134.532194,
+    "D4": 0.187646,
+    "D5": 77.29947,
+    "D6a": 0.327002,
+    "D6b": 13.913051,
+    "D7": 0.004393,
+    "D8": 135.201087,
+    "D9": 1.0,
+    "D10": 0.09587
+  },
+  "scores": {
+    "D1": 0.7207316163576216,
+    "D2": 0.8340492671771128,
+    "D3": 0.8968812932723553,
+    "D4": 0.6941198587603243,
+    "D5": 1.0,
+    "D6a": 1.0,
+    "D7": 1.0,
+    "D8": 1.0,
+    "D9": 1.0,
+    "D10": 1.0
+  },
+  "pass": {
+    "D1": true,
+    "D2": true,
+    "D3": true,
+    "D4": true,
+    "D5": true,
+    "D6a": true,
+    "D7": true,
+    "D8": true,
+    "D9": true,
+    "D10": true
+  },
+  "min_score": 0.6941198587603243,
+  "hard": {
+    "C9_peaking_ok": true,
+    "C9_peak_db": 7.363411668795475e-10,
+    "C9_peak_f_hz": 0.1,
+    "C9_peak_full_band_0p1Hz_200MHz_db": 7.363411668795475e-10,
+    "C9_peak_100k_2M_db": -2.320542442125548,
+    "C9_peak_100k_2M_f_hz": 280543.3637950749,
+    "C9_all_below_dc": true,
+    "C9_note": "全频段（0.1 Hz–200 MHz，dec 1000）最大值出现在最低频点，即 0 dB——B 案在真实 OPA388 模型下不存在任何增益峰；100k–2M 内的局部极值均为负（173 kHz −5.46 dB、281 kHz −2.32 dB），即 OPA388 输出阻抗负实部未形成谐振。第 2 轮 C9 案例（+30.7 dB @283 kHz）是 A 案参数，不是 B 案。需注意：本结论含 2.048 MHz 以上的 AC 扫描，但噪声积分只到 2.048 MHz。",
+    "C2_r_sum_ohm": 22.480000000000004,
+    "C2_ok": true,
+    "C3_c_max_f": 6.8e-08,
+    "C3_ok": true,
+    "D6a_increment_pct": 0.3270015520219046,
+    "D6a_quadrature_pct": 8.093654330363098,
+    "D6a_quadrature_nv": 326.7419917337637,
+    "D6a_note": "主值按 ask 字面公式（Vtot−Vfol)/Vfol；正交口径（√(Vtot²−Vfol²)/Vfol）把无源网络的实际噪声贡献算作 Vfol 的 8.09%（326.7 nVrms），两种口径都 ≤10% 满分线。线性口径偏小是因为跟随器 9.9 nV/√Hz 完全主导。",
+    "D6_brickwall_lsb": 4.3038657093146275
+  },
+  "temperature_corners": {
+    "data": {
+      "-20C": {
+        "dG_16k_db": 0.18704,
+        "A_dm_db": 62.0486
+      },
+      "+85C": {
+        "dG_16k_db": 0.18588,
+        "A_dm_db": 61.9701
+      }
+    },
+    "assumption": "C0G −30 ppm/°C 显式折进容值；电阻温漂未代入（BOM 未冻结，E.10 #6）",
+    "basis": "0 Ω 理想源 V1 网表（D4 与运放无关，只由无源阶梯决定）"
+  },
+  "coverage": {
+    "n_netlists": 147,
+    "missing_raw": [],
+    "zero_point_raw": [],
+    "all_run": true,
+    "work_dir": "hardware/sim/aaf/r5_work/r3_B"
+  },
+  "notes": {
+    "口径": "十个评分槽位的**主数据全部来自真实 OPA388 模型**（lib/OPAx388.LIB，TI SBOS777D Rev D 宏模型）；0 Ω 理想源 V1–V8 只在 control_ideal 里作对照。",
+    "D1–D4/D10": "r5_B_v9a_r3.raw（AC DM，dec 1000，0.1 Hz–200 MHz；DC 参考点 1 Hz）",
+    "D2": "r5_B_v9b_r3.raw（AC CM 扫到 200 MHz）。注意：配对失配档只扫到 40 kHz，故 D2 必须用标称档网表，不能用 p001/p05/p1（首版踩过，已修）",
+    "D5": "主值 = V9f（600 kΩ 样品端 + R×1.01/C×1.05 最坏角 + 真实 OPA388）= 77.30 µs；另一工况 V9c（0 Ω 源）= 46.04 µs；MC30 极值 43.0–52.9 µs。**本轮 D5 已取得 LTspice 实测值**（第 2 轮求解器未收敛）：gear/reltol=1e-5 稳定收敛，并用 gear 1e-6 + trap 1e-4 两组不同数值设置复核，三组给出 46.02/46.02/46.04 µs，差异 <0.05%。trap 1e-5/1e-6 两组在 240 s 内未收敛（TI 宏模型已知困难），证据见 r5_work/r3_B/d5var/README_not_converged.txt（不完整 .raw 已删，.log/.net 保留）。另做机理核查：首级 C_gnd 由 71.4 nF 降到 7.14 nF 后 D5 从 46.0 → 22.8 µs，说明 46 µs 主要来自**跟随器驱动大容性负载**（68 nF 首级电容）的恢复，而不是无源阶梯本身（0 Ω 理想源同角为 20.57 µs）。",
+    "D6a": "按 ask 字面公式 (Vtot − Vfol)/Vfol = 0.3270%（V9d 真实阶梯 vs V9df 无噪等值 B 源阶梯，两者传递函数逐点相同：gain@1k/16k/100k/1M 完全一致，故差值只含无源网络噪声）。正交口径 √(Vtot²−Vfol²)/Vfol = 8.09%（326.7 nVrms 无源贡献）。两种口径都在 10% 满分线内；线性口径偏小是因为跟随器 9.9 nV/√Hz 完全主导。",
+    "D6b": "13.913 LSB（仅报告，不进 min）。正交核对：√(Vfol²+Vpass,quad²) = 4049.3 nV vs 实测 4050.2 nV（差 0.02%）。",
+    "D7": "真实模型 MC30（逐元件均匀分布，R ±1% / C ±5%，种子 20261018，与 V5 同抽样）。理论对拍用**同一批抽样**喂双线 MNA → 相对差 0.035%（30 样本 σ̂ 的抽样标准误本身 13.1%，所以不能拿不同抽样的理论值比）。引擎 sigma_dg_db 是**单线**口径，差分口径需 ×√2，两者不可直接比（已在 xcheck 里标注为 informational）。",
+    "D8": "配对条件（R×(1+m) 配 C×(1−m)，C_gnd 与 C_diff 同取）三档：（0.1%: 135.2 dB、0.5%: 109.0 dB、1%: 95.7 dB）；同向 1% 对照 48.4 dB。**D8 取值 = 配对条件下最优档 = 135.2 dB**（m=0.1%）。⚠ 口径提示：规格 v4 正文写 C×(1−m)，按字面 1% 档得 95.7 dB；而规格 v4 引用的 110–112 dB 对应**严格倒数** C/(1+m)，本轮实测 110.4 dB。两者差 14.8 dB，请规格方确认考核口径（对 D8=最优档的取值无影响）。⚠ 物理可实现性：135 dB 只在**元件完美配对且无版图失配**的仿真里成立；差分输出电压仅 1.8e-7 相对量，任何 0.001% 的走线/焊盘不对称都会把它打回 100 dB 量级。同条件 0 Ω 理论（精确线性代数，无数值容差）给 134.91 dB，与 LTspice 135.20 dB 差 0.29 dB，说明该值不是求解器噪声底。",
+    "D9": "真实模型 + ADC 采样开关（M2 C_S=3.5 pF、M6 S1/S2 50% 反相、Ron=1 Ω 缺省假设）。判稳 = 122.07 ns 窗内引脚残差 ≤ 0.01% 稳态值。worst_rel=3.46e-07；另用物理判据（采样电容窗口末端与引脚差）worst 7.65e-09，均远优于 1e-4。Ron=100/1000 Ω 灵敏度同样通过。注：真实模型 kickback 需把 .save 降到 3 个向量、maxstep 放到 1 ns（0.1 ns 会写出 450 MB 并在收尾前挂死）。",
+    "C9": "真实模型全频段（0.1 Hz–200 MHz，dec 1000）增益**最大值为 0 dB（即 DC 点）**，全频段无任何 >0 dB 的峰；100 kHz–2 MHz 内局部极值为 173 kHz/281 kHz 处的 −5.46/−2.32 dB。C9（≤6 dB）通过。第 2 轮 +30.7 dB@283 kHz 的案例是 A 案参数。",
+    "交叉验证": "AC ≤0.5 dB：真实模型 4 项最大偏差 0.341 dB（D1/D2），通过；0 Ω 无源 6 项 ≤0.116 dB。建立 ≤5%：同工况（0 Ω 理想源最坏角）V4 vs 理论 0.024%。真实模型 V9c 比引擎慢 23.4 µs 属**运放大信号恢复**，引擎 t_settle_wc 是纯 G/C 模态分解、不含运放动态，故该项列为 informational。",
+    "温度角": "−20/+85 ℃ 只跑 D4/D7 趋势（规格 §5.1）：C0G −30 ppm/℃ 已折进容值，电阻温漂未代入（BOM 未冻结）。D4 在 −20/+85 ℃ 为 0.1870/0.1859 dB。",
+    "重要发现": "600 kΩ 高阻角（V9e）下 OPA388 输入电容 4.5 pF 与 600 kΩ 形成输入极点，16 kHz 额外 −0.31 dB，把 D4 从 0.188 dB 推到 0.495 dB（及格线 0.50 dB，余量仅 0.005 dB）。D4 的评分口径是 0 Ω 源，故 dims 里仍是 0.188 dB；但实际高阻端已贴线，需在方案评审时明确。"
+  },
+  "xcheck": {
+    "rows": [
+      {
+        "item": "D1 A_dm@fMOD (real)",
+        "ltspice": 86.4878,
+        "theory": 86.1466,
+        "delta": 0.3412,
+        "pass": true
+      },
+      {
+        "item": "D2 A_cm@fMOD (real)",
+        "ltspice": 83.4049,
+        "theory": 83.0637,
+        "delta": 0.3412,
+        "pass": true
+      },
+      {
+        "item": "D3 A_mclk (real)",
+        "ltspice": 134.5322,
+        "theory": 134.3757,
+        "delta": 0.1565,
+        "pass": true
+      },
+      {
+        "item": "D4 dG@16k (real)",
+        "ltspice": 0.1876,
+        "theory": 0.1877,
+        "delta": -0.0001,
+        "pass": true
+      },
+      {
+        "item": "D10 dtau (real)",
+        "ltspice": 0.0959,
+        "theory": 0.0871,
+        "delta": 0.0087,
+        "pass": true
+      },
+      {
+        "item": "D5 V9c − engine (op-amp dynamics, informational)",
+        "ltspice": 46.037,
+        "theory": 22.626,
+        "delta_us": 23.411,
+        "note": "引擎不含运放动态；此差值是真实跟随器大信号恢复，非模型误差",
+        "pass": true,
+        "informational": true
+      },
+      {
+        "item": "D6b Vn (real)",
+        "ltspice": 13.9131,
+        "theory": 13.905,
+        "rel_pct": 0.058,
+        "pass": true
+      },
+      {
+        "item": "D7 sigma (real, same 30 draws)",
+        "ltspice": 0.004393,
+        "theory": 0.004392,
+        "rel_pct": 0.035,
+        "criterion": "≤5% 相对（同抽样，无抽样噪声）",
+        "pass": true
+      },
+      {
+        "item": "D7 mean dG@16k (real, same 30 draws)",
+        "ltspice": -0.18814,
+        "theory": -0.18701,
+        "delta": -0.00112,
+        "pass": true
+      },
+      {
+        "item": "D7 engine sigma_dg_db (single-line, reference only)",
+        "ltspice": 0.004393,
+        "theory": 0.00657,
+        "ratio": 0.669,
+        "note": "引擎为单线口径，差分口径应再乘 √2（≈1.414）；比值 0.669 ≈ 1/1.414×0.95",
+        "pass": true,
+        "informational": true
+      },
+      {
+        "item": "D8 CMRR same-dir 1% (real)",
+        "ltspice": 48.3677,
+        "theory": 48.3337,
+        "delta": 0.034,
+        "pass": true
+      },
+      {
+        "item": "D1 A_dm@fMOD (0Ω ideal)",
+        "ltspice": 62.015,
+        "theory": 62.0151,
+        "delta": -0.0001,
+        "pass": true
+      },
+      {
+        "item": "D3 A_mclk (0Ω ideal)",
+        "ltspice": 97.5787,
+        "theory": 97.5789,
+        "delta": -0.0002,
+        "pass": true
+      },
+      {
+        "item": "D4 dG@16k (0Ω ideal)",
+        "ltspice": 0.1865,
+        "theory": 0.1865,
+        "delta": 0.0,
+        "pass": true
+      },
+      {
+        "item": "D10 dtau (0Ω ideal)",
+        "ltspice": 0.0835,
+        "theory": 0.0822,
+        "delta": 0.0013,
+        "pass": true
+      },
+      {
+        "item": "D2 A_cm (0Ω ideal)",
+        "ltspice": 58.9322,
+        "theory": 58.9323,
+        "delta": -0.0001,
+        "pass": true
+      },
+      {
+        "item": "D8 CMRR same-dir (0Ω ideal)",
+        "ltspice": 48.3614,
+        "theory": 48.2456,
+        "delta": 0.1159,
+        "pass": true
+      },
+      {
+        "item": "D5 t_settle (V4, 0Ω ideal)",
+        "ltspice": 20.5668,
+        "theory": 20.5618,
+        "rel_pct": 0.024,
+        "pass": true
+      },
+      {
+        "item": "D6 Vn passive-only (0Ω ideal, nV)",
+        "ltspice": 314.6306,
+        "theory": 313.6197,
+        "rel_pct": 0.322,
+        "pass": true
+      },
+      {
+        "item": "D8 CMRR paired 1% (0Ω ideal)",
+        "ltspice": 94.4706,
+        "theory": 94.3561,
+        "delta": 0.1145,
+        "pass": true
+      }
+    ],
+    "fail": [],
+    "all_pass": true,
+    "criteria": "AC ≤0.5 dB；建立 ≤5% 相对；噪声 ≤5% 相对；D7 |z|≤2",
+    "engine_real_model_pred": {
+      "A_dm": 86.14656,
+      "A_cm": 83.06372,
+      "A_mclk": 134.37569,
+      "dG_16k": 0.18772,
+      "V_n_lsb": 13.90501,
+      "V_n_lsb_follower": 13.86321,
+      "sigma_dG_db": 0.00657,
+      "CMRR_pb_db": 48.33367,
+      "group_delay_flat_s": 0.0,
+      "t_settle_wc_s": 2e-05
+    },
+    "theory_zero_source": {
+      "A_dm": 62.01509,
+      "A_cm": 58.93226,
+      "A_mclk": 97.57888,
+      "dG_16k": 0.18654,
+      "t_settle_wc_us": 20.56182,
+      "t_settle_nom_us": 19.38892,
+      "CMRR_pb_db": 48.24557,
+      "Vn_nv": 313.61967,
+      "dtau_us": 0.08223
+    }
+  },
+  "xcheck_pass": true,
+  "raw_files": {
+    "V9a": "hardware/sim/aaf/r5_work/r3_B/r5_B_v9a_r3.raw",
+    "V9b": "hardware/sim/aaf/r5_work/r3_B/r5_B_v9b_r3.raw",
+    "V9c": "hardware/sim/aaf/r5_work/r3_B/r5_B_v9c_r3.raw",
+    "V9d": "hardware/sim/aaf/r5_work/r3_B/r5_B_v9d_r3.raw",
+    "V9df": "hardware/sim/aaf/r5_work/r3_B/r5_B_v9df_r3.raw",
+    "V9e": "hardware/sim/aaf/r5_work/r3_B/r5_B_v9e_r3.raw",
+    "V9f": "hardware/sim/aaf/r5_work/r3_B/r5_B_v9f_r3.raw",
+    "V9mc": "hardware/sim/aaf/r5_work/r3_B/r5_B_v9mc01..30_r3.raw",
+    "V9cmc": "hardware/sim/aaf/r5_work/r3_B/r5_B_v9cmc01..30_r3.raw",
+    "V9b_paired": "hardware/sim/aaf/r5_work/r3_B/r5_B_v9b_p001|p05|p1_r3.raw",
+    "V9b_same_dir": "hardware/sim/aaf/r5_work/r3_B/r5_B_v9b_s1_r3.raw",
+    "V9kb": "hardware/sim/aaf/r5_work/r3_B/r5_B_v9kb_ron1|100|1000_r3.raw",
+    "V1_control": "hardware/sim/aaf/r5_work/r3_B/r5_B_v1_r3.raw"
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "20000": {
+    "follower_peak_db": 5.280565355634787,
+    "follower_peak_hz": 288403.1503125613
+  },
+  "30000": {
+    "follower_peak_db": 5.497827587431155,
+    "follower_peak_hz": 291742.7014000161
+  },
+  "40000": {
+    "follower_peak_db": 5.665967553739724,
+    "follower_peak_hz": 293089.324524931
+  },
+  "60000": {
+    "follower_peak_db": 5.816669616604447,
+    "follower_peak_hz": 291071.7118065601
+  },
+  "80000": {
+    "follower_peak_db": 5.7217135930405485,
+    "follower_peak_hz": 287078.0582023701
+  },
+  "150000": {
+    "follower_peak_db": 4.243772825750242,
+    "follower_peak_hz": 271019.1631889913
+  },
+  "300000": {
+    "follower_peak_db": 0.2013260474487327,
+    "follower_peak_hz": 252348.0772479713
+  }
+}

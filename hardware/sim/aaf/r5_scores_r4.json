@@ -1,0 +1,895 @@
+{
+  "cases": [
+    {
+      "scheme": "B",
+      "n_stages": 3,
+      "stages": [
+        [
+          6.19,
+          6.8e-08,
+          0.0
+        ],
+        [
+          6.04,
+          6.8e-08,
+          0.0
+        ],
+        [
+          13.7,
+          2.7e-08,
+          1.2e-08
+        ]
+      ],
+      "total": 0.7002844888621864,
+      "short_board": [
+        "D4"
+      ],
+      "all_pass_lines": true,
+      "fail_dims": [],
+      "min_ge_1": false,
+      "rows": {
+        "D1": {
+          "measured": 84.64337020441926,
+          "unit": "dB",
+          "score": 0.7053614183701604,
+          "pass": true,
+          "gap_to_full": [
+            35.356629795580744,
+            "dB 需再增加"
+          ]
+        },
+        "D2": {
+          "measured": 79.17435889434282,
+          "unit": "dB",
+          "score": 0.7917435889434281,
+          "pass": true,
+          "gap_to_full": [
+            20.825641105657184,
+            "dB 需再增加"
+          ]
+        },
+        "D3": {
+          "measured": 132.56446731123467,
+          "unit": "dB",
+          "score": 0.883763115408231,
+          "pass": true,
+          "gap_to_full": [
+            17.435532688765335,
+            "dB 需再增加"
+          ]
+        },
+        "D4": {
+          "measured": 0.1848719800120161,
+          "unit": "dB",
+          "score": 0.7002844888621864,
+          "pass": true,
+          "gap_to_full": [
+            0.1348719800120161,
+            "dB 需再降低"
+          ]
+        },
+        "D5": {
+          "measured": 30.088521300469786,
+          "unit": "us",
+          "score": 1.0,
+          "pass": true,
+          "gap_to_full": [
+            0.0,
+            "µs 需再降低"
+          ]
+        },
+        "D6a": {
+          "measured": 0.6380958740681217,
+          "unit": "%",
+          "score": 1.0,
+          "pass": true,
+          "gap_to_full": [
+            0.0,
+            "个百分点 需再降低"
+          ]
+        },
+        "D7": {
+          "measured": 0.003989650985722987,
+          "unit": "dB",
+          "score": 1.0,
+          "pass": true,
+          "gap_to_full": [
+            0.0,
+            "dB 需再降低"
+          ]
+        },
+        "D8": {
+          "measured": 95.51472735578811,
+          "unit": "dB",
+          "score": 0.9551472735578811,
+          "pass": true,
+          "gap_to_full": [
+            4.485272644211889,
+            "dB 需再增加"
+          ]
+        },
+        "D9": {
+          "measured": 1.0,
+          "unit": "-",
+          "score": 1.0,
+          "pass": true,
+          "gap_to_full": null
+        },
+        "D10": {
+          "measured": 0.09035757833058179,
+          "unit": "us",
+          "score": 1.0,
+          "pass": true,
+          "gap_to_full": [
+            0.0,
+            "µs 需再降低"
+          ]
+        }
+      },
+      "D6b": {
+        "measured": 12.03705721153994,
+        "unit": "LSB",
+        "score": null,
+        "note": "仅报告（砖墙极限 4.30 LSB，规格 §5.1b）"
+      },
+      "d8": {
+        "curve": {
+          "0.1%": {
+            "CMRR_db": 136.88384393851584,
+            "worst_f_hz": 15848.93192461223,
+            "cmrr_10Hz_db": 198.82403902997555,
+            "cmrr_16k_db": 136.88384393851584,
+            "n_pts": 641
+          },
+          "0.5%": {
+            "CMRR_db": 108.75501943765913,
+            "worst_f_hz": 15848.93192461223,
+            "cmrr_10Hz_db": 170.38461303804888,
+            "cmrr_16k_db": 108.75501943765913,
+            "n_pts": 641
+          },
+          "1%": {
+            "CMRR_db": 95.51472735578811,
+            "worst_f_hz": 15848.93192461223,
+            "cmrr_10Hz_db": 158.28517051840993,
+            "cmrr_16k_db": 95.51472735578811,
+            "n_pts": 641
+          }
+        },
+        "same": {
+          "1%": {
+            "CMRR_db": 48.33820487029109,
+            "worst_f_hz": 15848.93192461223,
+            "cmrr_10Hz_db": 112.16309918586221,
+            "cmrr_16k_db": 48.33820487029109,
+            "n_pts": 641
+          }
+        },
+        "r3_0p1pct_ideal": null,
+        "r3_1pct_ideal": null,
+        "r3_same_1pct_ideal": null
+      },
+      "c9": {
+        "follower_db": 4.7681603145532705,
+        "follower_hz": 278612.1168628586,
+        "pin_db": -9.643274665532871e-16,
+        "pin_hz": 0.1,
+        "limit_db": 6.0,
+        "worst_over_sources_db": 5.77361967751099,
+        "ok": true
+      },
+      "highz": {
+        "d4_at_600k_db": 0.49236586371867347,
+        "d1_at_600k_db": 124.61059474268188,
+        "limit_db": 0.5,
+        "ok": true,
+        "margin_db": 0.007634136281326531,
+        "note": "规格 §5.1 标准测试条件 D4 是 0 Ω 源（= 0.1849 dB）；600 kΩ 端是客户使用工况的披露项。首级 R 由 2.74→6.19 Ω 后该项仍为 0.4924 dB，**距 0.5 dB 及格线只有 0.008 dB 余量**，来源是 600 kΩ×(OPA388 输入电容≈4.5 pF) 的输入极点，与本段阶梯无关。"
+      },
+      "recheck": {
+        "checked": true,
+        "D1_A_dm_db": 84.64328833869594,
+        "D3_A_mclk_db": 132.56414599426628,
+        "D4_dG_16k_db": 0.18487536113156774,
+        "D10_dtau_us": 0.09035757833058179,
+        "D2_A_cm_db": 79.17427798865046,
+        "D8_CMRR_db": 95.514708432873,
+        "D8_same_1pct_db": 48.341253372545836
+      }
+    },
+    {
+      "scheme": "C",
+      "n_stages": 4,
+      "stages": [
+        [
+          1.8,
+          3.3e-08,
+          0.0
+        ],
+        [
+          3.9,
+          3.9e-08,
+          0.0
+        ],
+        [
+          10.0,
+          3.9e-08,
+          0.0
+        ],
+        [
+          22.0,
+          2.7e-08,
+          8.2e-09
+        ]
+      ],
+      "total": 0.7102030158496082,
+      "short_board": [
+        "D4"
+      ],
+      "all_pass_lines": true,
+      "fail_dims": [],
+      "min_ge_1": false,
+      "rows": {
+        "D1": {
+          "measured": 93.22289555864707,
+          "unit": "dB",
+          "score": 0.7768574629887256,
+          "pass": true,
+          "gap_to_full": [
+            26.777104441352932,
+            "dB 需再增加"
+          ]
+        },
+        "D2": {
+          "measured": 89.12657699624675,
+          "unit": "dB",
+          "score": 0.8912657699624675,
+          "pass": true,
+          "gap_to_full": [
+            10.873423003753246,
+            "dB 需再增加"
+          ]
+        },
+        "D3": {
+          "measured": 152.20243578592437,
+          "unit": "dB",
+          "score": 1.0,
+          "pass": true,
+          "gap_to_full": [
+            0.0,
+            "dB 需再增加"
+          ]
+        },
+        "D4": {
+          "measured": 0.1804086428676763,
+          "unit": "dB",
+          "score": 0.7102030158496082,
+          "pass": true,
+          "gap_to_full": [
+            0.13040864286767628,
+            "dB 需再降低"
+          ]
+        },
+        "D5": {
+          "measured": 89.8718031056544,
+          "unit": "us",
+          "score": 1.0,
+          "pass": true,
+          "gap_to_full": [
+            0.0,
+            "µs 需再降低"
+          ]
+        },
+        "D6a": {
+          "measured": 0.5942920145960702,
+          "unit": "%",
+          "score": 1.0,
+          "pass": true,
+          "gap_to_full": [
+            0.0,
+            "个百分点 需再降低"
+          ]
+        },
+        "D7": {
+          "measured": 0.004915322854434722,
+          "unit": "dB",
+          "score": 1.0,
+          "pass": true,
+          "gap_to_full": [
+            0.0,
+            "dB 需再降低"
+          ]
+        },
+        "D8": {
+          "measured": 95.52380484225338,
+          "unit": "dB",
+          "score": 0.9552380484225338,
+          "pass": true,
+          "gap_to_full": [
+            4.476195157746616,
+            "dB 需再增加"
+          ]
+        },
+        "D9": {
+          "measured": 1.0,
+          "unit": "-",
+          "score": 1.0,
+          "pass": true,
+          "gap_to_full": null
+        },
+        "D10": {
+          "measured": 0.08645662336034796,
+          "unit": "us",
+          "score": 1.0,
+          "pass": true,
+          "gap_to_full": [
+            0.0,
+            "µs 需再降低"
+          ]
+        }
+      },
+      "D6b": {
+        "measured": 13.739964774598938,
+        "unit": "LSB",
+        "score": null,
+        "note": "仅报告（砖墙极限 4.30 LSB，规格 §5.1b）"
+      },
+      "d8": {
+        "curve": {
+          "0.1%": 138.09341960663377,
+          "0.5%": 108.62427532843407,
+          "1%": 95.52380484225338
+        },
+        "same": {
+          "0.1%": 68.50540099271045,
+          "0.5%": 54.51087611744065,
+          "1%": 48.47144778936933
+        },
+        "r3_0p1pct_ideal": 135.47441144252363,
+        "r3_1pct_ideal": 94.66006697923933,
+        "r3_same_1pct_ideal": 48.51193023376823
+      },
+      "c9": {
+        "follower_db": 11.19060669450171,
+        "follower_hz": 319889.5109690026,
+        "pin_db": -9.643274665532871e-16,
+        "pin_hz": 0.1,
+        "limit_db": 6.0,
+        "ok": null
+      },
+      "highz": null,
+      "recheck": {
+        "checked": true,
+        "D1_A_dm_db": 93.222772348563,
+        "D3_A_mclk_db": 152.2019070585846,
+        "D4_dG_16k_db": 0.1804119268708182,
+        "D10_dtau_us": 0.08645662336034796,
+        "D2_A_cm_db": 89.12645439185798,
+        "D8_CMRR_db": 95.52380484225338,
+        "D8_same_1pct_db": 48.47144778936933
+      }
+    }
+  ],
+  "extra": {
+    "d5_B": {
+      "by_source": {
+        "10k": {
+          "tset_us": {
+            "gear20n": 26.83415093290341,
+            "trap60us": 26.720003605452764,
+            "gear5n": 26.835374077505744
+          },
+          "stable": {
+            "gear20n": true,
+            "trap60us": true,
+            "gear5n": true
+          },
+          "spread_pct": 0.4317756604996735,
+          "settings_agree_5pct": true
+        },
+        "50k": {
+          "tset_us": {
+            "gear20n": 27.165636484993517,
+            "trap60us": 27.045843041391358,
+            "gear5n": 27.16197591751733
+          },
+          "stable": {
+            "gear20n": true,
+            "trap60us": true,
+            "gear5n": true
+          },
+          "spread_pct": 0.4429273785950225,
+          "settings_agree_5pct": true
+        },
+        "100k": {
+          "tset_us": {
+            "gear20n": 29.063612848523697,
+            "trap60us": 29.035361597715287,
+            "gear5n": 29.056328889878845
+          },
+          "stable": {
+            "gear20n": true,
+            "trap60us": true,
+            "gear5n": true
+          },
+          "spread_pct": 0.09729946263397882,
+          "settings_agree_5pct": true
+        },
+        "220k": {
+          "tset_us": {
+            "gear20n": 30.088521300469786,
+            "trap60us": 30.067134764907177,
+            "gear5n": 30.0816605314762
+          },
+          "stable": {
+            "gear20n": true,
+            "trap60us": true,
+            "gear5n": true
+          },
+          "spread_pct": 0.07112927696579298,
+          "settings_agree_5pct": true
+        },
+        "600k": {
+          "tset_us": {
+            "gear20n": 28.179376705658964,
+            "trap60us": 28.250661393598325,
+            "gear5n": 28.18044928866052
+          },
+          "stable": {
+            "gear20n": true,
+            "trap60us": true,
+            "gear5n": true
+          },
+          "spread_pct": 0.2529675822284798,
+          "settings_agree_5pct": true
+        }
+      },
+      "detail": {
+        "10k": {
+          "gear20n": 26.83415093290341,
+          "trap60us": 26.720003605452764,
+          "gear5n": 26.835374077505744
+        },
+        "50k": {
+          "gear20n": 27.165636484993517,
+          "trap60us": 27.045843041391358,
+          "gear5n": 27.16197591751733
+        },
+        "100k": {
+          "gear20n": 29.063612848523697,
+          "trap60us": 29.035361597715287,
+          "gear5n": 29.056328889878845
+        },
+        "220k": {
+          "gear20n": 30.088521300469786,
+          "trap60us": 30.067134764907177,
+          "gear5n": 30.0816605314762
+        },
+        "600k": {
+          "gear20n": 28.179376705658964,
+          "trap60us": 28.250661393598325,
+          "gear5n": 28.18044928866052
+        },
+        "0ohm_real_model": {
+          "gear20n": 26.88746320946362,
+          "trap60us": null,
+          "gear5n": null
+        },
+        "0ohm_ideal_source": {
+          "gear20n": 20.135615528558105,
+          "trap60us": null,
+          "gear5n": null
+        }
+      },
+      "all_stable": true,
+      "discrim": {
+        "positive_control_old_B_100k": {
+          "tail_pp_uv": {
+            "gear20n_400us": 498929.97033905506,
+            "trap60us": 523925.23431882873,
+            "gear5n_150us": 499323.07476500527
+          },
+          "f_osc_khz": {
+            "gear20n_400us": 204.81953515775905,
+            "trap60us": 0.0,
+            "gear5n_150us": 240.03925225481723
+          },
+          "stable": {
+            "gear20n_400us": false,
+            "trap60us": false,
+            "gear5n_150us": false
+          },
+          "oscillates_all_settings": false,
+          "no_oscillation_all": false
+        },
+        "new_B_sweep": {
+          "010k": {
+            "tail_pp_uv": {
+              "gear20n_400us": 0.0020564250302612663,
+              "trap60us": 36.236985739845906,
+              "gear5n_150us": 0.02042561897397377
+            },
+            "f_osc_khz": {
+              "gear20n_400us": 749.0636704123576,
+              "trap60us": 0.0,
+              "gear5n_150us": 0.0
+            },
+            "stable": {
+              "gear20n_400us": true,
+              "trap60us": true,
+              "gear5n_150us": true
+            },
+            "oscillates_all_settings": false,
+            "no_oscillation_all": true
+          },
+          "050k": {
+            "tail_pp_uv": {
+              "gear20n_400us": 0.002113369923506525,
+              "trap60us": 36.06652397381005,
+              "gear5n_150us": 0.020221939900366692
+            },
+            "f_osc_khz": {
+              "gear20n_400us": 626.9592476492168,
+              "trap60us": 0.0,
+              "gear5n_150us": 0.0
+            },
+            "stable": {
+              "gear20n_400us": true,
+              "trap60us": true,
+              "gear5n_150us": true
+            },
+            "oscillates_all_settings": false,
+            "no_oscillation_all": true
+          },
+          "100k": {
+            "tail_pp_uv": {
+              "gear20n_400us": 0.0037992908819006743,
+              "trap60us": 43.3833610706813,
+              "gear5n_150us": 0.020293347002819928
+            },
+            "f_osc_khz": {
+              "gear20n_400us": 521.8525766473692,
+              "trap60us": 0.0,
+              "gear5n_150us": 0.0
+            },
+            "stable": {
+              "gear20n_400us": true,
+              "trap60us": true,
+              "gear5n_150us": true
+            },
+            "oscillates_all_settings": false,
+            "no_oscillation_all": true
+          },
+          "220k": {
+            "tail_pp_uv": {
+              "gear20n_400us": 0.005258705026989219,
+              "trap60us": 43.49525070113103,
+              "gear5n_150us": 0.020067758121911083
+            },
+            "f_osc_khz": {
+              "gear20n_400us": 456.1003420754617,
+              "trap60us": 865924902314.9766,
+              "gear5n_150us": 0.0
+            },
+            "stable": {
+              "gear20n_400us": true,
+              "trap60us": true,
+              "gear5n_150us": true
+            },
+            "oscillates_all_settings": false,
+            "no_oscillation_all": true
+          },
+          "600k": {
+            "tail_pp_uv": {
+              "gear20n_400us": 0.013125942111003042,
+              "trap60us": 19.859886980722052,
+              "gear5n_150us": 0.02346714822465401
+            },
+            "f_osc_khz": {
+              "gear20n_400us": 538.7205387207961,
+              "trap60us": 0.0,
+              "gear5n_150us": 0.0
+            },
+            "stable": {
+              "gear20n_400us": true,
+              "trap60us": true,
+              "gear5n_150us": true
+            },
+            "oscillates_all_settings": false,
+            "no_oscillation_all": true
+          }
+        },
+        "poles": {
+          "new_B_follower_load_pole_khz": 378.11209515322463,
+          "old_B_follower_load_pole_khz": 854.2021419702411,
+          "note": "f = 1/(2π·R1·C1)：跟随器输出端看到的首级 RC 极点"
+        },
+        "verdict": "旧参数（R1=2.74）在 100 kΩ 三套设置下均给出 0.4989/0.5239/0.4993 Vpp 等幅振荡（FFT 峰 120/133/120 kHz）→ 判据敏感、且不是单一积分法伪影；本轮参数五档 × 三设置尾窗 pp 最大 43.5 µV（trap 60 µs 窗的 45–60 µs 段），gear 与 trap 在**同一时间窗**上逐窗一致（如 100 kΩ：45–50 µs 28.90 vs 28.85 µV、55–60 µs 5.16 vs 5.13 µV），是仍在指数衰减的同一尾段而非纹波，gear 400 µs 窗末已降到 0.004 µV → 50–220 kΩ 极限环在本参数下消失，且不是数值伪影造成的假阴性"
+      },
+      "gap_sweep": {
+        "B": {
+          "20000": {
+            "tail_pp_uv": 0.0023487307654335154,
+            "tset_us": 27.755564819877144,
+            "stable": true
+          },
+          "30000": {
+            "tail_pp_uv": 0.002441004953723791,
+            "tset_us": 27.656957173212103,
+            "stable": true
+          },
+          "40000": {
+            "tail_pp_uv": 0.00252521314969556,
+            "tset_us": 27.676530941781625,
+            "stable": true
+          },
+          "60000": {
+            "tail_pp_uv": 0.002624262362971308,
+            "tset_us": 28.19607403814384,
+            "stable": true
+          },
+          "80000": {
+            "tail_pp_uv": 0.004428411193302395,
+            "tset_us": 28.887259951718203,
+            "stable": true
+          },
+          "150000": {
+            "tail_pp_uv": 0.0070440917543379555,
+            "tset_us": 30.358157680047178,
+            "stable": true
+          },
+          "300000": {
+            "tail_pp_uv": 0.011596135163216559,
+            "tset_us": 18.910806959296842,
+            "stable": true
+          }
+        },
+        "C": {
+          "30000": {
+            "tail_pp_uv": 323168.63164416933,
+            "tset_us": 389.997671651093,
+            "stable": false
+          },
+          "50000": {
+            "tail_pp_uv": 414337.6330473443,
+            "tset_us": 389.9984634504978,
+            "stable": false
+          },
+          "73000": {
+            "tail_pp_uv": 517832.08526280936,
+            "tset_us": 389.9990416769583,
+            "stable": false
+          },
+          "150000": {
+            "tail_pp_uv": 704264.3922912861,
+            "tset_us": 389.9984133503576,
+            "stable": false
+          },
+          "300000": {
+            "tail_pp_uv": 744666.629909343,
+            "tset_us": 389.9993038937379,
+            "stable": false
+          },
+          "400000": {
+            "tail_pp_uv": 728379.0003008075,
+            "tset_us": 389.9989559351924,
+            "stable": false
+          }
+        }
+      }
+    },
+    "c9_source_sweep": {
+      "limit_db": 6.0,
+      "B": {
+        "follower_db": 4.7681603145532705,
+        "follower_hz": 278612.1168628586,
+        "pin_db": -9.643274665532871e-16,
+        "pin_hz": 0.1,
+        "limit_db": 6.0,
+        "worst_over_sources_db": 5.77361967751099,
+        "ok": true
+      },
+      "B_source_sweep_nominal": {
+        "20000": {
+          "follower_peak_db": 5.280565355634787,
+          "follower_peak_hz": 288403.1503125613
+        },
+        "30000": {
+          "follower_peak_db": 5.497827587431155,
+          "follower_peak_hz": 291742.7014000161
+        },
+        "40000": {
+          "follower_peak_db": 5.665967553739724,
+          "follower_peak_hz": 293089.324524931
+        },
+        "60000": {
+          "follower_peak_db": 5.816669616604447,
+          "follower_peak_hz": 291071.7118065601
+        },
+        "80000": {
+          "follower_peak_db": 5.7217135930405485,
+          "follower_peak_hz": 287078.0582023701
+        },
+        "150000": {
+          "follower_peak_db": 4.243772825750242,
+          "follower_peak_hz": 271019.1631889913
+        },
+        "300000": {
+          "follower_peak_db": 0.2013260474487327,
+          "follower_peak_hz": 252348.0772479713
+        }
+      },
+      "B_source_sweep_corner": {
+        "20000": {
+          "follower_peak_db": 5.221903087195264,
+          "follower_peak_hz": 286417.7969905594
+        },
+        "30000": {
+          "follower_peak_db": 5.434366336500652,
+          "follower_peak_hz": 289734.3587700324
+        },
+        "40000": {
+          "follower_peak_db": 5.598546167655417,
+          "follower_peak_hz": 290402.2654463449
+        },
+        "50000": {
+          "follower_peak_db": 5.703309505485231,
+          "follower_peak_hz": 290402.2654463449
+        },
+        "60000": {
+          "follower_peak_db": 5.744604498974457,
+          "follower_peak_hz": 289067.9882364479
+        },
+        "80000": {
+          "follower_peak_db": 5.649087858121761,
+          "follower_peak_hz": 285101.8267502928
+        },
+        "100000": {
+          "follower_peak_db": 5.362394200403601,
+          "follower_peak_hz": 280543.3637950749
+        },
+        "150000": {
+          "follower_peak_db": 4.183453657741876,
+          "follower_peak_hz": 269153.4803925992
+        },
+        "220000": {
+          "follower_peak_db": 2.2345177071819493,
+          "follower_peak_hz": 258226.0190633712
+        },
+        "300000": {
+          "follower_peak_db": 0.16555867359978507,
+          "follower_peak_hz": 250034.5361695578
+        }
+      },
+      "C": {
+        "follower_db": 4.7681603145532705,
+        "follower_hz": 278612.1168628586,
+        "pin_db": -9.643274665532871e-16,
+        "pin_hz": 0.1,
+        "limit_db": 6.0,
+        "worst_over_sources_db": 5.77361967751099,
+        "ok": true
+      },
+      "C_source_sweep_nominal": {
+        "0": {
+          "follower_peak_db": 11.190606694502112,
+          "follower_peak_hz": 319889.5109690288
+        },
+        "30000": {
+          "follower_peak_db": 14.876128526204965,
+          "follower_peak_hz": 326587.8321722223
+        },
+        "50000": {
+          "follower_peak_db": 17.809774478092375,
+          "follower_peak_hz": 323593.6569295158
+        },
+        "100000": {
+          "follower_peak_db": 23.731349666934065,
+          "follower_peak_hz": 311171.633710494
+        },
+        "150000": {
+          "follower_peak_db": 24.6207809613424,
+          "follower_peak_hz": 301300.602418508
+        },
+        "220000": {
+          "follower_peak_db": 20.877461968789312,
+          "follower_peak_hz": 293764.9651960518
+        },
+        "300000": {
+          "follower_peak_db": 16.42382101285635,
+          "follower_peak_hz": 289067.9882364479
+        },
+        "400000": {
+          "follower_peak_db": 12.330837047728988,
+          "follower_peak_hz": 285759.0543373962
+        },
+        "600000": {
+          "follower_peak_db": 7.076587534006014,
+          "follower_peak_hz": 282487.9974914735
+        }
+      },
+      "C_source_sweep_corner": {
+        "0": {
+          "follower_peak_db": 11.338611952499216,
+          "follower_peak_hz": 316227.7660167283
+        },
+        "10000": {
+          "follower_peak_db": 12.415633522919848,
+          "follower_peak_hz": 319889.5109690288
+        },
+        "30000": {
+          "follower_peak_db": 15.077385871863635,
+          "follower_peak_hz": 322849.4121711514
+        },
+        "50000": {
+          "follower_peak_db": 18.11027603979849,
+          "follower_peak_hz": 319889.5109690288
+        },
+        "73000": {
+          "follower_peak_db": 21.510360519523605,
+          "follower_peak_hz": 314050.8693875129
+        },
+        "100000": {
+          "follower_peak_db": 24.64471545931579,
+          "follower_peak_hz": 307609.6814739643
+        },
+        "150000": {
+          "follower_peak_db": 26.06594082849542,
+          "follower_peak_hz": 298538.2618916928
+        },
+        "220000": {
+          "follower_peak_db": 22.187832571623414,
+          "follower_peak_hz": 290402.2654463449
+        },
+        "300000": {
+          "follower_peak_db": 17.45814316871997,
+          "follower_peak_hz": 285759.0543373962
+        },
+        "400000": {
+          "follower_peak_db": 13.166469577632745,
+          "follower_peak_hz": 282487.9974914735
+        },
+        "600000": {
+          "follower_peak_db": 7.739600932896299,
+          "follower_peak_hz": 279254.3841236377
+        }
+      },
+      "worst_B": {
+        "rs_ohm": 60000.0,
+        "peak_db": 5.816669616604447,
+        "peak_hz": 291071.7118065601,
+        "margin_db": 0.1833303833955533,
+        "pass": true
+      },
+      "worst_B_corner": {
+        "rs_ohm": 60000.0,
+        "peak_db": 5.744604498974457,
+        "peak_hz": 289067.9882364479,
+        "margin_db": 0.25539550102554287,
+        "pass": true
+      },
+      "worst_C": {
+        "rs_ohm": 150000.0,
+        "peak_db": 24.6207809613424,
+        "peak_hz": 301300.602418508,
+        "margin_db": -18.6207809613424,
+        "pass": false
+      },
+      "worst_C_corner": {
+        "rs_ohm": 150000.0,
+        "peak_db": 26.06594082849542,
+        "peak_hz": 298538.2618916928,
+        "margin_db": -20.06594082849542,
+        "pass": false
+      }
+    },
+    "c_d8_calibration": {
+      "r3_dims_d8_0p1pct_ideal_source": 135.47441144252363,
+      "r3_1pct_paired_ideal_source": 94.66006697923933,
+      "r4_1pct_paired_real_opa388": 95.52380484225338,
+      "r4_0p1pct_paired_real": 138.09341960663377,
+      "r4_same_1pct_real": 48.47144778936933
+    },
+    "d4_fc_needed_khz": 148.68800584438668
+  }
+}
