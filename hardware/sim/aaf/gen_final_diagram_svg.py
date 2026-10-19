@@ -21,12 +21,10 @@ pinX = 1140                # ADC 框左缘
 CDx = 990                  # C_diff x
 
 def res_h(cx: int, y: int, label: str, val: str):
-    """水平电阻：主干在 y 处断开 [cx-RES_W/2, cx+RES_W/2]，电阻矩形接上"""
+    """水平电阻：只画矩形+标签（主干分段线由调用方负责断开）"""
     hw = RES_W // 2
-    push(f'<line x1="{{L}}" y1="{y}" x2="{cx-hw}" y2="{y}" class="w"/>')
     push(f'<rect x="{cx-hw}" y="{y-RES_H//2}" width="{RES_W}" height="{RES_H}" class="box"/>')
-    push(f'<line x1="{cx+hw}" y1="{y}" x2="{{R}}" y2="{y}" class="w"/>')
-    push(f'<text x="{cx}" y="{y-16}" font-size="12.5" font-weight="bold" fill="#374151" text-anchor="middle">{label} {val}</text>')
+    push(f'<text x="{cx}" y="{y-RES_H//2-10}" font-size="12.5" font-weight="bold" fill="#374151" text-anchor="middle">{label} {val}</text>')
 
 GND_TOP = 208   # P 线电容的接地母线（上方）
 def cap_g(x: int, y_top: int, label: str, val: str, up: bool = False):
@@ -105,14 +103,17 @@ for y in (yP, yN):
             bx = b - hw
         if a in (R1x, R2x, R3x):
             ax = a + hw
-        cls = "wg" if y == yP or True else "w"
         push(f'<line x1="{ax}" y1="{y}" x2="{bx}" y2="{y}" class="wg"/>')
-    push(f'<circle cx="{outX}" cy="{y}" r="4" fill="#ffffff" stroke="#374151" stroke-width="2"/>')
+    # 源出口端子（白底圆）+ ADC 引脚端子：两处分开标注，探针点(黑实心)在 C7 之后
+    push(f'<circle cx="{srcX}" cy="{y}" r="4" fill="#ffffff" stroke="#374151" stroke-width="2"/>')
+    push(f'<circle cx="{pinX}" cy="{y}" r="4" fill="#ffffff" stroke="#2563eb" stroke-width="2"/>')
+push(f'<text x="{srcX+10}" y="{yP-12}" font-size="11" fill="#64748b">输出</text>')
+push(f'<text x="{srcX+10}" y="{yN+22}" font-size="11" fill="#64748b">输出</text>')
 
-# 电阻（画在主干之上）
-res_h(R1x, yP, "R1", "6.19Ω"); res_h(R1x, yN, "R4", "6.19Ω")
-res_h(R2x, yP, "R2", "6.04Ω"); res_h(R2x, yN, "R5", "6.04Ω")
-res_h(R3x, yP, "R3", "13.7Ω"); res_h(R3x, yN, "R6", "13.7Ω")
+# 电阻（只画矩形+标签；主干分段线已由上方循环断开画好）
+res_h(R1x, yP, "R1", "6.19Ω");  res_h(R1x, yN, "R4", "6.19Ω")
+res_h(R2x, yP, "R2", "6.04Ω");  res_h(R2x, yN, "R5", "6.04Ω")
+res_h(R3x, yP, "R3", "13.7Ω");  res_h(R3x, yN, "R6", "13.7Ω")
 
 # 结点（级间三路交汇：主干 + 电容支路）
 for x in (R1x, R2x, R3x):
@@ -128,30 +129,31 @@ for cpx, rx, lb, vv in ((CP1, R1x, "C1", "68nF"), (CP2, R2x, "C2", "68nF"), (CP3
     cap_g(cpx, yP - RES_H//2 - 2, lb, vv, up=True)
 cap_g(R1x, yN + RES_H//2 + 2, "C4", "68nF"); cap_g(R2x, yN + RES_H//2 + 2, "C5", "68nF"); cap_g(R3x, yN + RES_H//2 + 2, "C6", "27nF")
 cap_d(CDx, yP, yN, "C7", "12nF")
-# C_diff 分支结点
-push(f'<circle cx="{CDx}" cy="{yP}" r="4.5" fill="#111827"/>')
-push(f'<circle cx="{CDx}" cy="{yN}" r="4.5" fill="#111827"/>')
+# C_diff 分支结点 + 出口结点（outX）
+for xx in (CDx, outX):
+    push(f'<circle cx="{xx}" cy="{yP}" r="4.5" fill="#111827"/>')
+    push(f'<circle cx="{xx}" cy="{yN}" r="4.5" fill="#111827"/>')
 
-# 顶部地母线（P 电容用）
+# 顶部地母线（P 电容用）+ 地符号竖直搭接于母线左端
 push(f'<line x1="{R1x-40}" y1="{GND_TOP}" x2="{R3x+40}" y2="{GND_TOP}" class="w"/>')
-gxt = R2x + 150
-push(f'''<line x1="{gxt-22}" y1="{GND_TOP}" x2="{gxt+22}" y2="{GND_TOP}" stroke="#374151" stroke-width="2.2"/>
-<line x1="{gxt-14}" y1="{GND_TOP+6}" x2="{gxt+14}" y2="{GND_TOP+6}" stroke="#374151" stroke-width="2"/>
-<line x1="{gxt-6}" y1="{GND_TOP+12}" x2="{gxt+6}" y2="{GND_TOP+12}" stroke="#374151" stroke-width="1.8"/>
-<text x="{R1x-40}" y="{GND_TOP-10}" font-size="11" fill="#94a3b8">GND（3V3_A 参考地，同网络）</text>''')
+gxt = R1x - 70
+push(f'''<line x1="{gxt}" y1="{GND_TOP}" x2="{gxt}" y2="{GND_TOP+14}" stroke="#374151" stroke-width="2"/>
+<line x1="{gxt-18}" y1="{GND_TOP+14}" x2="{gxt+18}" y2="{GND_TOP+14}" stroke="#374151" stroke-width="2.2"/>
+<line x1="{gxt-11}" y1="{GND_TOP+20}" x2="{gxt+11}" y2="{GND_TOP+20}" stroke="#374151" stroke-width="2"/>
+<line x1="{gxt-4}" y1="{GND_TOP+26}" x2="{gxt+4}" y2="{GND_TOP+26}" stroke="#374151" stroke-width="1.8"/>
+<text x="{gxt-10}" y="{GND_TOP-10}" font-size="11" fill="#94a3b8" text-anchor="end">GND（3V3_A 参考地，同网络）</text>''')
 
-# 地母线 + 单一地符号
+# 底部地母线 + 地符号竖直搭接于母线左端
 push(f'<line x1="{R1x-40}" y1="{GND}" x2="{R3x+40}" y2="{GND}" class="w"/>')
-gx = R2x + 150
-push(f'''<line x1="{gx-22}" y1="{GND}" x2="{gx+22}" y2="{GND}" stroke="#374151" stroke-width="2.2"/>
-<line x1="{gx-14}" y1="{GND+6}" x2="{gx+14}" y2="{GND+6}" stroke="#374151" stroke-width="2"/>
-<line x1="{gx-6}" y1="{GND+12}" x2="{gx+6}" y2="{GND+12}" stroke="#374151" stroke-width="1.8"/>''')
-push(f'<text x="{R1x-40}" y="{GND+30}" font-size="11" fill="#94a3b8">GND（3V3_A 参考地）</text>')
+gx = R1x - 70
+push(f'''<line x1="{gx}" y1="{GND}" x2="{gx}" y2="{GND+14}" stroke="#374151" stroke-width="2"/>
+<line x1="{gx-18}" y1="{GND+14}" x2="{gx+18}" y2="{GND+14}" stroke="#374151" stroke-width="2.2"/>
+<line x1="{gx-11}" y1="{GND+20}" x2="{gx+11}" y2="{GND+20}" stroke="#374151" stroke-width="2"/>
+<line x1="{gx-4}" y1="{GND+26}" x2="{gx+4}" y2="{GND+26}" stroke="#374151" stroke-width="1.8"/>
+<text x="{gx+26}" y="{GND+22}" font-size="11" fill="#94a3b8">GND（3V3_A 参考地）</text>''')
 
 # ---------- ADC ----------
 push(f'''<rect x="{pinX}" y="180" width="220" height="470" class="adcbx" rx="6"/>
-<circle cx="{pinX}" cy="{yP}" r="4" fill="#ffffff" stroke="#2563eb" stroke-width="2"/>
-<circle cx="{pinX}" cy="{yN}" r="4" fill="#ffffff" stroke="#2563eb" stroke-width="2"/>
 <text x="{pinX+110}" y="212" font-size="15" font-weight="bold" fill="#1d4ed8" text-anchor="middle">ADS131A02</text>
 <text x="{pinX+110}" y="232" font-size="11" fill="#64748b" text-anchor="middle">ΣΔ 24bit · 128 kSPS · OSR=32</text>
 <text x="{pinX+14}" y="{yP-10}" font-size="12" font-weight="bold" fill="#2563eb">AIN1P</text>
