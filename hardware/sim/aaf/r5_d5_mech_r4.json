@@ -1,0 +1,281 @@
+{
+  "note": "第 4 轮机理实验 E1-E5（LTspice 真实 OPA388，2 V 差分阶跃/10 ns 沿/0.01% 带）",
+  "experiments": {
+    "E1": {
+      "E1_B_r1_2.74_rs0": {
+        "tail_pp_uv": 0.001609927080536977,
+        "f_osc_khz": 0.0,
+        "v_ss": 1.99930866877467,
+        "t_settle_us": 57.62712587489039,
+        "npts": 20723,
+        "stable": true,
+        "rs_ohm": 0,
+        "ideal_follower": false,
+        "include": "lib"
+      },
+      "E1_B_r1_2.74_rs50000": {
+        "tail_pp_uv": 295046.57212376717,
+        "f_osc_khz": 158.51011351463816,
+        "v_ss": 1.934613645826247,
+        "t_settle_us": 400.0,
+        "npts": 27230,
+        "stable": false,
+        "rs_ohm": 50000.0,
+        "ideal_follower": false,
+        "include": "lib"
+      },
+      "E1_B_r1_2.74_rs100000": {
+        "tail_pp_uv": 498929.97033905506,
+        "f_osc_khz": 120.01328449285538,
+        "v_ss": 1.9285159372382936,
+        "t_settle_us": 400.0,
+        "npts": 24504,
+        "stable": false,
+        "rs_ohm": 100000.0,
+        "ideal_follower": false,
+        "include": "lib"
+      },
+      "E1_B_r1_2.74_rs220000": {
+        "tail_pp_uv": 654280.2717053929,
+        "f_osc_khz": 101.17754426655074,
+        "v_ss": 1.9716956285575302,
+        "t_settle_us": 400.0,
+        "npts": 25879,
+        "stable": false,
+        "rs_ohm": 220000.0,
+        "ideal_follower": false,
+        "include": "lib"
+      },
+      "E1_B_r1_2.74_rs600000": {
+        "tail_pp_uv": 0.0045790491398634,
+        "f_osc_khz": 233.64485981320507,
+        "v_ss": 1.999302800152852,
+        "t_settle_us": 84.52502198487572,
+        "npts": 20571,
+        "stable": true,
+        "rs_ohm": 600000.0,
+        "ideal_follower": false,
+        "include": "lib"
+      }
+    },
+    "E2": {
+      "E2_B68_rs0": {
+        "tail_pp_uv": 0.0016395800273016903,
+        "f_osc_khz": 0.0,
+        "v_ss": 1.9991838398697699,
+        "t_settle_us": 38.98400494523245,
+        "npts": 21473,
+        "stable": true,
+        "rs_ohm": 0,
+        "ideal_follower": false,
+        "include": "lib"
+      },
+      "E2_B68_rs50000": {
+        "tail_pp_uv": 0.0016412768921725274,
+        "f_osc_khz": 290.6976744187368,
+        "v_ss": 1.9991833459739625,
+        "t_settle_us": 38.80171990700823,
+        "npts": 21348,
+        "stable": true,
+        "rs_ohm": 50000.0,
+        "ideal_follower": false,
+        "include": "lib"
+      },
+      "E2_B68_rs100000": {
+        "tail_pp_uv": 0.005304656269800034,
+        "f_osc_khz": 286.73835125461875,
+        "v_ss": 1.9991828208873457,
+        "t_settle_us": 38.92265744574224,
+        "npts": 21357,
+        "stable": true,
+        "rs_ohm": 100000.0,
+        "ideal_follower": false,
+        "include": "lib"
+      },
+      "E2_B68_rs220000": {
+        "tail_pp_uv": 0.00580840375796754,
+        "f_osc_khz": 250.62656641615965,
+        "v_ss": 1.9991815887086157,
+        "t_settle_us": 37.261817911432374,
+        "npts": 21500,
+        "stable": true,
+        "rs_ohm": 220000.0,
+        "ideal_follower": false,
+        "include": "lib"
+      },
+      "E2_B68_rs300000": {
+        "tail_pp_uv": 0.011778197750444974,
+        "f_osc_khz": 185.52875695742074,
+        "v_ss": 1.999180961328918,
+        "t_settle_us": 35.51767084563762,
+        "npts": 21336,
+        "stable": true,
+        "rs_ohm": 300000.0,
+        "ideal_follower": false,
+        "include": "lib"
+      },
+      "E2_B68_rs600000": {
+        "tail_pp_uv": 0.008102738702220336,
+        "f_osc_khz": 197.62845849811336,
+        "v_ss": 1.999177963973332,
+        "t_settle_us": 41.29789331373214,
+        "npts": 21113,
+        "stable": true,
+        "rs_ohm": 600000.0,
+        "ideal_follower": false,
+        "include": "lib"
+      }
+    },
+    "E2b": {
+      "E2b_FIN_rs0": {
+        "tail_pp_uv": 0.0014530530112466522,
+        "f_osc_khz": 0.0,
+        "v_ss": 1.9991884513165394,
+        "t_settle_us": 36.112159713576375,
+        "npts": 21628,
+        "stable": true,
+        "rs_ohm": 0,
+        "ideal_follower": false,
+        "include": "lib"
+      },
+      "E2b_FIN_rs100000": {
+        "tail_pp_uv": 0.004240858553217208,
+        "f_osc_khz": 261.95153896541495,
+        "v_ss": 1.9991874320825642,
+        "t_settle_us": 38.98459879324242,
+        "npts": 21437,
+        "stable": true,
+        "rs_ohm": 100000.0,
+        "ideal_follower": false,
+        "include": "lib"
+      },
+      "E2b_FIN_rs220000": {
+        "tail_pp_uv": 0.0036011968962412766,
+        "f_osc_khz": 316.4556962026955,
+        "v_ss": 1.9991861980335295,
+        "t_settle_us": 40.01090693053537,
+        "npts": 21186,
+        "stable": true,
+        "rs_ohm": 220000.0,
+        "ideal_follower": false,
+        "include": "lib"
+      },
+      "E2b_FIN_rs600000": {
+        "tail_pp_uv": 0.01214608413846463,
+        "f_osc_khz": 207.25388601046652,
+        "v_ss": 1.9991825764603002,
+        "t_settle_us": 37.81833963964789,
+        "npts": 21122,
+        "stable": true,
+        "rs_ohm": 600000.0,
+        "ideal_follower": false,
+        "include": "lib"
+      }
+    },
+    "E3": {
+      "E3_B_r1_2.74_rs100000_gear20n": {
+        "tail_pp_uv": 498929.97033905506,
+        "f_osc_khz": 120.01328449285538,
+        "v_ss": 1.9285159372382936,
+        "t_settle_us": 400.0,
+        "npts": 24504,
+        "stable": false,
+        "rs_ohm": 100000.0,
+        "ideal_follower": false,
+        "include": "lib"
+      },
+      "E3_B_r1_2.74_rs100000_trap40n": {
+        "tail_pp_uv": 498807.1894164123,
+        "f_osc_khz": 143.86539852630432,
+        "v_ss": 1.926476596310062,
+        "t_settle_us": 400.0,
+        "npts": 12664,
+        "stable": false,
+        "rs_ohm": 100000.0,
+        "ideal_follower": false,
+        "include": "lib"
+      }
+    },
+    "E4": {
+      "E4_noCin_rs0": {
+        "tail_pp_uv": 0.0016044572337392538,
+        "f_osc_khz": 447.4272930651032,
+        "v_ss": 1.9993086691237854,
+        "t_settle_us": 57.617719727257025,
+        "npts": 21020,
+        "stable": true,
+        "rs_ohm": 0,
+        "ideal_follower": false,
+        "include": "noCin"
+      },
+      "E4_noCin_rs220000": {
+        "tail_pp_uv": 0.009824268953906312,
+        "f_osc_khz": 311.52647975093487,
+        "v_ss": 1.9993064326960988,
+        "t_settle_us": 57.70987780583749,
+        "npts": 21106,
+        "stable": true,
+        "rs_ohm": 220000.0,
+        "ideal_follower": false,
+        "include": "noCin"
+      },
+      "E4_noCin_rs600000": {
+        "tail_pp_uv": 0.009960445801482365,
+        "f_osc_khz": 342.46575342484755,
+        "v_ss": 1.999302648858966,
+        "t_settle_us": 57.85404471191166,
+        "npts": 21020,
+        "stable": true,
+        "rs_ohm": 600000.0,
+        "ideal_follower": false,
+        "include": "noCin"
+      },
+      "E4_noCin_rs100000_gear20n": {
+        "tail_pp_uv": 0.008013255170524758,
+        "f_osc_khz": 272.85129604378335,
+        "v_ss": 1.99930770525029,
+        "t_settle_us": 57.65883248653495,
+        "npts": 21093,
+        "stable": true,
+        "rs_ohm": 100000.0,
+        "ideal_follower": false,
+        "include": "noCin"
+      }
+    },
+    "E5": {
+      "E5_ideal_rs0": {
+        "tail_pp_uv": 8.881784197001252e-10,
+        "f_osc_khz": 0.0,
+        "v_ss": 1.9993085468286123,
+        "t_settle_us": 29.39050710770037,
+        "npts": 20076,
+        "stable": true,
+        "rs_ohm": 0,
+        "ideal_follower": true,
+        "include": "lib"
+      },
+      "E5_ideal_rs100000": {
+        "tail_pp_uv": 0.0,
+        "f_osc_khz": 0.0,
+        "v_ss": 1.999308546828606,
+        "t_settle_us": 29.39050711729724,
+        "npts": 20076,
+        "stable": true,
+        "rs_ohm": 100000.0,
+        "ideal_follower": true,
+        "include": "lib"
+      },
+      "E5_ideal_rs600000": {
+        "tail_pp_uv": 0.0,
+        "f_osc_khz": 0.0,
+        "v_ss": 1.999308546828639,
+        "t_settle_us": 29.39050710393262,
+        "npts": 20076,
+        "stable": true,
+        "rs_ohm": 600000.0,
+        "ideal_follower": true,
+        "include": "lib"
+      }
+    }
+  }
+}

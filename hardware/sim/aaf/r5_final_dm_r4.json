@@ -1,0 +1,18 @@
+{
+  "FINDM_rs0": {
+    "pin_peak_db": 0.0,
+    "pin_peak_khz": 0.0001,
+    "foll_peak_db": 4.768160314553221,
+    "foll_peak_khz": 278.6121168628812,
+    "g_16k_db": -0.18487081712129372,
+    "g_fmod_db": 84.64337835974926
+  },
+  "FINDM_rs600k": {
+    "pin_peak_db": 0.0,
+    "pin_peak_khz": 0.0001,
+    "foll_peak_db": 0.0,
+    "foll_peak_khz": 0.0001,
+    "g_16k_db": -0.49236586371867347,
+    "g_fmod_db": 124.61059474268188
+  }
+}
