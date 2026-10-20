@@ -20,6 +20,9 @@
 > ⑧ **HSE/LSE 定位 = 扩展焊盘**（用户 2026-10-20 定）：晶振 + 负载电容 + 反馈电阻**必须画进原理图**（否则无法布局布线），SMT 按需不贴——HSE 默认不贴（免晶振）、LSE 默认贴（RTC）；
 > ⑨ TF 卡供电定版 **U8 TPS22917DBVR** 高边开关（图上已实现，SLVSDW8B 逐项核过）；EDA 网名待标准化：`SD_CLX`→`SD_CK`、卡轨自动名→`3V3_SD`、`CURR`→`CURR_DIS`；
 > ⑩ 2026-10-20 全工程网表终审（五页 142 器件/83 网）：本表脚位再次全部成立；**VNCP 反勘误 = 270 nF**（SBAS590E 精确值，本表旧写"1 µF"系笔误，图上 C30 正确）。
+> ⑪ **同日二次重排（就近原则，PCB 布局驱动）**：PA8/PA9/PA10 位于封装顶边、与 PA4–PA7（左下 20–23 脚一带）对角相望 →
+> ADC 控制簇收拢左下：**PA1 = ADC_DONE、PA2 = nRESET、PA3 = DRDY(EXTI3)**，与 SPI1 构成 **PA1–PA7 物理连续簇（封装 15–23 脚）**；
+> **调试口 LPUART1(PA2/PA3) 改为 USART1(PA9/PA10, AF7)**，与 SWD 同侧、J3 扩 8P；**PA8 转预留（现预留 PA8/PB0）**。
 >
 > ✅ **全表引脚存在性 / AF / 通道号已按 DS14216 核实（2026-10-14 二轮复核 + 2026-10-16 三次复核逐脚再验，结论不变；2026-10-20 网表终审再次成立）**；
 > 遗留待核仅 RM0456 四项（主文档 E.10 #17）+ PB4 复位态对默认充电档的影响（§ 1.1、E.8.4）。
@@ -34,10 +37,10 @@
 | --- | --- | --- | --- |
 | **ADS131A02（PA 侧扇出）** | PA5 / PA6 / PA7 | SCLK / MISO / MOSI | SPI1（AF5），**模式 1**（CPOL=0 / CPHA=1） |
 | | PA4 | nCS | GPIO，默认**高** |
-| | **PA8** | nRESET | GPIO，默认**高**；低有效，脉宽 ≥800 ns（**原 PB0**） |
-| | **PA9** | DRDY | **EXTI9**，内部上拉，**下降沿**（**二轮复核改**：原 PC4 在 LQFP64_SMPS 未引出；PA1 因 EXTI1 被 PB1 占用而不可用） |
-| | **PA10** | ADC_DONE | U7-18 DONE（通信帧完成指示，低有效输出），可选监视、可不用；**2026-10-20 新增**（EDA 网名 `ADS_DONE` 已有） |
-| | | | → PA4–PA10 成连续 7 脚 ADC 相关簇（EDA 网名前缀 `ADS_*`：ADS_CS/CLK/MISO/MOSI/DRDY/RESET/DONE，与本文档 ADC_* 同义） |
+| | **PA2** | nRESET | GPIO，默认**高**；低有效，脉宽 ≥800 ns（**2026-10-20 二次重排**：原 PA8 与 SPI1 簇在封装对角，违背就近原则） |
+| | **PA3** | DRDY | **EXTI3**，内部上拉，**下降沿**（原 PA9/EXTI9，PA9 让予 USART1 调试口；EXTI0/1/15 已被按键与 SD_CD 占用，EXTI3 空闲已核） |
+| | **PA1** | ADC_DONE | U7-18 DONE（通信帧完成指示，低有效输出），可选监视、可不用（原 PA10；WKUP3 让出——唤醒仍有 PA0/WKUP1、PB1/WKUP4）（EDA 网名 `ADS_DONE` 已有） |
+| | | | → **PA1–PA7 物理连续模拟簇**（封装 15–23 脚，中间仅隔 18/19 VSS/VDD 对；PC0/PC1 监测在 8/9 脚、VDDA/VSSA 在 12/13，同处左下模拟角）；PA8/PA9/PA10 位于对侧顶边，不再跨片扇出（EDA 网名前缀 `ADS_*` 与本文档 ADC_* 同义） |
 | **内部 ADC1 监测（PC 侧）** | PC0 | VBAT_MON | **ADC1_IN1**，电池分压 2×1 MΩ + 100 nF（常通 ~2 µA） |
 | | **PC1** | **VBUS_MON** | **ADC1_IN2**，VBUS 分压 **1 MΩ / 1 MΩ + 100 nF**（比 0.5）；判"USB 在线"阈值 3.70 V |
 | | 内部 | VREFINT | 反推 VDDA（外部分压测轨是恒等式，测不出）。采样时间依据 **DS14216 Table 37 `tS_vrefint = 12.65 µs typ`** → @16 MHz 取 **≥320 周期**；旧文档"最小 ≥4 µs"系误引 `tstart_vrefint`（缓冲启动时间），2026-10-16 已勘误。离散档枚举 DS14216 未载 → E.10 #17④ |
@@ -58,7 +61,7 @@
 | | ~~PA9~~ | ~~VBUS~~ | ❌ **撤销**：本芯片 USB 无 VBUS sensing（CubeMX 无此项）；PA9 已改作 ADC_DRDY（见上） |
 | **I²C1（TMP117 四线探头）** | PB6 / PB7 | SCL / SDA | AF4，4.7 kΩ 上拉在主板侧 |
 | | ~~PB8~~ | ~~ALERT~~ | ❌ 取消（探头仅 VDD/GND/SDA/SCL），PB8 转予 SEL_K2 |
-| **调试日志** | PA2 / PA3 | LPUART1 TX / RX | 预留焊盘，115200；**U545 无 USART2**（DS14216 §3.32），PA2/PA3 上为 LPUART1（AF8） |
+| **调试日志（USART1）** | **PA9 / PA10** | USART1 TX / RX | AF7；**2026-10-20 由 LPUART1(PA2/PA3) 改**——与 SWD(PA13/14)、SWO(PB3) 同侧组成右侧调试区，J3 扩为 8P；115200。**U545 无 USART2** 不受影响（USART1 独立存在，DS14216 §3.32） |
 | **SWD 调试口** | PA13 / PA14 / PB3 / 引脚 7 | SWDIO / SWCLK / SWO / NRST | `Trace_Asynchronous_SW`：SWO 占 PB3、**NJTRST(PB4) 释放**作 ISET_HI |
 | **档位 LED ×4** | PC2 / PC3 / **PB14** / PC6 | 绿 / 黄 / 橙 / 红 | 灌电流，**默认高 = 灭**；同一时刻只亮一档（**二轮复核改**：原 PC5 在 LQFP64_SMPS 未引出，橙灯改 PB14） |
 | **状态 LED** | PC7 | PWR/USB | 灌电流，默认高（**原 PA8**） |
@@ -76,7 +79,7 @@
 
 | 端口 | 引脚分配 |
 | --- | --- |
-| **PA** | 0=MEAS_BTN · 1=预留(WKUP3) · 2=LPUART1_TX · 3=LPUART1_RX · 4=ADC_nCS(ADS_CS) · 5=SPI1_SCK(ADS_CLK) · 6=SPI1_MISO(ADS_MISO) · 7=SPI1_MOSI(ADS_MOSI) · 8=ADC_nRESET(ADS_RESET) · 9=ADC_DRDY(ADS_DRDY) · 10=ADC_DONE(ADS_DONE) · 11=USB_DM · 12=USB_DP · 13=SWDIO · 14=SWCLK · 15=SD_CD |
+| **PA** | 0=MEAS_BTN · 1=ADC_DONE(ADS_DONE) · 2=ADC_nRESET(ADS_RESET) · 3=ADC_DRDY(ADS_DRDY) · 4=ADC_nCS(ADS_CS) · 5=SPI1_SCK(ADS_CLK) · 6=SPI1_MISO(ADS_MISO) · 7=SPI1_MOSI(ADS_MOSI) · 8=预留 · 9=USART1_TX · 10=USART1_RX · 11=USB_DM · 12=USB_DP · 13=SWDIO · 14=SWCLK · 15=SD_CD |
 | **PB** | 0=预留 · 1=PWR_BTN · 2=SEL_SENSE · 3=SWO · 4=ISET_HI · 5=BQ_TS · 6=I2C1_SCL · 7=I2C1_SDA · 8=SEL_K2 · ~~9~~**未引出** · 10=CURR_DIS · ~~11/12~~**未引出** · 13=SD_PWR_EN · 14=LED_ORANGE · 15=ANA_EN |
 | **PC** | 0=VBAT_MON · 1=VBUS_MON · 2=LED_GREEN · 3=LED_YELLOW · ~~4/5~~**未引出** · 6=LED_RED · 7=PWR_LED · 8=SD_D0 · 9=SD_D1 · 10=SD_D2 · 11=SD_D3 · 12=SD_CK · 13=**不用**(VSW) · 14=LSE_IN · 15=LSE_OUT |
 | **PD** | 2=SD_CMD |
@@ -103,10 +106,11 @@
 
 ### 1.4 预留脚
 
-**PA1（WKUP3）、PB0**；**PC13 不使用**（经 VSW 供电，仅 3 mA/30 pF）。
+**PA8、PB0**；**PC13 不使用**（经 VSW 供电，仅 3 mA/30 pF）。
 
 > **预留消耗史**：2026-10-14 原 SPI2 预留组四脚用尽（PB13→SD_PWR_EN、PB14→LED 橙、PB15→ANA_EN、PB9→SD_CD 后改 PA15）；
-> 2026-10-20 再耗两脚：**PB5**（SEL_K1 取消后腾出）→ BQ_TS 门控、**PA10** → ADC_DONE。
+> 2026-10-20 再耗：**PB5**（SEL_K1 取消后腾出）→ BQ_TS、**PA1/PA2/PA3**（LPUART1 撤销让位）→ ADC_DONE/nRESET/DRDY；
+> **PA8/PA9/PA10** 因与 SPI1 簇对角、违背就近原则让出——PA9/PA10 转调试 USART1，PA8 入预留。
 > 该预留本为 PT100+MAX31865 而留，**PT100 已于 E.5.2 否决**，预留失效合理。
 
 ---
@@ -207,7 +211,7 @@ RON ≈90 mΩ typ / 110 mΩ max @3.6 V·25 ℃ → 100 mA 写瞬态压降 ≤11 
 > **两种模式**：四线制（JP1/JP2 不焊）4 线 + 2 只 Kelvin 夹，引线/接触/K1–K4 导通电阻不进结果（≈0 误差）；两线制（JP1/JP2 焊上）只用 J5、J7，误差 = (引线+接触)/R_sample —— 0.5 Ω 在 73 Ω 处 0.68%、10 kΩ 处 0.005%、120 kΩ 处 0.0004%。
 > **屏蔽**：4 只 SMA 外壳 → AGND（仪器侧单端）；电缆 4 芯屏蔽（I+/I− 与 V+/V− 各双绞）。接线示意见 `docs/design/diagram/两电极四线制接法.svg`。
 
-### 调试口（J3）— 6P 排针
+### 调试口（J3）— 8P 排针（**2026-10-20 6P→8P**，加 USART1 串口）
 
 | 引脚 | 信号 | 说明 |
 | --- | --- | --- |
@@ -217,6 +221,8 @@ RON ≈90 mΩ typ / 110 mΩ max @3.6 V·25 ℃ → 100 mA 写瞬态压降 ≤11 
 | 4 | SWCLK (PA14) | — |
 | 5 | NRST | MCU 复位 |
 | 6 | SWO (PB3) | TRACESWO |
+| 7 | USART1_TX (PA9) | 调试日志 115200 |
+| 8 | USART1_RX (PA10) | — |
 
 ### TMP117 温度探头（J4）— 4P 焊盘（1.25 mm 间距，连接器用户自选）
 
@@ -282,3 +288,6 @@ RON ≈90 mΩ typ / 110 mΩ max @3.6 V·25 ℃ → 100 mA 写瞬态压降 ≤11 
   **缺口 = MCU 信号扇出未画**：SD 全部信号 + 33 Ω×6、PB 簇控制（PB2/5/8/10/13/15）、SPI1 簇 + PA10、USB、VBAT_MON/VBUS_MON 分压、
   I2C1 + TMP117、SWD J3、LPUART1 焊盘、档位 LED ×4 + 状态 LED、MEAS/PWR 按键。
   GUI 配置新增两脚：**PA10**（GPIO 输入）、**PB5**（GPIO 输出），其余按本表；另改晶振负载电容初值（§ 1.1 HSE/LSE 行）。
+- **2026-10-20 二次重排后的 GUI 变化**：**新增 USART1 IP**（PA9/PA10，AF7——GUI 手动加，老规矩 IOC 不可手改）；**删除 LPUART1**；
+  **PA1**（GPIO 输入 = ADS_DONE）、**PA2**（GPIO 输出 = ADS_RESET）、**PA3**（EXTI3 下降沿 + 内部上拉 = ADS_DRDY）、**PA8** 释放。
+  EDA 侧网名不变（`ADS_*` 照旧），只是标签落到新引脚；调试网名 `USART1_TX/RX`。

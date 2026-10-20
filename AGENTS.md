@@ -11,7 +11,7 @@
 2. `docs/design/2026-10-10-universal-signal-chain.md` — 主设计文档：
    **附录 D** = 应用需求与指标（需求来源）；**附录 E** = 硬件实现定稿（**E.1–E.11**，E.11 = TF 记录子系统）。
    **两者冲突时以附录 E 为准**；更早版本文档（V1.0~V2.2）仅是决策历史，不得据此实现。
-3. `docs/design/pin-assignment.md` — **引脚分配总表**（2026-10-14 重排定稿；**2026-10-20 v3 重分配**：PB5=BQ_TS、PA10=ADC_DONE、HSE/LSE=扩展焊盘，含 MCU/ADC/SDMMC/连接器/信号网络）
+3. `docs/design/pin-assignment.md` — **引脚分配总表**（2026-10-14 重排定稿；**2026-10-20 v3 重分配 + 同日就近二次重排**：PB5=BQ_TS、HSE/LSE=扩展焊盘、ADC 簇收拢 PA1–PA7、调试改 USART1(PA9/PA10)，含 MCU/ADC/SDMMC/连接器/信号网络）
 4. `docs/design/HANDOFF.md` — 新会话交接提示词（设计线 + Obsidian 归档线）
 5. `firmware/DE-DRM/CUBEMX_SETUP.md` — CubeMX GUI 配置清单（改工程配置前必读；
    **⚠️ IOC 不可手改加 IP，见「已被否决」末条**）
@@ -68,7 +68,7 @@
 | MCU | STM32U545RET6Q（M33 160 MHz、512 KB Flash、274 KB SRAM、USB FS 双角色（DRD）、LQFP-64、**SMPS 版**；手册 **DS14216**，非 U575 的 DS13737） |
 | **存储/记录** | **两层（2026-10-14 新增，E.11）**：校准系数 → MCU Flash（EEPROM 仿真）；**测量数据 → 外部 TF (micro SD) 卡，SDMMC1 4-bit**（PC8–PC12 + PD2，CD=**PA15**（原 PB9 在 LQFP64_SMPS 未引出，二轮复核改），**SD_PWR_EN=PB13 控制高边开关默认断电**）。768 KB/s 冲击采满远超 512 KB Flash 能力 |
 | 温度/电源/通信 | TMP117 外置 4 线探头（**PT100 已否**：贴装温差是瓶颈非传感器精度，2026-10-14 定稿，E.5.2；备选升级口：同位参考试件 K5/K6）；1S 锂电 + BQ24040 + 双 LDO（**数字 TPS7A0233 常开 / 模拟 TPS7A2033 EN 受控**）；USB FS（Type-C；**设备模式片内支持 BC1.2 BCD**，E.8.4）；**USB 在线检测 = VBUS 分压 1M/1M → PC1 内部 ADC（IN2），阈值 3.70 V**（非 OTG 硬件 VBUS，见 E.8.3）。⚠️ **`ISET_HI`(PB4) 复位期是 NJTRST + 内部上拉、不是 Low**（DS14216 Table 27 注 4）→ "默认 500 mA"须由外部下拉或反相驱动保证，**原理图阶段核** |
-| 引脚/时钟/电源域/交互 | **引脚 2026-10-14 全表重排定稿 + 二轮复核 + 2026-10-16 三次复核逐脚再验；2026-10-20 v3 重分配（PB5=BQ_TS 门控、PA10=ADC_DONE、HSE/LSE=扩展焊盘，预留仅剩 PA1/PB0）**（原则：通信 AF 不动 + 辅助 GPIO 同端口聚堆；**LQFP64_SMPS 无 PC4/PC5/PB9/PB12**；ADC 簇 PA4–PA9+DONE=**PA10**、TMUX 簇 PB2/8（PB5=BQ_TS）、LED 簇 PC2/3/**PB14**/6+状态 PC7、ANA_EN=**PB15**、SD_CD=**PA15**、调试串口=**LPUART1**(PA2/PA3，U545 无 USART2)）；时钟/电源域/交互见 E.7–E.9；E.5.5 三项待办已销号 |
+| 引脚/时钟/电源域/交互 | **引脚 2026-10-14 全表重排定稿 + 2026-10-20 v3 重分配（PB5=BQ_TS 门控、HSE/LSE=扩展焊盘）+ 同日就近二次重排**：ADC 簇收拢 **PA1–PA7 物理连续**（DONE=PA1、nRESET=PA2、DRDY=**PA3·EXTI3**、SPI1=PA4–7，封装 15–23 脚）；调试=**USART1(PA9/PA10, AF7)** 与 SWD 同侧（LPUART1 撤销）；预留=**PA8/PB0**（原则：通信 AF 不动 + 辅助 GPIO 同端口聚堆 + **封装就近**；**LQFP64_SMPS 无 PC4/PC5/PB9/PB12**；TMUX 簇 PB2/8（PB5=BQ_TS）、LED 簇 PC2/3/**PB14**/6+状态 PC7、ANA_EN=**PB15**、SD_CD=**PA15**；U545 无 USART2 不影响 USART1） |
 
 ## 硬约束（改任何参数都要复核）
 
