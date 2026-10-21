@@ -109,37 +109,41 @@
 - [ ] Speed Mode：**Fast**（400 kHz）
 - [ ] **ALERT 不接**（探头四线）；4.7 kΩ 上拉在主板侧
 
-### 2.5 SDMMC1 — TF 卡 4-bit（🟥 全新，当前 IOC 没有）
+### 2.5 SDMMC1 — TF 卡 4-bit（2026-10-21 已配置，核对）
 
-- [ ] Mode：**SDMMC 4-bit**（自动占 PC8=D0 / PC9=D1 / PC10=D2 / PC11=D3 / PC12=CK，
-  CMD 选 **PD2**）
-- [ ] Parameter Settings：
-  - Clock division：**按 kernel 48 MHz 分频得 ≤24 MHz**（初始化用低速、握手后 SD 自主升速）
-  - Clock division bypass：Disabled
-  - Data timeout：0xFF（初值宽裕）
-  - **Bus width：4 bits**
-  - **Use DMA：ON**（SDMMC 自带 DMA；768 KB/s 靠 CPU 搬运会拖累采样链）
-- [ ] 🟥 **不要选 CKIN**（SDR12/SDR25 以下不需反馈时钟；本设计 24 MHz 起步）
+- [x] **Mode：`SD 4 bits Wide bus`**（PC8–PC12 + PD2；**不是** `SDIO 4 bits Wide bus`——
+  SDIO 与 SD 卡语义不同，FileX uSD 驱动走的是 `HAL_SD_*` 不是 `HAL_SDIO_*`，选错无法识别 TF 卡）
+- [x] Parameter Settings：
+  - Clock Edge：**Rising**（与官方 `Fx_uSD_File_Edit` 一致）
+  - Clock Power Save：**Disable**
+  - Bus Wide：**4 bits**
+  - Hardware Flow Control：**Disable**
+  - Clock Div：**0**（48 MHz 直通；ClockDiv=2 → 12 MHz 浪费 4× 带宽余量）
+- [x] **DMA 模式：无需在 GUI 里勾"DMA Settings"——SDMMC 用片上 IDMA，不经 GPDMA**
+  （2026-10-21 查证 `stm32u5xx_hal_sd.c:1284-1285`：`HAL_SD_ReadBlocks_DMA` 直接写
+  `IDMABASER + IDMACTRL = SDMMC_ENABLE_IDMA_SINGLE_BUFF`，完全片上，不消耗 GPDMA 通道。
+  FileX `fx_stm32_sd_driver_glue.c:118` 就是调这个 API。）
+- [ ] 🟥 **不要选 CKIN**（SDR12/SDR25 以下不需反馈时钟；本设计 48 MHz 起步）
+- [ ] **NVIC：`SDMMC1_IRQn` 抢占优先级 = 4**（中断里完成 IDMA 中断状态机的关键，低于 ThreadX 系统调用门限）
 
-### 2.6 ADC1 — 电池 + VBUS 监测（🟥 当前 IOC 没有）
+### 2.6 ADC1 — 电池 + VBUS 监测（2026-10-21 已配置，核对）
 
-- [ ] Mode → Resolution **12 Bits**、Clock **16 MHz**、Data Alignment **Right**
-- [ ] Continuous Conversion：**Disabled**；Scan Mode：**Disabled**（软件轮询两通道）
-- [ ] **Channel configurations → Regular Conversion**：
-  - **PC0 → 通道 1（IN1）**（VBAT_MON，2×1 MΩ 分压），Rank **1**，Sampling time 取 **≥64 Cycles**（见下方档位说明）
-  - **PC1 → 通道 2（IN2）**（VBUS_MON，1 MΩ/1 MΩ 分压），Rank **2**，Sampling time 取 **≥64 Cycles**
-    —— 通道号已按 DS14216 Table 27 核实（2026-10-14 二轮复核，E.10 #12① 销号）
-  - **Internal channels → Vrefint**，Rank **3**，Sampling time 取 **≥320 Cycles**
-    —— **依据（2026-10-16 勘误）**：DS14216 **Table 37** `tS_vrefint = 12.65 µs typ` 才是"读 VREFINT 时的采样时间"，
-    16 MHz 下 ≈**202 周期** → 取 320 周期（20 µs）留余量；**此前写的"最小 ≥4 µs"是误引**，
-    4/6 µs 是同一张表的 `tstart_vrefint`＝**基准缓冲启动时间**，与采样时间两回事。
-    Table 37 注 2 另说"最短采样时间需按应用多次迭代确定" → 上板实测校。
-  - 🟨 **档位名待核（E.10 #17④）**：本清单旧版写的 "47.5 / 247.5 Cycles" 在 **DS14216 查无出处**
-    （手册只给 `ts = 5…814` 周期，Table 105）。以 **CubeMX 下拉里实际存在的档位为准**，
-    按上面两条判据就近**取大**即可，不必纠结原数值。
+- [x] Resolution **12 Bits**、Clock **16 MHz**、Data Alignment **Right**（异步 DIV1）
+- [x] Scan Mode：**Enabled（2 conversions）**；Continuous Conversion：**Disabled**
+- [x] **Regular Conversion 已配 2 通道**：
+  - **Rank 1 = IN1（PC0，VBAT_MON）**，采样时间 **68 Cycles**
+  - **Rank 2 = IN2（PC1，VBUS_MON）**，采样时间 **68 Cycles**
+- [x] **Vrefint 通道（2026-10-21 修正写法）**：
+  - ✅ **不走 Rank**——勾 **ADC1 → Mode → "Vrefint Channel"**（虚拟引脚 `VP_ADC1_Vref_Input`）
+  - ✅ **必须同步**在 ADC1 参数面板勾 `Common Path Internal → ChannelVREF`
+    （IOC 键 `ADC1.CommonPathInternal=ADC_CHANNEL_VREFINT|null|null|null` + `ADC1.SelectedChannel=ADC_CHANNEL_VREFINT`；
+    参照官方 U575 `LPBAM_ADC_IntExtChannelSwitch.ioc:368/378`）
+  - ⚠️ **曾踩坑**：把 VREFINT 塞进 Rank 3 会让 CubeMX 报"非法通道"（U545 ADC1 的 VREFINT 不是规则通道），
+    必须走 Common Path；本项 2026-10-21 已修正
+  - 采样时间：Common Path 采样时间**单独**一项（`SamplingTime Common 1`），取 **391 Cycles**（≥320 周期判据）
 - [ ] ✅ **高阻源合法性已核（E.10 #12② 销号）**：DS14216 Table 106 的 RAIN 上限（12 bit 仅 470 Ω @ 180 ns）**注 3 明示
   "Values without external capacitor"**——两路节点各带 100 nF ≫ 2^12×CADC(5 pF)≈20.5 nF，
-  单次采样电荷扰动 ≪1 LSB（注 5 的 470 Ω 还是"扫描模式 + 上通道接 VREF+、本通道接 VREF−"的最坏情形，本设计仅 3 Rank 慢轮询，余量更大）。
+  单次采样电荷扰动 ≪1 LSB。
   **固件约束：两路只做 ≥100 ms 级轮询、不得高速连扫**
   （分压 Thevenin 500 kΩ × 100 nF → τ=50 ms）；电压是慢变量，秒级轮询足够
 - [ ] Overrun = OVR_Data holds
@@ -341,3 +345,121 @@
 | VREFINT 反推的 VDDA 偏差大 | 采样档给短了：读 VREFINT 需 **≥320 周期 @16 MHz（≈20 µs）**，依据 DS14216 Table 37 `tS_vrefint = 12.65 µs typ`（**不是** 4/6 µs，那是缓冲启动时间 `tstart_vrefint`） |
 | CubeMX 里没有 47.5 / 247.5 Cycles 这一档 | 正常——DS14216 只给 `ts = 5…814` 周期，离散档属 RM0456/GUI 内容（E.10 #17④）。按 § 2.6 判据就近取大即可 |
 | CubeMX 打开后我配的东西没了 | IOC 被 CubeMX 重写过。**每次改完 Save 后 `git diff` 核对** |
+
+---
+
+## 9. 2026-10-21 IOC 集中审查与回填（按官方例程对齐）
+
+> **背景**：前一轮 GUI 改完后，仍有一批"GUI 默认值"与"官方 U545/U575 例程默认值"不一致。
+> 本轮**对照官方 NUCLEO-U545RE-Q（ThreadX / FileX / USBX CDC_ACM）与 U575I-EV（Fx_uSD_File_Edit）例程**，
+> 把 IOC 里缺失/错误的键一次性补齐。本节记录全部改动 + 未决项 + 复存 checklist。
+
+### 9.1 本轮 IOC 自动修改项（已写入 `firmware/DE-DRM/DE-DRM.ioc`，需 GUI 复存确认）
+
+#### SDMMC1
+| 键 | 旧值 | 新值 | 依据 |
+|---|---|---|---|
+| `PC8.Mode` … `PD2.Mode` | `sdio_4_bits_Wide_bus` | **`SD_4_bits_Wide_bus`** | 官方 `Fx_uSD_File_Edit.ioc:87-98`；SDIO ≠ SD，FileX uSD 驱动走 `HAL_SD_*` |
+| `SDMMC1.ClockDiv` | `2` | **`0`** | 官方 `hsd1.Init.ClockDiv = 0`（48 MHz 直通）；=2 会把 SD 时钟压到 12 MHz |
+| `SDMMC1.BusWide` | （缺） | **`SDMMC_BUS_WIDE_4B`** | 官方 `hsd1.Init.BusWide = SDMMC_BUS_WIDE_4B` |
+| `SDMMC1.ClockEdge` | （缺） | **`SDMMC_CLOCK_EDGE_RISING`** | 官方显式写出 |
+
+#### FileX（全部补齐）
+| 键 | 值 | 依据 |
+|---|---|---|
+| `FILEX.FX_SD_INTERFACE` | `1` | 官方 `Fx_uSD_File_Edit.ioc:9`；**缺它则 `fx_stm32_sd_driver_glue.c` 不生成** |
+| `FILEX.FX_APP_MEM_POOL_SIZE` | `1024*4` | 官方 4 KB |
+| `FILEX.FILEX_APPLICATION_THREAD_STACK_SIZE` | `1024*2` | 官方 2 KB |
+| `FILEX.GLUE_FUNCTIONS` | `DMA_API` | 走 `HAL_SD_ReadBlocks_DMA`（内部 IDMA） |
+| `FILEX.TRANSFER_NOTIFICATION` | `ThreadX_Semaphore` | DMA 完成用信号量唤醒 FileX 线程 |
+| `FILEX.FX_DRIVER_SDMMC_INIT` | `1` | 由 FileX 驱动做 SD 卡初始化 |
+| `FILEX.IPParameters` | 追加以上 6 项 | — |
+
+#### ThreadX（全部补齐）
+| 键 | 旧值 | 新值 | 依据 |
+|---|---|---|---|
+| `THREADX.TX_APP_MEM_POOL_SIZE` | `1024*3` | **`(3 * 1024)`** | 官方 `Tx_Thread_Creation.ioc:177` **带括号**；裸 `1024*3` 在代码生成时不被求值 |
+| `THREADX.TX_APP_CREATION` | （缺） | `1` | 官方行 175 |
+| `THREADX.TX_APP_GENERATE_INIT_CODE` | （缺） | `true` | 官方行 176 |
+| `THREADX.TX_APP_THREAD_ENTRY` | （缺） | `MainThread_Entry` | 官方行 178 |
+| `THREADX.TX_APP_THREAD_NAME` | （缺） | `Main Thread` | 官方行 179 |
+| `THREADX.TX_APP_THREAD_PRIO` | （缺） | `5` | 官方行 180 |
+| `THREADX.TX_DISABLE_PREEMPTION_THRESHOLD` | （缺） | `0` | 官方行 181 |
+
+#### USBX CDC_ACM
+| 键 | 旧值 | 新值 | 依据 |
+|---|---|---|---|
+| `USBD_CDCACM_EPIN_ADDR` | `2` | **`1`** | 官方 `Ux_Device_CDC_ACM.ioc:233`；2 与 EPINCMD 冲突 |
+| `USBD_CDCACM_EPOUT_ADDR` | `3` | **`1`** | 官方默认 1；3 超出 FS IN EP 数 |
+| `USBD_CDCACM_EPINCMD_ADDR` | （缺） | **`2`** | 官方行 232；CDC ACM 必须单独的通知端点 |
+| `UX_DEVICE_CLASS_CDC_ACM_WRITE_AUTO_ZLP` | （缺） | `1` | 官方行 241；自动补 ZLP 否则主机在恰好 64B 包边界会挂 |
+| `USBD_COMPOSITE_USE_IAD` | （缺） | `1` | 官方行 234 |
+| `UX_APP_MEM_POOL_SIZE` | （缺） | `11*1024` | 官方行 239 |
+| `USBX_SYS_SIZE` | （缺） | `4*1024` | 官方行 238 |
+| `USBD_PID` / `USBD_PRODUCT_STRING` / `USBD_SERIAL_NUMBER` | （缺） | `22336` / `STM32 Virtual ComPort` / `CDC_ACM001` | 官方行 235-237（占位，量产前换自己的 VID/PID） |
+| `USBD_VID` | （缺） | （默认 1155 = 0x0483 ST） | 官方默认 |
+| `UX_SLAVE_REQUEST_DATA_MAX_LENGTH` | （缺） | `512` | 官方行 244 |
+| `MAX_POWER_IN_MILLI_AMPER` | （缺） | `0` | 官方行 230 |
+| `BSP.number` | （缺） | `1` | 官方行 227 |
+| `UX_Device_Controller` | （缺） | `1` | 官方行 242；**缺它则 HAL PCD 不链接进 USBX** |
+| `REG_USBX_DEVICE_CON_CK` | （缺） | `0` | 官方行 231 |
+
+#### ADC1 — 启用 VREFINT（修前坑）
+| 键 | 值 | 依据 |
+|---|---|---|
+| `ADC1.CommonPathInternal` | `ADC_CHANNEL_VREFINT\|null\|null\|null` | 官方 U575 `LPBAM_ADC_IntExtChannelSwitch.ioc:368` |
+| `ADC1.SelectedChannel` | `ADC_CHANNEL_VREFINT` | 官方行 378 |
+| `ADC1.IPParameters` | 追加上两项 | — |
+| **曾错配** | ~~`ADC1.Channel-2=ADC_CHANNEL_VREFINT`~~ | U545 ADC1 的 VREFINT **不是规则通道**，塞 Rank 会被 CubeMX 拒 |
+
+#### NVIC（12 处调整）
+- `SavedPendsvIrqHandlerGenerated / SavedSvcallIrqHandlerGenerated / SavedSystickIrqHandlerGenerated` 三项 **`true → false`**
+  （**ThreadX 必须接管 PendSV/SVCall/SysTick** 做上下文切换；官方 ThreadX 例程全是 false）
+- 11 个外设中断**抢占优先级**（ThreadX 门限为 5，**SysTick=14 / TIM6=15 是 HAL 时基，不动**）：
+
+| IRQ | 新优先级 | 原因 |
+|---|---|---|
+| SDMMC1 | **4** | 持续写吞吐最敏感，**但 < 5 意味着 ISR 内不可调 `tx_*`/`fx_*`**，只能在 ISR 里 `tx_semaphore_put`（允许） |
+| EXTI15（SD_CD） | 5 | 拔插卡唤醒 |
+| EXTI3（ADS_DRDY） | 5 | 128 kSPS 数据就绪 |
+| SPI1 | 6 | ADS131A02 通信 |
+| USB | **7** | 官方 U545 CDC_ACM 例程就是 7 |
+| I2C1_EV / I2C1_ER | 8 | TMP117 |
+| USART1 | 9 | 调试日志 |
+| ADC1 | 10 | 慢速电池/VBUS 监测 |
+| EXTI0/EXTI1（MEAS_BTN/PWR_BTN） | 11 | 按键，最低 |
+
+### 9.2 未决 / 需 GUI 复存确认项
+
+| 项 | 状态 | 说明 |
+|---|---|---|
+| **IOC 已被 CubeMX GUI 复存** | 🟥 **必须做** | 手改 IOC 后**首次**用 GUI 打开，GUI 会按键值重绘界面；**Save** 后本表所有改动才真正"入指纹"。若 GUI 打开后某项回落到默认，说明该键被归一化覆盖，需 GUI 重设。 |
+| **代码生成** | 🟥 **本机 headless 不可用** | 实测 `xvfb-run STM32CubeMX -s script.txt` / `-q` 在本环境均无法生成代码（脚本加载但不写盘）。请在 GUI 里 File → Generate Code。 |
+| `ProjectManager.StackSize=0x800 / HeapSize=0x800` | 🟨 未改 | 主栈+堆各 2 KB 对 ThreadX 偏小；建议 GUI → Project Manager → Project → Linker Settings 把 HeapSize 调到 0x1000 |
+| **GPDMA1** | ✅ **不需要配置** | 2026-10-21 查证：SDMMC 用片上 IDMA（`IDMABASER`），不经 GPDMA1/LPDMA1；SPI1 当前是 polling（20 MHz × 8 bit 远低于 GPDMA 必要阈值）；USB_DRD_FS 内嵌专用 DMA 也不经 GPDMA |
+| **FreeRTOS/RT-Thread 残留** | ✅ 已清 | `Mcu.ThirdPartyNb=0` |
+| **USB Class 已定为 CDC_ACM** | ✅ 与官方例程对齐 | 与 § 2.3 旧文"建议 Custom_HID"冲突——**以本表（CDC_ACM）为准**，理由：U545 官方有完整 CDC_ACM 例程可直接抄，Custom_HID 需自写报告描述符 |
+| **E.10 #16 IOC 时钟源** | 🟥 **未修** | 需 GUI → RCC → PLL Source Mux 改 **MSIS**（IOC 里**没有** `RCC.PLLSourceVirtual` 键——已被 GUI 删，符合"HSE 不贴"定稿） |
+| **E.10 #14 SDMMC 时钟源** | ✅ **已默认 = CLK48**（`RCC.SDMMCClockSelection=RCC_SDMMCCLKSOURCE_CLK48`，`SDMMCFreq_Value=48000000`） | 与本设计一致，无需改 |
+
+### 9.3 时钟树复核（2026-10-21）
+
+| 信号 | 值 | 反推路径 |
+|---|---|---|
+| SYSCLK / HCLK / PCLK1/2/3 | **160 MHz** | MSIS 16 MHz → PLLM=3 → VCOIn=5.333 MHz → PLLN=10 → VCO=160 MHz → PLLR=1 |
+| USB / SDMMC / RNG | **48 MHz** | CK48（HSI48 + CRS 内部 SOF 同步，无外部晶振） |
+| ADC | **16 MHz** | 异步 MSIS 16 MHz / DIV1 |
+| I2C1 / USART1 / SPI1 / LPUART1 | **160 MHz** | APB 总线 |
+| SPI1 实际 | **20 MHz** | 160 MHz / 8 |
+| RTC | LSE 32.768 kHz | PC14/PC15 已占用 |
+
+✅ 与官方 `Tx_Thread_Creation.ioc` 同架构（仅 PLLM/N 取值不同，两者都合法）。  
+🟨 `PLL2/PLL3` 输出显示 3.096 GHz 是**未启用残留**——不用即不关事，但建议 GUI 里把 PLL2/PLL3 全关以省电。
+
+### 9.4 已知 Bug 记录（本次修复过程中发现并已改正）
+
+| 时间 | 现象 | 根因 | 处置 |
+|---|---|---|---|
+| 2026-10-21 19:43 | 修改后 IOC 的 NVIC 行字段从 9 降到 7 | 我的 sed 正则把 `\:` 后接数字时误吞 | 第二轮脚本重建字段，全部恢复 9 字段格式 |
+| 2026-10-21 19:51 | CubeMX headless 报 `MCU is unknown` | `load` 命令的路径被 CubeMX 拼到 `db/mcu/` 前缀下 | 不再尝试 headless，改由用户在 GUI 里 Generate Code |
+
