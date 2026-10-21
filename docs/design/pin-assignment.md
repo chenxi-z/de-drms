@@ -96,7 +96,78 @@
 > **LQFP64_SMPS 未引出脚（DS14216 Table 27，2026-10-14 二轮复核）**：**PC4、PC5、PB9、PB12**（PB11 两版 LQFP-64 均不引出）。
 > 另：该封装 28=VLXSMPS、29=VDDSMPS、30=VSSSMPS、**31 与 62 均为 VDD11**（无 VCAP）。
 
-### 1.3 MCU 电源脚（DS14216 Table 27，2026-10-14 二轮复核）
+### 1.3 按封装物理序（LQFP-64 1→64 脚，PCB 布局/装配首选视图）
+
+> 2026-10-21 三排后新增。**★ = 本次重排的通用 GPIO**（其余为通信/模拟/SDMMC/SWD 簇，全部未动）。
+
+| 脚 | 引脚 | 类型 | 信号 / 连接 |
+| --- | --- | --- | --- |
+| 1 | VBAT | Power | 接 3.3V_D（无后备电池） |
+| 2 | PC13 | I/O | **不用**（经 VSW 供电，仅 3 mA/30 pF） |
+| 3 | PC14 | I/O | LSE_IN — 32.768 kHz 晶振（默认贴，供 RTC） |
+| 4 | PC15 | I/O | LSE_OUT — 同上 |
+| 5 | PH0 | I/O | HSE_IN — 16 MHz 扩展焊盘（默认不贴，免晶振） |
+| 6 | PH1 | I/O | HSE_OUT — 同上 |
+| 7 | NRST | Reset | 复位（J3-5） |
+| 8 | PC0 | I/O | **VBAT_MON** — ADC1_IN1，2×1 MΩ 分压 |
+| 9 | PC1 | I/O | **VBUS_MON** — ADC1_IN2，1M/1M 分压，阈值 3.70 V |
+| 10 | PC2 | I/O | **ISET_HI** — BQ24040 充电档（100 kΩ 下拉，默认 500 mA）★ |
+| 11 | PC3 | I/O | **ANA_EN** — TPS7A2033 EN（smart pulldown，默认断）★ |
+| 12 | VSSA | Power | 模拟地 |
+| 13 | VDDA | Power | 3.3V_D + 100 nF + 1 µF |
+| 14 | PA0 | I/O | **MEAS_BTN** — WKUP1，内部上拉，100 nF 去抖 ★ |
+| 15 | PA1 | I/O | **ADC_DONE** — U7-18 DONE 帧完成指示（可选） |
+| 16 | PA2 | I/O | **ADC_nRESET** — 低有效，脉宽 ≥800 ns，默认高 |
+| 17 | PA3 | I/O | **ADC_DRDY** — EXTI3 下降沿，内部上拉 |
+| 18 | VSS | Power | — |
+| 19 | VDD | Power | 3.3V_D |
+| 20 | PA4 | I/O | **ADC_nCS** — GPIO，默认高 |
+| 21 | PA5 | I/O | **SPI1_SCK** — AF5，模式 1 |
+| 22 | PA6 | I/O | **SPI1_MISO** — AF5 |
+| 23 | PA7 | I/O | **SPI1_MOSI** — AF5 |
+| 24 | PB0 | I/O | **SEL_K2（SEL4）** — TMUX1134 K2 R_ref 回线 ★ |
+| 25 | PB1 | I/O | **PWR_BTN** — WKUP4，内部上拉 ★ |
+| 26 | PB2 | I/O | **SEL_SENSE** — TMUX1134 SEL1/2/3 同沿 ★ |
+| 27 | PB10 | I/O | **CURR_DIS** — 高 = 关断恒流源 ★ |
+| 28 | VLXSMPS | Power | **不启用内部 SMPS** — 处置待 RM0456（E.10 #17②） |
+| 29 | VDDSMPS | Power | 同上 |
+| 30 | VSSSMPS | Power | 同上 |
+| 31 | VDD11 | Power | 2.2 µF → VSS（内核 LDO 输出） |
+| 32 | VSS | Power | — |
+| 33 | VDD | Power | 3.3V_D |
+| 34 | PB13 | I/O | **LED_GREEN** — 绿，灌电流低亮 ★ |
+| 35 | PB14 | I/O | **LED_YELLOW** — 黄 ★ |
+| 36 | PB15 | I/O | **LED_ORANGE** — 橙 ★ |
+| 37 | PC6 | I/O | **LED_RED** — 红 ★ |
+| 38 | PC7 | I/O | **PWR_LED** — 状态灯 ★ |
+| 39 | PC8 | I/O | **SD_D0** — AF12，33 Ω 串阻 |
+| 40 | PC9 | I/O | **SD_D1** — AF12，33 Ω |
+| 41 | PA8 | I/O | **SD_PWR_EN** — TPS22917 高边开关，默认低 = 断电 ★ |
+| 42 | PA9 | I/O | **USART1_TX** — AF7，调试日志 115200 → J3-7 |
+| 43 | PA10 | I/O | **USART1_RX** — AF7 → J3-8 |
+| 44 | PA11 | I/O | **USB_DM** — AF10 |
+| 45 | PA12 | I/O | **USB_DP** — AF10 |
+| 46 | PA13 | I/O | **SWDIO** — J3-3 |
+| 47 | VSS | Power | — |
+| 48 | VDDUSB | Power | 3.3V_D + 100 nF |
+| 49 | PA14 | I/O | **SWCLK** — J3-4 |
+| 50 | PA15 | I/O | **SD_CD** — EXTI15 下降沿，内部上拉 |
+| 51 | PC10 | I/O | **SD_D2** — AF12，33 Ω |
+| 52 | PC11 | I/O | **SD_D3** — AF12，33 Ω |
+| 53 | PC12 | I/O | **SD_CK** — AF12，33 Ω |
+| 54 | PD2 | I/O | **SD_CMD** — AF12，33 Ω + 10 kΩ 上拉 3V3_SD |
+| 55 | PB3 | I/O | **SWO** — TRACESWO，J3-6 |
+| 56 | PB4 | I/O | **预留**（原 ISET_HI 已迁 PC2；复位期 NJTRST+上拉，现无害） |
+| 57 | PB5 | I/O | **BQ_TS** — Q1 栅极门控（高 = 旁路 NTC；R13 100 kΩ 下拉 = NTC 使能）★ |
+| 58 | PB6 | I/O | **I2C1_SCL** — AF4，4.7 kΩ 上拉 → J4-3 |
+| 59 | PB7 | I/O | **I2C1_SDA** — AF4，4.7 kΩ 上拉 → J4-4 |
+| 60 | PH3 | I/O | **BOOT0** — PCB 10 kΩ 下拉 |
+| 61 | PB8 | I/O | **预留**（原 SEL_K2 已迁 PB0） |
+| 62 | VDD11 | Power | 2.2 µF → VSS |
+| 63 | VSS | Power | — |
+| 64 | VDD | Power | 3.3V_D |
+
+### 1.4 MCU 电源脚（DS14216 Table 27，2026-10-14 二轮复核）
 
 | 引脚 | 连接 | 去耦 |
 | --- | --- | --- |
@@ -112,7 +183,7 @@
 > 复位后默认稳压器模式 DS14216 未载明（"选错则不上电"系推断，已降级）→ 待 RM0456（E.10 #17）。
 > ~~PDR_ON~~：**DS14216 无此脚**（F4/F7 遗绪），已删除。
 
-### 1.4 预留脚
+### 1.5 预留脚
 
 **PB4（56 脚）、PB8（61 脚）**；**PC13 不使用**（经 VSW 供电，仅 3 mA/30 pF）。
 （2026-10-21 三排：PA8 → SD_PWR_EN、PB0 → SEL4，预留由 PA8/PB0 变为 PB4/PB8。PB4 虽预留，其复位期 NJTRST+内部上拉特性无害。）
