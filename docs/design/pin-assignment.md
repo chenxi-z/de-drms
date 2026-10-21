@@ -24,7 +24,15 @@
 > ADC 控制簇收拢左下：**PA1 = ADC_DONE、PA2 = nRESET、PA3 = DRDY(EXTI3)**，与 SPI1 构成 **PA1–PA7 物理连续簇（封装 15–23 脚）**；
 > **调试口 LPUART1(PA2/PA3) 改为 USART1(PA9/PA10, AF7)**，与 SWD 同侧、J3 扩 8P；**PA8 转预留（现预留 PA8/PB0）**。
 >
-> ✅ **全表引脚存在性 / AF / 通道号已按 DS14216 核实（2026-10-14 二轮复核 + 2026-10-16 三次复核逐脚再验，结论不变；2026-10-20 网表终审再次成立）**；
+> **本版变更摘要（2026-10-21 通用 GPIO 三排，封装就近原则）**
+> ⑫ 用户提出"通用 GPIO 离得十万八千里"——按 LQFP-64 物理引脚序（CubeMX MCU XML 逐脚核）重排，
+> **通信/模拟/SDMMC/SWD/USB 簇全部不动**，只动通用 GPIO：
+> **LED 5 灯收拢 34–38 五连脚（PB13/PB14/PB15/PC6/PC7，2.5 mm）**；
+> **TMUX 控制收拢 24–27**（SEL4 由 PB8(61) → PB0(24)）；**SD_PWR_EN 由 PB13 → PA8(41)**（紧贴 SD_D0/D1）；
+> **ANA_EN 由 PB15 → PC3(11)**（左侧模拟角）；**ISET_HI 由 PB4 → PC2(10)**（消除 PB4 复位期红色待办）。
+> 预留由 PA8/PB0 改为 **PB4/PB8**。
+>
+> ✅ **全表引脚存在性 / AF / 通道号已按 DS14216 核实（2026-10-14 二轮复核 + 2026-10-16 三次复核逐脚再验，结论不变；2026-10-20 网表终审再次成立；2026-10-21 三排后逐脚再核）**；
 > 遗留待核仅 RM0456 四项（主文档 E.10 #17）+ PB4 复位态对默认充电档的影响（§ 1.1、E.8.4）。
 
 ---
@@ -48,23 +56,23 @@
 | **SDMMC1 4-bit TF（PC 侧扇出）** | PC8 / PC9 / PC10 / PC11 | D0 / D1 / D2 / D3 | AF12 |
 | | PC12 / PD2 | CK / CMD | AF12；CMD 10 kΩ 上拉到 **3V3_SD** |
 | | **PA15** | SD_CD | **EXTI15**，内部上拉，下降沿（卡座机械开关）；**二轮复核改**：原 PB9 在 LQFP64_SMPS 未引出；PA15 复位默认 JTDI，SWD 模式不用 JTAG 故作 GPIO 合法 |
-| | PB13 | SD_PWR_EN | GPIO，默认**低 = 卡断电**；控制高边开关 |
+| | **PA8** | SD_PWR_EN | GPIO，默认**低 = 卡断电**；控制高边开关（**2026-10-21 三排**：原 PB13，移至 PA8 紧贴 SD_D0/D1 扇出） |
 | | — | SD_CKIN | **不接**（SDR12/25 以下不需反馈时钟，本设计 24 MHz 起步） |
 | | — | SD_WP | **不接**（写保护由固件 FatFS 标志承担） |
-| **TMUX1134 自校准（PB 侧扇出）** | PB2 | SEL_SENSE | 同时驱动 U10 **SEL1/SEL2/SEL3**（测量线对 K3/K4、K5、K1 同沿切换），默认**低**；**2026-10-18 起**单颗 TMUX1134 替换原 5 开关 |
-| | **PB8** | SEL_K2 | U10 **SEL4**（K2 R_ref 回线）；互锁靠固件：**PB2=1 时 PB8 不得为 0**（否则样品与 R_ref 经 X 并联） |
+| **TMUX1134 自校准（PB 侧扇出，24–27 连续）** | PB2 | SEL_SENSE | 同时驱动 U10 **SEL1/SEL2/SEL3**（测量线对 K3/K4、K5、K1 同沿切换），默认**低**；**2026-10-18 起**单颗 TMUX1134 替换原 5 开关 |
+| | **PB0** | SEL_K2 | U10 **SEL4**（K2 R_ref 回线）；互锁靠固件：**PB2=1 时 PB0 不得为 0**（否则样品与 R_ref 经 X 并联）。**2026-10-21 三排**：原 PB8（顶边 61 脚）→ PB0（24 脚），与 SEL_SENSE/CURR_DIS 聚为 24–27 连续簇 |
 | **恒流源** | PB10 | CURR_DIS | **高 = 关断**、低 = 开启；复位/高阻默认 = 开启；零点模式置高 |
-| **电源管理** | **PB15** | ANA_EN | TPS7A2033 EN，默认**低**；EN 内置 smart pulldown（**二轮复核改**：原 PB12 在 LQFP64_SMPS 未引出） |
+| **电源管理** | **PC3** | ANA_EN | TPS7A2033 EN，默认**低**；EN 内置 smart pulldown。**2026-10-21 三排**：原 PB15 → PC3（11 脚，左侧模拟角，紧邻 PC0/PC1 监测与 PA1–PA7 模拟簇） |
 | | **PB5** | BQ_TS | Q1(BSS138) 栅极门控：**高 = 旁路 TS 的 NTC**（无 NTC 电池可充电），默认低（R13 100 kΩ 下拉）= NTC 使能；**2026-10-20 新增（SEL_K1 腾出转予）** |
-| | PB4 | ISET_HI | BQ24040 充电电流切换（500 mA ↔ 1 A），默认**低**；判据见 E.8.4 勘误。⚠️ **复位期不是低**：Table 27 **注 4** 说 PB4 复位后为 NJTRST 复用**且内部上拉使能**（高阻+上拉，上拉阻值 DS14216 未载）→ "复位默认 500 mA"须由**外部下拉（明显强于内部上拉）或反相驱动**保证，**原理图阶段必核**（见 E.8.4） |
+| | **PC2** | ISET_HI | BQ24040 充电电流切换（500 mA ↔ 1 A），默认**低**；判据见 E.8.4。**2026-10-21 三排：由 PB4 迁至 PC2——消除 PB4 复位期 NJTRST+内部上拉的红色待办**（原须外部强下拉压内部上拉；PC2 复位为浮空输入，普通 100 kΩ 下拉即可定义 Low = 500 mA）；PC2 同时紧邻 USB/BQ24040 所在板左侧 |
 | **USB FS（Device，外设 USB_DRD_FS）** | PA11 / PA12 | DM / DP | AF10 固定复用，FT_u 由 VDDUSB 供电；设备模式片内支持 BC1.2 BCD（DS14216 §3.47，见主文档 E.8.4） |
 | | ~~PA9~~ | ~~VBUS~~ | ❌ **撤销**：本芯片 USB 无 VBUS sensing（CubeMX 无此项）；PA9 现为 USART1_TX（见下） |
 | **I²C1（TMP117 四线探头）** | PB6 / PB7 | SCL / SDA | AF4，4.7 kΩ 上拉在主板侧 |
-| | ~~PB8~~ | ~~ALERT~~ | ❌ 取消（探头仅 VDD/GND/SDA/SCL），PB8 转予 SEL_K2 |
+| | ~~PB8~~ | ~~ALERT~~ | ❌ 取消（探头仅 VDD/GND/SDA/SCL）；PB8 现为**预留**（原 SEL_K2 已迁 PB0） |
 | **调试日志（USART1）** | **PA9 / PA10** | USART1 TX / RX | AF7；**2026-10-20 由 LPUART1(PA2/PA3) 改**——与 SWD(PA13/14)、SWO(PB3) 同侧组成右侧调试区，J3 扩为 8P；115200。**U545 无 USART2** 不受影响（USART1 独立存在，DS14216 §3.32） |
-| **SWD 调试口** | PA13 / PA14 / PB3 / 引脚 7 | SWDIO / SWCLK / SWO / NRST | `Trace_Asynchronous_SW`：SWO 占 PB3、**NJTRST(PB4) 释放**作 ISET_HI |
-| **档位 LED ×4** | PC2 / PC3 / **PB14** / PC6 | 绿 / 黄 / 橙 / 红 | 灌电流，**默认高 = 灭**；同一时刻只亮一档（**二轮复核改**：原 PC5 在 LQFP64_SMPS 未引出，橙灯改 PB14） |
-| **状态 LED** | PC7 | PWR/USB | 灌电流，默认高（**原 PA8**） |
+| **SWD 调试口** | PA13 / PA14 / PB3 / 引脚 7 | SWDIO / SWCLK / SWO / NRST | `Trace_Asynchronous_SW`：SWO 占 PB3、**NJTRST(PB4) 释放**（ISET_HI 已迁 PC2，PB4 现为预留） |
+| **档位 LED ×4（34–38 连续簇）** | **PB13 / PB14 / PB15** / PC6 | 绿 / 黄 / 橙 / 红 | 灌电流，**默认高 = 灭**；同一时刻只亮一档。**2026-10-21 三排**：绿 PC2→PB13（34 脚）、黄 PC3→PB14（35 脚），与橙 PB15(36)/红 PC6(37) 及状态灯 PC7(38) 聚为 **34–38 五连脚（2.5 mm）**，原跨封装两侧 13.5 mm |
+| **状态 LED** | PC7 | PWR/USB | 灌电流，默认高（38 脚，5 灯簇末位） |
 | **按键 ×2** | PA0 | MEAS_BTN | **WKUP1**，内部上拉，低有效，100 nF 去抖 |
 | | PB1 | PWR_BTN | **WKUP4**，内部上拉，低有效，100 nF 去抖 |
 | **HSE 扩展焊盘** | PH0 / PH1 | OSC_IN / OSC_OUT | **原理图必须画全**（X1 16 MHz + 负载电容 + 1 MΩ 反馈——不画无法布局布线），SMT 可选不贴；本设计免晶振（PLL=MSIS）→ **默认不贴**；负载电容初值按 CL=9 pF → 单只 ≈12 pF（图上现 6.8 pF 为占位需改）（**2026-10-20 用户定**） |
@@ -79,9 +87,9 @@
 
 | 端口 | 引脚分配 |
 | --- | --- |
-| **PA** | 0=MEAS_BTN · 1=ADC_DONE(ADS_DONE) · 2=ADC_nRESET(ADS_RESET) · 3=ADC_DRDY(ADS_DRDY) · 4=ADC_nCS(ADS_CS) · 5=SPI1_SCK(ADS_CLK) · 6=SPI1_MISO(ADS_MISO) · 7=SPI1_MOSI(ADS_MOSI) · 8=预留 · 9=USART1_TX · 10=USART1_RX · 11=USB_DM · 12=USB_DP · 13=SWDIO · 14=SWCLK · 15=SD_CD |
-| **PB** | 0=预留 · 1=PWR_BTN · 2=SEL_SENSE · 3=SWO · 4=ISET_HI · 5=BQ_TS · 6=I2C1_SCL · 7=I2C1_SDA · 8=SEL_K2 · ~~9~~**未引出** · 10=CURR_DIS · ~~11/12~~**未引出** · 13=SD_PWR_EN · 14=LED_ORANGE · 15=ANA_EN |
-| **PC** | 0=VBAT_MON · 1=VBUS_MON · 2=LED_GREEN · 3=LED_YELLOW · ~~4/5~~**未引出** · 6=LED_RED · 7=PWR_LED · 8=SD_D0 · 9=SD_D1 · 10=SD_D2 · 11=SD_D3 · 12=SD_CK · 13=**不用**(VSW) · 14=LSE_IN · 15=LSE_OUT |
+| **PA** | 0=MEAS_BTN · 1=ADC_DONE(ADS_DONE) · 2=ADC_nRESET(ADS_RESET) · 3=ADC_DRDY(ADS_DRDY) · 4=ADC_nCS(ADS_CS) · 5=SPI1_SCK(ADS_CLK) · 6=SPI1_MISO(ADS_MISO) · 7=SPI1_MOSI(ADS_MOSI) · **8=SD_PWR_EN(2026-10-21)** · 9=USART1_TX · 10=USART1_RX · 11=USB_DM · 12=USB_DP · 13=SWDIO · 14=SWCLK · 15=SD_CD |
+| **PB** | **0=SEL_K2(SEL4)** · 1=PWR_BTN · 2=SEL_SENSE · 3=SWO · **4=预留** · 5=BQ_TS · 6=I2C1_SCL · 7=I2C1_SDA · ~~8~~**预留** · ~~9~~**未引出** · 10=CURR_DIS · ~~11/12~~**未引出** · **13=LED_GREEN** · 14=LED_YELLOW · **15=LED_ORANGE** |
+| **PC** | 0=VBAT_MON · 1=VBUS_MON · **2=ISET_HI** · **3=ANA_EN** · ~~4/5~~**未引出** · 6=LED_RED · 7=PWR_LED · 8=SD_D0 · 9=SD_D1 · 10=SD_D2 · 11=SD_D3 · 12=SD_CK · 13=**不用**(VSW) · 14=LSE_IN · 15=LSE_OUT |
 | **PD** | 2=SD_CMD |
 | **PH** | 0=HSE_IN · 1=HSE_OUT · 3=BOOT0 |
 
@@ -106,7 +114,8 @@
 
 ### 1.4 预留脚
 
-**PA8、PB0**；**PC13 不使用**（经 VSW 供电，仅 3 mA/30 pF）。
+**PB4（56 脚）、PB8（61 脚）**；**PC13 不使用**（经 VSW 供电，仅 3 mA/30 pF）。
+（2026-10-21 三排：PA8 → SD_PWR_EN、PB0 → SEL4，预留由 PA8/PB0 变为 PB4/PB8。PB4 虽预留，其复位期 NJTRST+内部上拉特性无害。）
 
 > **预留消耗史**：2026-10-14 原 SPI2 预留组四脚用尽（PB13→SD_PWR_EN、PB14→LED 橙、PB15→ANA_EN、PB9→SD_CD 后改 PA15）；
 > 2026-10-20 再耗：**PB5**（SEL_K1 取消后腾出）→ BQ_TS、**PA1/PA2/PA3**（LPUART1 撤销让位）→ ADC_DONE/nRESET/DRDY；
@@ -265,9 +274,10 @@ RON ≈90 mΩ typ / 110 mΩ max @3.6 V·25 ℃ → 100 mA 写瞬态压降 ≤11 
 | VSET | 360 kΩ/200 kΩ 分压 | OPA333 + → BSS138 Gate | 1.179 V |
 | CURR_DIS | PB10 | BSS138 关断控制 | 高 = 关断（EDA 网名 `CURR` 建议改 `CURR_DIS`） |
 | **BQ_TS** | **PB5** | Q1(BSS138) 栅极 | 高 = 旁路 TS NTC（无 NTC 电池可充电）；默认低 = NTC 使能（R13 100 kΩ 下拉）；**2026-10-20 新增** |
+| **ISET_HI** | **PC2** | BQ24040 ISET 分压切换 | 高 = 1 A / 低 = 500 mA；**2026-10-21 三排由 PB4 迁来**（PB4 复位期 NJTRST+内部上拉 → 移走后普通 100 kΩ 下拉即可定义默认 Low） |
 | **ADS_DONE** | U7-18 → **PA1** | 帧完成指示（可选） | 低有效输出，可不接用；**2026-10-20 新增，二次重排后落 PA1** |
-| ANA_EN | **PB15** | TPS7A2033 EN | 高 = 模拟域上电（**二轮复核改**：原 PB12 未引出） |
-| **SD_PWR_EN** | **PB13** | **TPS22917 EN** | 高 = TF 卡上电，默认低（EN 内置下拉，复位浮空 = 断电） |
+| ANA_EN | **PC3** | TPS7A2033 EN | 高 = 模拟域上电（**2026-10-21 三排**：原 PB12→PB15→PC3，左侧模拟角） |
+| **SD_PWR_EN** | **PA8** | **TPS22917 EN** | 高 = TF 卡上电，默认低（EN 内置下拉，复位浮空 = 断电）；**2026-10-21 三排：原 PB13→PA8**，紧贴 SDMMC 扇出 |
 | **VBUS_MON** | VBUS 分压中点 | **PC1**（ADC） | 比 0.5；阈值 3.70 V |
 | **VBAT_MON** | 电池分压中点 | **PC0**（ADC） | 比 0.5；报警 3.65 V / 停测 3.50 V |
 | **被测件端子** | **J5/J6/J7/J8** | 见「被测件接口」节 | J5=I+→T、J6=V+→OPA388(T)、J7=I−→K1/K2→X、J8=V−→K3/K4→M；JP1(J5↔J6)/JP2(J7↔J8) 焊上即退化为两线制 |

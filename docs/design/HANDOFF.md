@@ -56,8 +56,9 @@
     高阻源合法（100 nF 节点电容 ≫ 2^12×CADC），固件须 ≥100 ms 级轮询
   - **SDMMC1 4-bit：PC8/PC9/PC10/PC11 = D0–D3、PC12 = CK、PD2 = CMD**（全手册仅此一组映射）；
     **PA15 = SD_CD**（EXTI15；原 PB9 未引出，PA15 复位默认 JTDI、SWD 模式可作 GPIO）、
-    **PB13 = SD_PWR_EN**（默认低 = 卡断电）
-  - TMUX 簇 **PB2(SEL1/2/3 同沿)**/PB8(SEL4)（单颗 TMUX1134）；**PB5 = BQ_TS**（原 SEL_K1 腾出）
+    **PA8 = SD_PWR_EN**（默认低 = 卡断电；2026-10-21 三排由 PB13 迁来）
+  - TMUX 簇 **PB2(SEL1/2/3 同沿)/PB0(SEL4)/PB10(CURR_DIS)**（封装 24–27 连续，单颗 TMUX1134）；**PB5 = BQ_TS**
+  - **LED 簇 PB13/PB14/PB15/PC6/PC7 = 封装 34–38 五连脚**；**ANA_EN=PC3、ISET_HI=PC2**（左侧模拟角）
   - 恒流/电源 PB10(CURR_DIS)、**PB15(ANA_EN**——原 PB12 未引出**)**、PB4(ISET_HI，⚠️ 复位期是 NJTRST+内部上拉，非 Low →
     默认 500 mA 需外部下拉保证，Table 27 注 4，见 E.8.4)
   - LED 簇 **PC2/PC3/PB14/PC6 = 绿/黄/橙/红、PC7 = PWR_LED**（原 PC5 未引出，橙灯改 PB14）
@@ -224,7 +225,7 @@
   并补记三条勘误：**U5 的 USB 无 VBUS sensing（CubeMX 无此项）**、**调试串口是 LPUART1（U545 无 USART2）**、
   **BC1.2 结论反转——U545 设备模式片内支持 BC1.2 BCD（DS14216 §3.47），"STM32 无 BC1.2"系误套 F4/F7 结论；
   "3 s 无 SOF 判 DCP"启发式已否决**；另注意 **LQFP64_SMPS 无 PC4/PC5/PB9/PB12**（封装核对须用 Table 27 文本表，勿读位图）
-- **若笔记提到"预留 SPI2 给 PT100+MAX31865"**：已失效（PT100 否决 + PB13/PB14/PB15 已分予 SD_PWR_EN/LED 橙/ANA_EN）
+- **若笔记提到"预留 SPI2 给 PT100+MAX31865"**：已失效（PT100 否决 + PB13/PB14/PB15 已分予 LED 绿/黄/橙，SD_PWR_EN 已迁 PA8、ANA_EN 迁 PC3）
 
 ## 注意事项
 1. 归档完成后请**自行提交**。

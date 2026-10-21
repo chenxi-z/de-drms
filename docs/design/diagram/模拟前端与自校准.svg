@@ -174,7 +174,7 @@
 <text x="322" y="512" font-size="10.5" font-weight="bold" fill="#7c3aed" text-anchor="end">CH4·NC</text>
 <line x1="365" y1="527" x2="331" y2="527" class="p"/>
 <circle cx="331" cy="527" r="3" fill="#ffffff" stroke="#7c3aed" stroke-width="1.6"/>
-<text x="369" y="530" font-size="10.5" font-weight="bold" fill="#7c3aed">SEL4 / SEL_K2（PB8）</text>
+<text x="369" y="530" font-size="10.5" font-weight="bold" fill="#7c3aed">SEL4 / SEL_K2（PB0）</text>
 <line x1="330" y1="550" x2="330" y2="590" class="w"/>
 <line x1="180" y1="590" x2="330" y2="590" class="w"/>
 <circle cx="255" cy="590" r="4.5" fill="#111827"/>
@@ -263,11 +263,11 @@
 <text x="1100" y="146" font-size="13" font-weight="bold" fill="#7c3aed">MCU GPIO（STM32U545）-&gt; 开关 / 恒流</text>
 <text x="1100" y="172" font-size="11" font-weight="bold" fill="#7c3aed">SEL_SENSE（PB2）</text>
 <text x="1250" y="172" font-size="11" fill="#374151">-&gt; IN1/IN2/IN3：CH1+CH2+CH3 同沿</text>
-<text x="1100" y="194" font-size="11" font-weight="bold" fill="#7c3aed">SEL4 / SEL_K2（PB8）</text>
+<text x="1100" y="194" font-size="11" font-weight="bold" fill="#7c3aed">SEL4 / SEL_K2（PB0）</text>
 <text x="1250" y="194" font-size="11" fill="#374151">-&gt; IN4：CH4（R_ref 回线）独立</text>
 <text x="1100" y="216" font-size="11" font-weight="bold" fill="#7c3aed">CURR_DIS（PB10）</text>
 <text x="1250" y="216" font-size="11" fill="#374151">-&gt; 高 = 拉低 VSET -&gt; 零电流</text>
-<text x="1100" y="240" font-size="10.5" fill="#64748b">TMUX1134：SEL1/SEL2/SEL3 同沿（PB2），SEL4=PB8；PB5 现为 BQ_TS</text>
+<text x="1100" y="240" font-size="10.5" fill="#64748b">TMUX1134：SEL1/SEL2/SEL3 同沿（PB2），SEL4=PB0；PB5 现为 BQ_TS</text>
 <text x="1100" y="262" font-size="10.5" fill="#64748b">互锁：SEL_SENSE=1 时 SEL_K2 不得为 0（否则样品与 R_ref 并联）</text>
 <text x="1100" y="284" font-size="10.5" fill="#64748b">复位时模拟域不上电：固件先设开关态，再拉高 ANA_EN（1134 fail-safe）</text>
 <text x="1100" y="306" font-size="10.5" fill="#64748b">所有切换都在测量窗口外完成（硬约束）</text>
@@ -313,8 +313,8 @@
 <text x="1100" y="992" font-size="10.5" fill="#374151">CH1：COM=M · NO=V_N · NC=F —— 原 K3+K4（感线/校准选择，BBM）</text>
 <text x="1100" y="1014" font-size="10.5" fill="#374151">CH2：COM=V_P · NC=T · NO 悬空 —— 原 K5（感线高端并回 T）</text>
 <text x="1100" y="1036" font-size="10.5" fill="#374151">CH3：COM=S · NO=X · NC 悬空 —— 原 K1（样品电流回线）</text>
-<text x="1100" y="1058" font-size="10.5" fill="#374151">CH4：COM=F · NC=X · NO 悬空 —— 原 K2（R_ref 回线 · PB8 独立）</text>
-<text x="1100" y="1080" font-size="10.5" fill="#374151">IN1/IN2/IN3 &lt;- PB2（同沿）；IN4 &lt;- PB8；VDD=AVCC、GND=AGND</text>
+<text x="1100" y="1058" font-size="10.5" fill="#374151">CH4：COM=F · NC=X · NO 悬空 —— 原 K2（R_ref 回线 · PB0 独立）</text>
+<text x="1100" y="1080" font-size="10.5" fill="#374151">IN1/IN2/IN3 &lt;- PB2（同沿）；IN4 &lt;- PB0；VDD=AVCC、GND=AGND</text>
 <text x="1100" y="1102" font-size="10.5" fill="#374151">Ron 2 Ω · 导通漏电 3 pA 级 · 每通道先断后合 · fail-safe 上电</text>
 <text x="1100" y="1124" font-size="10.5" fill="#94a3b8">NO/NC 按 IN=1 -&gt; NO 惯例标注（真值表方向待核，反则对调）</text>
 

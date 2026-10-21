@@ -36,7 +36,7 @@
 <text x="150" y="248" font-size="15" font-weight="bold" fill="#111827" text-anchor="middle">BQ24040</text>
 <text x="150" y="270" font-size="12" fill="#64748b" text-anchor="middle">充电管理</text>
 <line x1="150" y1="190" x2="150" y2="220" class="wr"/>
-<text x="185" y="308" font-size="10" fill="#64748b">ISET: PB4</text>
+<text x="185" y="308" font-size="10" fill="#64748b">ISET: PC2</text>
 <text x="185" y="322" font-size="9" fill="#94a3b8">(500mA/1A)</text>
 
 <!-- ===== battery ===== -->
@@ -68,7 +68,7 @@
 <text x="440" y="370" font-size="13" font-weight="bold" fill="#059669" text-anchor="middle">3.3V_A 模拟域</text>
 <text x="440" y="395" font-size="11" fill="#64748b" text-anchor="middle">Iq 6.5 uA · 7 uVrms</text>
 <text x="440" y="415" font-size="10" fill="#94a3b8" text-anchor="middle">300 mA · +/-1.5%</text>
-<text x="440" y="432" font-size="10" fill="#64748b" text-anchor="middle">EN: PB15 (ANA_EN)</text>
+<text x="440" y="432" font-size="10" fill="#64748b" text-anchor="middle">EN: PC3 (ANA_EN)</text>
 <line x1="310" y1="380" x2="310" y2="380" class="w"/>
 <line x1="310" y1="380" x2="340" y2="380" class="gw"/>
 
@@ -98,7 +98,7 @@
 <text x="75" y="604" font-size="11" fill="#2563eb">3.3V_D（数字域，常开）：MCU、USB、LED、TMP117、IOVDD、TF 卡（经高边开关）</text>
 <text x="75" y="624" font-size="11" fill="#059669">3.3V_A（模拟域，EN 受控）：AVDD、OPA388x3、OPA333、TMUX 模拟侧</text>
 <text x="75" y="644" font-size="10" fill="#64748b">待机功耗：~10.8 uA（仅数字域已知项，E.8.6）· 测量窗口：模拟域额外 ~15 mA</text>
-<text x="75" y="662" font-size="10" fill="#64748b">双 LDO 天然隔离数模，无需磁珠；模拟域仅测量窗口上电；TF 卡经 PB13 高边开关，默认断电</text>
+<text x="75" y="662" font-size="10" fill="#64748b">双 LDO 天然隔离数模，无需磁珠；模拟域仅测量窗口上电；TF 卡经 PA8 高边开关，默认断电</text>
 
 <!-- ===== notes ===== -->
 <text x="60" y="710" font-size="13" font-weight="bold" fill="#111827">图注与自查要点：</text>
@@ -107,12 +107,12 @@
 <text x="60" y="779" font-size="11" fill="#374151">3. AVDD 距 ADS131A02 下限 3.0 V 余 &gt;= 0.25 V；合规栈顶距 T 点 0.65 V（要求 &gt;= 0.5 V，净 0.15 V）</text>
 <text x="60" y="801" font-size="11" fill="#374151">4. 电池电压监测：PC0 经 2x1 MOhm 分压，常通 ~2 uA</text>
 <text x="60" y="823" font-size="11" fill="#374151">5. 充电时 OUT 最高 4.23 V（电池 CV 上限），裕量更大</text>
-  <text x="60" y="845" font-size="11" fill="#374151">6. TF 卡记录：3V3_SD 经高边开关（SD_PWR_EN=PB13，默认断电）；否则卡待机 50-100 uA 会压垮 ~10.8 uA 预算</text>
+  <text x="60" y="845" font-size="11" fill="#374151">6. TF 卡记录：3V3_SD 经高边开关（SD_PWR_EN=PA8，默认断电）；否则卡待机 50-100 uA 会压垮 ~10.8 uA 预算</text>
   <text x="60" y="867" font-size="11" fill="#374151">7. USB 在线检测：VBUS 经 1 MOhm / 1 MOhm 分压 -&gt; PC1（阈值 3.70 V）；插 USB 时不计入电池预算</text>
   <rect x="1000" y="160" width="300" height="100" rx="2" fill="#e0f2fe" stroke="#0284c7" stroke-width="2"/>
   <text x="1150" y="186" font-size="13" font-weight="bold" fill="#0c4a6e" text-anchor="middle">3V3_SD 支路（TF 卡）</text>
   <text x="1150" y="210" font-size="11" fill="#111827" text-anchor="middle">3.3V_D -&gt; 高边开关 -&gt; 3V3_SD</text>
-  <text x="1150" y="230" font-size="11" fill="#111827" text-anchor="middle">使能 SD_PWR_EN = PB13</text>
+  <text x="1150" y="230" font-size="11" fill="#111827" text-anchor="middle">使能 SD_PWR_EN = PA8</text>
   <text x="1150" y="248" font-size="10" fill="#64748b" text-anchor="middle">默认断电：卡待机 50-100 uA 归零</text>
   <line x1="960" y1="220" x2="1000" y2="220" class="w" style="stroke:#2563eb;stroke-width:2.5"/>
 </svg>

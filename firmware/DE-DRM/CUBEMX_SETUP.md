@@ -194,23 +194,23 @@
 |---|---|---|---|
 | PA4 | ADC_nCS | **High** | 片选空闲高 |
 | 🆕 **PA2** | **ADC_nRESET** | **High** | **原 PB0→PA8→PA2**（2026-10-20 二次重排，就近 ADC 簇）；低有效，脉宽 ≥800 ns |
-| PB2 | SEL_SENSE | **Low** | TMUX 测量线对 |
-| PB4 | ISET_HI | **Low** | 500 mA 默认充电电流。🟥 **复位期不是 Low**：DS14216 Table 27 **注 4** —— PB4 复位后为 NJTRST 复用**且内部上拉使能**（高阻+上拉），到固件初始化才变 Low；**CubeMX 里勾 Low 只决定初始化后的电平，管不到上电瞬间**。故"复位默认 500 mA"须靠**外部下拉（明显强于内部上拉，阻值待 RM0456 给 RPU 后定）**或反相驱动保证 → 见主文档 E.8.4 与 § 8 排障 |
+| PB2 | SEL_SENSE | **Low** | TMUX 测量线对（SEL1/2/3 同沿） |
+| 🆕 **PC2** | **ISET_HI** | **Low** | **2026-10-21 三排：由 PB4 迁来**（PB4 复位期 NJTRST+内部上拉，移走后普通 100 kΩ 下拉即可定义 Low = 500 mA） |
+| 🆕 **PC3** | **ANA_EN** | **Low** | **2026-10-21 三排：PB15→PC3**（左侧模拟角）；TPS7A2033 EN，smart pulldown |
+| 🆕 **PA8** | **SD_PWR_EN** | **Low** | **2026-10-21 三排：PB13→PA8**；TF 卡默认断电（省 50–100 µA） |
+| **PB13** | **LED_GREEN** | **High** | **2026-10-21 三排**：灌电流，低 = 亮 |
+| **PB14** | **LED_YELLOW** | **High** | 同上 |
+| **PB15** | **LED_ORANGE** | **High** | 同上 |
 | 🆕 **PB5** | **BQ_TS** | **Low** | **原 SEL_K1 已取消**（TMUX1134 整合）；Q1 栅极门控：高 = 旁路 TS NTC，默认低（R13 100 kΩ 下拉）= NTC 使能 |
+| 🆕 **PB0** | **SEL_K2** | **High** | **2026-10-21 三排：PB8→PB0**（与 SEL_SENSE 聚为 24–27）；U10 SEL4，高 = 断，互锁：PB2=1 时不得为 0 |
 | PB10 | CURR_DIS | **Low** | 高 = 关断；复位默认开启 |
-| 🆕 **PB15** | **ANA_EN** | **Low** | **原 PB12**（LQFP64_SMPS 未引出）；TPS7A2033 EN；smart pulldown，复位即断模拟域 |
-| 🆕 **PB13** | **SD_PWR_EN** | **Low** | **TF 卡默认断电**（省 50–100 µA）；仅 `f_mount`/sync 后才允许拉低 |
-| 🆕 **PB8** | **SEL_K2** | **High** | **原 PC3**；K2（NC），高 = 断，与 SEL_K1 互锁 |
-| 🆕 **PC2** | **LED_GREEN** | **High** | **原 PC6**；灌电流，低 = 亮 |
-| 🆕 **PC3** | **LED_YELLOW** | **High** | **原 PC7** |
-| 🆕 **PB14** | **LED_ORANGE** | **High** | **原 PC8**（PC5 在 LQFP64_SMPS 未引出，橙跨到 PB14） |
-| 🆕 **PC6** | **LED_RED** | **High** | **原 PC9** |
-| 🆕 **PC7** | **PWR_LED** | **High** | **原 PA8**（PA8 让给 ADC_nRESET） |
+| **PC6** | **LED_RED** | **High** | 灌电流，低 = 亮 |
+| **PC7** | **PWR_LED** | **High** | 灌电流，低 = 亮 |
 
-> LED 簇落在 **PC2 / PC3 / PB14 / PC6 / PC7**（绿黄橙红 + 状态灯）。
-> 二轮复核（DS14216 Table 27）证实 **LQFP64_SMPS 不引出 PC4 / PC5**：
-> DRDY 无法再留 PC4（改 **PA9**，见 § 4.2），橙色 LED 跨到 **PB14**。
-> 绿黄红 + 状态灯仍在 PC 端口聚堆，仅橙色一脚跨端口，扇出可接受。
+> **LED 簇 = PB13 / PB14 / PB15 / PC6 / PC7**（绿黄橙红 + 状态灯），**封装 34–38 五连脚（2.5 mm）**
+> —— 2026-10-21 三排成果（原跨封装左右两侧 13.5 mm）。
+> **TMUX/恒流控制簇 = PB0 / PB1 / PB2 / PB10**（封装 24–27 连续）。
+> **模拟电源 ANA_EN = PC3**（左侧模拟角，与 PC0/PC1 监测、PA1–PA7 模拟簇同侧）。
 
 ### 4.2 输入（含上拉，按键/开关对地，低有效）
 
@@ -244,14 +244,13 @@
 
 ### 4.4 不配置（保持 Reset State 即正确）
 
-**PA8**（预留）、PB0（预留）、**PC13**、PD 其余。（PA1 已改 ADC_DONE、PA9/PA10 已改 USART1，均不再"不配置"）
-
-> 原 SPI2 预留组四脚已全部用尽（2026-10-14 二轮复核后）：PB9/PB12 在 LQFP64_SMPS 根本未引出；
-> PA15→SD_CD、PB15→ANA_EN、PB14→LED_ORANGE。预留仅剩 PA1/PA10/PB0。
+**PB4**（预留）、**PB8**（预留）、**PC13**、PD 其余。
+（PA1 已改 ADC_DONE、PA9/PA10 已改 USART1、PA8 已改 SD_PWR_EN、PB0 已改 SEL_K2 —— 均不再"不配置"；
+2026-10-21 三排后预留由 PA8/PB0 变为 **PB4/PB8**。）
 
 > ⚠️ **PC13 绝对不用**：经 VSW 供电，驱动能力仅 3 mA / 30 pF。
-> ⚠️ **PB4 (NJTRST) 作 GPIO 输出**：DEBUG 须停在 `Trace_Asynchronous_SW`（SWD+SWO），
-> 该模式才释放 NJTRST；若误选别的调试模式，PB4 = ISET_HI 会被驱动逻辑抢走。
+> ✅ **PB4 已释放（2026-10-21）**：ISET_HI 迁至 PC2 后，PB4 仅作预留，其 NJTRST 复用特性不再影响功能；
+> 但仍建议 DEBUG 停在 `Trace_Asynchronous_SW`（SWD+SWO）。
 > ⚠️ **BOOT0 (PH3)** 是 PCB 上 10 kΩ 下拉，**不在 CubeMX 里配**。
 
 ---
