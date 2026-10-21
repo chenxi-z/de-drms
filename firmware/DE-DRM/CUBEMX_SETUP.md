@@ -179,6 +179,25 @@
 | SysTick | ✓ | **15** | HAL 时基，最低 |
 
 - [x] Priority Group = 4 bits preempt / 0 bits sub（IOC 已设）
+- [x] **2026-10-21 已按本表写入 IOC**（8 个中断：EXTI15_10/EXTI3/SPI1/I2C1_EV/I2C1_ER/USART1/ADC1/SDMMC1）
+  —— 格式与项目历史一致（9 字段），静态核验通过
+
+> ⚠️ **本次 IOC 改动未经 CubeMX GUI 复存**（无头模式无法保存：`xvfb-run` 下 CLI 只能加载不能写盘）。
+> **首次在 GUI 打开时请确认**：① ADC1 采样时间显示 **68 Cycles**（不是 5）；② NVIC 表 8 个中断已勾选且优先级如上；
+> ③ SYS → Debug = **Trace Asynchronous SW**。若 GUI 里任一项回落，说明该键被 CubeMX 归一化覆盖，需在 GUI 重设。
+
+---
+
+## 3.5 ADC1 采样时间（2026-10-21 修正）
+
+| 通道 | 引脚 | 采样时间 | 依据 |
+|---|---|---|---|
+| VBAT_MON | PC0 / ADC1_IN1 | **68 Cycles** | AGENTS 硬约束 ≥64 周期；离散档只有 5/6/12/20/36/68/391/814 → 就近取大 |
+| VBUS_MON | PC1 / ADC1_IN2 | **68 Cycles（待补）** | 同上。**当前 IOC 只配了 1 个通道（IN1）**，IN2 需在 GUI 里加进 Rank 1/2 |
+
+> ⚠️ **IOC 现状：ADC1 只排了 1 个规则转换（IN1）**。设计需要 PC0(VBAT) + PC1(VBUS) 两个通道 + VREFINT 内部通道。
+> 需在 ADC1 参数设置里把 **Number of Conversion 改为 3**，Rank1=IN1、Rank2=IN2、Rank3=Vrefint，
+> 采样时间分别 68/68/391（VREFINT 要求 ≥320 → 取 391）。
 
 ---
 
