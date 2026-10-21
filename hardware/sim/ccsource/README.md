@@ -60,7 +60,7 @@ I(Vsm)=+7.857 µA、CURR_DIS 关断残流 0.163 µA、恢复 1 µs（PULSE 5–1
 - `models.inc`——行为级模型：OPA333 宏（Aol=2e6→GBW 350 kHz、输出钳位）与线性版（暂态用）；
   BSS138 level-1（VTO 1.25 V 典型）。**拓扑级保真度**，非厂商宏模型。
   2026-10-13/14 增补：`opa391t3`（OPA391 评估，GBW 1MHz）、`opa388t`（跟随器，GBW 10MHz/RRIO）、
-  `swNO`（TMUX1101/1102 行为级：Ron 2Ω/断态 60GΩ=50pA@3V）、`swsh`（采样保持开关）
+  `swNO`（TMUX 行为级，Ron 2Ω/断态 60GΩ=50pA@3V；2026-10-18 起实物为**单颗 TMUX1134**，开关行为等价）、`swsh`（采样保持开关）
 - `cca.tpl` / `ccb.tpl`——两种拓扑模板；`cca_tran.net`——CURR_DIS 暂态
 - `cc4_*_opa391.net`——OPA391 对照套件；`cc5_*`/`cc6_*`——10kHz 纹波/斩波；`cc7_*`——100ns 冲击；
   `cc8_ramp10ms.net`——10ms 斜坡；`cc10_rate_*.net`——变化率拐点；`cc11_noise.net`——噪声谱
@@ -128,8 +128,8 @@ I(Vsm)=+7.857 µA、CURR_DIS 关断残流 0.163 µA、恢复 1 µs（PULSE 5–1
 | --- | --- |
 | U1 OPA333 | ⚠️ **TI 官方 OPAx333.LIB（SBOC084G Rev.G）在 LTspice 判不可用**：DC OP 收敛失败，或收敛到**非物理解**（I=+23.3uA，理论 7.857；V(b)=nan）——1F 级建模电容+浮地 MID 节点与 LTspice 求解器不兼容。官方宏接入结构与 wrapper 保留在 models.inc/OPAx333.LIB 备用；**仿真结论以行为宏 opa333t3 为准**。如需官方宏级验证用免费 PSpice for TI |
 | M1/M2 BSS138 | 🔸 onsemi 官方模型反爬未获取（直链 403/Nexperia 加密/Wayback 无存档），暂用 `nmosb` 行为级（VTO/KP/电容按手册） |
-| K1-K4 TMUX1101/1102 | 🔸 TMUX1101 官方 PSpice（SCDM242）已接入实测：**网表连接正常但开关不导通**（环路失效，I=0.15uA 恒定）——TI SCHEMATIC 导出的开关模型在 LTspice 存在兼容性问题，待查（或 PSpice for TI 验证）。暂回退 2Ω 电阻（Ron 已含） |
-| TMUX1102 | 🔸 TI 仅提供 IBIS（SCDM225），无 PSpice；行为等效 TMUX1101（NO/NC 仅控制极性） |
+| K1-K4 | 🔸 实物已整合为**单颗 TMUX1134**（2026-10-18，替换原 TMUX1101×2+TMUX1102×2）；仿真仍用 `swNO` 行为级。TMUX1101 官方 PSpice（SCDM242）曾接入实测：网表连接正常但开关不导通（I=0.15uA 恒定）——TI 导出模型与 LTspice 兼容性问题，未解决。2Ω 电阻/行为开关等效已足够（Ron 已含） |
+| TMUX1134 | 🔸 无官方 PSpice；按 `swNO` 行为级（SEL1/2/3 同沿、SEL4 独立）等效 |
 
 
 

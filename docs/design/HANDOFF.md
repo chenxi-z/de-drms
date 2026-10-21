@@ -38,23 +38,26 @@
   采样策略：**冲击全程 128 kSPS 采满、按需数字降采样**（E.4.3）
 - 前端：**3 颗跟随器 OPA388**（T、M、B 三线；AIN1N 直接经 RC 接 Rsense 底端）；
   T 点顶端偏置 R_top 10 kΩ / R_b 150 kΩ（E.2）；保护 BAV199（默认）/ 低漏电 ESD 阵列（备选焊盘）；
-  抗混叠 RC = 每线 1 kΩ + 10 nF（fc≈16 kHz）
-- 自校准：0.1% Rsense 打底 + 板上 R_ref（100 kΩ 0.01%）自检，**TMUX1101×2+TMUX1102×2 切换**；
-  **零点模式**消 ADC 失调（**SEL_K1 = PB5、SEL_K2 = PB8**、SEL_SENSE = PB2；2026-10-14 重排，原 PC5/PC3）；
+  抗混叠 = 每线 **B 案三级阶梯** 6.19 Ω+68 nF → 6.04 Ω+68 nF → 13.7 Ω+27 nF（对地）+ 末级 12 nF 差分，
+  fc≈80 kHz（E.4.4，2026-10-19 定版；旧 1 kΩ+10 nF 已于同日作废：与 16 kHz 扫频带重叠）
+- 自校准：0.1% Rsense 打底 + 板上 R_ref（100 kΩ 0.01%）自检，**单颗 TMUX1134 切换**（SEL1/2/3=PB2、SEL4=PB8）：
+  **零点模式**消 ADC 失调（**SEL1/2/3 = PB2 同沿、SEL4 = PB8**；2026-10-18 TMUX1134 整合，原 SEL_K1/SEL_K2 分立方案作废）；
   δ0 只存 RAM，k 只由上位机写 Flash（电路见 E.3 + diagram/模拟前端与自校准）
 - **MCU：STM32U545RET6Q**（M33 160 MHz、512 KB Flash、**274 KB SRAM**、USB FS 双角色（DRD）、LQFP-64、
   **SMPS 版但本设计不启用内部 SMPS**；数据手册 **DS14216**，**不是 U575 的 DS13737**）
   ⚠️ 曾一度定 U575RGT6 / 误写 U575RET6Q，**均已作废**，现为 U545RET6Q
-- **引脚 2026-10-14 全表重排 + 二轮复核**（原则：**通信 AF 不动 + 辅助 GPIO 同端口聚堆**；
-  二轮复核按 DS14216 Table 27/28 逐行核——**LQFP64_SMPS 无 PC4/PC5/PB9/PB12**）：
-  - ADC 簇 PA4(nCS)/PA5(SCK)/PA6(MISO)/PA7(MOSI)/**PA8(nRESET)** + **PA9(DRDY, EXTI9)**
-    （原 PC4 未引出；PA1 因 EXTI1 被 PB1 占用出局）
+- **引脚 2026-10-14 全表重排 + 二轮复核 + 2026-10-20 v3 重分配 + 同日二次重排（就近原则）**
+  （原则：**通信 AF 不动 + 辅助 GPIO 同端口聚堆 + 封装就近**；权威表 = `docs/design/pin-assignment.md`；
+  **LQFP64_SMPS 无 PC4/PC5/PB9/PB12**）：
+  - **ADC 簇 PA1–PA7 物理连续（封装 15–23 脚）**：**PA1(ADC_DONE)/PA2(nRESET)/PA3(DRDY, EXTI3)**
+    + PA4(nCS)/PA5(SCK)/PA6(MISO)/PA7(MOSI)（原 PA8/PA9/PA10 与 SPI1 簇封装对角，违背就近原则已让出）
+  - **调试口 = USART1(PA9/PA10, AF7)**（2026-10-20 由 LPUART1(PA2/PA3) 改，与 SWD 同侧、J3 扩 8P）
   - 内部 ADC 监测：**PC0 = VBAT_MON（ADC1_IN1）**、**PC1 = VBUS_MON（ADC1_IN2）**（+ VREFINT 反推 VDDA）；
     高阻源合法（100 nF 节点电容 ≫ 2^12×CADC），固件须 ≥100 ms 级轮询
   - **SDMMC1 4-bit：PC8/PC9/PC10/PC11 = D0–D3、PC12 = CK、PD2 = CMD**（全手册仅此一组映射）；
     **PA15 = SD_CD**（EXTI15；原 PB9 未引出，PA15 复位默认 JTDI、SWD 模式可作 GPIO）、
     **PB13 = SD_PWR_EN**（默认低 = 卡断电）
-  - TMUX 簇 PB2(SEL_SENSE)/PB5(SEL_K1)/PB8(SEL_K2)
+  - TMUX 簇 **PB2(SEL1/2/3 同沿)**/PB8(SEL4)（单颗 TMUX1134）；**PB5 = BQ_TS**（原 SEL_K1 腾出）
   - 恒流/电源 PB10(CURR_DIS)、**PB15(ANA_EN**——原 PB12 未引出**)**、PB4(ISET_HI，⚠️ 复位期是 NJTRST+内部上拉，非 Low →
     默认 500 mA 需外部下拉保证，Table 27 注 4，见 E.8.4)
   - LED 簇 **PC2/PC3/PB14/PC6 = 绿/黄/橙/红、PC7 = PWR_LED**（原 PC5 未引出，橙灯改 PB14）
@@ -144,8 +147,8 @@
   ② ADC 采样时间**离散档手册未载** → 转 #17④；③ 上条 PB4 复位态。
   同时证实：**USART2 在 DS14216 全文 0 命中**、PC0=IN1/PC1=IN2、PA0=WKUP1/PB1=WKUP4/PA1=WKUP3、
   AF 号 SPI1=5 / SDMMC=12 / USB=10 / I2C1=4 / LPUART1=8、PC13-15 经 VSW（3 mA、≤30 pF、≤2 MHz、不得驱动 LED）
-- **示意图已返工完毕（2026-10-17）**：`diagram/` 四张图的引脚标注（SEL_K1(PC5)/SEL_K2(PC3)/"PC6-9 · PA8 (PWR)"/DRDY(PC4)/SD_CD(PB9)）
-  已全部按新 E.6 与手册值对齐（ANA_EN=PB15、DRDY=PA9、SEL_K1=PB5/SEL_K2=PB8、LED 簇 PC2/3/PB14/6+PC7、SD_CD=PA15；恒流源 VSET 1.179 V / 7.86 µA；电源树新增 3V3_SD 支路、整体框图新增 TF 卡支路）；交付必跑
+- **示意图已返工（2026-10-17）；2026-10-20 二次重排后待再核**：`diagram/` 各图的引脚标注（2026-10-17 修的是 SEL_K1(PC5)/SEL_K2(PC3)/"PC6-9 · PA8 (PWR)"/DRDY(PC4)/SD_CD(PB9)）
+  已按 E.6 与手册值对齐（ANA_EN=PB15、**DRDY=PA3·EXTI3（2026-10-20 二次重排）**、SEL1/2/3=PB2/SEL4=PB8（TMUX1134）、LED 簇 PC2/3/PB14/6+PC7、SD_CD=PA15；恒流源 VSET 1.179 V / 7.86 µA；电源树新增 3V3_SD 支路、整体框图新增 TF 卡支路）；交付必跑
   `python3 tools/svg_schematic_check.py <图>.svg` 且分区放大目视
 
 ## 下一步（建议顺序）

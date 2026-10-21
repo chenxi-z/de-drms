@@ -83,18 +83,19 @@
   - NSS：**Disabled (Software)** ← 片选走 PA4 GPIO
   - NSSP Mode：Disabled
 
-### 2.2 LPUART1 — 调试日志（🟥 当前 IOC 完全没有）
+### 2.2 USART1 — 调试日志（🟥 当前 IOC 完全没有）
 
-- [ ] Mode：**Asynchronous**（自动占 PA2/PA3）
+- [ ] Mode：**Asynchronous**（自动占 **PA9/PA10**）
 - [ ] Baud Rate **115200** / Word Length 8 / Stop 1 / Parity None / Flow Control None / Mode TX/RX
-- [ ] ⚠️ **是 LPUART1 不是 USART2**：**U545 全片无 USART2**（DS14216 §3.32：USART1/3 + UART4/5 + LPUART1），
-  PA2/PA3 上是 LPUART1_TX/RX（AF8）；LPUART 在 Stop 模式也可唤醒
+- [ ] ⚠️ **2026-10-20 二次重排：由 LPUART1(PA2/PA3) 改为 USART1(PA9/PA10, AF7)**——与 SWD(PA13/14)、
+  SWO(PB3) 同侧组成右侧调试区，J3 由 6P 扩为 8P（§ 4 J3 表）；PA2/PA3 让给 ADC_nRESET/ADC_DRDY。
+  原 LPUART1 配置作废，GUI 里**删除 LPUART1、新增 USART1**。
 
 ### 2.3 USB（USB_DRD_FS）— Type-C 数据上行（🟥 当前 IOC 完全没有）
 
 - [ ] Mode：**Device only**（外设为 USB_DRD_FS，device/host 双角色；本设计用 device）
 - [ ] 引脚自动占用：**PA11(DM) / PA12(DP)**
-- [ ] **SOF 不占引脚**：CRS 用**内部 SOF 信号**同步（E.10 #15 已销号）；PA8=ADC_nRESET 无冲突
+- [ ] **SOF 不占引脚**：CRS 用**内部 SOF 信号**同步（E.10 #15 已销号）；PA8 已转预留、ADC_nRESET=PA2，无冲突
 - [ ] **VBUS sensing：无此选项**（STM32U5 的 USB 不提供；勿再找）
   → USB 在线检测改走 **PC1 的 ADC**（见 § 2.6）
 - [ ] **BC1.2 BCD**：U545 设备模式**片内支持**（DS14216 §3.47 末条）——E.8.4 的 DCP 判 1 A 依赖它；
@@ -169,10 +170,10 @@
 |---|---|---|---|
 | **EXTI15_10** | ✓ | **4** | PA15 SD_CD |
 | **SDMMC1** | ✓ | **4** | 持续写吞吐敏感，优先级最高 |
-| EXTI9_8 | ✓ | 5 | PA9 ADC_DRDY |
+| **EXTI3** | ✓ | 5 | PA3 ADC_DRDY |
 | SPI1 | ✓ | 6 | ADS131A02 |
 | I2C1 event / error | ✓ | 7 | TMP117 |
-| LPUART1 | ✓ | 8 | 调试日志 |
+| **USART1** | ✓ | 8 | 调试日志（PA9/PA10, AF7） |
 | USB | ✓ | 9 | USB（USB_DRD_FS） |
 | ADC1 | ✓ | 10 | 电池/VBUS 监测 |
 | SysTick | ✓ | **15** | HAL 时基，最低 |
@@ -192,10 +193,10 @@
 | 引脚 | Label | Pin state | 备注 |
 |---|---|---|---|
 | PA4 | ADC_nCS | **High** | 片选空闲高 |
-| 🆕 **PA8** | **ADC_nRESET** | **High** | **原 PB0**；低有效，脉宽 ≥800 ns |
+| 🆕 **PA2** | **ADC_nRESET** | **High** | **原 PB0→PA8→PA2**（2026-10-20 二次重排，就近 ADC 簇）；低有效，脉宽 ≥800 ns |
 | PB2 | SEL_SENSE | **Low** | TMUX 测量线对 |
 | PB4 | ISET_HI | **Low** | 500 mA 默认充电电流。🟥 **复位期不是 Low**：DS14216 Table 27 **注 4** —— PB4 复位后为 NJTRST 复用**且内部上拉使能**（高阻+上拉），到固件初始化才变 Low；**CubeMX 里勾 Low 只决定初始化后的电平，管不到上电瞬间**。故"复位默认 500 mA"须靠**外部下拉（明显强于内部上拉，阻值待 RM0456 给 RPU 后定）**或反相驱动保证 → 见主文档 E.8.4 与 § 8 排障 |
-| 🆕 **PB5** | **SEL_K1** | **Low** | **原 PC5**；K1（NO），高 = 通 |
+| 🆕 **PB5** | **BQ_TS** | **Low** | **原 SEL_K1 已取消**（TMUX1134 整合）；Q1 栅极门控：高 = 旁路 TS NTC，默认低（R13 100 kΩ 下拉）= NTC 使能 |
 | PB10 | CURR_DIS | **Low** | 高 = 关断；复位默认开启 |
 | 🆕 **PB15** | **ANA_EN** | **Low** | **原 PB12**（LQFP64_SMPS 未引出）；TPS7A2033 EN；smart pulldown，复位即断模拟域 |
 | 🆕 **PB13** | **SD_PWR_EN** | **Low** | **TF 卡默认断电**（省 50–100 µA）；仅 `f_mount`/sync 后才允许拉低 |
@@ -217,7 +218,8 @@
 |---|---|---|---|---|
 | PA0 | MEAS_BTN | **GPXTI0** | **Pull-up** | Falling |
 | PB1 | PWR_BTN | **GPXTI1** | **Pull-up** | Falling |
-| 🆕 **PA9** | **ADC_DRDY** | **GPXTI9** | **Pull-up** | **Falling**（DRDY 拉低 = 数据就绪；**原 PC4 未引出**；PA1 因 EXTI1 被 PB1 占用出局） |
+| 🆕 **PA3** | **ADC_DRDY** | **GPXTI3** | **Pull-up** | **Falling**（DRDY 拉低 = 数据就绪；**2026-10-20 二次重排**，原 PC4→PA9→PA3；EXTI0/1/15 已占，EXTI3 空闲已核） |
+| 🆕 **PA1** | **ADC_DONE** | **GPIO_Input** | **No Pull** | —（U7-18 DONE 帧完成指示，低有效，可选监视；**2026-10-20 新增，二次重排后落 PA1**） |
 | 🆕 **PA15** | **SD_CD** | **GPXTI15** | **Pull-up** | Falling（插卡拉低；**原 PB9 未引出**；PA15 复位默认 JTDI，SWD 模式可作 GPIO；Table 27 注 4 说它复位期**内部上拉已使能**，与本设计所需方向一致，无冲突） |
 
 > 🟥 **PA0 / PB1 当前 IOC 没设 Pull-up → CubeMX 黄灯**。
@@ -230,7 +232,7 @@
 
 | 引脚 | 信号 | 来自 |
 |---|---|---|
-| PA2 / PA3 | LPUART1_TX/RX（AF8） | § 2.2 |
+| **PA9 / PA10** | **USART1_TX/RX（AF7）** | § 2.2（2026-10-20 由 LPUART1 改，J3 扩 8P） |
 | PA5 / PA6 / PA7 | SPI1_SCK/MISO/MOSI | § 2.1 |
 | PA11 / PA12 | USB_DM/DP（USB_DRD_FS） | § 2.3 |
 | PA13 / PA14 / PB3 | SWDIO / SWCLK / SWO | § 3.1 |
@@ -242,7 +244,7 @@
 
 ### 4.4 不配置（保持 Reset State 即正确）
 
-PA1（WKUP3 预留）、PA10、PB0、**PC13**、PD 其余。
+**PA8**（预留）、PB0（预留）、**PC13**、PD 其余。（PA1 已改 ADC_DONE、PA9/PA10 已改 USART1，均不再"不配置"）
 
 > 原 SPI2 预留组四脚已全部用尽（2026-10-14 二轮复核后）：PB9/PB12 在 LQFP64_SMPS 根本未引出；
 > PA15→SD_CD、PB15→ANA_EN、PB14→LED_ORANGE。预留仅剩 PA1/PA10/PB0。
