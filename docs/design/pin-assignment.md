@@ -15,7 +15,7 @@
 >
 > **本版变更摘要（2026-10-20 重分配，v3）**
 > ⑥ 开关矩阵整合落地（2026-10-18，单颗 **TMUX1134** 替换原 5 开关，原理图网表终验）：SEL1/2/3 = **PB2** 同沿、SEL4 = **PB8**，原 SEL_K1(PB5) 取消；
-> ⑦ **PB5 = BQ_TS**（Q1 栅极门控：高 = 旁路 TS NTC，无 NTC 电池可充电；R13 100 kΩ 下拉默认 = NTC 使能）、
+> ⑦ **PB5 = BQ_PG**（**2026-10-22 三改**：原 BQ_TS 软件禁充链（Q1+R70+R13）整链删除——NTC 改由电池包自带、经 CN4 直连 U2-9 TS；PB5 改作 BQ24040 PG 开漏状态监测输入）；**PC2 = BQ_CHG**（BQ24040 CHG 开漏监测输入；原 ISET_HI 充电切档链删除，充电**固定 500 mA 档**——R6=2 kΩ 挂 ISET1、ISET2 直连 GND；BC1.2 判 DCP 切 1 A 的固件判据随之作废）、
 > **PA10 = ADC_DONE**（U7-18 DONE 输出，可选监视）→ **预留仅剩 PA1/PB0**；
 > ⑧ **HSE/LSE 定位 = 扩展焊盘**（用户 2026-10-20 定）：晶振 + 负载电容 + 反馈电阻**必须画进原理图**（否则无法布局布线），SMT 按需不贴——HSE 默认不贴（免晶振）、LSE 默认贴（RTC）；
 > ⑨ TF 卡供电定版 **U8 TPS22917DBVR** 高边开关（图上已实现，SLVSDW8B 逐项核过）；EDA 网名待标准化：`SD_CLX`→`SD_CK`、卡轨自动名→`3V3_SD`、`CURR`→`CURR_DIS`；
@@ -63,8 +63,8 @@
 | | **PB0** | SEL_K2 | U10 **SEL4**（K2 R_ref 回线）；互锁靠固件：**PB2=1 时 PB0 不得为 0**（否则样品与 R_ref 经 X 并联）。**2026-10-21 三排**：原 PB8（顶边 61 脚）→ PB0（24 脚），与 SEL_SENSE/CURR_DIS 聚为 24–27 连续簇 |
 | **恒流源** | PB10 | CURR_DIS | **高 = 关断**、低 = 开启；复位/高阻默认 = 开启；零点模式置高 |
 | **电源管理** | **PC3** | ANA_EN | TPS7A2033 EN，默认**低**；EN 内置 smart pulldown。**2026-10-21 三排**：原 PB15 → PC3（11 脚，左侧模拟角，紧邻 PC0/PC1 监测与 PA1–PA7 模拟簇） |
-| | **PB5** | BQ_TS | Q1(BSS138) 栅极门控：**高 = 旁路 TS 的 NTC**（无 NTC 电池可充电），默认低（R13 100 kΩ 下拉）= NTC 使能；**2026-10-20 新增（SEL_K1 腾出转予）** |
-| | **PC2** | ISET_HI | BQ24040 充电电流切换（500 mA ↔ 1 A），默认**低**；判据见 E.8.4。**2026-10-21 三排：由 PB4 迁至 PC2——消除 PB4 复位期 NJTRST+内部上拉的红色待办**（原须外部强下拉压内部上拉；PC2 复位为浮空输入，普通 100 kΩ 下拉即可定义 Low = 500 mA）；PC2 同时紧邻 USB/BQ24040 所在板左侧 |
+| | **PB5** | BQ_PG | BQ24040 PG（pin 5）开漏监测：**低 = VBUS 在线且电压正常**；外部 100 kΩ 上拉（R10）到 VCC；**2026-10-22 三改**：原 BQ_TS 软件禁充链整链删除（NTC 由电池包自带经 CN4 直连 TS），PB5 改作 PG 输入 |
+| | **PC2** | BQ_CHG | BQ24040 CHG（pin 8）开漏监测：**低 = 正在充电**、高阻 = 未充电/已充满；外部 100 kΩ 上拉（R11）到 VCC；**2026-10-22 三改**：原 ISET_HI 切档链删除（充电固定 500 mA：R6=2 kΩ 挂 ISET1、ISET2 直连 GND），PC2 改作 CHG 输入；PC2 紧邻 USB/BQ24040 所在板左侧 |
 | **USB FS（Device，外设 USB_DRD_FS）** | PA11 / PA12 | DM / DP | AF10 固定复用，FT_u 由 VDDUSB 供电；设备模式片内支持 BC1.2 BCD（DS14216 §3.47，见主文档 E.8.4） |
 | | ~~PA9~~ | ~~VBUS~~ | ❌ **撤销**：本芯片 USB 无 VBUS sensing（CubeMX 无此项）；PA9 现为 USART1_TX（见下） |
 | **I²C1（TMP117 四线探头）** | PB6 / PB7 | SCL / SDA | AF4，4.7 kΩ 上拉在主板侧 |
@@ -88,8 +88,8 @@
 | 端口 | 引脚分配 |
 | --- | --- |
 | **PA** | 0=MEAS_BTN · 1=ADC_DONE(ADS_DONE) · 2=ADC_nRESET(ADS_RESET) · 3=ADC_DRDY(ADS_DRDY) · 4=ADC_nCS(ADS_CS) · 5=SPI1_SCK(ADS_CLK) · 6=SPI1_MISO(ADS_MISO) · 7=SPI1_MOSI(ADS_MOSI) · **8=SD_PWR_EN(2026-10-21)** · 9=USART1_TX · 10=USART1_RX · 11=USB_DM · 12=USB_DP · 13=SWDIO · 14=SWCLK · 15=SD_CD |
-| **PB** | **0=SEL_K2(SEL4)** · 1=PWR_BTN · 2=SEL_SENSE · 3=SWO · **4=预留** · 5=BQ_TS · 6=I2C1_SCL · 7=I2C1_SDA · ~~8~~**预留** · ~~9~~**未引出** · 10=CURR_DIS · ~~11/12~~**未引出** · **13=LED_GREEN** · 14=LED_YELLOW · **15=LED_ORANGE** |
-| **PC** | 0=VBAT_MON · 1=VBUS_MON · **2=ISET_HI** · **3=ANA_EN** · ~~4/5~~**未引出** · 6=LED_RED · 7=PWR_LED · 8=SD_D0 · 9=SD_D1 · 10=SD_D2 · 11=SD_D3 · 12=SD_CK · 13=**不用**(VSW) · 14=LSE_IN · 15=LSE_OUT |
+| **PB** | **0=SEL_K2(SEL4)** · 1=PWR_BTN · 2=SEL_SENSE · 3=SWO · **4=预留** · 5=BQ_PG · 6=I2C1_SCL · 7=I2C1_SDA · ~~8~~**预留** · ~~9~~**未引出** · 10=CURR_DIS · ~~11/12~~**未引出** · **13=LED_GREEN** · 14=LED_YELLOW · **15=LED_ORANGE** |
+| **PC** | 0=VBAT_MON · 1=VBUS_MON · **2=BQ_CHG** · **3=ANA_EN** · ~~4/5~~**未引出** · 6=LED_RED · 7=PWR_LED · 8=SD_D0 · 9=SD_D1 · 10=SD_D2 · 11=SD_D3 · 12=SD_CK · 13=**不用**(VSW) · 14=LSE_IN · 15=LSE_OUT |
 | **PD** | 2=SD_CMD |
 | **PH** | 0=HSE_IN · 1=HSE_OUT · 3=BOOT0 |
 
@@ -111,7 +111,7 @@
 | 7 | NRST | Reset | 复位（J3-5） |
 | 8 | PC0 | I/O | **VBAT_MON** — ADC1_IN1，2×1 MΩ 分压 |
 | 9 | PC1 | I/O | **VBUS_MON** — ADC1_IN2，1M/1M 分压，阈值 3.70 V |
-| 10 | PC2 | I/O | **ISET_HI** — BQ24040 充电档（100 kΩ 下拉，默认 500 mA）★ |
+| 10 | PC2 | I/O | **BQ_CHG** — BQ24040 CHG 开漏监测（100 kΩ 上拉 R11；低 = 充电中）★ |
 | 11 | PC3 | I/O | **ANA_EN** — TPS7A2033 EN（smart pulldown，默认断）★ |
 | 12 | VSSA | Power | 模拟地 |
 | 13 | VDDA | Power | 3.3V_D + 100 nF + 1 µF |
@@ -158,7 +158,7 @@
 | 54 | PD2 | I/O | **SD_CMD** — AF12，33 Ω + 10 kΩ 上拉 3V3_SD |
 | 55 | PB3 | I/O | **SWO** — TRACESWO，J3-6 |
 | 56 | PB4 | I/O | **预留**（原 ISET_HI 已迁 PC2；复位期 NJTRST+上拉，现无害） |
-| 57 | PB5 | I/O | **BQ_TS** — Q1 栅极门控（高 = 旁路 NTC；R13 100 kΩ 下拉 = NTC 使能）★ |
+| 57 | PB5 | I/O | **BQ_PG** — BQ24040 PG 开漏监测（100 kΩ 上拉 R10；低 = VBUS 在线正常）★ |
 | 58 | PB6 | I/O | **I2C1_SCL** — AF4，4.7 kΩ 上拉 → J4-3 |
 | 59 | PB7 | I/O | **I2C1_SDA** — AF4，4.7 kΩ 上拉 → J4-4 |
 | 60 | PH3 | I/O | **BOOT0** — PCB 10 kΩ 下拉 |
@@ -322,6 +322,18 @@ RON ≈90 mΩ typ / 110 mΩ max @3.6 V·25 ℃ → 100 mA 写瞬态压降 ≤11 
 
 > 仅四线，**无 ALERT**；采购须 ADD0 接地版（地址 0x48）。
 
+### 电池座（CN4，EDA 位号 CN4）— ZH 1.5 mm 3P 卧贴（2026-10-22 新增，替换原 2P 电池座）
+
+| 引脚 | 信号 | 说明 |
+| --- | --- | --- |
+| 1 | VBAT | 电池正极（→ BQ24040 OUT、U3/U4 IN、L2 磁珠） |
+| 2 | TS | 电池包自带 NTC（10 kΩ @25 ℃）→ BQ24040 TS（pin 9）；**板上不再设 NTC/固定电阻** |
+| 3 | GND | 电池负极 |
+
+> **2026-10-22 定**：电芯选定**带 NTC 引线**版本（25 ℃ 10 kΩ），TS 温度监测由电池包内 NTC 承担；
+> 原板载 NTC（R10）+ 软件禁充链（Q1/R70/R13/PB5）整链删除；PB5 改作 BQ_PG 监测。
+> **若改用不带 NTC 的电芯**，TS 须改为 **10 kΩ 固定电阻到 GND**（等效 25 ℃ 常充，E.8.4 备方案）。
+
 ### TF 卡座（J9，EDA 位号 CARD1）— micro SD 8P 卧贴（2026-10-14 新增；**2026-10-20 编号 J6→J9**，原 J6 与被测件 SMA J6 撞号）
 
 见 § 3。位置靠板边便于换卡；料号由用户在 BOM 阶段核实（E.10 #6）。
@@ -344,8 +356,8 @@ RON ≈90 mΩ typ / 110 mΩ max @3.6 V·25 ℃ → 100 mA 写瞬态压降 ≤11 
 | E | Rsense 底端 = GND | AIN1N（Kelvin 引线） | 0 V |
 | VSET | 360 kΩ/200 kΩ 分压 | OPA333 + → BSS138 Gate | 1.179 V |
 | CURR_DIS | PB10 | BSS138 关断控制 | 高 = 关断（EDA 网名 `CURR` 建议改 `CURR_DIS`） |
-| **BQ_TS** | **PB5** | Q1(BSS138) 栅极 | 高 = 旁路 TS NTC（无 NTC 电池可充电）；默认低 = NTC 使能（R13 100 kΩ 下拉）；**2026-10-20 新增** |
-| **ISET_HI** | **PC2** | BQ24040 ISET 分压切换 | 高 = 1 A / 低 = 500 mA；**2026-10-21 三排由 PB4 迁来**（PB4 复位期 NJTRST+内部上拉 → 移走后普通 100 kΩ 下拉即可定义默认 Low） |
+| **BQ_PG** | **PB5** | BQ24040 PG（pin 5） | 开漏监测输入，低 = VBUS 在线且电压正常；100 kΩ 上拉 R10 到 VCC；**2026-10-22 新增**（原 BQ_TS 禁充链整链删除） |
+| **BQ_CHG** | **PC2** | BQ24040 CHG（pin 8） | 开漏监测输入，低 = 充电中、高阻 = 未充/充满；100 kΩ 上拉 R11 到 VCC；**2026-10-22 新增**（原 ISET_HI 切档链删除，充电固定 500 mA） |
 | **ADS_DONE** | U7-18 → **PA1** | 帧完成指示（可选） | 低有效输出，可不接用；**2026-10-20 新增，二次重排后落 PA1** |
 | ANA_EN | **PC3** | TPS7A2033 EN | 高 = 模拟域上电（**2026-10-21 三排**：原 PB12→PB15→PC3，左侧模拟角） |
 | **SD_PWR_EN** | **PA8** | **TPS22917 EN** | 高 = TF 卡上电，默认低（EN 内置下拉，复位浮空 = 断电）；**2026-10-21 三排：原 PB13→PA8**，紧贴 SDMMC 扇出 |

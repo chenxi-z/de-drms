@@ -11,7 +11,7 @@
 2. `docs/design/2026-10-10-universal-signal-chain.md` — 主设计文档：
    **附录 D** = 应用需求与指标（需求来源）；**附录 E** = 硬件实现定稿（**E.1–E.11**，E.11 = TF 记录子系统）。
    **两者冲突时以附录 E 为准**；更早版本文档（V1.0~V2.2）仅是决策历史，不得据此实现。
-3. `docs/design/pin-assignment.md` — **引脚分配总表**（2026-10-14 重排定稿；**2026-10-20 v3 重分配 + 同日就近二次重排**：PB5=BQ_TS、HSE/LSE=扩展焊盘、ADC 簇收拢 PA1–PA7、调试改 USART1(PA9/PA10)，含 MCU/ADC/SDMMC/连接器/信号网络）
+3. `docs/design/pin-assignment.md` — **引脚分配总表**（2026-10-14 重排定稿；**2026-10-20 v3 重分配 + 同日就近二次重排 + 2026-10-22 电源监测改**：PB5=BQ_PG、PC2=BQ_CHG、HSE/LSE=扩展焊盘、ADC 簇收拢 PA1–PA7、调试改 USART1(PA9/PA10)，含 MCU/ADC/SDMMC/连接器/信号网络）
 4. `docs/design/HANDOFF.md` — 新会话交接提示词（设计线 + Obsidian 归档线）
 5. `firmware/DE-DRM/CUBEMX_SETUP.md` — CubeMX GUI 配置清单（改工程配置前必读；
    **⚠️ IOC 不可手改加 IP，见「已被否决」末条**）
@@ -67,8 +67,8 @@
 | 测量能力 | **1% 可用范围 ~73 Ω–600 kΩ**（设计量程 10–120 kΩ @≤0.005%）；定级**随 R 变**：**@120 kΩ ≈4½ 位精度**、**@10 kΩ 降到 4 位（typ）/3½ 位（max）**（INL 主导，2026-10-14 按手册 TYP 8/MAX 20 ppm FS 修正，原写"4½ 位精度"未分 R）；5½ 位**分辨率**（准静态，分辨率≠精度）；绝对精度锚定 R_ref（Rsense 在 k 校准中约掉）；冲击 10 ms 级跟踪误差 <0.000023%（E.3.4/E.4.3） |
 | MCU | STM32U545RET6Q（M33 160 MHz、512 KB Flash、274 KB SRAM、USB FS 双角色（DRD）、LQFP-64、**SMPS 版**；手册 **DS14216**，非 U575 的 DS13737） |
 | **存储/记录** | **两层（2026-10-14 新增，E.11）**：校准系数 → MCU Flash（EEPROM 仿真）；**测量数据 → 外部 TF (micro SD) 卡，SDMMC1 4-bit**（PC8–PC12 + PD2，CD=**PA15**（原 PB9 在 LQFP64_SMPS 未引出，二轮复核改），**SD_PWR_EN=PB13 控制高边开关默认断电**）。768 KB/s 冲击采满远超 512 KB Flash 能力 |
-| 温度/电源/通信 | TMP117 外置 4 线探头（**PT100 已否**：贴装温差是瓶颈非传感器精度，2026-10-14 定稿，E.5.2；备选升级口：同位参考试件 K5/K6）；1S 锂电 + BQ24040 + 双 LDO（**数字 TPS7A0233 常开 / 模拟 TPS7A2033 EN 受控**）；USB FS（Type-C；**设备模式片内支持 BC1.2 BCD**，E.8.4）；**USB 在线检测 = VBUS 分压 1M/1M → PC1 内部 ADC（IN2），阈值 3.70 V**（非 OTG 硬件 VBUS，见 E.8.3）。⚠️ ~~**`ISET_HI`(PB4) 复位期是 NJTRST + 内部上拉**~~ → **2026-10-21 已销号：ISET_HI 迁至 PC2（复位浮空，普通 100 kΩ 下拉即保证默认 Low = 500 mA）** |
-| 引脚/时钟/电源域/交互 | **引脚 2026-10-14 全表重排定稿 + 2026-10-20 v3 重分配（PB5=BQ_TS 门控、HSE/LSE=扩展焊盘）+ 同日就近二次重排**：ADC 簇收拢 **PA1–PA7 物理连续**（DONE=PA1、nRESET=PA2、DRDY=**PA3·EXTI3**、SPI1=PA4–7，封装 15–23 脚）；调试=**USART1(PA9/PA10, AF7)** 与 SWD 同侧（LPUART1 撤销）；预留=**PA8/PB0**（原则：通信 AF 不动 + 辅助 GPIO 同端口聚堆 + **封装就近**；**LQFP64_SMPS 无 PC4/PC5/PB9/PB12**；TMUX 簇 **PB0/2/10（24–27 连续）**（PB5=BQ_TS）、LED 簇 **PB13/14/15+PC6/PC7（34–38 五连）**、ANA_EN=**PC3**、ISET_HI=**PC2**、SD_PWR_EN=**PA8**、SD_CD=**PA15**；U545 无 USART2 不影响 USART1） |
+| 温度/电源/通信 | TMP117 外置 4 线探头（**PT100 已否**：贴装温差是瓶颈非传感器精度，2026-10-14 定稿，E.5.2；备选升级口：同位参考试件 K5/K6）；1S 锂电 + BQ24040 + 双 LDO（**数字 TPS7A0233 常开 / 模拟 TPS7A2033 EN 受控**）；**充电固定 500 mA 档**（2026-10-22 简化：删 ISET_HI 切 1 A 链与 BC1.2 判 DCP 逻辑——R6=2 kΩ 挂 ISET1、ISET2 直连 GND；**PC2=BQ_CHG、PB5=BQ_PG 开漏监测**，各 100 kΩ 上拉 VCC）；**电芯选定带 NTC 引线版**（25 ℃ 10 kΩ，经 CN4 3P 直连 TS，板上 NTC/禁充链整删）；USB FS（Type-C）；**USB 在线检测 = VBUS 分压 1M/1M → PC1 内部 ADC（IN2），阈值 3.70 V**（非 OTG 硬件 VBUS，见 E.8.3） |
+| 引脚/时钟/电源域/交互 | **引脚 2026-10-14 全表重排定稿 + 2026-10-20 v3 重分配 + 同日就近二次重排 + 2026-10-22 电源监测改（PB5=BQ_PG、PC2=BQ_CHG）**：ADC 簇收拢 **PA1–PA7 物理连续**（DONE=PA1、nRESET=PA2、DRDY=**PA3·EXTI3**、SPI1=PA4–7，封装 15–23 脚）；调试=**USART1(PA9/PA10, AF7)** 与 SWD 同侧（LPUART1 撤销）；预留=**PA8/PB0**（原则：通信 AF 不动 + 辅助 GPIO 同端口聚堆 + **封装就近**；**LQFP64_SMPS 无 PC4/PC5/PB9/PB12**；TMUX 簇 **PB0/2/10（24–27 连续）**、LED 簇 **PB13/14/15+PC6/PC7（34–38 五连）**、ANA_EN=**PC3**、SD_PWR_EN=**PA8**、SD_CD=**PA15**；U545 无 USART2 不影响 USART1） |
 
 ## 硬约束（改任何参数都要复核）
 
@@ -91,8 +91,8 @@
   若 IOC 保持 `RCC_PLLSOURCE_HSE` 则 HSE 不起振 → PLL 锁不住 → **SYSCLK 无输出**。现 IOC 即犯此错，见 E.10 #16
 - **TF 卡供电必须由 `SD_PWR_EN`(PA8，2026-10-21 三排由 PB13 迁来) 断电**：待机口径下卡待机电流 50–100 µA，会压垮 E.8.6 的 ≈10.8 µA 预算
 - **SDMMC kernel clock 不得取 SYSCLK/PLL1R**；且 `f_mount`/sync 完成前**不得**拉低 `SD_PWR_EN`（否则毁 FAT 表）
-- ~~**`ISET_HI`(PB4) 复位期 = NJTRST + 内部上拉，不是 Low**~~ → ✅ **2026-10-21 销号**：ISET_HI 已迁至 **PC2**
-  （复位为普通浮空输入），外部 **100 kΩ 下拉即可保证上电默认 Low = 500 mA**，无需强下拉或反相驱动。
+- ~~**`ISET_HI`(PB4) 复位期 = NJTRST + 内部上拉，不是 Low**~~ → ✅ **2026-10-21 销号**（ISET_HI 迁 PC2）；
+  **2026-10-22 该功能整体删除**（充电固定 500 mA，PC2 改作 BQ_CHG 开漏监测），此待办永久关闭。
   **PA15=SD_CD 复位期内部上拉**与本设计所需方向一致，无冲突（维持）
 - **内部 ADC 采样时间两条硬判据（2026-10-16 勘误）**：读 **VREFINT 须 ≥320 周期 @16 MHz**，依据 DS14216 Table 37
   `tS_vrefint = 12.65 µs typ`（**旧文档写的"最小 ≥4 µs"是误引** `tstart_vrefint`＝缓冲启动时间）；
@@ -187,7 +187,7 @@
 | 标注 | 全中文；图底部固定「图注与自查要点」区，逐条对应需求自查项 |
 | 符号 | 电阻用 IEC 矩形；SPST 用刀臂开合区分 NO/NC；运放/缓冲用三角形；标准接地/电源/连接器符号 |
 | 布线 | 正交 + 直角转角；不连接处画小跳线；**结点用实心圆**，器件端子与开关控制脚用**白底圆**（避免被读成短路） |
-| 未定稿内容 | 未定稿的引脚号/参数不写进图（引脚分配已 **2026-10-14 重排定稿 + 二轮复核**、**2026-10-20 v3 重分配 + 同日二次重排（就近原则）**，权威表 = `docs/design/pin-assignment.md`，新图按该表写：**ADC 簇 PA1–PA7 物理连续**（ADC_DONE=PA1、nRESET=PA2、DRDY=PA3·EXTI3、nCS=PA4、SPI1=PA5/6/7）、调试=**USART1(PA9/PA10, AF7)**、SEL_SENSE=PB2（TMUX1134 SEL1/2/3）、SEL_K2=**PB0**（SEL4）、CURR_DIS=PB10、BQ_TS=PB5、SD_CD=PA15、ANA_EN=**PC3**、ISET_HI=**PC2**、SD_PWR_EN=**PA8**、LED 簇 **PB13/14/15 + PC6 + 状态 PC7（34–38 五连）**、SDMMC PC8–PC12+PD2、预留 **PB4/PB8**；仍未定稿的如 E.10 细项照此原则）。**✅ 2026-10-21 三排后已回填：整体方案框图/电源树/模拟前端与自校准三图引脚全部改对并通过 svg 门禁；TMUX1134 整合与 AAF B 案同步** |
+| 未定稿内容 | 未定稿的引脚号/参数不写进图（引脚分配已 **2026-10-14 重排定稿 + 二轮复核**、**2026-10-20 v3 重分配 + 同日二次重排（就近原则）+ 2026-10-22 电源监测改**，权威表 = `docs/design/pin-assignment.md`，新图按该表写：**ADC 簇 PA1–PA7 物理连续**（ADC_DONE=PA1、nRESET=PA2、DRDY=PA3·EXTI3、nCS=PA4、SPI1=PA5/6/7）、调试=**USART1(PA9/PA10, AF7)**、SEL_SENSE=PB2（TMUX1134 SEL1/2/3）、SEL_K2=**PB0**（SEL4）、CURR_DIS=PB10、BQ_PG=PB5、SD_CD=PA15、ANA_EN=**PC3**、BQ_CHG=**PC2**、SD_PWR_EN=**PA8**、LED 簇 **PB13/14/15 + PC6 + 状态 PC7（34–38 五连）**、SDMMC PC8–PC12+PD2、预留 **PB4/PB8**；仍未定稿的如 E.10 细项照此原则）。**✅ 2026-10-21 三排后已回填：整体方案框图/电源树/模拟前端与自校准三图引脚全部改对并通过 svg 门禁；TMUX1134 整合与 AAF B 案同步** |
 
 ### 三个必踩的坑（都已实测）
 
