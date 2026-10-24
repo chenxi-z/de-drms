@@ -1,0 +1,302 @@
+{
+ "checks": {
+  "pads": {
+   "planned": 184,
+   "placed": 184,
+   "unmatched": 0,
+   "leftover": 0
+  },
+  "vias": {
+   "planned": 40,
+   "placed": 40,
+   "unmatched": 0,
+   "leftover": 0
+  },
+  "lines": {
+   "planned": 168,
+   "placed": 232,
+   "placedAaf": 152,
+   "placedGnd": 80,
+   "unmatchedEndpoints": 0
+  },
+  "collision": {
+   "newCopperMinEdgeX": 8600,
+   "preExistingMaxEdgeX": 8045.35,
+   "clearanceMil": 554.6
+  },
+  "totals": {
+   "pads": 656,
+   "vias": 44,
+   "lines": 435
+  },
+  "silks": [
+   "S0 一阶 R1=47Ω CG=47nF(C0805) Cd=820pF | 每通道5件 两通道",
+   "S0-CH1",
+   "S0-CH2",
+   "S1 一阶 R1=100Ω CG=22nF(C0805) Cd=820pF | 每通道5件 两通道",
+   "S1-CH1",
+   "S1-CH2",
+   "T1 二阶 R1=100Ω CG1=10nF + R2=100Ω CG2=10nF Cd=820pF 全0402 | 每通道9件 两通道",
+   "T1-CH1",
+   "T1-CH2",
+   "T2 二阶 R1=100Ω CG1=10nF + R2=120Ω CG2=10nF Cd=820pF 全0402 | 每通道9件 两通道",
+   "T2-CH1",
+   "T2-CH2",
+   "T3 二阶 R1=68Ω CG1=10nF + R2=150Ω CG2=10nF Cd=820pF 全0402 | 每通道9件 两通道",
+   "T3-CH1",
+   "T3-CH2",
+   "T4 二阶 R1=82Ω CG1=10nF + R2=160Ω CG2=10nF Cd=820pF 全0402 | 每通道9件 两通道",
+   "T4-CH1",
+   "T4-CH2",
+   "AAF六方案占地评测 2026-10-24 副本PCB1_1 自动绘制 原PCB1未改动"
+  ]
+ },
+ "perScheme": {
+  "S0": {
+   "ch1": {
+    "bboxMil": [
+     8600,
+     -4238.45,
+     8744.655,
+     -3820.05
+    ],
+    "Lmm": 3.674,
+    "Hmm": 10.627,
+    "Amm2": 39.05,
+    "nPads": 10,
+    "nVias": 2,
+    "nLines": 14,
+    "symFail": 0,
+    "symFailDetail": []
+   },
+   "ch2": {
+    "bboxMil": [
+     8600,
+     -4697.05,
+     8744.655,
+     -4278.55
+    ],
+    "Lmm": 3.674,
+    "Hmm": 10.63,
+    "Amm2": 39.06,
+    "nPads": 10,
+    "nVias": 2,
+    "nLines": 14,
+    "symFail": 0,
+    "symFailDetail": []
+   },
+   "H": 418.504,
+   "perChannelAmm2": 39.05,
+   "totalSum2ch": 78.11,
+   "combinedBboxAmm2": 81.85,
+   "combinedLmm": 3.674,
+   "combinedHmm": 22.276,
+   "interChannelCopperGapMil": 40.1
+  },
+  "S1": {
+   "ch1": {
+    "bboxMil": [
+     8600,
+     -5395.55,
+     8744.655,
+     -4977.05
+    ],
+    "Lmm": 3.674,
+    "Hmm": 10.63,
+    "Amm2": 39.06,
+    "nPads": 10,
+    "nVias": 2,
+    "nLines": 14,
+    "symFail": 0,
+    "symFailDetail": []
+   },
+   "ch2": {
+    "bboxMil": [
+     8600,
+     -5854.05,
+     8744.655,
+     -5435.55
+    ],
+    "Lmm": 3.674,
+    "Hmm": 10.63,
+    "Amm2": 39.06,
+    "nPads": 10,
+    "nVias": 2,
+    "nLines": 14,
+    "symFail": 0,
+    "symFailDetail": []
+   },
+   "H": 418.504,
+   "perChannelAmm2": 39.06,
+   "totalSum2ch": 78.12,
+   "combinedBboxAmm2": 81.85,
+   "combinedLmm": 3.674,
+   "combinedHmm": 22.276,
+   "interChannelCopperGapMil": 40.0
+  },
+  "T1": {
+   "ch1": {
+    "bboxMil": [
+     8600,
+     -6393.861,
+     8794.555,
+     -6134.016
+    ],
+    "Lmm": 4.942,
+    "Hmm": 6.6,
+    "Amm2": 32.62,
+    "nPads": 18,
+    "nVias": 4,
+    "nLines": 22,
+    "symFail": 0,
+    "symFailDetail": []
+   },
+   "ch2": {
+    "bboxMil": [
+     8600,
+     -6693.706,
+     8794.555,
+     -6433.861
+    ],
+    "Lmm": 4.942,
+    "Hmm": 6.6,
+    "Amm2": 32.62,
+    "nPads": 18,
+    "nVias": 4,
+    "nLines": 22,
+    "symFail": 0,
+    "symFailDetail": []
+   },
+   "H": 259.845,
+   "perChannelAmm2": 32.62,
+   "totalSum2ch": 65.24,
+   "combinedBboxAmm2": 70.25,
+   "combinedLmm": 4.942,
+   "combinedHmm": 14.216,
+   "interChannelCopperGapMil": 40.0
+  },
+  "T2": {
+   "ch1": {
+    "bboxMil": [
+     8600,
+     -7233.551,
+     8794.555,
+     -6973.706
+    ],
+    "Lmm": 4.942,
+    "Hmm": 6.6,
+    "Amm2": 32.62,
+    "nPads": 18,
+    "nVias": 4,
+    "nLines": 22,
+    "symFail": 0,
+    "symFailDetail": []
+   },
+   "ch2": {
+    "bboxMil": [
+     8600,
+     -7533.396,
+     8794.555,
+     -7273.551
+    ],
+    "Lmm": 4.942,
+    "Hmm": 6.6,
+    "Amm2": 32.62,
+    "nPads": 18,
+    "nVias": 4,
+    "nLines": 22,
+    "symFail": 0,
+    "symFailDetail": []
+   },
+   "H": 259.845,
+   "perChannelAmm2": 32.62,
+   "totalSum2ch": 65.24,
+   "combinedBboxAmm2": 70.25,
+   "combinedLmm": 4.942,
+   "combinedHmm": 14.216,
+   "interChannelCopperGapMil": 40.0
+  },
+  "T3": {
+   "ch1": {
+    "bboxMil": [
+     8600,
+     -8073.241,
+     8794.555,
+     -7813.396
+    ],
+    "Lmm": 4.942,
+    "Hmm": 6.6,
+    "Amm2": 32.62,
+    "nPads": 18,
+    "nVias": 4,
+    "nLines": 22,
+    "symFail": 0,
+    "symFailDetail": []
+   },
+   "ch2": {
+    "bboxMil": [
+     8600,
+     -8373.086,
+     8794.555,
+     -8113.241
+    ],
+    "Lmm": 4.942,
+    "Hmm": 6.6,
+    "Amm2": 32.62,
+    "nPads": 18,
+    "nVias": 4,
+    "nLines": 22,
+    "symFail": 0,
+    "symFailDetail": []
+   },
+   "H": 259.845,
+   "perChannelAmm2": 32.62,
+   "totalSum2ch": 65.24,
+   "combinedBboxAmm2": 70.25,
+   "combinedLmm": 4.942,
+   "combinedHmm": 14.216,
+   "interChannelCopperGapMil": 40.0
+  },
+  "T4": {
+   "ch1": {
+    "bboxMil": [
+     8600,
+     -8912.931,
+     8794.555,
+     -8653.086
+    ],
+    "Lmm": 4.942,
+    "Hmm": 6.6,
+    "Amm2": 32.62,
+    "nPads": 18,
+    "nVias": 4,
+    "nLines": 22,
+    "symFail": 0,
+    "symFailDetail": []
+   },
+   "ch2": {
+    "bboxMil": [
+     8600,
+     -9212.776,
+     8794.555,
+     -8952.931
+    ],
+    "Lmm": 4.942,
+    "Hmm": 6.6,
+    "Amm2": 32.62,
+    "nPads": 18,
+    "nVias": 4,
+    "nLines": 22,
+    "symFail": 0,
+    "symFailDetail": []
+   },
+   "H": 259.845,
+   "perChannelAmm2": 32.62,
+   "totalSum2ch": 65.24,
+   "combinedBboxAmm2": 70.25,
+   "combinedLmm": 4.942,
+   "combinedHmm": 14.216,
+   "interChannelCopperGapMil": 40.0
+  }
+ }
+}

@@ -1,0 +1,22 @@
+case,r_ohm,cg_nf,cd_pf,channel,variant,vn_inband_nVrms,vn_broadband_nVrms,vn_broadband_lsb,dens_10Hz_nVrtHz,dens_1k_nVrtHz,dens_16k_nVrtHz,dens_100k_nVrtHz,dens_1M_nVrtHz,d6a_linear_pct,d6a_quad_pct,d6a_judge,opa388_share_nVrms,passR_share_nVrms,adcRin_share_nVrms,attr_xcheck_pct,method_note
+fo1_base,47.0,47.0,820.0,ch0,n1,1245.31,3301.13,11.34,9.976,9.975,9.722,5.795,0.604,0.7917,12.6085,PASS<=10%,3275.19,412.81,11.01,0.0,D6a=(n1-n3)/n3 bb=2.048e+06Hz linear r4口径; n3(bb)=3275.2nV; D6b=LSB col
+fo1_base,47.0,47.0,820.0,ch0,n3,1235.53,3275.19,11.251,9.897,9.896,9.646,5.749,0.6,,,,,,,,OPA388-only through same RC (D6a denominator)
+fo1_base,47.0,47.0,820.0,ch1,n1,887.43,2352.09,8.08,7.109,7.108,6.928,4.128,0.432,1.5596,17.7298,PASS<=10%,2315.97,410.47,10.99,0.0,D6a=(n1-n3)/n3 bb=2.048e+06Hz linear r4口径; n3(bb)=2316.0nV; D6b=LSB col
+fo1_base,47.0,47.0,820.0,ch1,n3,873.65,2315.97,7.956,6.999,6.998,6.821,4.065,0.424,,,,,,,,OPA388-only through same RC (D6a denominator)
+fo1_a,100.0,22.0,820.0,ch0,n1,1254.55,3254.75,11.181,10.055,10.054,9.783,5.665,0.637,1.6788,18.4006,PASS<=10%,3201.01,588.56,22.99,0.0,D6a=(n1-n3)/n3 bb=2.048e+06Hz linear r4口径; n3(bb)=3201.0nV; D6b=LSB col
+fo1_a,100.0,22.0,820.0,ch0,n3,1233.84,3201.01,10.996,9.889,9.888,9.622,5.572,0.626,,,,,,,,OPA388-only through same RC (D6a denominator)
+fo1_a,100.0,22.0,820.0,ch1,n1,901.5,2338.48,8.033,7.226,7.225,7.03,4.069,0.459,3.3124,25.9511,PASS<=10%,2263.51,586.96,22.98,0.0,D6a=(n1-n3)/n3 bb=2.048e+06Hz linear r4口径; n3(bb)=2263.5nV; D6b=LSB col
+fo1_a,100.0,22.0,820.0,ch1,n3,872.46,2263.51,7.775,6.993,6.992,6.804,3.939,0.443,,,,,,,,OPA388-only through same RC (D6a denominator)
+fo1_b,200.0,10.0,820.0,ch0,n1,1273.39,3320.87,11.408,10.203,10.202,9.936,5.793,0.676,3.3357,26.0437,PASS<=10%,3213.67,835.68,46.26,0.0,D6a=(n1-n3)/n3 bb=2.048e+06Hz linear r4口径; n3(bb)=3213.7nV; D6b=LSB col
+fo1_b,200.0,10.0,820.0,ch0,n3,1232.3,3213.67,11.039,9.874,9.873,9.616,5.606,0.653,,,,,,,,OPA388-only through same RC (D6a denominator)
+fo1_b,200.0,10.0,820.0,ch1,n1,928.57,2421.28,8.317,7.44,7.44,7.246,4.223,0.494,6.5488,36.7783,PASS<=10%,2272.47,834.49,46.24,0.0,D6a=(n1-n3)/n3 bb=2.048e+06Hz linear r4口径; n3(bb)=2272.5nV; D6b=LSB col
+fo1_b,200.0,10.0,820.0,ch1,n3,871.37,2272.47,7.806,6.982,6.981,6.799,3.964,0.462,,,,,,,,OPA388-only through same RC (D6a denominator)
+fo1_c,100.0,10.0,6800.0,ch0,n1,1254.58,3257.46,11.19,10.055,10.054,9.784,5.672,0.638,1.6788,18.4006,PASS<=10%,3203.68,589.05,23.01,0.0,D6a=(n1-n3)/n3 bb=2.048e+06Hz linear r4口径; n3(bb)=3203.7nV; D6b=LSB col
+fo1_c,100.0,10.0,6800.0,ch0,n3,1233.88,3203.68,11.005,9.889,9.888,9.623,5.578,0.627,,,,,,,,OPA388-only through same RC (D6a denominator)
+fo1_c,100.0,10.0,6800.0,ch1,n1,901.53,2340.88,8.041,7.226,7.225,7.031,4.068,0.462,3.3111,25.9457,PASS<=10%,2265.86,587.44,22.99,0.0,D6a=(n1-n3)/n3 bb=2.048e+06Hz linear r4口径; n3(bb)=2265.9nV; D6b=LSB col
+fo1_c,100.0,10.0,6800.0,ch1,n3,872.48,2265.86,7.784,6.993,6.992,6.804,3.937,0.446,,,,,,,,OPA388-only through same RC (D6a denominator)
+,,,,,,,,,,,,,,,,,,,,,note_1_scope: T05 范围=AAF 段（跟随器+一阶 RC+ADC 引脚负载 Rin130k+5p/端，采样开关断态口径，跟随器输入由理想无噪直流源驱动）。前端源阻抗噪声（Rsense 150k Johnson 49.9nV/√Hz@B 输入、Rtop 10k/150k 分压、TMUX 通路）为四方案共同的前端噪声，不在本段考核范围；解析估算（未仿真）：Rsense 项经 CH1 一阶 AAF 滤波后 ≈49.9nV×√(π/2·fc_DM)≈16 µVrms 量级， dominates 通道噪声但四方案相同
+,,,,,,,,,,,,,,,,,,,,,note_2_adc_noise: ADC 内部噪声（kT/C_S 采样噪声、量化、基准、sinc³ 成形）不在 .noise——fsadc 等效只有无源件。解析：kT/C_S=√(kT/3.5pF)=34.4 µV/次采样（T=300.15K，SBAS590E p10 C_S=3.5pF typ）。系统口径输入等效噪声须查 SBAS590E p23 Table 1 @OSR=32/fMOD=4.096MHz——手册在 Obsidian 库不在本仓库（AGENTS 外部资料不入库），本轮未取得数值 → ADC 内部噪声数值对比 NOT VERIFIED
+,,,,,,,,,,,,,,,,,,,,,note_3_d6a_dual: D6a 双口径：判罚按 r4 冻结线性口径 (n1−n3)/n3（r5_results_r4_B.json D6_detail 同式）。正交口径 √(n1²−n3²)/n3（物理功率叠加）：fo1_b ch1=36.78% 超 30% 淘汰线（原因：CH1 单运放底噪 √2 低于 CH0 + 2×200Ω Johnson 大）；但其宽带总噪声 2421nV=8.3 LSB 与他案（8.0–8.3 LSB）同量级，是相对底噪占比问题非绝对噪声恶化。两口径均已列出，不放宽任何门槛
+,,,,,,,,,,,,,,,,,,,,,note_4_wiring: 真实接线落实：CH0=T/M 两线各 1 颗 OPA388（真实接线本就对称，非理想化四运放）；CH1=B 线单 OPA388 + AIN1N 经 RKN/CGN 直连地（Kelvin，无第四颗运放，DC=0V）。CH1 宽带噪声 √2 低于 CH0（8.0-8.3 vs 11.2-11.4 LSB）即真实接线效应
+,,,,,,,,,,,,,,,,,,,,,note_5_attr: 逐器件归属来自 LTspice .noise 每器件贡献列（OPA388=xf* 前缀内部器件，passR=Ra1/Rb1/Rf/RKN，adcRin=Rin）；功率和交叉校验 attr_xcheck_pct=0.0%（Σ器件²=onoise² 精确成立）

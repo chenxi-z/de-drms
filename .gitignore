@@ -230,3 +230,11 @@ nul
 *.db
 *.runlog
 hardware/sim/**/*.op.raw
+
+# 仿真复核工作区产物（2026-10-24 定）：netlists/*.net、raw/*.raw、logs/*.log
+# 已由上方规则覆盖；以下补齐曲线图、模型本地件与超限的 MC 逐样本明细——
+# 均可由各目录 run_all.py / t06_t11.py 重跑再生，只入库报告 md + 脚本 + csv 汇总证据
+hardware/sim/**/plots/
+hardware/sim/**/models/
+hardware/sim/_candidate_models/
+hardware/sim/**/t06_mc_all.csv

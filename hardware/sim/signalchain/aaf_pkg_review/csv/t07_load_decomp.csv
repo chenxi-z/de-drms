@@ -1,0 +1,19 @@
+scheme,test,layer,pm_deg,ugf_hz,zload_ugf_ohm,ceq_ugf_pf,pm_delta_vs_first1_deg,note
+S0,zload@UGF(1st-order),解析,,2786121.2,47.0,48645.0,,[解析]一阶 Z=R1+1/(s(CG1+2Cd)+1/65k+s·5p) @UGF（对照二阶行）
+S1,zload@UGF(1st-order),解析,,4597269.9,100.0,23645.0,,[解析]一阶 Z=R1+1/(s(CG1+2Cd)+1/65k+s·5p) @UGF（对照二阶行）
+T1,loopl_ch0(first-stage-only),LTspice,96.34,4597269.9,,,,仅首级负载 R1+CG1（无后级）——隔离后级 R2+CG2 叠加影响
+T1,stacking_delta(full−first1),LTspice,96.34,4597269.9,,,0.0,全梯形 PM−仅首级 PM = +0.00°（后级 R2+CG2 叠加代价）
+T1,zload@UGF(full),解析,,4597269.9,100.2,10022.23,,[解析]Z=R1+1/(sCG1+1/(R2+Z2))，Z2=(CG2+2Cd)||65k||5p @UGF=4597270Hz；C_eq=−1/(ω·ImZ)
+T1,zload@UGF(first1),解析,,4597269.9,100.1,10000.0,,[解析]Z=R1+1/(sCG1) 同频点；对照 full 行见后级叠加使 |Z|↓/C_eq↑
+T2,loopl_ch0(first-stage-only),LTspice,96.34,4597269.9,,,,仅首级负载 R1+CG1（无后级）——隔离后级 R2+CG2 叠加影响
+T2,stacking_delta(full−first1),LTspice,96.34,4597269.9,,,0.0,全梯形 PM−仅首级 PM = +0.00°（后级 R2+CG2 叠加代价）
+T2,zload@UGF(full),解析,,4597269.9,100.2,10015.45,,[解析]Z=R1+1/(sCG1+1/(R2+Z2))，Z2=(CG2+2Cd)||65k||5p @UGF=4597270Hz；C_eq=−1/(ω·ImZ)
+T2,zload@UGF(first1),解析,,4597269.9,100.1,10000.0,,[解析]Z=R1+1/(sCG1) 同频点；对照 full 行见后级叠加使 |Z|↓/C_eq↑
+T3,loopl_ch0(first-stage-only),LTspice,95.84,3651741.3,,,,仅首级负载 R1+CG1（无后级）——隔离后级 R2+CG2 叠加影响
+T3,stacking_delta(full−first1),LTspice,95.85,3651741.3,,,0.01,全梯形 PM−仅首级 PM = +0.01°（后级 R2+CG2 叠加代价）
+T3,zload@UGF(full),解析,,3651741.3,68.3,10015.67,,[解析]Z=R1+1/(sCG1+1/(R2+Z2))，Z2=(CG2+2Cd)||65k||5p @UGF=3651741Hz；C_eq=−1/(ω·ImZ)
+T3,zload@UGF(first1),解析,,3651741.3,68.1,10000.0,,[解析]Z=R1+1/(sCG1) 同频点；对照 full 行见后级叠加使 |Z|↓/C_eq↑
+T4,loopl_ch0(first-stage-only),LTspice,96.11,4120975.2,,,,仅首级负载 R1+CG1（无后级）——隔离后级 R2+CG2 叠加影响
+T4,stacking_delta(full−first1),LTspice,96.11,4120975.2,,,0.0,全梯形 PM−仅首级 PM = +0.00°（后级 R2+CG2 叠加代价）
+T4,zload@UGF(full),解析,,4120975.2,82.2,10010.82,,[解析]Z=R1+1/(sCG1+1/(R2+Z2))，Z2=(CG2+2Cd)||65k||5p @UGF=4120975Hz；C_eq=−1/(ω·ImZ)
+T4,zload@UGF(first1),解析,,4120975.2,82.1,10000.0,,[解析]Z=R1+1/(sCG1) 同频点；对照 full 行见后级叠加使 |Z|↓/C_eq↑

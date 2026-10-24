@@ -1,0 +1,26 @@
+item,anchor,this_run,diff,within_tol,unit,tolerance,raw_crosscheck,method
+D1_db,-40.7,-40.6891,0.0109,yes,dB,2.0,-40.6891,"acdm .meas dm_fmod（mag(V(pa1,na1))@4.096MHz，LTspice 输出即 dB）"
+D3_db,-62.7,-62.673,0.027,yes,dB,2.0,-62.6731,acdm .meas dm_mclk（@16.384MHz）
+D4_db,0.23,0.2234,-0.0066,yes,dB,0.1,0.2234,acdm .meas：16kHz 相对 DC 衰减 = -(dm_16k−dm_dc)
+D2_db,-46.4,-46.4104,-0.0104,yes,dB,2.0,-46.4104,accm .meas cm_fmod（mag(V(pa1))@4.096MHz，共模 0.5V 激励绝对 dB）
+settle_us,21.0,20.846,-0.154,yes,µs,2.1,20.846,raw 带外出带法（vf=-0.000000V ±71µV）；镜像 tran2 出带法=20.846021651370968µs；锚定≈21µs 的原始产生口径不可考证（gen_fo ts01 meas 物理不可达）
+pm_deg,98.6,98.5678,-0.0322,yes,deg,9.86,,T=-V(fpa)/V(inn) mag 跨 1 处 pm=180+ph（gen_fo.py 同口径），UGF=2786.1kHz
+ltspice_version,,26.1.1 (ltspice-sim status),,,,,,~/.local/bin/ltspice-sim status 实测
+opax388_md5,,97c4045ef608097ec1f1a67dca97ceae,,,,,,md5sum OPAx388.LIB（fs_subs.inc:5 注记一致）
+netlist_dir,,hardware/sim/signalchain/fo1_rc_review/netlists/,,,,,,本脚本 gen 生成（.net gitignore 不入库，可再生）
+note_1,,"acdm: NOTE ltspice-sim rc=1 (post-parse crash on complex ASCII raw; sim itself completed): {
+  ""ok"": false,
+  ""error"": ""could not convert string to float: '1.000000000000000e-01,0.000000000000000e+00'"",
+  ""code"": 1
+}",,,,,,口径排查记录
+note_2,,"accm: NOTE ltspice-sim rc=1 (post-parse crash on complex ASCII raw; sim itself completed): {
+  ""ok"": false,
+  ""error"": ""could not convert string to float: '1.000000000000000e-01,0.000000000000000e+00'"",
+  ""code"": 1
+}",,,,,,口径排查记录
+note_3,,"loop: NOTE ltspice-sim rc=1 (post-parse crash on complex ASCII raw; sim itself completed): {
+  ""ok"": false,
+  ""error"": ""could not convert string to float: '1.000000000000000e-01,0.000000000000000e+00'"",
+  ""code"": 1
+}",,,,,,口径排查记录
+note_4,,tran/tran2：gen_fo.py 原 ts01 .meas（0.709929 RISE）物理不可达（真终值 0.709487 < 阈值；本机 LTspice 26.1.1 实测无输出）——旧 fo_results.json tran 空字段根因；21µs 锚定改以出带法口径对照,,,,,,口径排查记录

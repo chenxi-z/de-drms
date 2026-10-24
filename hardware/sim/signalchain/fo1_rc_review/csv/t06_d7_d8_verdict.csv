@@ -1,0 +1,33 @@
+case,dim,mode,cond,value,unit,verdict,threshold,basis
+FO1_BASE,D7,A5,模式A R±1%C±5%,0.00864,dB,PASS,σ≤0.05 dB（满分≤0.01）,"MC L1 n=1000（均匀独立），mean=0.22378, P1=0.2053, P99=0.2427"
+FO1_BASE,D7,A1,模式A R±1%C±1%,0.00245,dB,PASS,σ≤0.05 dB（满分≤0.01）,"MC L1 n=1000（均匀独立），mean=0.22319, P1=0.2179, P99=0.2284"
+FO1_BASE,D7,B2,模式B R·C配对,0.00043,dB,PASS,σ≤0.05 dB（满分≤0.01）,"MC L1 n=1000（均匀独立），mean=0.22325, P1=0.2225, P99=0.2240"
+FO1_BASE,D7,A5-LTspice,模式A 31 确定性角点,0.01627,dB,PASS,σ≤0.05 dB（满分≤0.01）,LTspice L2 角点集合 min=0.1982 max=0.2505（极值域）
+FO1_BASE,D8,A5,模式A 未配对 R±1%C±5%,34.0,dB,FAIL,CMRR≥80 dB @10Hz–16kHz（满分≥100；注明匹配条件）,"MC L1 n=1000 P1；mean=46.1, min=32.7, σ=9.7"
+FO1_BASE,D8,A1,模式A R±1%C±1%,44.3,dB,FAIL,CMRR≥80 dB @10Hz–16kHz（满分≥100；注明匹配条件）,"MC L1 n=1000 P1；mean=56.9, min=42.8, σ=9.1"
+FO1_BASE,D8,B2,模式B R·C异向配对(D8官方考核条件),93.9,dB,PASS,CMRR≥80 dB @10Hz–16kHz（满分≥100；注明匹配条件）,"MC L1 n=1000 P1；mean=107.5, min=93.4, σ=11.0"
+FO1_BASE,D8,A5-LTspice,模式A 真失配角（m组12角）,31.7,dB,FAIL,CMRR≥80 dB @10Hz–16kHz,LTspice L2 最坏失配角（确定性角点，非统计）
+FO1_A,D7,A5,模式A R±1%C±5%,0.00885,dB,PASS,σ≤0.05 dB（满分≤0.01）,"MC L1 n=1000（均匀独立），mean=0.23843, P1=0.2190, P99=0.2568"
+FO1_A,D7,A1,模式A R±1%C±1%,0.00262,dB,PASS,σ≤0.05 dB（满分≤0.01）,"MC L1 n=1000（均匀独立），mean=0.23795, P1=0.2320, P99=0.2435"
+FO1_A,D7,B2,模式B R·C配对,0.00094,dB,PASS,σ≤0.05 dB（满分≤0.01）,"MC L1 n=1000（均匀独立），mean=0.23798, P1=0.2363, P99=0.2396"
+FO1_A,D7,A5-LTspice,模式A 31 确定性角点,0.01673,dB,PASS,σ≤0.05 dB（满分≤0.01）,LTspice L2 角点集合 min=0.2112 max=0.2668（极值域）
+FO1_A,D8,A5,模式A 未配对 R±1%C±5%,34.0,dB,FAIL,CMRR≥80 dB @10Hz–16kHz（满分≥100；注明匹配条件）,"MC L1 n=1000 P1；mean=46.4, min=32.4, σ=9.7"
+FO1_A,D8,A1,模式A R±1%C±1%,44.2,dB,FAIL,CMRR≥80 dB @10Hz–16kHz（满分≥100；注明匹配条件）,"MC L1 n=1000 P1；mean=57.9, min=43.1, σ=9.4"
+FO1_A,D8,B2,模式B R·C异向配对(D8官方考核条件),93.8,dB,PASS,CMRR≥80 dB @10Hz–16kHz（满分≥100；注明匹配条件）,"MC L1 n=1000 P1；mean=107.0, min=93.2, σ=11.3"
+FO1_A,D8,A5-LTspice,模式A 真失配角（m组12角）,31.8,dB,FAIL,CMRR≥80 dB @10Hz–16kHz,LTspice L2 最坏失配角（确定性角点，非统计）
+FO1_B,D7,A5,模式A R±1%C±5%,0.00849,dB,PASS,σ≤0.05 dB（满分≤0.01）,"MC L1 n=1000（均匀独立），mean=0.23044, P1=0.2127, P99=0.2478"
+FO1_B,D7,A1,模式A R±1%C±1%,0.00243,dB,PASS,σ≤0.05 dB（满分≤0.01）,"MC L1 n=1000（均匀独立），mean=0.23036, P1=0.2252, P99=0.2358"
+FO1_B,D7,B2,模式B R·C配对,0.00186,dB,PASS,σ≤0.05 dB（满分≤0.01）,"MC L1 n=1000（均匀独立），mean=0.23046, P1=0.2273, P99=0.2336"
+FO1_B,D7,A5-LTspice,模式A 31 确定性角点,0.01515,dB,PASS,σ≤0.05 dB（满分≤0.01）,LTspice L2 角点集合 min=0.2044 max=0.2583（极值域）
+FO1_B,D8,A5,模式A 未配对 R±1%C±5%,34.6,dB,FAIL,CMRR≥80 dB @10Hz–16kHz（满分≥100；注明匹配条件）,"MC L1 n=1000 P1；mean=47.2, min=33.5, σ=9.8"
+FO1_B,D8,A1,模式A R±1%C±1%,45.2,dB,FAIL,CMRR≥80 dB @10Hz–16kHz（满分≥100；注明匹配条件）,"MC L1 n=1000 P1；mean=58.3, min=43.9, σ=9.8"
+FO1_B,D8,B2,模式B R·C异向配对(D8官方考核条件),94.3,dB,PASS,CMRR≥80 dB @10Hz–16kHz（满分≥100；注明匹配条件）,"MC L1 n=1000 P1；mean=108.0, min=93.7, σ=11.6"
+FO1_B,D8,A5-LTspice,模式A 真失配角（m组12角）,32.6,dB,FAIL,CMRR≥80 dB @10Hz–16kHz,LTspice L2 最坏失配角（确定性角点，非统计）
+FO1_C,D7,A5,模式A R±1%C±5%,0.00893,dB,PASS,σ≤0.05 dB（满分≤0.01）,"MC L1 n=1000（均匀独立），mean=0.23767, P1=0.2197, P99=0.2559"
+FO1_C,D7,A1,模式A R±1%C±1%,0.00258,dB,PASS,σ≤0.05 dB（满分≤0.01）,"MC L1 n=1000（均匀独立），mean=0.23723, P1=0.2318, P99=0.2430"
+FO1_C,D7,B2,模式B R·C配对,0.0078,dB,PASS,σ≤0.05 dB（满分≤0.01）,"MC L1 n=1000（均匀独立），mean=0.23731, P1=0.2236, P99=0.2510"
+FO1_C,D7,A5-LTspice,模式A 31 确定性角点,0.01193,dB,PASS,σ≤0.05 dB（满分≤0.01）,LTspice L2 角点集合 min=0.2105 max=0.2659（极值域）
+FO1_C,D8,A5,模式A 未配对 R±1%C±5%,40.6,dB,FAIL,CMRR≥80 dB @10Hz–16kHz（满分≥100；注明匹配条件）,"MC L1 n=1000 P1；mean=52.0, min=39.4, σ=9.1"
+FO1_C,D8,A1,模式A R±1%C±1%,50.7,dB,FAIL,CMRR≥80 dB @10Hz–16kHz（满分≥100；注明匹配条件）,"MC L1 n=1000 P1；mean=63.7, min=49.6, σ=9.0"
+FO1_C,D8,B2,模式B R·C异向配对(D8官方考核条件),100.5,dB,PASS,CMRR≥80 dB @10Hz–16kHz（满分≥100；注明匹配条件）,"MC L1 n=1000 P1；mean=113.8, min=99.9, σ=11.1"
+FO1_C,D8,A5-LTspice,模式A 真失配角（m组12角）,38.4,dB,FAIL,CMRR≥80 dB @10Hz–16kHz,LTspice L2 最坏失配角（确定性角点，非统计）

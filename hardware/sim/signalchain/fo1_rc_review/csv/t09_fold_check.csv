@@ -1,0 +1,5 @@
+case,n_samples,t_skip_us,inj,fitted_alias_uv,ac_pred_alias_uv,ac_pred_phased_uv,fit_over_pred,fit_over_pred_phased,fit_resid_rms_uv,sinc3_db_at_8k,output_alias_uv,lsb_uv,alias_in_lsb,rel_to_vsense_ppm,layer
+FO1_BASE,183,15,"100mV @4.104MHz (=fMOD+8k), P 跟随器输入, vcm=0.6, Ron=100Ω(假设)",950.498,920.858,952.975,1.0322,0.9974,2.076,-0.167,932.346,0.291,3202.7,791.08,L3：采样序列 LTspice 实测 + sinc³ 离线换算（声明）
+FO1_A,183,15,"100mV @4.104MHz (=fMOD+8k), P 跟随器输入, vcm=0.6, Ron=100Ω(假设)",1238.015,1153.497,1239.424,1.0733,0.9989,3.125,-0.167,1214.371,0.291,4171.5,1030.38,L3：采样序列 LTspice 实测 + sinc³ 离线换算（声明）
+FO1_B,183,15,"100mV @4.104MHz (=fMOD+8k), P 跟随器输入, vcm=0.6, Ron=100Ω(假设)",1533.871,1320.702,1537.017,1.1614,0.998,4.155,-0.167,1504.578,0.291,5168.4,1276.61,L3：采样序列 LTspice 实测 + sinc³ 离线换算（声明）
+FO1_C,183,15,"100mV @4.104MHz (=fMOD+8k), P 跟随器输入, vcm=0.6, Ron=100Ω(假设)",2728.704,1158.274,2730.343,2.3558,0.9994,5.37,-0.167,2676.591,0.291,9194.5,2271.05,L3：采样序列 LTspice 实测 + sinc³ 离线换算（声明）
