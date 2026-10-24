@@ -9,9 +9,9 @@
 | --- | --- | --- |
 | ① | [通用信号链方案 V3.0](2026-10-10-universal-signal-chain.md) | **主文档**（权威）。含总体架构、应用配置（附录 D）、硬件实现定稿（**附录 E.1–E.11**） |
 | ② | [引脚分配总表](pin-assignment.md) | **MCU/ADC/SDMMC/连接器/信号网络一表通**（2026-10-14 重排定稿；与主文档 E.6 同源） |
-| ③ | [ADC 选型记录](adc-selection/README.md) | ADC 决策链、被否方案、备选挂起 |
-| ④ | [MCU 选型记录](mcu-selection/README.md) | MCU 决策链（定版 **U545RET6Q**）、pin2pin 结论 |
-| ⑤ | [diagram/](diagram/) | 拓扑图（见 §5） |
+| ③ | [器件选型记录](component-selection.md) | **ADC + MCU 合一**（2026-10-24）：决策链、被否方案、备选挂起、pin2pin 结论 |
+| ④ | [spec/](spec/) 专题规格 | 时点性设计/计划文档（见 §5.5 清单与命名规范） |
+| ⑤ | [diagram/](diagram/) | 拓扑图（见 §5；生成器在 `diagram/_lib/`） |
 | ⑥ | [`../firmware/DE-DRM/CUBEMX_SETUP.md`](../../firmware/DE-DRM/CUBEMX_SETUP.md) | CubeMX **GUI** 配置清单（⚠️ IOC 不可手改加 IP） |
 
 > **权威性规则**：主文档**附录 E**（硬件实现）是已定稿内容的唯一来源；
@@ -91,7 +91,25 @@ ADS131A02（双通道同步）→ STM32U545RET6Q（SPI）→ **本地 TF 卡（S
 
 被否方案的两张旧图（`ratiometric-measurement`、`ratiometric-divider-final`——分压激励 + 比例式路线）
 已于 2026-10-12 移除，并随仓库瘦身**从 git 历史中一并清除**（历史已改写，旧 SHA 作废）；
-被否方案的文字判定依据见 [adc-selection/README.md](adc-selection/README.md) 与本文件 §4。
+被否方案的文字判定依据见 [component-selection.md](component-selection.md) 与本文件 §4。
+
+### 5.5 专题规格（spec/）清单与文档命名规范
+
+| 文件 | 内容 |
+| --- | --- |
+| [spec/2026-10-18-aa-driver.md](spec/2026-10-18-aa-driver.md) | 抗混叠与采集驱动子系统：设计规格（十维评分 D1–D10、约束 C1–C9、手册核实 M1–M7）+ Round 5 实现计划（2026-10-24 两文件合一） |
+| [spec/2026-10-23-signal-chain-variants.md](spec/2026-10-23-signal-chain-variants.md) | 信号链方案对比总表：AAF 四案 / 恒流源三案 / 跟随器三案，新旧并存供取舍；含图纸索引 |
+
+**命名与合并规范**（2026-10-24 起，新文档必须遵守）：
+
+1. **活文档**（持续维护的权威内容）：英文 kebab-case、**不带日期**——
+   `README.md`、`HANDOFF.md`、`pin-assignment.md`、`component-selection.md`；
+   主文档 `2026-10-10-universal-signal-chain.md` 名字保留（全库引用的历史锚点，不改名）。
+2. **专题规格**（时点性设计/决策记录）：`spec/YYYY-MM-DD-<topic>.md`；
+   **同主题的规格与实施计划合一个文件**（计划作为附录章节），不再拆 design/plan 两文件。
+3. **图**：中文名（沿用既定规范），生成器 `diagram/_lib/gen_<图名>.py`，公共排版 `diagram/_lib/scistyle.py`。
+4. **默认并入、例外开新**：新内容优先追加到既有文档的对应章节；
+   只有确属新主题（现有文档都装不下）才开新文件——开新前在本文档登记。
 
 ## 6 未决事项
 

@@ -225,3 +225,8 @@ nul
 
 # ZCode 会话元数据（agent 工具目录，不入库）
 .zcode/
+
+# 仿真产物（LTspice 输出，可由各套件 gen_*.py 重跑再生）
+*.db
+*.runlog
+hardware/sim/**/*.op.raw

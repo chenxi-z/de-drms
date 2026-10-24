@@ -1,350 +1,201 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1340" viewBox="0 0 1600 1340"
-     font-family="'Noto Sans CJK SC','Noto Sans SC','Source Han Sans SC','PingFang SC','Microsoft YaHei',sans-serif">
-<style>
-  .w   { stroke:#374151; stroke-width:2;   fill:none }
-  .wr  { stroke:#374151; stroke-width:2.5; fill:none }
-  .sym { stroke:#374151; stroke-width:1.8; fill:none; stroke-linejoin:round }
-  .p   { stroke:#7c3aed; stroke-width:1.8; fill:none; stroke-dasharray:6,4 }
-  .gw  { stroke:#059669; stroke-width:3.5; fill:none }
-  .ow  { stroke:#ea580c; stroke-width:3.5; fill:none }
-  .gd  { stroke:#9ca3af; stroke-width:2;   fill:none; stroke-dasharray:5,4 }
-</style>
-<defs>
-  <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
-    <path d="M20,0 L0,0 0,20" fill="none" stroke="#eef2f7" stroke-width="1"/>
-  </pattern>
-  <marker id="arrG" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="11" refX="10" refY="4.5" orient="auto"><path d="M0,0 L10,4.5 L0,9 z" fill="#059669"/></marker>
-  <marker id="arrO" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="11" refX="10" refY="4.5" orient="auto"><path d="M0,0 L10,4.5 L0,9 z" fill="#ea580c"/></marker>
-  <marker id="arrB" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="11" refX="10" refY="4.5" orient="auto"><path d="M0,0 L10,4.5 L0,9 z" fill="#2563eb"/></marker>
-  <marker id="arrK" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="11" refX="10" refY="4.5" orient="auto"><path d="M0,0 L10,4.5 L0,9 z" fill="#374151"/></marker>
-</defs>
-<rect x="0" y="0" width="1600" height="1340" fill="#ffffff"/>
-<rect x="0" y="0" width="1600" height="1340" fill="url(#grid)"/>
-
-<!-- ===== title ===== -->
-<text x="40" y="58" font-size="27" font-weight="bold" fill="#111827">模拟前端与自校准电路</text>
-<text x="40" y="86" font-size="12.5" fill="#64748b">双电极直流电阻测量仪 · 低边恒流 7.86 uA（Rsense 在 BSS138 源极路径）· T 点经 R_top / R_b 偏置 · 两线/四线兼容 · 单颗 TMUX1134 开关矩阵</text>
-<text x="1560" y="58" font-size="12" fill="#94a3b8" text-anchor="end">附录 E.2–E.4 · 模拟前端 + 自校准 · 原理示意（2026-10-18 v3：K5 + TMUX1134 单芯片开关矩阵）</text>
-<text x="1560" y="86" font-size="12" fill="#94a3b8" text-anchor="end">主图按控制脚默认电平（全低）绘制 = 校准态（CH2/CH4·NC 默认导通）</text>
-
-<!-- ===== 3.3V_A -> R_top -> T ===== -->
-<line x1="70" y1="150" x2="120" y2="150" class="wr"/>
-<line x1="70" y1="150" x2="70" y2="138" class="sym"/>
-<line x1="56" y1="138" x2="84" y2="138" stroke="#374151" stroke-width="2.5" fill="none"/>
-<text x="88" y="142" font-size="12.5" font-weight="bold" fill="#374151">3.3V_A</text>
-<line x1="120" y1="150" x2="120" y2="170" class="w"/>
-<rect x="106" y="170" width="28" height="52" rx="2" fill="#f1f5f9" stroke="#374151" stroke-width="1.8"/>
-<text x="140" y="192" font-size="13" font-weight="bold" fill="#111827">R_top</text>
-<text x="140" y="210" font-size="10.5" fill="#374151">10 kOhm · 1%</text>
-<line x1="120" y1="222" x2="120" y2="250" class="w"/>
-
-<!-- ===== T bus (ends at K5) ===== -->
-<line x1="120" y1="250" x2="640" y2="250" class="w"/>
-<circle cx="180" cy="250" r="4.5" fill="#111827"/>
-<circle cx="330" cy="250" r="4.5" fill="#111827"/>
-<circle cx="500" cy="250" r="4.5" fill="#111827"/>
-<text x="292" y="243" font-size="16" font-weight="bold" fill="#111827">T</text>
-<text x="310" y="241" font-size="10" fill="#2563eb">~3.0 V</text>
-
-<!-- ===== R_b ===== -->
-<line x1="500" y1="250" x2="500" y2="278" class="w"/>
-<rect x="486" y="278" width="28" height="52" rx="2" fill="#f1f5f9" stroke="#374151" stroke-width="1.8"/>
-<line x1="500" y1="330" x2="500" y2="350" class="w"/>
-<line x1="484" y1="350" x2="516" y2="350" stroke="#374151" stroke-width="2.5" fill="none"/>
-<line x1="490" y1="356" x2="510" y2="356" stroke="#374151" stroke-width="2" fill="none"/>
-<line x1="496" y1="362" x2="504" y2="362" stroke="#374151" stroke-width="2" fill="none"/>
-<text x="516" y="300" font-size="13" font-weight="bold" fill="#111827">R_b</text>
-<text x="516" y="318" font-size="10.5" fill="#374151">150 kOhm · 1%</text>
-
-<!-- ===== V_P sense-high bus (J6 -> buffer A) ===== -->
-<line x1="250" y1="190" x2="720" y2="190" class="w"/>
-<line x1="720" y1="190" x2="720" y2="250" class="w"/>
-<line x1="720" y1="250" x2="760" y2="250" class="w"/>
-<circle cx="250" cy="190" r="4.5" fill="#111827"/>
-<text x="240" y="182" font-size="14" font-weight="bold" fill="#111827" text-anchor="end">V_P</text>
-
-<!-- ===== K5 (TMUX1102 NC, default ON: V_P tied to T) ===== -->
-<circle cx="640" cy="250" r="3.5" fill="#ffffff" stroke="#374151" stroke-width="2"/>
-<circle cx="640" cy="190" r="3.5" fill="#ffffff" stroke="#374151" stroke-width="2"/>
-<line x1="640" y1="250" x2="640" y2="196" class="sym"/>
-<text x="628" y="207" font-size="10.5" font-weight="bold" fill="#7c3aed" text-anchor="end">CH2·NC</text>
-<line x1="580" y1="223" x2="640" y2="223" class="p"/>
-<circle cx="640" cy="223" r="3" fill="#ffffff" stroke="#7c3aed" stroke-width="1.6"/>
-<text x="574" y="227" font-size="9.5" fill="#7c3aed" text-anchor="end">SEL_SENSE（同上）</text>
-
-<!-- ===== sample (4-terminal, off-board) ===== -->
-<rect x="110" y="338" width="180" height="66" rx="2" fill="#fffbeb" stroke="#d97706" stroke-width="1.8" stroke-dasharray="7,5"/>
-<text x="168" y="332" font-size="10.5" font-weight="bold" fill="#059669" text-anchor="end">J5·I+</text>
-<text x="258" y="332" font-size="10.5" font-weight="bold" fill="#2563eb">J6·V+</text>
-<text x="168" y="418" font-size="10.5" font-weight="bold" fill="#059669" text-anchor="end">J7·I−</text>
-<text x="258" y="418" font-size="10.5" font-weight="bold" fill="#2563eb">J8·V−</text>
-<text x="200" y="362" font-size="14" font-weight="bold" fill="#92400e" text-anchor="middle">被测样品</text>
-<text x="200" y="381" font-size="12" fill="#92400e" text-anchor="middle">R = 10 ~ 120 kOhm</text>
-<text x="200" y="397" font-size="10" fill="#b45309" text-anchor="middle">（板外器件 · 虚线框）</text>
-<!-- force leads -->
-<line x1="180" y1="250" x2="180" y2="338" class="w"/>
-<line x1="180" y1="404" x2="180" y2="440" class="w"/>
-<!-- sense-high lead with hop over T bus -->
-<path d="M 250,338 L 250,258 A 7,7 0 0 0 250,244 L 250,190" class="w"/>
-<!-- JP1 / JP2 (2-wire bridges) -->
-<line x1="180" y1="300" x2="250" y2="300" stroke="#ea580c" stroke-width="2" stroke-dasharray="4,4" fill="none"/>
-<text x="215" y="290" font-size="9.5" font-weight="bold" fill="#ea580c" text-anchor="middle">JP1</text>
-<line x1="180" y1="414" x2="250" y2="414" stroke="#ea580c" stroke-width="2" stroke-dasharray="4,4" fill="none"/>
-<text x="215" y="427" font-size="9.5" font-weight="bold" fill="#ea580c" text-anchor="middle">JP2</text>
-
-<!-- ===== BAV199 clamp on J7/S (recommend x4 for J5-J8) ===== -->
-<circle cx="180" cy="436" r="4.5" fill="#111827"/>
-<line x1="180" y1="436" x2="70" y2="436" class="w"/>
-<line x1="70" y1="436" x2="70" y2="416" class="sym"/>
-<polygon points="62,416 78,416 70,400" fill="none" stroke="#374151" stroke-width="1.6"/>
-<line x1="60" y1="398" x2="80" y2="398" stroke="#374151" stroke-width="2.5" fill="none"/>
-<line x1="70" y1="398" x2="70" y2="384" class="sym"/>
-<line x1="58" y1="382" x2="82" y2="382" stroke="#374151" stroke-width="2.5" fill="none"/>
-<text x="70" y="374" font-size="10.5" font-weight="bold" fill="#374151" text-anchor="middle">AVDD</text>
-<line x1="70" y1="436" x2="70" y2="456" class="sym"/>
-<polygon points="62,478 78,478 70,460" fill="none" stroke="#374151" stroke-width="1.6"/>
-<line x1="60" y1="458" x2="80" y2="458" stroke="#374151" stroke-width="2.5" fill="none"/>
-<line x1="54" y1="494" x2="86" y2="494" stroke="#374151" stroke-width="2.5" fill="none"/>
-<line x1="60" y1="500" x2="80" y2="500" stroke="#374151" stroke-width="2" fill="none"/>
-<line x1="66" y1="506" x2="74" y2="506" stroke="#374151" stroke-width="2" fill="none"/>
-<text x="24" y="526" font-size="10.5" font-weight="bold" fill="#6b7280">BAV199 ×4</text>
-<text x="24" y="540" font-size="9.5" fill="#6b7280">J5–J8 各一</text>
-<text x="24" y="554" font-size="9.5" fill="#94a3b8">图示画于 J7 侧</text>
-
-<!-- ===== R_ref branch ===== -->
-<line x1="330" y1="250" x2="330" y2="285" class="w"/>
-<rect x="316" y="285" width="28" height="70" rx="2" fill="#f1f5f9" stroke="#374151" stroke-width="1.8"/>
-<line x1="330" y1="355" x2="330" y2="470" class="w"/>
-<text x="362" y="308" font-size="13" font-weight="bold" fill="#111827">R_ref</text>
-<text x="362" y="326" font-size="10.5" fill="#374151">100 kOhm +/-0.01%</text>
-<text x="362" y="342" font-size="10" fill="#94a3b8">&lt;= 25 ppm/C</text>
-
-<!-- ===== S / F nodes ===== -->
-<circle cx="180" cy="440" r="4.5" fill="#111827"/>
-<text x="192" y="434" font-size="14" font-weight="bold" fill="#111827">S</text>
-<circle cx="330" cy="470" r="4.5" fill="#111827"/>
-<text x="318" y="466" font-size="14" font-weight="bold" fill="#111827" text-anchor="end">F</text>
-
-<!-- ===== V_N sense-low route -> K3 ===== -->
-<line x1="250" y1="404" x2="250" y2="430" class="w"/>
-<line x1="250" y1="430" x2="322" y2="430" class="w"/>
-<circle cx="250" cy="430" r="4.5" fill="#111827"/>
-<text x="240" y="448" font-size="14" font-weight="bold" fill="#111827" text-anchor="end">V_N</text>
-
-<!-- ===== K3 (NO, default open) : V_N -> M ===== -->
-<circle cx="322" cy="430" r="3.5" fill="#ffffff" stroke="#374151" stroke-width="2"/>
-<circle cx="390" cy="430" r="3.5" fill="#ffffff" stroke="#374151" stroke-width="2"/>
-<line x1="322" y1="430" x2="378" y2="417" class="sym"/>
-<text x="312" y="444" font-size="10.5" font-weight="bold" fill="#7c3aed" text-anchor="end">CH1·NO</text>
-<line x1="350" y1="398" x2="350" y2="419" class="p"/>
-<circle cx="350" cy="423" r="3" fill="#ffffff" stroke="#7c3aed" stroke-width="1.6"/>
-<text x="356" y="394" font-size="9.5" fill="#7c3aed">SEL_SENSE（PB2）</text>
-<line x1="390" y1="430" x2="600" y2="430" class="w"/>
-
-<!-- ===== K4 (NC, default on) : F -> M ===== -->
-<line x1="330" y1="470" x2="390" y2="470" class="w"/>
-<circle cx="390" cy="470" r="3.5" fill="#ffffff" stroke="#374151" stroke-width="2"/>
-<circle cx="440" cy="470" r="3.5" fill="#ffffff" stroke="#374151" stroke-width="2"/>
-<line x1="390" y1="470" x2="437" y2="469" class="sym"/>
-<text x="350" y="462" font-size="10.5" font-weight="bold" fill="#7c3aed">CH1·NC</text>
-<line x1="414" y1="496" x2="414" y2="470" class="p"/>
-<circle cx="414" cy="470" r="3" fill="#ffffff" stroke="#7c3aed" stroke-width="1.6"/>
-<text x="414" y="510" font-size="10.5" font-weight="bold" fill="#7c3aed" text-anchor="middle">SEL_SENSE（同上）</text>
-<line x1="440" y1="470" x2="600" y2="470" class="w"/>
-<line x1="600" y1="470" x2="600" y2="440" class="w"/>
-<line x1="600" y1="430" x2="600" y2="440" class="w"/>
-<circle cx="600" cy="440" r="4.5" fill="#111827"/>
-<text x="608" y="432" font-size="14" font-weight="bold" fill="#111827">M</text>
-<line x1="600" y1="440" x2="760" y2="440" class="w"/>
-
-<!-- ===== K1/K2 switches ===== -->
-<line x1="180" y1="440" x2="180" y2="500" class="w"/>
-<circle cx="180" cy="500" r="3.5" fill="#ffffff" stroke="#374151" stroke-width="2"/>
-<circle cx="180" cy="550" r="3.5" fill="#ffffff" stroke="#374151" stroke-width="2"/>
-<line x1="180" y1="550" x2="195" y2="512" class="sym"/>
-<text x="140" y="495" font-size="10.5" font-weight="bold" fill="#7c3aed" text-anchor="end">CH3·NO</text>
-<line x1="222" y1="531" x2="188" y2="531" class="p"/>
-<circle cx="188" cy="531" r="3" fill="#ffffff" stroke="#7c3aed" stroke-width="1.6"/>
-<text x="226" y="535" font-size="10.5" font-weight="bold" fill="#7c3aed">SEL_SENSE（PB2）</text>
-<line x1="180" y1="550" x2="180" y2="590" class="w"/>
-<line x1="330" y1="470" x2="330" y2="500" class="w"/>
-<circle cx="330" cy="500" r="3.5" fill="#ffffff" stroke="#374151" stroke-width="2"/>
-<circle cx="330" cy="550" r="3.5" fill="#ffffff" stroke="#374151" stroke-width="2"/>
-<line x1="330" y1="550" x2="331" y2="503" class="sym"/>
-<text x="322" y="512" font-size="10.5" font-weight="bold" fill="#7c3aed" text-anchor="end">CH4·NC</text>
-<line x1="365" y1="527" x2="331" y2="527" class="p"/>
-<circle cx="331" cy="527" r="3" fill="#ffffff" stroke="#7c3aed" stroke-width="1.6"/>
-<text x="369" y="530" font-size="10.5" font-weight="bold" fill="#7c3aed">SEL4 / SEL_K2（PB0）</text>
-<line x1="330" y1="550" x2="330" y2="590" class="w"/>
-<line x1="180" y1="590" x2="330" y2="590" class="w"/>
-<circle cx="255" cy="590" r="4.5" fill="#111827"/>
-<text x="262" y="583" font-size="13" font-weight="bold" fill="#111827">X</text>
-<line x1="255" y1="590" x2="255" y2="615" class="w"/>
-
-<!-- ===== CC source ===== -->
-<line x1="255" y1="615" x2="255" y2="629" class="w"/>
-<line x1="255" y1="629" x2="243" y2="629" class="sym"/>
-<line x1="243" y1="623" x2="243" y2="669" class="sym"/>
-<line x1="243" y1="663" x2="255" y2="663" class="sym"/>
-<line x1="255" y1="663" x2="255" y2="677" class="w"/>
-<line x1="236" y1="629" x2="236" y2="663" class="sym"/>
-<line x1="214" y1="646" x2="236" y2="646" class="w"/>
-<polygon points="244,663 251,659 251,667" fill="#374151"/>
-<text x="266" y="641" font-size="11" font-weight="bold" fill="#374151">BSS138</text>
-<polygon points="144,609 144,683 214,646" fill="#ffffff" stroke="#374151" stroke-width="1.8"/>
-<text x="152" y="632.5" font-size="15" font-weight="bold" fill="#111827">+</text>
-<text x="153" y="669.5" font-size="15" font-weight="bold" fill="#111827">−</text>
-<text x="178" y="716" font-size="10.5" fill="#94a3b8" text-anchor="middle">OPA333</text>
-<line x1="144" y1="627.5" x2="110" y2="627.5" class="w"/>
-<rect x="30" y="610" width="80" height="36" rx="2" fill="#f8fafc" stroke="#374151" stroke-width="1.4"/>
-<text x="70" y="625" font-size="11" font-weight="bold" fill="#111827" text-anchor="middle">VSET</text>
-<text x="70" y="640" font-size="10" fill="#64748b" text-anchor="middle">1.179 V</text>
-<line x1="70" y1="646" x2="70" y2="670" class="p"/>
-<text x="70" y="684" font-size="10.5" font-weight="bold" fill="#7c3aed" text-anchor="middle">CURR_DIS（PB10）</text>
-<line x1="255" y1="677" x2="255" y2="692" class="w"/>
-<circle cx="255" cy="692" r="4.5" fill="#111827"/>
-<text x="266" y="686" font-size="13" font-weight="bold" fill="#111827" text-anchor="end">B</text>
-<polyline points="255,692 130,692 130,664.5 144,664.5" class="w"/>
-<line x1="255" y1="692" x2="255" y2="716" class="w"/>
-<rect x="241" y="716" width="28" height="62" rx="2" fill="#f1f5f9" stroke="#374151" stroke-width="1.8"/>
-<text x="271" y="740" font-size="13" font-weight="bold" fill="#111827">R_sense</text>
-<text x="271" y="758" font-size="10.5" fill="#374151">150 kOhm 0.1%</text>
-<line x1="255" y1="778" x2="255" y2="806" class="w"/>
-<circle cx="255" cy="806" r="4.5" fill="#111827"/>
-<text x="241" y="801" font-size="13" font-weight="bold" fill="#111827" text-anchor="end">E</text>
-<line x1="239" y1="822" x2="271" y2="822" stroke="#374151" stroke-width="2.5" fill="none"/>
-<line x1="245" y1="828" x2="265" y2="828" stroke="#374151" stroke-width="2" fill="none"/>
-<line x1="251" y1="834" x2="259" y2="834" stroke="#374151" stroke-width="2" fill="none"/>
-<line x1="255" y1="806" x2="255" y2="822" class="w"/>
-<text x="24" y="760" font-size="11" font-weight="bold" fill="#374151">低边恒流源（I = VSET/Rsense）</text>
-<text x="24" y="776" font-size="10" fill="#94a3b8">Rsense 在源极路径（E.3.1）</text>
-
-<!-- ===== external terminals table ===== -->
-<text x="550" y="578" font-size="11" font-weight="bold" fill="#111827">外部端子（4×SMA · J5–J8）与两线/四线</text>
-<text x="550" y="596" font-size="10" fill="#059669">J5·I+ 力线 → T（顶端偏置/恒流顶端）</text>
-<text x="550" y="612" font-size="10" fill="#2563eb">J6·V+ 感线 → V_P → 跟随器 → AIN0P</text>
-<text x="550" y="628" font-size="10" fill="#059669">J7·I− 力线 → S → K1 → X（电流沉）</text>
-<text x="550" y="644" font-size="10" fill="#2563eb">J8·V− 感线 → V_N → K3 → M → 跟随器</text>
-<text x="550" y="660" font-size="10" fill="#ea580c">CH2（NC）：V_P 与 T 间，校准/零点通、测量断</text>
-<text x="550" y="676" font-size="10" fill="#ea580c">JP1/JP2：焊 = 两线制，不焊 = 四线制</text>
-
-<!-- ===== followers + ADC ===== -->
-<line x1="255" y1="692" x2="760" y2="692" class="w"/>
-<polygon points="760,227 760,273 816,250" fill="#ffffff" stroke="#374151" stroke-width="1.8"/>
-<text x="776" y="255" font-size="13" font-weight="bold" fill="#111827">×1</text>
-<text x="788" y="289" font-size="10.5" fill="#94a3b8" text-anchor="middle">OPA388(V_P)</text>
-<line x1="816" y1="250" x2="900" y2="250" class="w"/>
-<polygon points="760,417 760,463 816,440" fill="#ffffff" stroke="#374151" stroke-width="1.8"/>
-<text x="776" y="445" font-size="13" font-weight="bold" fill="#111827">×1</text>
-<text x="788" y="479" font-size="10.5" fill="#94a3b8" text-anchor="middle">OPA388(M)</text>
-<line x1="816" y1="440" x2="900" y2="440" class="w"/>
-<polygon points="760,669 760,715 816,692" fill="#ffffff" stroke="#374151" stroke-width="1.8"/>
-<text x="776" y="697" font-size="13" font-weight="bold" fill="#111827">×1</text>
-<text x="788" y="731" font-size="10.5" fill="#94a3b8" text-anchor="middle">OPA388(B)</text>
-<line x1="816" y1="692" x2="900" y2="692" class="w"/>
-<line x1="255" y1="806" x2="870" y2="806" class="w"/>
-<line x1="870" y1="806" x2="870" y2="760" class="w"/>
-<line x1="870" y1="760" x2="900" y2="760" class="w"/>
-<text x="430" y="799" font-size="10.5" fill="#2563eb">AIN1N &lt;- E（Rsense 底端 Kelvin 引线，不经跟随器）</text>
-<rect x="900" y="172" width="150" height="648" rx="8" fill="#eff6ff" stroke="#2563eb" stroke-width="2"/>
-<text x="975" y="198" font-size="15" font-weight="bold" fill="#1d4ed8" text-anchor="middle">ADS131A02</text>
-<text x="975" y="220" font-size="10" fill="#2563eb" text-anchor="middle">双通道同步 24 bit SigmaDelta</text>
-<text x="908" y="254" font-size="11" font-weight="bold" fill="#1e3a8a">AIN0P</text>
-<text x="908" y="444" font-size="11" font-weight="bold" fill="#1e3a8a">AIN0N</text>
-<text x="908" y="696" font-size="11" font-weight="bold" fill="#1e3a8a">AIN1P</text>
-<text x="908" y="764" font-size="11" font-weight="bold" fill="#1e3a8a">AIN1N</text>
-<text x="1040" y="350" font-size="11" fill="#2563eb" text-anchor="end">通道 0</text>
-<text x="1040" y="730" font-size="11" fill="#2563eb" text-anchor="end">通道 1</text>
-<text x="975" y="750" font-size="9" fill="#1e3a8a" text-anchor="middle">16.384 MHz · SPI -&gt; MCU</text>
-<text x="975" y="766" font-size="9" fill="#1e3a8a" text-anchor="middle">内部基准 2.442 V</text>
-
-<!-- ===== MCU GPIO panel ===== -->
-<rect x="1080" y="120" width="480" height="208" rx="8" fill="#faf5ff" stroke="#7c3aed" stroke-width="1.4"/>
-<text x="1100" y="146" font-size="13" font-weight="bold" fill="#7c3aed">MCU GPIO（STM32U545）-&gt; 开关 / 恒流</text>
-<text x="1100" y="172" font-size="11" font-weight="bold" fill="#7c3aed">SEL_SENSE（PB2）</text>
-<text x="1250" y="172" font-size="11" fill="#374151">-&gt; IN1/IN2/IN3：CH1+CH2+CH3 同沿</text>
-<text x="1100" y="194" font-size="11" font-weight="bold" fill="#7c3aed">SEL4 / SEL_K2（PB0）</text>
-<text x="1250" y="194" font-size="11" fill="#374151">-&gt; IN4：CH4（R_ref 回线）独立</text>
-<text x="1100" y="216" font-size="11" font-weight="bold" fill="#7c3aed">CURR_DIS（PB10）</text>
-<text x="1250" y="216" font-size="11" fill="#374151">-&gt; 高 = 拉低 VSET -&gt; 零电流</text>
-<text x="1100" y="240" font-size="10.5" fill="#64748b">TMUX1134：SEL1/SEL2/SEL3 同沿（PB2），SEL4=PB0；PB5 现为 BQ_TS</text>
-<text x="1100" y="262" font-size="10.5" fill="#64748b">互锁：SEL_SENSE=1 时 SEL_K2 不得为 0（否则样品与 R_ref 并联）</text>
-<text x="1100" y="284" font-size="10.5" fill="#64748b">复位时模拟域不上电：固件先设开关态，再拉高 ANA_EN（1134 fail-safe）</text>
-<text x="1100" y="306" font-size="10.5" fill="#64748b">所有切换都在测量窗口外完成（硬约束）</text>
-
-<!-- ===== truth table ===== -->
-<rect x="1080" y="344" width="480" height="172" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.2"/>
-<text x="1100" y="368" font-size="13" font-weight="bold" fill="#111827">开关状态真值表（主图按默认态 = 校准态绘制）</text>
-<text x="1100" y="394" font-size="10.5" font-weight="bold" fill="#64748b">模式</text>
-<text x="1190" y="394" font-size="10.5" font-weight="bold" fill="#64748b">SEL_SENSE</text>
-<text x="1285" y="394" font-size="10.5" font-weight="bold" fill="#64748b">SEL_K2</text>
-<text x="1365" y="394" font-size="10.5" font-weight="bold" fill="#64748b">CURR_DIS</text>
-<text x="1440" y="394" font-size="10.5" font-weight="bold" fill="#64748b">导通（CH）</text>
-<text x="1100" y="420" font-size="11.5" font-weight="bold" fill="#059669">测量</text>
-<text x="1190" y="420" font-size="11.5" fill="#059669">1</text>
-<text x="1285" y="420" font-size="11.5" fill="#059669">1</text>
-<text x="1365" y="420" font-size="11.5" fill="#059669">0</text>
-<text x="1440" y="420" font-size="11.5" font-weight="bold" fill="#059669">CH1-&gt;V_N、CH3</text>
-<text x="1100" y="444" font-size="11.5" font-weight="bold" fill="#ea580c">校准</text>
-<text x="1190" y="444" font-size="11.5" fill="#ea580c">0</text>
-<text x="1285" y="444" font-size="11.5" fill="#ea580c">0</text>
-<text x="1365" y="444" font-size="11.5" fill="#ea580c">0</text>
-<text x="1440" y="444" font-size="11.5" font-weight="bold" fill="#ea580c">CH1-&gt;F、CH2/CH4</text>
-<text x="1100" y="468" font-size="11.5" font-weight="bold" fill="#2563eb">零点</text>
-<text x="1190" y="468" font-size="11.5" fill="#2563eb">0</text>
-<text x="1285" y="468" font-size="11.5" fill="#2563eb">1</text>
-<text x="1365" y="468" font-size="11.5" fill="#2563eb">1</text>
-<text x="1440" y="468" font-size="11.5" font-weight="bold" fill="#2563eb">CH1-&gt;F、CH2</text>
-<text x="1100" y="490" font-size="10.5" fill="#64748b">CH2/CH4 为 NC（低 = 通）；零点 = CH3、CH4 双断 + 恒流关断（保留）</text>
-<text x="1100" y="506" font-size="10.5" fill="#64748b">互锁：SEL_SENSE=1 时 SEL_K2 不得为 0；两线/四线共用本表（两线时 V_P = T、V_N = S）</text>
-
-<!-- ===== formula panel ===== -->
-<rect x="1080" y="524" width="480" height="150" rx="8" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.2"/>
-<text x="1100" y="550" font-size="13" font-weight="bold" fill="#111827">计算与校准系数（k 存 MCU Flash，d0 只存 RAM）</text>
-<text x="1100" y="578" font-size="12" fill="#111827">R = k x (V_ch0 - d0) / V_ch1 x Rsense</text>
-<text x="1100" y="602" font-size="12" fill="#111827">k = [V_ch1 / (V_ch0 - d0)]_cal x (R_ref / Rsense)</text>
-<text x="1100" y="626" font-size="10.5" fill="#64748b">d0：零点模式 ch0 读数 = ADC + 跟随器合成失调（典型 500 uV）</text>
-<text x="1100" y="646" font-size="10.5" fill="#64748b">d0 每次测量会话自动刷新；k 只由上位机指令写入</text>
-<text x="1100" y="664" font-size="10.5" fill="#64748b">上电 / 周期自检只做只读比对，超差报警，不覆盖 k</text>
-
-<!-- ===== TMUX1134 channel map panel ===== -->
-<rect x="1080" y="940" width="480" height="220" rx="8" fill="#faf5ff" stroke="#7c3aed" stroke-width="1.4"/>
-<text x="1100" y="966" font-size="13" font-weight="bold" fill="#7c3aed">TMUX1134（单颗 · TSSOP-20 · 4×SPDT 精密开关）</text>
-<text x="1100" y="992" font-size="10.5" fill="#374151">CH1：COM=M · NO=V_N · NC=F —— 原 K3+K4（感线/校准选择，BBM）</text>
-<text x="1100" y="1014" font-size="10.5" fill="#374151">CH2：COM=V_P · NC=T · NO 悬空 —— 原 K5（感线高端并回 T）</text>
-<text x="1100" y="1036" font-size="10.5" fill="#374151">CH3：COM=S · NO=X · NC 悬空 —— 原 K1（样品电流回线）</text>
-<text x="1100" y="1058" font-size="10.5" fill="#374151">CH4：COM=F · NC=X · NO 悬空 —— 原 K2（R_ref 回线 · PB0 独立）</text>
-<text x="1100" y="1080" font-size="10.5" fill="#374151">IN1/IN2/IN3 &lt;- PB2（同沿）；IN4 &lt;- PB0；VDD=AVCC、GND=AGND</text>
-<text x="1100" y="1102" font-size="10.5" fill="#374151">Ron 2 Ω · 导通漏电 3 pA 级 · 每通道先断后合 · fail-safe 上电</text>
-<text x="1100" y="1124" font-size="10.5" fill="#94a3b8">NO/NC 按 IN=1 -&gt; NO 惯例标注（真值表方向待核，反则对调）</text>
-
-<!-- ===== node legend ===== -->
-<text x="640" y="940" font-size="10" font-weight="bold" fill="#374151">图例与节点说明</text>
-<text x="640" y="962" font-size="10.5" fill="#374151">T：样品与 R_ref 共用顶端（R_top/R_b 偏置，~3.0 V）</text>
-<text x="640" y="982" font-size="10.5" fill="#374151">V_P：高端感线（J6）→ 跟随器 → AIN0P；CH2 通时 = T</text>
-<text x="640" y="1002" font-size="10.5" fill="#374151">V_N：低端感线（J8）→ CH1·NO → M；两线制（JP2）时 = S</text>
-<text x="640" y="1022" font-size="10.5" fill="#374151">S / F：样品 / R_ref 的力线低端（电流回线）</text>
-<text x="640" y="1042" font-size="10.5" fill="#374151">CH1–CH4：单颗 TMUX1134 的四路 SPDT（旧编号 K3+K4 / K5 / K1 / K2）</text>
-<text x="640" y="1062" font-size="10.5" fill="#374151">JP1/JP2：焊上 = 两线制（感线并在力线上）；不焊 = 四线制</text>
-
-<!-- ===== ADS131A02 must-connect pins ===== -->
-<rect x="1080" y="700" width="480" height="220" rx="8" fill="#eff6ff" stroke="#2563eb" stroke-width="1.6"/>
-<text x="1320" y="726" font-size="13" font-weight="bold" fill="#1d4ed8" text-anchor="middle">ADS131A02 必接脚（原理图阶段勿漏）</text>
-<text x="1100" y="752" font-size="10.5" fill="#1e3a8a">RESV(16) → IOVDD（手册明写 "connect to IOVDD"，不得悬空）</text>
-<text x="1100" y="774" font-size="10.5" fill="#1e3a8a">CAP(28) → 1 uF → GND（内部数字 LDO 输出）</text>
-<text x="1100" y="796" font-size="10.5" fill="#1e3a8a">NC(24) → 10 kOhm 下拉（数字输出脚）</text>
-<text x="1100" y="818" font-size="10.5" fill="#1e3a8a">NC(5–8) → AVSS 或悬空</text>
-<text x="1100" y="840" font-size="10.5" fill="#1e3a8a">AVDD / IOVDD 各 ≥1 uF 解耦（手册 §11.4）</text>
-<text x="1100" y="862" font-size="10.5" fill="#1e3a8a">REFP/REFN：内部 2.442 V；REFEXT 不接；VNCP → 1 uF → AVSS</text>
-<text x="1100" y="884" font-size="10.5" fill="#059669">输入每线 1 kOhm + 10 nF（fc ≈ 16 kHz）；AVDD 受 ANA_EN 门控</text>
-
-<!-- ===== footer notes ===== -->
-<rect x="30" y="1196" width="1540" height="132" rx="8" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.2"/>
-<text x="50" y="1220" font-size="13" font-weight="bold" fill="#111827">图注与自查要点</text>
-<text x="50" y="1242" font-size="10.5" fill="#374151">1. T 为样品与 R_ref 共用顶端（R_top/R_b 偏置），到各支路不经开关；恒流源在低边，Rsense 在 BSS138 源极路径；校准/零点时样品回线断开 -&gt; 零电流（不是短路）</text>
-<text x="50" y="1258" font-size="10.5" fill="#374151">2. 四线制：J5/J7 走力线、J6/J8 走感线（感线无电流 -&gt; 真 Kelvin，引线电阻不计入）；两线制：JP1/JP2 焊上，感线并在力线上（引线+接触电阻计入 R）</text>
-<text x="50" y="1274" font-size="10.5" fill="#374151">3. CH2（原 K5·NC，随 SEL_SENSE）：校准/零点把 V_P 并回 T——样品未接或开路也能校准/零点；测量时断开，不破坏四线制</text>
-<text x="50" y="1290" font-size="10.5" fill="#374151">4. 通道 1（Rsense 压降）永远在线不切换；跟随器只缓冲 V_P、M、B（距轨 ≥ 0.15 V），AIN1N 直接经 RC 进 ADC；零点 = CH3、CH4 双断 + CURR_DIS = 1</text>
-<text x="50" y="1306" font-size="10.5" fill="#374151">5. 全部开关 = 单颗 TMUX1134：CH1/CH2/CH3 由 PB2 同沿驱动（晶圆内同步）、CH4 独立（PB8），每通道先断后合，三个悬空掷为板上孤岛</text>
-<text x="50" y="1322" font-size="10.5" fill="#374151">6. 互锁：SEL_SENSE=1 时 SEL_K2 不得为 0；BAV199 建议 ×4（J5–J8 各一，图示 J7 侧）；虚线框 = 板外器件；交叉小跳线 = 跨越不连接</text>
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="800" viewBox="0 0 800 800"
+     font-family="'Noto Serif CJK SC','Noto Serif SC',serif">
+<rect width="800" height="800" fill="#ffffff"/>
+<text x="34.0" y="40.0" font-size="22.0" fill="#111827" text-anchor="start" font-weight="bold" font-family="'Noto Serif CJK SC','Noto Serif SC',serif">模拟前端与自校准电路（</text><text x="276.0" y="40.0" font-size="22.0" fill="#111827" text-anchor="start" font-weight="bold" font-family="Times New Roman, serif">v4 </text><text x="313.0" y="40.0" font-size="22.0" fill="#111827" text-anchor="start" font-weight="bold" font-family="'Noto Serif CJK SC','Noto Serif SC',serif">终稿）</text>
+<text x="34.0" y="64.0" font-size="13.0" fill="#475569" text-anchor="start" font-weight="normal" font-family="'Noto Serif CJK SC','Noto Serif SC',serif">低边恒流</text><text x="86.0" y="64.0" font-size="13.0" fill="#475569" text-anchor="start" font-weight="normal" font-family="Times New Roman, serif"> 7.86/1.06 </text><text x="166.1" y="64.0" font-size="13.0" fill="#475569" text-anchor="start" font-weight="normal" font-family="'Noto Serif CJK SC','Noto Serif SC',serif">µ</text><text x="173.4" y="64.0" font-size="13.0" fill="#475569" text-anchor="start" font-weight="normal" font-family="Times New Roman, serif">A </text><text x="187.9" y="64.0" font-size="13.0" fill="#475569" text-anchor="start" font-weight="normal" font-family="'Noto Serif CJK SC','Noto Serif SC',serif">双档</text><text x="213.9" y="64.0" font-size="13.0" fill="#475569" text-anchor="start" font-weight="normal" font-family="Times New Roman, serif"> </text><text x="221.2" y="64.0" font-size="13.0" fill="#475569" text-anchor="start" font-weight="normal" font-family="'Noto Serif CJK SC','Noto Serif SC',serif">·</text><text x="228.5" y="64.0" font-size="13.0" fill="#475569" text-anchor="start" font-weight="normal" font-family="Times New Roman, serif"> TMUX1134 </text><text x="301.3" y="64.0" font-size="13.0" fill="#475569" text-anchor="start" font-weight="normal" font-family="'Noto Serif CJK SC','Noto Serif SC',serif">单颗</text><text x="327.3" y="64.0" font-size="13.0" fill="#475569" text-anchor="start" font-weight="normal" font-family="Times New Roman, serif"> </text><text x="334.6" y="64.0" font-size="13.0" fill="#475569" text-anchor="start" font-weight="normal" font-family="'Noto Serif CJK SC','Noto Serif SC',serif">·</text><text x="341.8" y="64.0" font-size="13.0" fill="#475569" text-anchor="start" font-weight="normal" font-family="Times New Roman, serif"> Cff=100pF </text><text x="421.9" y="64.0" font-size="13.0" fill="#475569" text-anchor="start" font-weight="normal" font-family="'Noto Serif CJK SC','Noto Serif SC',serif">·</text><text x="429.2" y="64.0" font-size="13.0" fill="#475569" text-anchor="start" font-weight="normal" font-family="Times New Roman, serif"> AAF lad4r </text><text x="509.3" y="64.0" font-size="13.0" fill="#475569" text-anchor="start" font-weight="normal" font-family="'Noto Serif CJK SC','Noto Serif SC',serif">·</text><text x="516.6" y="64.0" font-size="13.0" fill="#475569" text-anchor="start" font-weight="normal" font-family="Times New Roman, serif"> </text><text x="523.8" y="64.0" font-size="13.0" fill="#475569" text-anchor="start" font-weight="normal" font-family="'Noto Serif CJK SC','Noto Serif SC',serif">主图</text><text x="549.8" y="64.0" font-size="13.0" fill="#475569" text-anchor="start" font-weight="normal" font-family="Times New Roman, serif">=</text><text x="557.1" y="64.0" font-size="13.0" fill="#475569" text-anchor="start" font-weight="normal" font-family="'Noto Serif CJK SC','Noto Serif SC',serif">校准态</text>
+<text x="704.4" y="40.0" font-size="11.0" fill="#94a3b8" text-anchor="start" font-weight="normal" font-family="Times New Roman, serif">2026-10-23</text>
+<rect x="430" y="80" width="368" height="56" fill="#faf5ff" stroke="#7C3AED" stroke-width="1.2"/>
+<text x="440.0" y="98.0" font-size="11.0" fill="#7C3AED" text-anchor="start" font-weight="bold" font-family="Times New Roman, serif">MCU GPIO</text>
+<text x="500.0" y="98.0" font-size="11.0" fill="#1a1a1a" text-anchor="start" font-weight="normal" font-family="Times New Roman, serif">SEL_SENSE=PB2 </text><text x="586.2" y="98.0" font-size="11.0" fill="#1a1a1a" text-anchor="start" font-weight="normal" font-family="'Noto Serif CJK SC','Noto Serif SC',serif">→</text><text x="592.4" y="98.0" font-size="11.0" fill="#1a1a1a" text-anchor="start" font-weight="normal" font-family="Times New Roman, serif"> CH1/2/3 </text><text x="647.8" y="98.0" font-size="11.0" fill="#1a1a1a" text-anchor="start" font-weight="normal" font-family="'Noto Serif CJK SC','Noto Serif SC',serif">同沿</text>
+<text x="440.0" y="114.0" font-size="11.0" fill="#1a1a1a" text-anchor="start" font-weight="normal" font-family="Times New Roman, serif">SEL4=PB0 </text><text x="495.4" y="114.0" font-size="11.0" fill="#1a1a1a" text-anchor="start" font-weight="normal" font-family="'Noto Serif CJK SC','Noto Serif SC',serif">→</text><text x="501.6" y="114.0" font-size="11.0" fill="#1a1a1a" text-anchor="start" font-weight="normal" font-family="Times New Roman, serif"> CH4</text>
+<text x="580.0" y="114.0" font-size="11.0" fill="#1a1a1a" text-anchor="start" font-weight="normal" font-family="Times New Roman, serif">CURR_DIS=PB10 </text><text x="666.2" y="114.0" font-size="11.0" fill="#1a1a1a" text-anchor="start" font-weight="normal" font-family="'Noto Serif CJK SC','Noto Serif SC',serif">·</text><text x="672.4" y="114.0" font-size="11.0" fill="#1a1a1a" text-anchor="start" font-weight="normal" font-family="Times New Roman, serif"> ANA_EN=PC3</text>
+<text x="440.0" y="130.0" font-size="11.0" fill="#1a1a1a" text-anchor="start" font-weight="normal" font-family="Times New Roman, serif">ISET_HI=PC2 </text><text x="513.9" y="130.0" font-size="11.0" fill="#1a1a1a" text-anchor="start" font-weight="normal" font-family="'Noto Serif CJK SC','Noto Serif SC',serif">·</text><text x="520.1" y="130.0" font-size="11.0" fill="#1a1a1a" text-anchor="start" font-weight="normal" font-family="Times New Roman, serif"> RNG </text><text x="550.9" y="130.0" font-size="11.0" fill="#1a1a1a" text-anchor="start" font-weight="normal" font-family="'Noto Serif CJK SC','Noto Serif SC',serif">独立</text><text x="572.9" y="130.0" font-size="11.0" fill="#1a1a1a" text-anchor="start" font-weight="normal" font-family="Times New Roman, serif"> GPIO</text>
+<text x="640.0" y="130.0" font-size="11.0" fill="#556070" text-anchor="start" font-weight="normal" font-family="Times New Roman, serif">PB5=BQ_TS</text><text x="695.4" y="130.0" font-size="11.0" fill="#556070" text-anchor="start" font-weight="normal" font-family="'Noto Serif CJK SC','Noto Serif SC',serif">（不再用于开关）</text>
+<line x1="40" y1="160" x2="40" y2="148" stroke="#1a1a1a" stroke-width="1.5"/>
+<line x1="30" y1="148" x2="50" y2="148" stroke="#1a1a1a" stroke-width="2"/>
+<text x="56.0" y="152.0" font-size="11.0" fill="#1a1a1a" text-anchor="start" font-weight="bold" font-family="Times New Roman, serif">3.3V_A</text>
+<line x1="40" y1="160" x2="40" y2="178" stroke="#1a1a1a" stroke-width="2"/>
+<rect x="30" y="178" width="20" height="40" fill="#f1f5f9" stroke="#1a1a1a" stroke-width="1.4"/>
+<text x="56.0" y="192.0" font-size="11.0" fill="#1a1a1a" text-anchor="start" font-weight="bold" font-family="Times New Roman, serif">R_top</text>
+<text x="56.0" y="208.0" font-size="11.0" fill="#556070" text-anchor="start" font-weight="normal" font-family="Times New Roman, serif">10 k</text><text x="80.6" y="208.0" font-size="11.0" fill="#556070" text-anchor="start" font-weight="normal" font-family="'Noto Serif CJK SC','Noto Serif SC',serif">Ω·</text><text x="93.0" y="208.0" font-size="11.0" fill="#556070" text-anchor="start" font-weight="normal" font-family="Times New Roman, serif">1%</text>
+<line x1="40" y1="218" x2="40" y2="240" stroke="#1a1a1a" stroke-width="2"/>
+<line x1="40" y1="240" x2="420" y2="240" stroke="#1a1a1a" stroke-width="2.2"/>
+<circle cx="140" cy="240" r="3.6" fill="#111827"/>
+<circle cx="300" cy="240" r="3.6" fill="#111827"/>
+<circle cx="380" cy="240" r="3.6" fill="#111827"/>
+<text x="200.0" y="232.0" font-size="12.0" fill="#1a1a1a" text-anchor="start" font-weight="bold" font-family="Times New Roman, serif">T ~3.0 V</text>
+<line x1="380" y1="240" x2="380" y2="258" stroke="#1a1a1a" stroke-width="2"/>
+<rect x="370" y="258" width="20" height="38" fill="#f1f5f9" stroke="#1a1a1a" stroke-width="1.4"/>
+<text x="396.0" y="272.0" font-size="11.0" fill="#1a1a1a" text-anchor="start" font-weight="bold" font-family="Times New Roman, serif">R_b</text>
+<text x="396.0" y="288.0" font-size="11.0" fill="#556070" text-anchor="start" font-weight="normal" font-family="Times New Roman, serif">150 k</text><text x="426.8" y="288.0" font-size="11.0" fill="#556070" text-anchor="start" font-weight="normal" font-family="'Noto Serif CJK SC','Noto Serif SC',serif">Ω·</text><text x="439.1" y="288.0" font-size="11.0" fill="#556070" text-anchor="start" font-weight="normal" font-family="Times New Roman, serif">1%</text>
+<line x1="380" y1="296" x2="380" y2="306" stroke="#1a1a1a" stroke-width="2"/>
+<line x1="368" y1="306" x2="392" y2="306" stroke="#1a1a1a" stroke-width="2"/>
+<line x1="373" y1="311" x2="387" y2="311" stroke="#1a1a1a" stroke-width="1.6"/>
+<line x1="377" y1="316" x2="383" y2="316" stroke="#1a1a1a" stroke-width="1.6"/>
+<rect x="60" y="280" width="160" height="58" fill="#fffbeb" stroke="#d97706" stroke-width="1.4" stroke-dasharray="5,4"/>
+<text x="102.6" y="298.0" font-size="12.0" fill="#92400e" text-anchor="start" font-weight="bold" font-family="'Noto Serif CJK SC','Noto Serif SC',serif">被测样品</text><text x="150.6" y="298.0" font-size="12.0" fill="#92400e" text-anchor="start" font-weight="bold" font-family="Times New Roman, serif"> R_x</text>
+<text x="90.3" y="314.0" font-size="11.0" fill="#b45309" text-anchor="start" font-weight="normal" font-family="Times New Roman, serif">10</text><text x="102.6" y="314.0" font-size="11.0" fill="#b45309" text-anchor="start" font-weight="normal" font-family="'Noto Serif CJK SC','Noto Serif SC',serif">–</text><text x="108.8" y="314.0" font-size="11.0" fill="#b45309" text-anchor="start" font-weight="normal" font-family="Times New Roman, serif">120 k</text><text x="139.6" y="314.0" font-size="11.0" fill="#b45309" text-anchor="start" font-weight="normal" font-family="'Noto Serif CJK SC','Noto Serif SC',serif">Ω（板外）</text>
+<text x="71.8" y="330.0" font-size="11.0" fill="#b45309" text-anchor="start" font-weight="normal" font-family="Times New Roman, serif">J5/J6 </text><text x="108.8" y="330.0" font-size="11.0" fill="#b45309" text-anchor="start" font-weight="normal" font-family="'Noto Serif CJK SC','Noto Serif SC',serif">高端</text><text x="130.8" y="330.0" font-size="11.0" fill="#b45309" text-anchor="start" font-weight="normal" font-family="Times New Roman, serif"> </text><text x="136.9" y="330.0" font-size="11.0" fill="#b45309" text-anchor="start" font-weight="normal" font-family="'Noto Serif CJK SC','Noto Serif SC',serif">·</text><text x="143.1" y="330.0" font-size="11.0" fill="#b45309" text-anchor="start" font-weight="normal" font-family="Times New Roman, serif"> J7/J8 </text><text x="186.2" y="330.0" font-size="11.0" fill="#b45309" text-anchor="start" font-weight="normal" font-family="'Noto Serif CJK SC','Noto Serif SC',serif">低端</text>
+<line x1="140" y1="240" x2="140" y2="280" stroke="#1a1a1a" stroke-width="2"/>
+<text x="103.2" y="268.0" font-size="11.0" fill="#059669" text-anchor="start" font-weight="bold" font-family="Times New Roman, serif">J5</text><text x="115.5" y="268.0" font-size="11.0" fill="#059669" text-anchor="start" font-weight="bold" font-family="'Noto Serif CJK SC','Noto Serif SC',serif">·</text><text x="121.7" y="268.0" font-size="11.0" fill="#059669" text-anchor="start" font-weight="bold" font-family="Times New Roman, serif">I+</text>
+<line x1="260" y1="180" x2="260" y2="280" stroke="#1a1a1a" stroke-width="2"/>
+<text x="225.2" y="258.0" font-size="11.0" fill="#1F4FD8" text-anchor="start" font-weight="bold" font-family="Times New Roman, serif">J6</text><text x="237.5" y="258.0" font-size="11.0" fill="#1F4FD8" text-anchor="start" font-weight="bold" font-family="'Noto Serif CJK SC','Noto Serif SC',serif">·</text><text x="243.7" y="258.0" font-size="11.0" fill="#1F4FD8" text-anchor="start" font-weight="bold" font-family="Times New Roman, serif">V+</text>
+<line x1="140" y1="272" x2="260" y2="272" stroke="#EA580C" stroke-width="1.6" stroke-dasharray="3,3"/>
+<text x="190.8" y="264.0" font-size="11.0" fill="#EA580C" text-anchor="start" font-weight="bold" font-family="Times New Roman, serif">JP1</text>
+<line x1="260" y1="180" x2="500" y2="180" stroke="#1a1a1a" stroke-width="2"/>
+<circle cx="260" cy="180" r="3.6" fill="#111827"/>
+<text x="350.0" y="172.0" font-size="12.0" fill="#1a1a1a" text-anchor="start" font-weight="bold" font-family="Times New Roman, serif">V_P</text>
+<line x1="420" y1="180" x2="420" y2="196" stroke="#1a1a1a" stroke-width="2"/>
+<circle cx="420" cy="196" r="3" fill="#ffffff" stroke="#1a1a1a" stroke-width="1.6"/>
+<circle cx="420" cy="240" r="3" fill="#ffffff" stroke="#1a1a1a" stroke-width="1.6"/>
+<line x1="420" y1="196" x2="420" y2="237" stroke="#1a1a1a" stroke-width="1.7"/>
+<text x="428.0" y="218.0" font-size="11.0" fill="#7C3AED" text-anchor="start" font-weight="bold" font-family="Times New Roman, serif">CH2</text><text x="446.5" y="218.0" font-size="11.0" fill="#7C3AED" text-anchor="start" font-weight="bold" font-family="'Noto Serif CJK SC','Noto Serif SC',serif">·</text><text x="452.6" y="218.0" font-size="11.0" fill="#7C3AED" text-anchor="start" font-weight="bold" font-family="Times New Roman, serif">NC</text>
+<line x1="440" y1="240" x2="424" y2="240" stroke="#7C3AED" stroke-width="1.3" stroke-dasharray="3,3"/>
+<circle cx="423" cy="240" r="2.2" fill="#ffffff" stroke="#7C3AED" stroke-width="1.2"/>
+<text x="444.0" y="244.0" font-size="11.0" fill="#7C3AED" text-anchor="start" font-weight="normal" font-family="Times New Roman, serif">PB2</text>
+<line x1="140" y1="338" x2="140" y2="392" stroke="#1a1a1a" stroke-width="2"/>
+<circle cx="140" cy="392" r="3.6" fill="#111827"/>
+<text x="125.3" y="386.0" font-size="12.0" fill="#1a1a1a" text-anchor="start" font-weight="bold" font-family="Times New Roman, serif">S</text>
+<text x="101.2" y="360.0" font-size="11.0" fill="#059669" text-anchor="start" font-weight="bold" font-family="Times New Roman, serif">J7</text><text x="113.5" y="360.0" font-size="11.0" fill="#059669" text-anchor="start" font-weight="bold" font-family="'Noto Serif CJK SC','Noto Serif SC',serif">·</text><text x="119.7" y="360.0" font-size="11.0" fill="#059669" text-anchor="start" font-weight="bold" font-family="Times New Roman, serif">I</text><text x="125.8" y="360.0" font-size="11.0" fill="#059669" text-anchor="start" font-weight="bold" font-family="'Noto Serif CJK SC','Noto Serif SC',serif">−</text>
+<line x1="180" y1="338" x2="180" y2="370" stroke="#1a1a1a" stroke-width="2"/>
+<line x1="180" y1="370" x2="230" y2="370" stroke="#1a1a1a" stroke-width="2"/>
+<circle cx="180" cy="370" r="3.6" fill="#111827"/>
+<text x="186.0" y="358.0" font-size="11.0" fill="#1F4FD8" text-anchor="start" font-weight="bold" font-family="Times New Roman, serif">J8</text><text x="198.3" y="358.0" font-size="11.0" fill="#1F4FD8" text-anchor="start" font-weight="bold" font-family="'Noto Serif CJK SC','Noto Serif SC',serif">·</text><text x="204.5" y="358.0" font-size="11.0" fill="#1F4FD8" text-anchor="start" font-weight="bold" font-family="Times New Roman, serif">V</text><text x="210.6" y="358.0" font-size="11.0" fill="#1F4FD8" text-anchor="start" font-weight="bold" font-family="'Noto Serif CJK SC','Noto Serif SC',serif">−</text>
+<text x="234.0" y="366.0" font-size="12.0" fill="#1a1a1a" text-anchor="start" font-weight="bold" font-family="Times New Roman, serif">V_N</text>
+<line x1="140" y1="354" x2="180" y2="354" stroke="#EA580C" stroke-width="1.6" stroke-dasharray="3,3"/>
+<text x="150.8" y="348.0" font-size="11.0" fill="#EA580C" text-anchor="start" font-weight="bold" font-family="Times New Roman, serif">JP2</text>
+<line x1="300" y1="240" x2="300" y2="258" stroke="#1a1a1a" stroke-width="2"/>
+<rect x="290" y="258" width="20" height="50" fill="#f1f5f9" stroke="#1a1a1a" stroke-width="1.4"/>
+<text x="314.0" y="272.0" font-size="11.0" fill="#1a1a1a" text-anchor="start" font-weight="bold" font-family="Times New Roman, serif">R_ref</text>
+<text x="314.0" y="288.0" font-size="11.0" fill="#1a1a1a" text-anchor="start" font-weight="bold" font-family="Times New Roman, serif">100 k</text><text x="344.8" y="288.0" font-size="11.0" fill="#1a1a1a" text-anchor="start" font-weight="bold" font-family="'Noto Serif CJK SC','Noto Serif SC',serif">Ω</text>
+<text x="314.0" y="302.0" font-size="11.0" fill="#556070" text-anchor="start" font-weight="normal" font-family="Times New Roman, serif">0.01%</text>
+<line x1="300" y1="308" x2="300" y2="392" stroke="#1a1a1a" stroke-width="2"/>
+<circle cx="300" cy="392" r="3.6" fill="#111827"/>
+<text x="285.3" y="386.0" font-size="12.0" fill="#1a1a1a" text-anchor="start" font-weight="bold" font-family="Times New Roman, serif">F</text>
+<circle cx="270" cy="392" r="3.6" fill="#111827"/>
+<line x1="270" y1="392" x2="300" y2="392" stroke="#1a1a1a" stroke-width="2"/>
+<line x1="270" y1="392" x2="270" y2="404" stroke="#1a1a1a" stroke-width="2"/>
+<line x1="258" y1="404" x2="282" y2="404" stroke="#1a1a1a" stroke-width="2.2"/>
+<line x1="258" y1="410" x2="282" y2="410" stroke="#1a1a1a" stroke-width="2.2"/>
+<line x1="270" y1="410" x2="270" y2="420" stroke="#1a1a1a" stroke-width="2"/>
+<line x1="260" y1="420" x2="280" y2="420" stroke="#1a1a1a" stroke-width="2"/>
+<line x1="264" y1="424" x2="276" y2="424" stroke="#1a1a1a" stroke-width="1.6"/>
+<line x1="267" y1="428" x2="273" y2="428" stroke="#1a1a1a" stroke-width="1.6"/>
+<text x="192.4" y="408.0" font-size="11.0" fill="#7C3AED" text-anchor="start" font-weight="bold" font-family="Times New Roman, serif">Cff 100 pF</text>
+<line x1="230" y1="370" x2="270" y2="370" stroke="#1a1a1a" stroke-width="2"/>
+<circle cx="270" cy="370" r="3" fill="#ffffff" stroke="#1a1a1a" stroke-width="1.6"/>
+<line x1="300" y1="392" x2="330" y2="392" stroke="#1a1a1a" stroke-width="2"/>
+<circle cx="330" cy="392" r="3" fill="#ffffff" stroke="#1a1a1a" stroke-width="1.6"/>
+<circle cx="390" cy="382" r="3" fill="#ffffff" stroke="#1a1a1a" stroke-width="1.6"/>
+<line x1="390" y1="382" x2="333" y2="391" stroke="#1a1a1a" stroke-width="1.7"/>
+<text x="346.0" y="376.0" font-size="11.0" fill="#7C3AED" text-anchor="start" font-weight="bold" font-family="Times New Roman, serif">CH1 SPDT</text>
+<line x1="360" y1="370" x2="360" y2="348" stroke="#7C3AED" stroke-width="1.3" stroke-dasharray="3,3"/>
+<circle cx="360" cy="370" r="2.2" fill="#ffffff" stroke="#7C3AED" stroke-width="1.2"/>
+<text x="364.0" y="344.0" font-size="11.0" fill="#7C3AED" text-anchor="start" font-weight="normal" font-family="Times New Roman, serif">PB2</text>
+<line x1="390" y1="382" x2="430" y2="382" stroke="#1a1a1a" stroke-width="2"/>
+<circle cx="430" cy="382" r="3.6" fill="#111827"/>
+<text x="434.0" y="378.0" font-size="12.0" fill="#1a1a1a" text-anchor="start" font-weight="bold" font-family="Times New Roman, serif">M</text>
+<line x1="140" y1="392" x2="140" y2="424" stroke="#1a1a1a" stroke-width="2"/>
+<circle cx="140" cy="424" r="3" fill="#ffffff" stroke="#1a1a1a" stroke-width="1.6"/>
+<circle cx="140" cy="458" r="3" fill="#ffffff" stroke="#1a1a1a" stroke-width="1.6"/>
+<line x1="140" y1="458" x2="152" y2="428" stroke="#1a1a1a" stroke-width="1.7"/>
+<text x="71.0" y="442.0" font-size="11.0" fill="#7C3AED" text-anchor="start" font-weight="bold" font-family="Times New Roman, serif">CH3</text><text x="89.5" y="442.0" font-size="11.0" fill="#7C3AED" text-anchor="start" font-weight="bold" font-family="'Noto Serif CJK SC','Noto Serif SC',serif">·</text><text x="95.7" y="442.0" font-size="11.0" fill="#7C3AED" text-anchor="start" font-weight="bold" font-family="Times New Roman, serif">NO</text>
+<line x1="180" y1="442" x2="152" y2="442" stroke="#7C3AED" stroke-width="1.3" stroke-dasharray="3,3"/>
+<circle cx="150" cy="442" r="2.2" fill="#ffffff" stroke="#7C3AED" stroke-width="1.2"/>
+<text x="184.0" y="446.0" font-size="11.0" fill="#7C3AED" text-anchor="start" font-weight="normal" font-family="Times New Roman, serif">PB2</text>
+<line x1="140" y1="458" x2="140" y2="480" stroke="#1a1a1a" stroke-width="2"/>
+<line x1="300" y1="392" x2="300" y2="424" stroke="#1a1a1a" stroke-width="2"/>
+<circle cx="300" cy="424" r="3" fill="#ffffff" stroke="#1a1a1a" stroke-width="1.6"/>
+<circle cx="300" cy="458" r="3" fill="#ffffff" stroke="#1a1a1a" stroke-width="1.6"/>
+<line x1="300" y1="424" x2="300" y2="455" stroke="#1a1a1a" stroke-width="1.7"/>
+<text x="316.0" y="432.0" font-size="11.0" fill="#7C3AED" text-anchor="start" font-weight="bold" font-family="Times New Roman, serif">CH4</text><text x="334.5" y="432.0" font-size="11.0" fill="#7C3AED" text-anchor="start" font-weight="bold" font-family="'Noto Serif CJK SC','Noto Serif SC',serif">·</text><text x="340.6" y="432.0" font-size="11.0" fill="#7C3AED" text-anchor="start" font-weight="bold" font-family="Times New Roman, serif">NC</text>
+<line x1="348" y1="450" x2="304" y2="450" stroke="#7C3AED" stroke-width="1.3" stroke-dasharray="3,3"/>
+<circle cx="303" cy="450" r="2.2" fill="#ffffff" stroke="#7C3AED" stroke-width="1.2"/>
+<text x="352.0" y="454.0" font-size="11.0" fill="#7C3AED" text-anchor="start" font-weight="normal" font-family="Times New Roman, serif">PB0</text>
+<line x1="300" y1="458" x2="300" y2="480" stroke="#1a1a1a" stroke-width="2"/>
+<line x1="140" y1="480" x2="300" y2="480" stroke="#1a1a1a" stroke-width="2"/>
+<circle cx="220" cy="480" r="3.6" fill="#111827"/>
+<text x="228.0" y="476.0" font-size="12.0" fill="#1a1a1a" text-anchor="start" font-weight="bold" font-family="Times New Roman, serif">X</text>
+<line x1="220" y1="480" x2="220" y2="500" stroke="#1a1a1a" stroke-width="2"/>
+<line x1="220" y1="500" x2="220" y2="510" stroke="#1a1a1a" stroke-width="2"/>
+<line x1="214" y1="510" x2="214" y2="536" stroke="#1a1a1a" stroke-width="2.4"/>
+<line x1="226" y1="510" x2="226" y2="516" stroke="#1a1a1a" stroke-width="2.4"/>
+<line x1="226" y1="522" x2="226" y2="526" stroke="#1a1a1a" stroke-width="2.4"/>
+<line x1="226" y1="532" x2="226" y2="536" stroke="#1a1a1a" stroke-width="2.4"/>
+<line x1="206" y1="514" x2="206" y2="534" stroke="#1a1a1a" stroke-width="2"/>
+<line x1="206" y1="524" x2="188" y2="524" stroke="#1a1a1a" stroke-width="2"/>
+<line x1="220" y1="536" x2="220" y2="546" stroke="#1a1a1a" stroke-width="2"/>
+<polygon points="217,522 221,526 217,530" fill="#1a1a1a"/>
+<text x="232.0" y="528.0" font-size="11.0" fill="#1a1a1a" text-anchor="start" font-weight="bold" font-family="Times New Roman, serif">BSS138</text>
+<polygon points="100,498 100,550 156,524" fill="#ffffff" stroke="#1a1a1a" stroke-width="1.6"/>
+<text x="114.0" y="516.0" font-size="13.0" fill="#1a1a1a" text-anchor="start" font-weight="bold" font-family="Times New Roman, serif">+</text>
+<text x="114.0" y="542.0" font-size="13.0" fill="#1a1a1a" text-anchor="start" font-weight="bold" font-family="'Noto Serif CJK SC','Noto Serif SC',serif">−</text>
+<text x="109.5" y="562.0" font-size="11.0" fill="#556070" text-anchor="start" font-weight="normal" font-family="Times New Roman, serif">OPA333</text>
+<line x1="156" y1="524" x2="188" y2="524" stroke="#1a1a1a" stroke-width="2"/>
+<line x1="100" y1="512" x2="70" y2="512" stroke="#1a1a1a" stroke-width="2"/>
+<rect x="28" y="498" width="42" height="30" fill="#f8fafc" stroke="#1a1a1a" stroke-width="1.3"/>
+<text x="36.7" y="511.0" font-size="11.0" fill="#1a1a1a" text-anchor="start" font-weight="bold" font-family="Times New Roman, serif">VSET</text>
+<text x="33.6" y="524.0" font-size="11.0" fill="#556070" text-anchor="start" font-weight="normal" font-family="Times New Roman, serif">1.18V</text>
+<line x1="49" y1="528" x2="49" y2="544" stroke="#7C3AED" stroke-width="1.3" stroke-dasharray="3,3"/>
+<text x="36.7" y="556.0" font-size="11.0" fill="#7C3AED" text-anchor="start" font-weight="bold" font-family="Times New Roman, serif">PB10</text>
+<circle cx="220" cy="546" r="3.6" fill="#111827"/>
+<text x="228.0" y="542.0" font-size="12.0" fill="#1a1a1a" text-anchor="start" font-weight="bold" font-family="Times New Roman, serif">B</text>
+<polyline points="220,546 170,546 170,536 156,536" fill="none" stroke="#1a1a1a" stroke-width="2"/>
+<line x1="220" y1="546" x2="220" y2="568" stroke="#1a1a1a" stroke-width="2"/>
+<rect x="210" y="568" width="20" height="46" fill="#f1f5f9" stroke="#1a1a1a" stroke-width="1.4"/>
+<text x="234.0" y="584.0" font-size="11.0" fill="#1a1a1a" text-anchor="start" font-weight="bold" font-family="Times New Roman, serif">Rsense</text>
+<text x="234.0" y="600.0" font-size="11.0" fill="#556070" text-anchor="start" font-weight="normal" font-family="Times New Roman, serif">150 k</text><text x="264.8" y="600.0" font-size="11.0" fill="#556070" text-anchor="start" font-weight="normal" font-family="'Noto Serif CJK SC','Noto Serif SC',serif">Ω·</text><text x="277.1" y="600.0" font-size="11.0" fill="#556070" text-anchor="start" font-weight="normal" font-family="Times New Roman, serif">0.1%</text>
+<line x1="220" y1="614" x2="220" y2="638" stroke="#1a1a1a" stroke-width="2"/>
+<circle cx="220" cy="638" r="3.6" fill="#111827"/>
+<text x="205.3" y="634.0" font-size="12.0" fill="#1a1a1a" text-anchor="start" font-weight="bold" font-family="Times New Roman, serif">E</text>
+<line x1="220" y1="638" x2="220" y2="652" stroke="#1a1a1a" stroke-width="2"/>
+<line x1="208" y1="652" x2="232" y2="652" stroke="#1a1a1a" stroke-width="2"/>
+<line x1="213" y1="657" x2="227" y2="657" stroke="#1a1a1a" stroke-width="1.6"/>
+<line x1="217" y1="662" x2="223" y2="662" stroke="#1a1a1a" stroke-width="1.6"/>
+<text x="28.0" y="580.0" font-size="11.0" fill="#1a1a1a" text-anchor="start" font-weight="bold" font-family="'Noto Serif CJK SC','Noto Serif SC',serif">低边恒流源</text>
+<text x="28.0" y="596.0" font-size="11.0" fill="#556070" text-anchor="start" font-weight="normal" font-family="Times New Roman, serif">I=VSET/Rsense</text>
+<line x1="500" y1="180" x2="540" y2="180" stroke="#1a1a1a" stroke-width="2"/>
+<polygon points="540,160 540,200 596,180" fill="#ffffff" stroke="#1a1a1a" stroke-width="1.6"/>
+<text x="556.0" y="184.0" font-size="12.0" fill="#1a1a1a" text-anchor="start" font-weight="bold" font-family="'Noto Serif CJK SC','Noto Serif SC',serif">×</text><text x="562.7" y="184.0" font-size="12.0" fill="#1a1a1a" text-anchor="start" font-weight="bold" font-family="Times New Roman, serif">1</text>
+<text x="540.3" y="212.0" font-size="11.0" fill="#556070" text-anchor="start" font-weight="normal" font-family="Times New Roman, serif">OPA388(T)</text>
+<line x1="596" y1="180" x2="700" y2="180" stroke="#1a1a1a" stroke-width="2"/>
+<line x1="430" y1="382" x2="480" y2="382" stroke="#1a1a1a" stroke-width="2"/>
+<line x1="480" y1="382" x2="480" y2="290" stroke="#1a1a1a" stroke-width="2"/>
+<line x1="480" y1="290" x2="540" y2="290" stroke="#1a1a1a" stroke-width="2"/>
+<polygon points="540,270 540,310 596,290" fill="#ffffff" stroke="#1a1a1a" stroke-width="1.6"/>
+<text x="556.0" y="294.0" font-size="12.0" fill="#1a1a1a" text-anchor="start" font-weight="bold" font-family="'Noto Serif CJK SC','Noto Serif SC',serif">×</text><text x="562.7" y="294.0" font-size="12.0" fill="#1a1a1a" text-anchor="start" font-weight="bold" font-family="Times New Roman, serif">1</text>
+<text x="540.3" y="322.0" font-size="11.0" fill="#556070" text-anchor="start" font-weight="normal" font-family="Times New Roman, serif">OPA388(M)</text>
+<line x1="596" y1="290" x2="700" y2="290" stroke="#1a1a1a" stroke-width="2"/>
+<line x1="220" y1="546" x2="480" y2="546" stroke="#1a1a1a" stroke-width="2"/>
+<line x1="480" y1="546" x2="480" y2="400" stroke="#1a1a1a" stroke-width="2"/>
+<line x1="480" y1="400" x2="540" y2="400" stroke="#1a1a1a" stroke-width="2"/>
+<polygon points="540,380 540,420 596,400" fill="#ffffff" stroke="#1a1a1a" stroke-width="1.6"/>
+<text x="556.0" y="404.0" font-size="12.0" fill="#1a1a1a" text-anchor="start" font-weight="bold" font-family="'Noto Serif CJK SC','Noto Serif SC',serif">×</text><text x="562.7" y="404.0" font-size="12.0" fill="#1a1a1a" text-anchor="start" font-weight="bold" font-family="Times New Roman, serif">1</text>
+<text x="540.3" y="432.0" font-size="11.0" fill="#556070" text-anchor="start" font-weight="normal" font-family="Times New Roman, serif">OPA388(B)</text>
+<line x1="596" y1="400" x2="700" y2="400" stroke="#1a1a1a" stroke-width="2"/>
+<line x1="220" y1="638" x2="640" y2="638" stroke="#1a1a1a" stroke-width="2"/>
+<line x1="640" y1="638" x2="640" y2="490" stroke="#1a1a1a" stroke-width="2"/>
+<line x1="640" y1="490" x2="700" y2="490" stroke="#1a1a1a" stroke-width="2"/>
+<text x="430.0" y="630.0" font-size="11.0" fill="#1F4FD8" text-anchor="start" font-weight="normal" font-family="Times New Roman, serif">AIN1N </text><text x="467.0" y="630.0" font-size="11.0" fill="#1F4FD8" text-anchor="start" font-weight="normal" font-family="'Noto Serif CJK SC','Noto Serif SC',serif">←</text><text x="473.1" y="630.0" font-size="11.0" fill="#1F4FD8" text-anchor="start" font-weight="normal" font-family="Times New Roman, serif"> E</text><text x="485.4" y="630.0" font-size="11.0" fill="#1F4FD8" text-anchor="start" font-weight="normal" font-family="'Noto Serif CJK SC','Noto Serif SC',serif">（</text><text x="496.4" y="630.0" font-size="11.0" fill="#1F4FD8" text-anchor="start" font-weight="normal" font-family="Times New Roman, serif">Kelvin </text><text x="539.6" y="630.0" font-size="11.0" fill="#1F4FD8" text-anchor="start" font-weight="normal" font-family="'Noto Serif CJK SC','Noto Serif SC',serif">直连）</text>
+<rect x="700" y="150" width="98" height="380" fill="#eff6ff" stroke="#1F4FD8" stroke-width="1.6"/>
+<text x="721.3" y="168.0" font-size="11.0" fill="#1d4ed8" text-anchor="start" font-weight="bold" font-family="Times New Roman, serif">ADS131A02</text>
+<text x="721.3" y="184.0" font-size="11.0" fill="#1e3a8a" text-anchor="start" font-weight="normal" font-family="Times New Roman, serif">24 bit </text><text x="764.4" y="184.0" font-size="11.0" fill="#1e3a8a" text-anchor="start" font-weight="normal" font-family="'Noto Serif CJK SC','Noto Serif SC',serif">ΣΔ</text>
+<text x="702.4" y="198.0" font-size="11.0" fill="#1e3a8a" text-anchor="start" font-weight="normal" font-family="'Noto Serif CJK SC','Noto Serif SC',serif">内部基准</text><text x="746.4" y="198.0" font-size="11.0" fill="#1e3a8a" text-anchor="start" font-weight="normal" font-family="Times New Roman, serif"> 2.442 V</text>
+<text x="665.2" y="172.0" font-size="11.0" fill="#1e3a8a" text-anchor="start" font-weight="bold" font-family="Times New Roman, serif">AIN0P</text>
+<text x="665.2" y="282.0" font-size="11.0" fill="#1e3a8a" text-anchor="start" font-weight="bold" font-family="Times New Roman, serif">AIN0N</text>
+<text x="665.2" y="392.0" font-size="11.0" fill="#1e3a8a" text-anchor="start" font-weight="bold" font-family="Times New Roman, serif">AIN1P</text>
+<text x="665.2" y="482.0" font-size="11.0" fill="#1e3a8a" text-anchor="start" font-weight="bold" font-family="Times New Roman, serif">AIN1N</text>
+<text x="709.8" y="220.0" font-size="11.0" fill="#1e3a8a" text-anchor="start" font-weight="normal" font-family="'Noto Serif CJK SC','Noto Serif SC',serif">通道</text><text x="731.8" y="220.0" font-size="11.0" fill="#1e3a8a" text-anchor="start" font-weight="normal" font-family="Times New Roman, serif"> 0</text><text x="744.2" y="220.0" font-size="11.0" fill="#1e3a8a" text-anchor="start" font-weight="normal" font-family="'Noto Serif CJK SC','Noto Serif SC',serif">（样品）</text>
+<text x="702.4" y="440.0" font-size="11.0" fill="#1e3a8a" text-anchor="start" font-weight="normal" font-family="'Noto Serif CJK SC','Noto Serif SC',serif">通道</text><text x="724.4" y="440.0" font-size="11.0" fill="#1e3a8a" text-anchor="start" font-weight="normal" font-family="Times New Roman, serif"> 1</text><text x="736.7" y="440.0" font-size="11.0" fill="#1e3a8a" text-anchor="start" font-weight="normal" font-family="'Noto Serif CJK SC','Noto Serif SC',serif">（</text><text x="747.7" y="440.0" font-size="11.0" fill="#1e3a8a" text-anchor="start" font-weight="normal" font-family="Times New Roman, serif">Rsense</text><text x="784.6" y="440.0" font-size="11.0" fill="#1e3a8a" text-anchor="start" font-weight="normal" font-family="'Noto Serif CJK SC','Noto Serif SC',serif">）</text>
+<text x="718.2" y="510.0" font-size="11.0" fill="#1e3a8a" text-anchor="start" font-weight="normal" font-family="Times New Roman, serif">16.384 MHz</text>
+<text x="721.3" y="524.0" font-size="11.0" fill="#1e3a8a" text-anchor="start" font-weight="normal" font-family="Times New Roman, serif">SPI </text><text x="745.9" y="524.0" font-size="11.0" fill="#1e3a8a" text-anchor="start" font-weight="normal" font-family="'Noto Serif CJK SC','Noto Serif SC',serif">→</text><text x="752.1" y="524.0" font-size="11.0" fill="#1e3a8a" text-anchor="start" font-weight="normal" font-family="Times New Roman, serif"> MCU</text>
+<text x="638.8" y="172.0" font-size="11.0" fill="#059669" text-anchor="start" font-weight="bold" font-family="Times New Roman, serif">AAF</text>
+<text x="638.8" y="282.0" font-size="11.0" fill="#059669" text-anchor="start" font-weight="bold" font-family="Times New Roman, serif">AAF</text>
+<text x="638.8" y="392.0" font-size="11.0" fill="#059669" text-anchor="start" font-weight="bold" font-family="Times New Roman, serif">AAF</text>
+<rect x="28" y="700" width="770" height="92" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1"/>
+<text x="38.0" y="718.0" font-size="12.0" fill="#1a1a1a" text-anchor="start" font-weight="bold" font-family="'Noto Serif CJK SC','Noto Serif SC',serif">图注与自查要点</text>
+<text x="38.0" y="734.0" font-size="11.0" fill="#1a1a1a" text-anchor="start" font-weight="normal" font-family="'Noto Serif CJK SC','Noto Serif SC',serif">①</text><text x="44.2" y="734.0" font-size="11.0" fill="#1a1a1a" text-anchor="start" font-weight="normal" font-family="Times New Roman, serif"> T </text><text x="62.6" y="734.0" font-size="11.0" fill="#1a1a1a" text-anchor="start" font-weight="normal" font-family="'Noto Serif CJK SC','Noto Serif SC',serif">共用顶端（</text><text x="117.6" y="734.0" font-size="11.0" fill="#1a1a1a" text-anchor="start" font-weight="normal" font-family="Times New Roman, serif">R_top/R_b </text><text x="179.2" y="734.0" font-size="11.0" fill="#1a1a1a" text-anchor="start" font-weight="normal" font-family="'Noto Serif CJK SC','Noto Serif SC',serif">偏置</text><text x="201.2" y="734.0" font-size="11.0" fill="#1a1a1a" text-anchor="start" font-weight="normal" font-family="Times New Roman, serif"> ~3.0 V</text><text x="244.4" y="734.0" font-size="11.0" fill="#1a1a1a" text-anchor="start" font-weight="normal" font-family="'Noto Serif CJK SC','Noto Serif SC',serif">），恒流源在低边；校准</text><text x="365.4" y="734.0" font-size="11.0" fill="#1a1a1a" text-anchor="start" font-weight="normal" font-family="Times New Roman, serif">/</text><text x="371.5" y="734.0" font-size="11.0" fill="#1a1a1a" text-anchor="start" font-weight="normal" font-family="'Noto Serif CJK SC','Noto Serif SC',serif">零点样品回线断开</text><text x="459.5" y="734.0" font-size="11.0" fill="#1a1a1a" text-anchor="start" font-weight="normal" font-family="Times New Roman, serif">=</text><text x="465.7" y="734.0" font-size="11.0" fill="#1a1a1a" text-anchor="start" font-weight="normal" font-family="'Noto Serif CJK SC','Noto Serif SC',serif">零电流；主图</text><text x="531.7" y="734.0" font-size="11.0" fill="#1a1a1a" text-anchor="start" font-weight="normal" font-family="Times New Roman, serif">=</text><text x="537.8" y="734.0" font-size="11.0" fill="#1a1a1a" text-anchor="start" font-weight="normal" font-family="'Noto Serif CJK SC','Noto Serif SC',serif">校准态（全控制脚低）</text>
+<text x="38.0" y="750.0" font-size="11.0" fill="#1a1a1a" text-anchor="start" font-weight="normal" font-family="'Noto Serif CJK SC','Noto Serif SC',serif">②</text><text x="44.2" y="750.0" font-size="11.0" fill="#1a1a1a" text-anchor="start" font-weight="normal" font-family="Times New Roman, serif"> CH1 SPDT</text><text x="99.6" y="750.0" font-size="11.0" fill="#1a1a1a" text-anchor="start" font-weight="normal" font-family="'Noto Serif CJK SC','Noto Serif SC',serif">：</text><text x="110.6" y="750.0" font-size="11.0" fill="#1a1a1a" text-anchor="start" font-weight="normal" font-family="Times New Roman, serif">COM=M </text><text x="147.6" y="750.0" font-size="11.0" fill="#1a1a1a" text-anchor="start" font-weight="normal" font-family="'Noto Serif CJK SC','Noto Serif SC',serif">·</text><text x="153.7" y="750.0" font-size="11.0" fill="#1a1a1a" text-anchor="start" font-weight="normal" font-family="Times New Roman, serif"> NO=V_N </text><text x="203.0" y="750.0" font-size="11.0" fill="#1a1a1a" text-anchor="start" font-weight="normal" font-family="'Noto Serif CJK SC','Noto Serif SC',serif">·</text><text x="209.2" y="750.0" font-size="11.0" fill="#1a1a1a" text-anchor="start" font-weight="normal" font-family="Times New Roman, serif"> NC=F</text><text x="240.0" y="750.0" font-size="11.0" fill="#1a1a1a" text-anchor="start" font-weight="normal" font-family="'Noto Serif CJK SC','Noto Serif SC',serif">；</text><text x="251.0" y="750.0" font-size="11.0" fill="#1a1a1a" text-anchor="start" font-weight="normal" font-family="Times New Roman, serif">CH2/CH4 </text><text x="300.2" y="750.0" font-size="11.0" fill="#1a1a1a" text-anchor="start" font-weight="normal" font-family="'Noto Serif CJK SC','Noto Serif SC',serif">为</text><text x="311.2" y="750.0" font-size="11.0" fill="#1a1a1a" text-anchor="start" font-weight="normal" font-family="Times New Roman, serif"> NC </text><text x="335.9" y="750.0" font-size="11.0" fill="#1a1a1a" text-anchor="start" font-weight="normal" font-family="'Noto Serif CJK SC','Noto Serif SC',serif">默认合；零点</text><text x="401.9" y="750.0" font-size="11.0" fill="#1a1a1a" text-anchor="start" font-weight="normal" font-family="Times New Roman, serif">=CH3/CH4 </text><text x="457.3" y="750.0" font-size="11.0" fill="#1a1a1a" text-anchor="start" font-weight="normal" font-family="'Noto Serif CJK SC','Noto Serif SC',serif">双断</text><text x="479.3" y="750.0" font-size="11.0" fill="#1a1a1a" text-anchor="start" font-weight="normal" font-family="Times New Roman, serif">+CURR_DIS=1</text><text x="547.1" y="750.0" font-size="11.0" fill="#1a1a1a" text-anchor="start" font-weight="normal" font-family="'Noto Serif CJK SC','Noto Serif SC',serif">；</text><text x="558.1" y="750.0" font-size="11.0" fill="#1a1a1a" text-anchor="start" font-weight="normal" font-family="Times New Roman, serif">Cff=100 pF </text><text x="625.8" y="750.0" font-size="11.0" fill="#1a1a1a" text-anchor="start" font-weight="normal" font-family="'Noto Serif CJK SC','Noto Serif SC',serif">必装消</text><text x="658.8" y="750.0" font-size="11.0" fill="#1a1a1a" text-anchor="start" font-weight="normal" font-family="Times New Roman, serif"> 147 kHz </text><text x="714.3" y="750.0" font-size="11.0" fill="#1a1a1a" text-anchor="start" font-weight="normal" font-family="'Noto Serif CJK SC','Noto Serif SC',serif">振荡</text>
+<text x="38.0" y="766.0" font-size="11.0" fill="#1a1a1a" text-anchor="start" font-weight="normal" font-family="'Noto Serif CJK SC','Noto Serif SC',serif">③</text><text x="44.2" y="766.0" font-size="11.0" fill="#1a1a1a" text-anchor="start" font-weight="normal" font-family="Times New Roman, serif"> </text><text x="50.3" y="766.0" font-size="11.0" fill="#1a1a1a" text-anchor="start" font-weight="normal" font-family="'Noto Serif CJK SC','Noto Serif SC',serif">跟随器仅缓冲</text><text x="116.3" y="766.0" font-size="11.0" fill="#1a1a1a" text-anchor="start" font-weight="normal" font-family="Times New Roman, serif"> V_P/M/B</text><text x="165.6" y="766.0" font-size="11.0" fill="#1a1a1a" text-anchor="start" font-weight="normal" font-family="'Noto Serif CJK SC','Noto Serif SC',serif">（距轨</text><text x="198.6" y="766.0" font-size="11.0" fill="#1a1a1a" text-anchor="start" font-weight="normal" font-family="Times New Roman, serif"> </text><text x="204.8" y="766.0" font-size="11.0" fill="#1a1a1a" text-anchor="start" font-weight="normal" font-family="'Noto Serif CJK SC','Noto Serif SC',serif">≥</text><text x="210.9" y="766.0" font-size="11.0" fill="#1a1a1a" text-anchor="start" font-weight="normal" font-family="Times New Roman, serif">0.15 V</text><text x="247.9" y="766.0" font-size="11.0" fill="#1a1a1a" text-anchor="start" font-weight="normal" font-family="'Noto Serif CJK SC','Noto Serif SC',serif">），</text><text x="269.9" y="766.0" font-size="11.0" fill="#1a1a1a" text-anchor="start" font-weight="normal" font-family="Times New Roman, serif">AIN1N </text><text x="306.8" y="766.0" font-size="11.0" fill="#1a1a1a" text-anchor="start" font-weight="normal" font-family="'Noto Serif CJK SC','Noto Serif SC',serif">直连</text><text x="328.8" y="766.0" font-size="11.0" fill="#1a1a1a" text-anchor="start" font-weight="normal" font-family="Times New Roman, serif"> E</text><text x="341.2" y="766.0" font-size="11.0" fill="#1a1a1a" text-anchor="start" font-weight="normal" font-family="'Noto Serif CJK SC','Noto Serif SC',serif">；</text><text x="352.2" y="766.0" font-size="11.0" fill="#1a1a1a" text-anchor="start" font-weight="normal" font-family="Times New Roman, serif">AAF lad4r </text><text x="413.8" y="766.0" font-size="11.0" fill="#1a1a1a" text-anchor="start" font-weight="normal" font-family="'Noto Serif CJK SC','Noto Serif SC',serif">四级阶梯见《抗混叠滤波电路》；虚线框</text><text x="611.8" y="766.0" font-size="11.0" fill="#1a1a1a" text-anchor="start" font-weight="normal" font-family="Times New Roman, serif">=</text><text x="617.9" y="766.0" font-size="11.0" fill="#1a1a1a" text-anchor="start" font-weight="normal" font-family="'Noto Serif CJK SC','Noto Serif SC',serif">板外器件</text>
+<text x="38.0" y="782.0" font-size="11.0" fill="#1a1a1a" text-anchor="start" font-weight="normal" font-family="'Noto Serif CJK SC','Noto Serif SC',serif">④</text><text x="44.2" y="782.0" font-size="11.0" fill="#1a1a1a" text-anchor="start" font-weight="normal" font-family="Times New Roman, serif"> </text><text x="50.3" y="782.0" font-size="11.0" fill="#1a1a1a" text-anchor="start" font-weight="normal" font-family="'Noto Serif CJK SC','Noto Serif SC',serif">测量时：</text><text x="94.3" y="782.0" font-size="11.0" fill="#1a1a1a" text-anchor="start" font-weight="normal" font-family="Times New Roman, serif">SEL_SENSE=1</text><text x="162.1" y="782.0" font-size="11.0" fill="#1a1a1a" text-anchor="start" font-weight="normal" font-family="'Noto Serif CJK SC','Noto Serif SC',serif">（</text><text x="173.1" y="782.0" font-size="11.0" fill="#1a1a1a" text-anchor="start" font-weight="normal" font-family="Times New Roman, serif">CH1</text><text x="191.6" y="782.0" font-size="11.0" fill="#1a1a1a" text-anchor="start" font-weight="normal" font-family="'Noto Serif CJK SC','Noto Serif SC',serif">→</text><text x="197.7" y="782.0" font-size="11.0" fill="#1a1a1a" text-anchor="start" font-weight="normal" font-family="Times New Roman, serif">V_N</text><text x="216.2" y="782.0" font-size="11.0" fill="#1a1a1a" text-anchor="start" font-weight="normal" font-family="'Noto Serif CJK SC','Noto Serif SC',serif">，</text><text x="227.2" y="782.0" font-size="11.0" fill="#1a1a1a" text-anchor="start" font-weight="normal" font-family="Times New Roman, serif">CH2 </text><text x="251.8" y="782.0" font-size="11.0" fill="#1a1a1a" text-anchor="start" font-weight="normal" font-family="'Noto Serif CJK SC','Noto Serif SC',serif">断，</text><text x="273.8" y="782.0" font-size="11.0" fill="#1a1a1a" text-anchor="start" font-weight="normal" font-family="Times New Roman, serif">CH3 </text><text x="298.5" y="782.0" font-size="11.0" fill="#1a1a1a" text-anchor="start" font-weight="normal" font-family="'Noto Serif CJK SC','Noto Serif SC',serif">合）、</text><text x="331.5" y="782.0" font-size="11.0" fill="#1a1a1a" text-anchor="start" font-weight="normal" font-family="Times New Roman, serif">SEL4=1</text><text x="368.4" y="782.0" font-size="11.0" fill="#1a1a1a" text-anchor="start" font-weight="normal" font-family="'Noto Serif CJK SC','Noto Serif SC',serif">（</text><text x="379.4" y="782.0" font-size="11.0" fill="#1a1a1a" text-anchor="start" font-weight="normal" font-family="Times New Roman, serif">CH4 </text><text x="404.1" y="782.0" font-size="11.0" fill="#1a1a1a" text-anchor="start" font-weight="normal" font-family="'Noto Serif CJK SC','Noto Serif SC',serif">断）、</text><text x="437.1" y="782.0" font-size="11.0" fill="#1a1a1a" text-anchor="start" font-weight="normal" font-family="Times New Roman, serif">CURR_DIS=0</text><text x="498.7" y="782.0" font-size="11.0" fill="#1a1a1a" text-anchor="start" font-weight="normal" font-family="'Noto Serif CJK SC','Noto Serif SC',serif">；双档切换仅在测量窗口外</text>
 </svg>
