@@ -50,61 +50,54 @@ void MX_GPIO_Init(void)
   __HAL_RCC_GPIOB_CLK_ENABLE();
   __HAL_RCC_GPIOD_CLK_ENABLE();
 
-  /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOC, ISET_HI_Pin|ANA_EN_Pin|LED_RED_Pin|PWR_LED_Pin, GPIO_PIN_RESET);
+  /* DC prototype target: see CUBEMX_SETUP.md. Analog stays OFF until
+     the acquisition application explicitly performs its startup sequence. */
+  HAL_GPIO_WritePin(GPIOC, BQ_EN_Pin|ANA_EN_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOC, LED_RED_Pin|PWR_LED_Pin, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(GPIOA, ADS_RESET_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOA, ADS_CS_Pin, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(GPIOB, SEL_K2_Pin|SEL_SENSE_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOB, CURR_DIS_Pin|LED_GREEN_Pin|LED_YELLOW_Pin|
+                          LED_ORANGE_Pin, GPIO_PIN_SET);
 
-  /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOA, ADS_DONE_Pin|ADS_RESET_Pin|ADS_CS_Pin|SD_PWR_EN_Pin, GPIO_PIN_RESET);
-
-  /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOB, SEL_K2_Pin|SEL_SENSE_Pin|CURR_DIS_Pin|LED_GREEN_Pin
-                          |LED_YELLOW_Pin|LED_ORANGE_Pin|BQ_TS_Pin, GPIO_PIN_RESET);
-
-  /*Configure GPIO pins : ISET_HI_Pin ANA_EN_Pin LED_RED_Pin PWR_LED_Pin */
-  GPIO_InitStruct.Pin = ISET_HI_Pin|ANA_EN_Pin|LED_RED_Pin|PWR_LED_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  GPIO_InitStruct.Pin = BQ_EN_Pin|ANA_EN_Pin|LED_RED_Pin|PWR_LED_Pin;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
-
-  /*Configure GPIO pin : MEAS_BTN_Pin */
-  GPIO_InitStruct.Pin = MEAS_BTN_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
-  GPIO_InitStruct.Pull = GPIO_PULLUP;
-  HAL_GPIO_Init(MEAS_BTN_GPIO_Port, &GPIO_InitStruct);
-
-  /*Configure GPIO pins : ADS_DONE_Pin ADS_RESET_Pin ADS_CS_Pin SD_PWR_EN_Pin */
-  GPIO_InitStruct.Pin = ADS_DONE_Pin|ADS_RESET_Pin|ADS_CS_Pin|SD_PWR_EN_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  GPIO_InitStruct.Pin = ADS_RESET_Pin|ADS_CS_Pin;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-
-  /*Configure GPIO pin : ADS_DRDY_Pin */
-  GPIO_InitStruct.Pin = ADS_DRDY_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
-  GPIO_InitStruct.Pull = GPIO_PULLUP;
-  HAL_GPIO_Init(ADS_DRDY_GPIO_Port, &GPIO_InitStruct);
-
-  /*Configure GPIO pins : SEL_K2_Pin SEL_SENSE_Pin CURR_DIS_Pin LED_GREEN_Pin
-                           LED_YELLOW_Pin LED_ORANGE_Pin BQ_TS_Pin */
-  GPIO_InitStruct.Pin = SEL_K2_Pin|SEL_SENSE_Pin|CURR_DIS_Pin|LED_GREEN_Pin
-                          |LED_YELLOW_Pin|LED_ORANGE_Pin|BQ_TS_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  GPIO_InitStruct.Pin = SEL_K2_Pin|SEL_SENSE_Pin|CURR_DIS_Pin|
+                        LED_GREEN_Pin|LED_YELLOW_Pin|LED_ORANGE_Pin;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : PWR_BTN_Pin */
-  GPIO_InitStruct.Pin = PWR_BTN_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+  /* External status outputs must never be driven by the MCU. */
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Pin = ADS_DONE_Pin;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
   GPIO_InitStruct.Pull = GPIO_PULLUP;
-  HAL_GPIO_Init(PWR_BTN_GPIO_Port, &GPIO_InitStruct);
+  GPIO_InitStruct.Pin = BQ_CHG_Pin|USB_VBUS_N_Pin;
+  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+  GPIO_InitStruct.Pin = BQ_PG_Pin;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : SD_CD_Pin */
+  /* PA4 is reserved for a future DAC; no DAC is connected in this revision. */
+  GPIO_InitStruct.Pin = GPIO_PIN_4;
+  GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  GPIO_InitStruct.Pin = MEAS_BTN_Pin;
+  HAL_GPIO_Init(MEAS_BTN_GPIO_Port, &GPIO_InitStruct);
+  GPIO_InitStruct.Pin = PWR_BTN_Pin;
+  HAL_GPIO_Init(PWR_BTN_GPIO_Port, &GPIO_InitStruct);
+  GPIO_InitStruct.Pin = ADS_DRDY_Pin;
+  HAL_GPIO_Init(ADS_DRDY_GPIO_Port, &GPIO_InitStruct);
   GPIO_InitStruct.Pin = SD_CD_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING_FALLING;
-  GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(SD_CD_GPIO_Port, &GPIO_InitStruct);
 
   /* EXTI interrupt init*/

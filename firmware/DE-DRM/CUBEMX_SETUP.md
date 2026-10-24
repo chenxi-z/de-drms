@@ -1,3 +1,43 @@
+# CubeMX 当前修正清单（2026-10-24）
+
+当前源代码已按直流首板目标修正，**DE-DRM.ioc仍为旧GUI基线**，不要直接Generate覆盖源码。
+在CubeMX完成以下修改、Save并核对差异后再生成；本轮未手工增删IOC的IP块。
+
+| GUI项 | 目标 |
+| --- | --- |
+| PA1 | ADS_DONE，GPIO_Input、NoPull |
+| PA2 / PA3 | ADS_RESET输出Low；ADS_DRDY下降沿EXTI3、PullUp |
+| PA4 / PA8 | PA4模拟态预留DAC；PA8从SD_PWR_EN改ADS_CS输出High |
+| PC1 | 从ADC1_IN2释放为BQ_EN输出Low |
+| PC2 / PB5 | 从ISET_HI/BQ_TS改BQ_CHG/BQ_PG输入、PullUp |
+| PC13 | USB_VBUS_N输入、PullUp（外部NPN检测） |
+| PC3 / PB10 | ANA_EN输出Low；CURR_DIS输出High |
+| PB0 / PB2 | SEL_K2 / SEL_SENSE输出Low；实际接SEL2与SEL1/3/4 |
+| LED | PB13/14/15、PC6/7初始High（低亮） |
+| 按键 | PA0/PB1下降沿、PullUp |
+| SD_CD | PA15双沿、PullUp |
+| ADC1 | 2个rank：IN1采样68周期、VREFINT采样391.5周期；删除IN2，不动PC1 |
+| SPI1 | Mode1；SCK/MISO/MOSI引脚High速度，保留33 Ω，上板验证边沿 |
+| I²C1 | 无TMP117，不在主程序初始化；以后需要时GUI重新启用 |
+| PWR | RET6Q现有SMPS电感；升频前HAL_PWREx_ConfigSupply(PWR_SMPS_SUPPLY) |
+| SYSCLK | MSI→PLL 160 MHz，不启用未装的外部晶振 |
+| SDMMC1 | 禁止在main外设初始化阶段调用；由FileX打开介质时初始化 |
+
+生成后必须保留/复核这些源码修复：
+- `main.h`、`gpio.c`、`adc.c`中的新引脚与rank，部分在非USER CODE区，会被旧IOC覆盖。
+- `sdmmc.c`无卡/初始化失败记录`sd_init_status`并返回，不能Error_Handler；头文件导出该状态。
+- FileX glue根据`sd_init_status`返回失败，不能无条件成功；挂载失败线程退出，不能忙等或全局关中断。
+- main不初始化I²C/SD，供电切换在升频前；SPI输出速度不得回退Low。
+- 编译和无卡/坏卡/正常卡上电测试；无卡仍应能调度与诊断。热插拔重试尚未实现。
+
+USB描述符/取电策略尚未定稿：不要沿用“自供电+0mA”作验收，也不能仅改数字500mA就算合规。
+PC13状态与USBX附着/脱离、BQ输入电流授权需要应用层联动，当前只有GPIO配置。
+ADC采集/DMA/校准/TF连续记录尚缺，编译成功不等于整机已可测量。
+
+以下旧清单保留作历史，和上表冲突时以上表为准。
+
+---
+
 # DE-DRM CubeMX 工程配置清单
 
 > STM32U545RET6Q LQFP-64 · 配套 `DE-DRM.ioc` · **2026-10-14 重排定稿 + 二轮复核**

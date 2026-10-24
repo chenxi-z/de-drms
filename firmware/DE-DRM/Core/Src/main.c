@@ -81,6 +81,11 @@ int main(void)
   HAL_Init();
 
   /* USER CODE BEGIN Init */
+  /* RET6Q board has the SMPS inductor. Switch before raising SYSCLK. */
+  if (HAL_PWREx_ConfigSupply(PWR_SMPS_SUPPLY) != HAL_OK)
+  {
+    Error_Handler();
+  }
 
   /* USER CODE END Init */
 
@@ -93,8 +98,6 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
-  MX_I2C1_Init();
-  MX_SDMMC1_SD_Init();
   MX_SPI1_Init();
   MX_USART1_UART_Init();
   MX_USB_DRD_FS_PCD_Init();

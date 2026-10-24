@@ -20,6 +20,7 @@ extern void MX_SDMMC1_SD_Init(void);
 #endif
 
 /* USER CODE BEGIN  0 */
+#include "sdmmc.h"
 
 /* USER CODE END  0 */
 
@@ -41,6 +42,7 @@ INT fx_stm32_sd_init(UINT instance)
 #endif
 
   /* USER CODE BEGIN POST_FX_SD_INIT */
+  ret = (sd_init_status == HAL_OK) ? 0 : 1;
 
   /* USER CODE END POST_FX_SD_INIT */
 

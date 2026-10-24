@@ -25,6 +25,8 @@
 /* USER CODE END 0 */
 
 SD_HandleTypeDef hsd1;
+/* Last attempt is observable even when the card is absent or faulty. */
+HAL_StatusTypeDef sd_init_status = HAL_ERROR;
 
 /* SDMMC1 init function */
 
@@ -32,6 +34,12 @@ void MX_SDMMC1_SD_Init(void)
 {
 
   /* USER CODE BEGIN SDMMC1_Init 0 */
+  sd_init_status = HAL_ERROR;
+  if (HAL_GPIO_ReadPin(SD_CD_GPIO_Port, SD_CD_Pin) != GPIO_PIN_RESET)
+  {
+    return;
+  }
+
 
   /* USER CODE END SDMMC1_Init 0 */
 
@@ -44,9 +52,12 @@ void MX_SDMMC1_SD_Init(void)
   hsd1.Init.BusWide = SDMMC_BUS_WIDE_4B;
   hsd1.Init.HardwareFlowControl = SDMMC_HARDWARE_FLOW_CONTROL_DISABLE;
   hsd1.Init.ClockDiv = 0;
-  if (HAL_SD_Init(&hsd1) != HAL_OK)
+  sd_init_status = HAL_SD_Init(&hsd1);
+  if (sd_init_status != HAL_OK)
   {
-    Error_Handler();
+    /* A storage error must not disable USB/diagnostics or the scheduler. */
+    (void)HAL_SD_DeInit(&hsd1);
+    return;
   }
   /* USER CODE BEGIN SDMMC1_Init 2 */
 

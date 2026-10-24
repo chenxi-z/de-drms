@@ -57,12 +57,16 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
+/* DC prototype target (design appendix F): CS moved PA4 -> PA8; PA4 reserved.
+ * Do not flash onto the unmodified V1.2 wiring. See CUBEMX_SETUP.md before
+ * regenerating: the tracked IOC still describes the previous board mapping.
+ */
 #define VBAT_MON_Pin GPIO_PIN_0
 #define VBAT_MON_GPIO_Port GPIOC
-#define VBUS_MON_Pin GPIO_PIN_1
-#define VBUS_MON_GPIO_Port GPIOC
-#define ISET_HI_Pin GPIO_PIN_2
-#define ISET_HI_GPIO_Port GPIOC
+#define BQ_EN_Pin GPIO_PIN_1
+#define BQ_EN_GPIO_Port GPIOC
+#define BQ_CHG_Pin GPIO_PIN_2
+#define BQ_CHG_GPIO_Port GPIOC
 #define ANA_EN_Pin GPIO_PIN_3
 #define ANA_EN_GPIO_Port GPIOC
 #define MEAS_BTN_Pin GPIO_PIN_0
@@ -75,7 +79,7 @@ void Error_Handler(void);
 #define ADS_DRDY_Pin GPIO_PIN_3
 #define ADS_DRDY_GPIO_Port GPIOA
 #define ADS_DRDY_EXTI_IRQn EXTI3_IRQn
-#define ADS_CS_Pin GPIO_PIN_4
+#define ADS_CS_Pin GPIO_PIN_8
 #define ADS_CS_GPIO_Port GPIOA
 #define SEL_K2_Pin GPIO_PIN_0
 #define SEL_K2_GPIO_Port GPIOB
@@ -96,13 +100,13 @@ void Error_Handler(void);
 #define LED_RED_GPIO_Port GPIOC
 #define PWR_LED_Pin GPIO_PIN_7
 #define PWR_LED_GPIO_Port GPIOC
-#define SD_PWR_EN_Pin GPIO_PIN_8
-#define SD_PWR_EN_GPIO_Port GPIOA
+#define USB_VBUS_N_Pin GPIO_PIN_13
+#define USB_VBUS_N_GPIO_Port GPIOC
 #define SD_CD_Pin GPIO_PIN_15
 #define SD_CD_GPIO_Port GPIOA
 #define SD_CD_EXTI_IRQn EXTI15_IRQn
-#define BQ_TS_Pin GPIO_PIN_5
-#define BQ_TS_GPIO_Port GPIOB
+#define BQ_PG_Pin GPIO_PIN_5
+#define BQ_PG_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
 

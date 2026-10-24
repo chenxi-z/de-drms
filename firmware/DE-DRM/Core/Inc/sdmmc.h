@@ -33,6 +33,7 @@ extern "C" {
 /* USER CODE END Includes */
 
 extern SD_HandleTypeDef hsd1;
+extern HAL_StatusTypeDef sd_init_status;
 
 /* USER CODE BEGIN Private defines */
 

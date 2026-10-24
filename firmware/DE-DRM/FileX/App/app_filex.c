@@ -140,7 +140,7 @@ UINT MX_FileX_Init(VOID *memory_ptr)
   if (sd_status != FX_SUCCESS)
   {
      /* USER CODE BEGIN SD DRIVER get info error */
-    while(1);
+    return; /* No card / mount failure: end this worker, keep diagnostics alive. */
     /* USER CODE END SD DRIVER get info error */
   }
 
