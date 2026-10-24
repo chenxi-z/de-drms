@@ -11,9 +11,9 @@ STM32U545RET6Q，LQFP64。PA4/DAC与PA8封装位置经ST MCU XML核对；其他�
 | PA4（20脚） | 未来DAC1_OUT1 | 首板模拟态，不接VSET；禁止与Q3直接并联 |
 | PA5/PA6/PA7 | SPI1 SCK/MISO/MOSI，AF5 | Mode1；PA5不能再当DAC输出 |
 | PA8（41脚） | ADS_CS 输出 | 高；由原PA4迁来，保留33 Ω与ADC侧10 kΩ上拉 |
-| PB2 | SEL_SENSE 输出 | 低；U10 SEL1/3/4，物理1/11/20脚 |
-| PB0 | SEL_K2 输出 | 低；U10 SEL2，物理10脚 |
-| PB10 | CURR_DIS 输出 | 高；Q3压低VSET，R29改100 kΩ上拉VCC |
+| PB2 | SEL_SENSE 输出 | 低；U10（V1.4 重编号 U8）SEL1/3/4，物理1/11/20脚 |
+| PB0 | SEL_K2 输出 | 低；U10（V1.4 重编号 U8）SEL2，物理10脚 |
+| PB10 | CURR_DIS 输出 | 高；抑制管压低VSET（V1.4 为 Q2），栅极 R17 100 kΩ上拉VCC（旧编号R29） |
 | PC3 | ANA_EN 输出 | 低，外加100 kΩ下拉 |
 | PC1 | BQ_EN 输出 | 低；连接BQ24074 EN1，保留R47下拉；不是CE充电开关，不再作为ADC1_IN2 |
 | PC2 | BQ_CHG 输入 | 上拉VCC，低=正在充电；高不能独立证明充满 |
