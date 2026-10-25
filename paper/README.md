@@ -22,8 +22,9 @@ paper/
 5. **论坛/问答帖**（StackExchange、EEVblog、TI E2E）只记 index 不进 bib——正文不引用论坛，仅作现状证据。
 6. **下载失败重试策略**见 index 末节（MDPI 浏览器手动下载即可；付费墙摘要级引用已够 P1）。
 
-## 当前状态（2026-10-25）
+## 当前状态（2026-10-25 第二轮后）
 
-- 本地 PDF：7 份（H1×1、H3×2、H4×1、H5×2、H6×1），共 ~49 MB；
-- 仅链接记录：12 项学术 + 若干 app note/论坛（见 index）；
-- 待办：Scholar 深扫补齐 bib 中全部 `[待核]` 字段（构思文档 §G 步骤 0），沿 Rogillio 2007 / Breems 2023 / Sánchez-Romate 2021 三条引文链。
+- 文献总量：**41 项**（第一轮 web 侦察 19 项 + 第二轮 CrossRef API 22 项，后者题录全部已核、带 DOI）；
+- 本地 PDF：7 份（~49 MB）；MDPI 开放获取 2 份（Nauman 2021 综述、Ye 2024）curl 被挑战页拦，浏览器手补；
+- Zotero 10.0.6 已装于 `~/opt/Zotero_linux-x86_64/` 并在运行——首次导入：GUI「文件 → 导入 → `paper/literature.bib`」；howtoSCI 的 `zotero_coverage.py` 依赖其 MinerU 缓存（面向旧语料库），与本目录 bib 相互独立；
+- 待办：Scholar 深扫沿三条引文链（Rogillio 2007 / Breems 书+Pavan 2011 / Sánchez-Romate 2021）补 bib 残余 `[待核]`（首轮条目）并确认无撞车。
