@@ -1,0 +1,188 @@
+% literature.bib — P1 论文文献库（2026-10-25 首轮文献侦察）
+% 与 literature-index.md 一一对应；[待核] 项在 Scholar 深扫时补齐（构思文档 §G 步骤 0）。
+% Zotero 导入：Zotero → 文件 → 导入 → 选本文件（或 Better BibTeX 同步）。
+
+% ================= H1 · ΣΔ 抗混叠设计 =================
+
+@techreport{rogillio2007aliasing,
+  title       = {Understanding the Aliasing Effects of Delta-Sigma Analog-to-Digital Converters},
+  author      = {Rogillio, D.},
+  year        = {2007},
+  institution = {OSTI},
+  url         = {https://www.osti.gov/servlets/purl/1137235},
+  note        = {作者全名与报告号待核}
+}
+
+@manual{microchip2001an699,
+  title        = {Anti-Aliasing, Analog Filters for Data Acquisition Systems (AN699)},
+  organization = {Microchip Technology},
+  url          = {https://ww1.microchip.com/downloads/aemDocuments/documents/MCU08/ApplicationNotes/ApplicationNotes/00699b.pdf},
+  note         = {本地: H1\_microchip\_an699\_antialias.pdf}
+}
+
+% ================= H2 · 差分滤波器与 CMRR =================
+
+@article{ieeebasicsdiff,
+  title   = {Basics of Analog Differential Filters},
+  journal = {IEEE},
+  note    = {卷期页与作者待核（iel1 旧链已死，Scholar 深扫补 DOI）},
+  url     = {http://ieeexplore.ieee.org/iel1/19/10302/00481347.pdf}
+}
+
+@misc{adi_difffilters,
+  title        = {Understanding and Designing Differential Filters for Communications Systems},
+  howpublished = {Analog Devices Technical Article},
+  url          = {https://www.analog.com/en/resources/technical-articles/understanding-and-designing-differential-filters-for-communications-systems.html}
+}
+
+% ================= H3 · CT-ΣΔ 内在抗混叠（热点锚点） =================
+
+@article{breems2023ctsd,
+  title   = {High-Speed and High-Performance Continuous-Time Sigma-Delta ADCs},
+  author  = {Breems, L. and others},
+  year    = {2023},
+  journal = {IEEE},
+  note    = {刊物卷期待核（IEEE Xplore 文档 10268251）；综述}
+}
+
+@article{ct_cascaded_implicit_aa,
+  title   = {On the Implicit Anti-Aliasing Feature of Continuous-Time Cascaded Sigma-Delta Modulators},
+  journal = {IEEE},
+  note    = {作者/年份/会议待核（ResearchGate 3451736）}
+}
+
+@manual{ti_snaa098,
+  title        = {Continuous-Time Sigma-Delta ADCs (snaa098)},
+  organization = {Texas Instruments},
+  url          = {https://www.ti.com/lit/ml/snaa098/snaa098.pdf},
+  note         = {本地: H3\_ti\_snaa098\_ctsd.pdf}
+}
+
+@manual{adi_ctsd_tutorial,
+  title        = {Continuous-Time Sigma-Delta (CTSD) Precision ADC — Mini Tutorial},
+  organization = {Analog Devices},
+  url          = {https://www.analog.com/media/en/training-seminars/tutorials/ctsd-precision-adc-mini-tutorial.pdf},
+  note         = {本地: H3\_adi\_ctsd\_tutorial.pdf}
+}
+
+@misc{adi_ctsd_part3,
+  title        = {CTSD Precision ADCs — Part 3: Inherent Alias Rejection},
+  howpublished = {Analog Dialogue, Analog Devices},
+  url          = {https://www.analog.com/en/resources/analog-dialogue/articles/ctsd-precision-adcs-part-3.html}
+}
+
+@misc{patent_ctsd_lpf,
+  title        = {Continuous-Time Sigma-Delta ADC with Embedded Low-Pass Filter},
+  howpublished = {US Patent App. US2012/0139764A1},
+  url          = {https://patents.google.com/patent/US20120139764A1/en}
+}
+
+% ================= H4 · 多目标滤波器选型方法学 =================
+
+@article{styles2008filters,
+  title   = {Selection of Optimal Filters for Multispectral Imaging},
+  author  = {Styles, V. and others},
+  year    = {2008},
+  journal = {Applied Optics},
+  volume  = {47},
+  number  = {30},
+  pages   = {5585},
+  note    = {作者列表待核}
+}
+
+@article{mdpi2018_filterselection,
+  title   = {Filter Selection for Optimizing Spectral Sensitivity},
+  journal = {Sensors},
+  year    = {2018},
+  volume  = {18},
+  number  = {5},
+  pages   = {1455},
+  note    = {作者待核}
+}
+
+@manual{ti_sboa114,
+  title        = {Design Methodology for MFB Filters in ADC Interface (SBOA114)},
+  organization = {Texas Instruments},
+  url          = {https://www.ti.com/lit/an/sboa114/sboa114.pdf},
+  note         = {本地: H4\_ti\_sboa114\_mfb\_methodology.pdf}
+}
+
+% ================= H5 · 输入 kickback / 建立 =================
+
+@manual{ti_sprpeo2,
+  title        = {Driving SAR and Delta-Sigma ADC Inputs (sprpeo2)},
+  organization = {Texas Instruments},
+  url          = {https://www.ti.com/lit/ta/sprpeo2/sprpeo2.pdf},
+  note         = {本地: H5\_ti\_sprpeo2\_driving\_inputs.pdf}
+}
+
+@article{jssc2005_switchedrc,
+  title   = {A 0.6-V 82-dB Delta-Sigma Audio ADC Using Switched-RC Integrators},
+  journal = {IEEE Journal of Solid-State Circuits},
+  year    = {2005},
+  note    = {作者列表待核（Oregon State Moon 组镜像）；题名细节待核}
+}
+
+@misc{patent_kickback,
+  title        = {Reducing the Effect of Non-Linear Kick-Back in Switched Capacitor Networks},
+  howpublished = {Patent WO2013/074188A1},
+  url          = {https://patents.google.com/patent/WO2013074188A1/en}
+}
+
+@misc{adi_sd_driver,
+  title        = {Maximize the Performance of Your Sigma-Delta ADC Driver},
+  howpublished = {Analog Dialogue, Analog Devices},
+  url          = {https://www.analog.com/en/resources/analog-dialogue/articles/maximize-the-performance-of-your-sigma-delta-adc-driver.html}
+}
+
+% ================= H6 · CNT-SHM 应用与测量硬件 =================
+
+@phdthesis{augustin2018shim,
+  title  = {Structural Health Monitoring of CFRP via Electrical Resistance Measurement},
+  author = {Augustin, T.},
+  school = {Hamburg University of Technology (TUHH)},
+  year   = {2018},
+  url    = {https://tore.tuhh.de/bitstream/11420/1742/1/Dissertation_Augustin.pdf},
+  note   = {本地: H6\_augustin2018\_tuhh\_diss.pdf；题名细节待核}
+}
+
+@article{sanchezromate2021cfrp,
+  title   = {Structural Health Monitoring of a CFRP Structural Bonded Joint under Cyclic Loading},
+  author = {S{\'a}nchez-Romate, X. F. and others},
+  year    = {2021},
+  note    = {刊物（ScienceDirect S0263822321005535）与完整题名待核}
+}
+
+@article{mdpi2018mwcnt,
+  title   = {MWCNT--Epoxy Nanocomposite Sensors for Structural Health Monitoring},
+  journal = {Electronics},
+  year    = {2018},
+  volume  = {7},
+  number  = {8},
+  pages   = {143},
+  note    = {作者待核}
+}
+
+@article{paleari2021laminates,
+  title   = {Structural Monitoring of Glass Fiber/Epoxy Laminates via Piezoresistive CNT Sensors},
+  author  = {Paleari, S. and others},
+  year    = {2021},
+  note    = {刊物（PMC8230951，疑 Sensors）与完整题名待核}
+}
+
+@article{khalifeh2022mcu,
+  title   = {Microcontroller Unit-Based Wireless Sensor Network Nodes: A Review},
+  author  = {Khalifeh, A. and others},
+  year    = {2022},
+  journal = {Sensors},
+  volume  = {22},
+  number  = {22},
+  pages   = {8937}
+}
+
+@article{nedelcu2022platform,
+  title   = {A Customizable, Low-Power, Wireless, Embedded Sensing Platform for Resistive Nanosensors},
+  author  = {Nedelcu, S. and others},
+  year    = {2022},
+  note    = {刊物（PMC8760339，疑 Sensors）与完整题名待核}
+}
