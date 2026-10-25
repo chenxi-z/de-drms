@@ -28,3 +28,10 @@ paper/
 - 本地 PDF：7 份（~49 MB）；MDPI 开放获取 2 份（Nauman 2021 综述、Ye 2024）curl 被挑战页拦，浏览器手补；
 - Zotero 10.0.6 已装于 `~/opt/Zotero_linux-x86_64/` 并在运行——首次导入：GUI「文件 → 导入 → `paper/literature.bib`」；howtoSCI 的 `zotero_coverage.py` 依赖其 MinerU 缓存（面向旧语料库），与本目录 bib 相互独立；
 - 待办：Scholar 深扫沿三条引文链（Rogillio 2007 / Breems 书+Pavan 2011 / Sánchez-Romate 2021）补 bib 残余 `[待核]`（首轮条目）并确认无撞车。
+
+## 2026-10-26 更新
+
+- 文献库扩至 **63 条**（第三轮 +18 条近年 2019–2026 脉络，见 index 末节"脉络判读"）；
+- **已全部导入 Zotero**：目录树 `P1 论文文献 → H1 ΣΔ-AAF / H2 差分CMRR / H3 CT-ΣΔ / H4 选型方法学 / H5 kickback / H6 CNT-SHM`，条目带标签 `P1论文文献 / P1-Hx / [本地PDF]`；
+- 导入工具：`paper/tools/import_bib_to_zotero.py`（直写本地库，**须先退出 Zotero**，自动防重、自动建目录树；后续更新 bib 后可重跑，已存在的 DOI/题名自动跳过）；
+- Zotero 库另有用户原有 ERT（电阻层析成像）121 篇——与 P2/P3 的电阻测量仪器方向有天然桥接，写作时可复用。

@@ -95,3 +95,30 @@
 | R22 | doi:10.1109/apscon60364.2024.10465920 | H6 | 石墨烯压阻压力传感器 SHM（2024） | 近邻传感 |
 
 下载备注：10.3390/eng2020013 与 10.3390/electronics13112090 为 MDPI 开放获取，curl 仍被挑战页拦——浏览器手补即可。
+---
+
+## 第三轮 · 近年研究脉络（2019–2026，CrossRef 相关度排序 + 领域过滤，+18 条）
+
+| 年 | 一作 | 轴 | 题名 | DOI |
+|---|---|---|---|---|
+| 2022 | Catania | H5 | A 150 mV, Sub-1 nW, 0.75%-Full-Scale INL Delta-Sigma ADC for… | doi:10.1109/esscirc55480.2022.9911235 |
+| 2020 | Basu | H5 | Delta-sigma modulator based compact sensor signal acquisitio… | doi:10.1016/j.mejo.2020.104732 |
+| 2021 | Couriol | H5 | A 12-pA Resolution Sigma Delta ADC Topology for Chemiresisti… | doi:10.1109/vlsi-soc53125.2021.9606996 |
+| 2022 | Zhang | H5 | A High Resolution Chemical Sensing Front-end with Integrated… | doi:10.1109/iscas48785.2022.9937843 |
+| 2023 | Mounika | H5 | A 1.4mW Sigma Delta ADC with Configurable Filter for Sensor … | doi:10.1109/icufn57995.2023.10200609 |
+| 2022 | Xiong | H3 | A Continuous-Time Sigma-Delta Modulator With Continuous-Time… | doi:10.1109/tcsii.2021.3127024 |
+| 2023 | Wolfer | H3 | Performance and Stability Characterization of a 3rd Order Co… | doi:10.1109/newcas57931.2023.10198152 |
+| 2025 | Lozada | H3 | Continuous-Time Delta-Sigma Modulator with SAR-Assisted Digi… | doi:10.1109/cicc63670.2025.10983245 |
+| 2023 | Konno | H5 | 1-b Delta-Sigma ADC-Based Power Side-Channel Attack Detectio… | doi:10.1109/lsens.2023.3259301 |
+| 2020 | Lee | H5 | Low Power CMOS-Based Hall Sensor with Simple Structure Using… | doi:10.3390/s20185285 |
+| 2021 | Dinesh | H6 | Self-sensing cement-based sensor with carbon nanotube: Fabri… | doi:10.1016/j.matpr.2021.02.722 |
+| 2024 | Qiu | H6 | Monitoring damage of concrete beams via self-sensing cement … | doi:10.1177/1045389x231221129 |
+| 2022 | Qhobosheane | H6 | Smart Self-Sensing Piezoresistive Composite Materials for St… | doi:10.3390/ceramics5030020 |
+| 2022 | Fu | H6 | Insight into dynamic compressive response of carbon nanotube… | doi:10.1016/j.cemconcomp.2022.104471 |
+| 2024 | Dong | H6 | High performing piezoresistive MoS2/epoxy strain sensors for… | doi:10.1016/j.polymer.2024.127449 |
+| 2025 | Vairagade | H6 | Artificial intelligence-driven predictive modeling of multi-… | doi:10.1007/s11709-025-1219-y |
+| 2021 | Tragazikis | H6 | Monitoring the Hydration Process in Carbon Nanotube Reinforc… | doi:10.3390/app11041720 |
+| 2025 | Preto | H6 | Nanocomposite sensors with indium tin oxide nanowires in a p… | doi:10.1177/14759217251322998 |
+
+**脉络判读**：①电子线（H3/H5）近七年热点在**芯片级**——CT-ΣΔ 新结构（Xiong22 TCAS-II / Lozada25 CICC / Wolfer23）与**传感节点集成**（Catania22 亚-1nW、Basu20 紧凑前端、Couriol21 12pA 化阻式、Zhang22/Mounika23）；板级无源 AAF 选型方法学在 2019–2026 检索面内仍空白。
+②应用线（H6）从材料表征走向**嵌入式组网与智能化**：自感知综述（Nauman21/Dinesh21/Qhobosheane22）→ 结构验证（Fu22/Qiu24/Dong24）→ IoT 嵌入+AI（Vairagade25、GALVEZ26）——测量硬件仍是短板，P2 仪器定位踩在趋势上。
