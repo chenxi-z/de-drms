@@ -35,3 +35,14 @@ paper/
 - **已全部导入 Zotero**：目录树 `P1 论文文献 → H1 ΣΔ-AAF / H2 差分CMRR / H3 CT-ΣΔ / H4 选型方法学 / H5 kickback / H6 CNT-SHM`，条目带标签 `P1论文文献 / P1-Hx / [本地PDF]`；
 - 导入工具：`paper/tools/import_bib_to_zotero.py`（直写本地库，**须先退出 Zotero**，自动防重、自动建目录树；后续更新 bib 后可重跑，已存在的 DOI/题名自动跳过）；
 - Zotero 库另有用户原有 ERT（电阻层析成像）121 篇——与 P2/P3 的电阻测量仪器方向有天然桥接，写作时可复用。
+
+## 2026-10-26 更新（二）
+
+- **go/no-go 判定：GO**。已精读 Hornero 2021 全文（DSpace REST API 绕过反爬取得）：
+  其覆盖 GDC=G2−G1 失配解析、带通共模/峰化、级联定性警示与"避免该拓扑"的负面结论；
+  **未覆盖**配对不变量（整线同 m）、Kelvin 结构地板、可达性边界——P1 四增量成立，定位句见 literature-screen.md；
+- **SBAA230 误归属已更正**（实为数字滤波器笔记）；单级公式真实出处 = TI《Three Guidelines》博客（扫描版 PDF 在库）；
+- **Sánchez-Romate 归属混淆更正**：scarfed joints 实为 Augustin/Karsten/Kötter 2018 Composites Part A（本库博士论文期刊版，新入库）；
+- 全库 68 条定级完成（A 核心 12 / B 支撑 36 / C 现状证据 17 / D 剔除 3），机械门禁 PASS
+  （定级覆盖 100%、核心元数据 12/12，@manual/@misc 无日期培训材料按 IEEE 惯例豁免 year/doi）；
+- 筛选总账与判定证据：`paper/literature-screen.md`；误归属更正记录也在此文件 §四。
