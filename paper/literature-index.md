@@ -122,3 +122,19 @@
 
 **脉络判读**：①电子线（H3/H5）近七年热点在**芯片级**——CT-ΣΔ 新结构（Xiong22 TCAS-II / Lozada25 CICC / Wolfer23）与**传感节点集成**（Catania22 亚-1nW、Basu20 紧凑前端、Couriol21 12pA 化阻式、Zhang22/Mounika23）；板级无源 AAF 选型方法学在 2019–2026 检索面内仍空白。
 ②应用线（H6）从材料表征走向**嵌入式组网与智能化**：自感知综述（Nauman21/Dinesh21/Qhobosheane22）→ 结构验证（Fu22/Qiu24/Dong24）→ IoT 嵌入+AI（Vairagade25、GALVEZ26）——测量硬件仍是短板，P2 仪器定位踩在趋势上。
+
+---
+
+## 第四轮 · SQ2 前置工作核查（2026-10-26，新颖性校准，+4 条）
+
+| # | 来源 | 轴 | 状态 | 意义 |
+|---|---|---|---|---|
+| R19 | TI SBAA230《Designing an Anti-Aliasing Filter for Differential ADC Inputs》 | H2 | 仅链接（TI 可直接下） | **单级**差分 RC 失配→CMRR 退化公式的出处——SQ2 的单级层不新，须正面引用并划界 |
+| R20 | Hornero Ocaña 2021, AEU《Common mode response effects in differential measurements》(doi:10.1016/j.aeue.2020.153470) | H2 | 仅链接（SD 付费/upcommons 被反爬） | **SQ2 最接近的学术前作**：容差致共模响应带通化/峰化；多级配对不变量是否覆盖待读原文 |
+| R21 | TI Precision Hub《Three guidelines for designing anti-aliasing filters》 | H2 | 仅链接 | 工程口径三条准则（含失配退化提示） |
+| R22 | ADI《Gettin' In Tune with the EMI Filter》 | H2 | 仅链接 | CM/DM 分解与不平衡量化的他域处理 |
+
+**新颖性校准结论**：SQ2 需改写为——单级失配公式已有（SBAA230）、差分网络共模响应已有定性/带通分析（Hornero 2021）；
+本项目的增量收窄为：①多级梯形**配对不变量**（逐级 vs 整线同 m 的机理与 MC 实证）；②**Kelvin 无源负端结构地板**；
+③同时约束下的**可达性边界**；④门槛化比较流程 + 真实占地。**写作必须以 ①–④ 领衔**，SBAA230/Hornero 为最近前作；
+go/no-go 门槛 = 精读 Hornero 原文与 SBAA230 全文及其引文链（若 ① 已被覆盖，P1 降级为短文或并入 P2）。

@@ -551,3 +551,37 @@
   journal = {Structural Health Monitoring},
   doi = {10.1177/14759217251322998},
 }
+
+% ================= 第四轮 · SQ2 前置工作核查（2026-10-26，新颖性校准） =================
+
+% [H2] 单级差分 RC 失配→CMRR 公式的出处（app note 级最接近前作，必须正面引用）
+@manual{ti_sbaa230,
+  title        = {Designing an Anti-Aliasing Filter for Differential ADC Inputs (SBAA230)},
+  organization = {Texas Instruments},
+  url          = {https://www.ti.com/lit/an/sbaa230/sbaa230.pdf},
+  note         = {单级失配-共模转换公式的 app note 前作；多级/配对工艺未覆盖（深扫第一优先读全文）}
+}
+
+% [H2] 级联差分网络共模响应的期刊论文（SQ2 定性层最接近学术前作）
+@article{hornero2021cm,
+  title   = {Common mode response effects in differential measurements},
+  author  = {Hornero Oca{\~n}a, G.},
+  year    = {2021},
+  journal = {AEU -- International Journal of Electronics and Communications},
+  doi     = {10.1016/j.aeue.2020.153470},
+  note    = {ScienceDirect S143484112032210X；容差致共模响应带通化/峰化；开放版 upcommons；是否覆盖配对不变量待读原文（深扫第一优先）}
+}
+
+% [H2] TI 工程博客三条准则（含失配退化的工程口径）
+@misc{ti_precisionhub_aaf,
+  title        = {Three guidelines for designing anti-aliasing filters},
+  howpublished = {TI Precision Hub Blog},
+  url          = {https://e2e.ti.com/blogs_/archives/b/precisionhub/posts/three-guidelines-for-designing-anti-aliasing-filters}
+}
+
+% [H2] EMI 滤波器 CM/DM 分解与不平衡量化（ADI）
+@misc{adi_emifilter,
+  title        = {``Gettin' In Tune'' with the EMI Filter},
+  howpublished = {Analog Devices Technical Article},
+  url          = {https://www.analog.com/en/resources/technical-articles/gettin-in-tune-emi-filter.html}
+}
