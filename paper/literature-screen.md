@@ -59,6 +59,17 @@
 - 悬案销号：`ieeebasicsdiff` → Casas 1996 破案（IEEE TIM，10.1109/19.481347）；
 - 库终量 **147 条**（bib）/Zotero 九轴 153 件（含轴内重复 6 件：一稿多版本）。
 
+## 四·六、第六轮时间线回填定级（+20 条，库终量 168）
+
+- 时间跨度 1998–2026 → **1963–2026**；经典题录逐条 CrossRef 确认（含 Inose 1963 ΣΔ 诞生、
+  McCreary 1975 电荷再分配 602 引、Barber 1984 EIT 起源 630 引、Norsworthy 1996 ΔΣ 圣经书 598 引）；
+- **A 级提升 3 条**（理论源头必引）：`norsworthy1996delta`（ΔΣ 数据转换器体系，SQ1 出处）、
+  `orchard1966inductorless`（无感滤波器灵敏度定理）、`director1969generalized`（伴随网络灵敏度，
+  420 引）——**A 级共 19 条**；
+- 其余 17 条 B/C（ Candy×2/Gray/Caves/McCreary/Gregorian 教材/Wurcer/Cage/Wen/Dharap/Chung/
+  O'Dwyer/Lee/lasertrim1976/Nesbitt 等）；时间线判读已写入 index 第六轮节（Intro 骨架素材）；
+- 书评类污染两次拦截（Schmalzel/Sedra）——规则：**book review 一律不入库**。
+
 ## 五、结论
 
 **评价过关**：新颖性门槛（GO，定位句已立）+ 库内质量（A 级仅 1 条待核、全库定级完成、三处同步）。P1 可进入英文 Methods 起草；

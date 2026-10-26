@@ -151,3 +151,43 @@ Hornero 引文链还带出 Pallàs-Areny 1991 两篇经典（差分/级联 CMRR�
 Conditioning》（366 引）、Serrano-Finetti 2019 共模噪声、Gasulla 2002 全差分共模响应等。
 明细两批：纵深 68 条（depth，题录全核）+ 引文链 11 条（refs）。全表见 bib 第五轮段落（含轴标注释）。
 **库总量：68 → 147 条**；Zotero 目录树同步扩展 H7/H8。
+
+
+---
+
+## 第六轮 · 时间线回填（2026-10-26，经典地基 1963–2012，+20 条）
+
+> 目标：把库的时间跨度从 1998–2026 拉到 **1963–2026**，经典题录逐条经 CrossRef 确认（未凭记忆录入）。
+
+| 年 | 一作 | 轴 | 里程碑 | 引 | DOI |
+|---|---|---|---|---|---|
+| 1963 | inose | H3 | A unity bit coding method by negative feedback | 170引 | 10.1109/proc.1963.2622 |
+| 1966 | orchard | H8 | Inductorless filters | 297引 | 10.1049/el:19660190 |
+| 1969 | director | H8 | The Generalized Adjoint Network and Network Sensitivitie | 420引 | 10.1109/tct.1969.1082965 |
+| 1971 | nesbitt | H8 | The synthesis and analysis of active RC ladder networks  | 1引 | 10.1049/ree.1971.0019 |
+| 1975 | mccreary | H5 | All-MOS charge redistribution analog-to-digital conversi | 602引 | 10.1109/jssc.1975.1050629 |
+| 1976 | x | H8 | Stability analysis of laser trimmed thin-film resistors | 0引 | 10.1016/0026-2714(76)90124-4 |
+| 1977 | caves | H5 | Sampled analog filtering using switched capacitors as re | 121引 | 10.1109/jssc.1977.1050966 |
+| 1981 | candy | H3 | The Structure of Quantization Noise from Sigma-Delta Mod | 191引 | 10.1109/tcom.1981.1095151 |
+| 1982 | wurcer | H2 | A programmable instrumentation amplifier for 12b resolut | 3引 | 10.1109/isscc.1982.1156396 |
+| 1984 | barber | H7 | Applied potential tomography（EIT 起源） | 630引 | 10.1088/0022-3735/17/9/002 |
+| 1985 | cage | H7 | A Test of the Quantum Hall Effect as a Resistance Standa | 30引 | 10.1109/tim.1985.4315329 |
+| 1985 | candy | H3 | A Use of Double Integration in Sigma Delta Modulation | 441引 | 10.1109/tcom.1985.1096276 |
+| 1986 | gregorian | H5 | Analog MOS ICs for Signal Processing（教材） | 0引 |  |
+| 1989 | gray | H3 | Quantization noise in single-loop sigma-delta modulation | 94引 | 10.1109/26.35376 |
+| 1996 | norsworthy | H3 | Delta-Sigma Data Converters | 598引 | 10.1109/9780470544358 |
+| 1998 | chung | H6 | Self-monitoring structural materials | 230引 | 10.1016/s0927-796x(97)00021-1 |
+| 2000 | wen | H6 | Piezoresistivity in continuous carbon fiber polymer-matr | 43引 | 10.1023/a:1004842303468 |
+| 2004 | dharap | H6 | Flexural strain sensing using carbon nanotube film | 21引 | 10.1108/02602280410545399 |
+| 2009 | odwyer | H8 | An enhanced model for thin film resistor matching | 5引 | 10.1109/icmts.2009.4814608 |
+| 2012 | lee | H7 | Stochastic model and drift dependence of long term stabi | 0引 | 10.1109/arftg.2012.6422436 |
+
+### 时间线判读（写 Intro 的骨架素材）
+
+- **1963 Inose**：ΣΔ 调制诞生（unity bit coding）；**1966 Orchard / 1969 Director**：无感滤波器与伴随网络灵敏度理论——SQ2/SQ4 的理论源头；
+- **1975 McCreary / 1977 Caves / 1986 Gregorian 教材**：电荷再分配与开关电容体系——"采样 kicking 进无源网络"问题的历史起点；
+- **1981/1985 Candy、1989 Gray、1996 Norsworthy 书**：ΣΔ 量化噪声→数据转换器体系——SQ1 的 STF/sinc³ 理论出处；
+- **1982 Wurcer**：程控仪放（ADI 谱系）；**1984 Barber（EIT 起源，630 引）**：电流激励+边界电压成像的测量系统原型——与本仪器恒流+差分采样同构；
+- **1985 Cage**：量子霍尔电阻标准——电阻计量链的锚点；
+- **1998 Chung / 2000 Wen / 2004 Dharap**：自感知结构材料→碳纤维压阻→CNT 膜应变——H6 应用的前三步，补齐到 Nauman 2021 综述之前的谱系；
+- **2009 O'Dwyer / 2012 Lee**：薄膜电阻匹配模型与长期漂移——R_ref（±0.01%/10ppm）配对与漂移声明的文献支撑。

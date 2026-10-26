@@ -54,3 +54,11 @@ paper/
 - A 级提升 4 条（Casas 1996、Pallàs-Areny 1991×2、Pallàs-Areny 1993 教材）→ 共 16 条；
 - 悬案 `ieeebasicsdiff` 破案 = Casas 1996；Zotero 目录树扩至九轴（H7/H8 新建），库内 153 件 P1 文献；
 - 用户原有 ERT/SIP 集（121 篇，谱感应极化测量方法学）与 P2/P3 的搭桥点已在 index 登记。
+
+## 2026-10-26 更新（四）· 时间线回填
+
+- 168 条（+20 经典 1963–2012：Inose 1963 ΣΔ 诞生 / Orchard 1966 / Director 1969 灵敏度理论 /
+  McCreary 1975 / Caves 1977 开关电容 / Candy 1981·1985 / Barber 1984 EIT / Chung 1998 自感知 /
+  Norsworthy 1996 圣经书 / O'Dwyer 2009 薄膜匹配 / Lee 2012 漂移）；
+- A 级 19 条（+3 理论源头）；时间线判读（1963→2026 七段谱系）在 index 第六轮节，可直接作 Intro 素材；
+- Zotero 库同步 +20；book review 入库拦截规则建立。
