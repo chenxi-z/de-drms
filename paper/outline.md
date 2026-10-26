@@ -1,95 +1,80 @@
-# P1 论文研究框架 v3（2026-10-26 · 命题驱动重构，取代 v2）
+# P1 论文方向与大纲 v4（2026-10-26 · 正文精读+实验数据融合后的定稿方向）
 
-> **重构原则**：主角是问题结构（文献揭示的矛盾），不是我们的工程动作。全部仿真/占地数据降格为
-> 命题验证证据；仪器本身只作 case context 一段带过。引用 key 与 bib 逐一对齐（幽灵门禁 PASS）。
+> 取代 v3（v3 的 IMRaD 槽位结构保留，框架层升级为"四条边界"）。
+> 依据：29 篇正文精读（15 份笔记）+ 本机全部实验数据（fo1/aaf_pkg 两轮，T00 锚定 LTspice + MC + sinc³ + EDA 实画）。
+> 纪律：四条边界各配"正文谱系证据 + 本机实验验证"双柱，缺一不立。
 
-## 〇、研究框架（从文献矛盾中导出）
+---
 
-**矛盾**（文献两端各说各话，中间空着）：
+## 〇、核心构思：性能包络的四条边界
 
-- 差分测量主线（Pallàs-Areny 1991 → Casas 1996 → Hornero 2021）：共模抑制由无源件匹配决定，
-  带内即恶化、级联更糟；**终审忠告 = 回避**——"避免使共模响应依赖无源匹配的拓扑"；
-- COTS 开关电容 ΣΔ 现实（TI/ADI 手册配方线）：芯片输入端**必须**外挂无源 RC（抗混叠 +
-  kickback 缓冲），即**回避不可行**；sinc³ 只在 fMOD 邻域兜底，"单极通常够用"是未经定量检验的共识。
+**论文的对象不是"我们的滤波器"，也不是"选型方法"，而是——**
 
-**回避不可行时，工程没有理论可用**。由此导出三个命题（本文的全部内容）：
+> **开关电容 ΣΔ 输入端无源差分 RC 网络的完整性能包络**
 
-- **P1（消去条件）**：何时元件选择能使 G_DC(s) = H_N(s) − H_P(s) 恒等于零？
-  ——单级：τ=R·C 匹配充要；梯形：传递函数是系数向量，逐级 τ 匹配**不再充分**
-  （R1·C2 交叉项暴露二阶系数失配；实测逐级配 51 dB vs 整线同偏 90.5 dB）。
-  **写作任务：符号推导（sympy）系数匹配条件，MC/LTspice 角点作验证。**
-- **P2（结构地板）**：拓扑不对称（负端 Kelvin 无源直连、正端缓冲）时，H_N 与 H_P
-  是**结构不同类**的函数，任何元件取值都不能使 G_DC≡0——共模抑制存在与配对无关的
-  拓扑地板（实测 ≈56 dB，六案相同）。**含义：凡负端无源直连的比值式双通道系统皆受限。**
-- **P3（可达边界）**：通带平坦度约束把 f_c 钉死（D4≤0.5 dB ⇒ f_c≲70 kHz @16 kHz 带宽点），
-  则 N 阶无源梯形在 f_MOD 的衰减存在解析上界（两阶理想 ≈76 dB < 80；实测 62–64 贴限）。
-  **即 D1≥80 与 D4≤0.5 在无源 N≤2 联合不可行——no-go 结果。**
+包络由四条边界围成，每条边界回答一个工程必问：
 
-**贡献四条（与题名锁定）**：P1/P2/P3 三命题 + 门槛化验证方法学（含真实占地口径）。
+| 边界 | 工程问题 | 回答 | 正文谱系证据 | 本机实验验证 |
+|---|---|---|---|---|
+| **Ⅰ 匹配边界** | "元件选好能到多好？" | 双通道退化上限：失配通道有**系数匹配消去条件**（AC 版 Thomas 定理），Zcm 载荷通道**匹配不救** | Thomas 1948 eq(11) DC 祖先（a/b=A/B ⇒ 误差项恒零，与 L 无关，印刷 p.17）；Whitlock 2004 p.4 Zcm 载荷机理 | 配对矩阵：未配对 33.7 / 逐级 τ 51 / **整线同偏 90.5 dB**（t06 CSV） |
+| **Ⅱ 拓扑边界** | "换元件/换配法也过不去的墙在哪？" | Kelvin 无源负端 ⇒ H_N/H_P 函数类不同 ⇒ **共模地板 ≈56 dB，与配对无关** | 4TP/自动平衡电桥用结构定义或主动置零"绕开"而非"匹配掉"（Cutkosky1970 p.65-66；Keysight §2.3.2 "converges to exactly zero"） | 六案地板恒定 56.08–56.31 dB（t02/t06 CSV），含配对极值角验证 |
+| **Ⅲ 物理边界** | "加级数总能过吧？" | **不能**：平坦度 D4≤0.5dB 钉死 fc → N≤2 无源衰减上界 ~76 dB < 80 | Bode 1945 衰减积分谱系（专项化非首提）；an699 配方表只枚举阶数-衰减，无约束对论证 | 实测 62–64 dB 贴界（t01 CSV），负荷损耗 ~12 dB 可解析 |
+| **Ⅳ 实践边界** | "到底怎么选？" | 门槛化多目标裁决 + **真实 PCB 占地实画**（非本体面积） | sboa114 噪声预算路线（正文证实无 CMRR/失配内容） | 六案 Pareto（layout_area_report）：二阶全 0402 反比一阶含 0805 **小 16.5%** |
 
-## 题名（理论先行，候选三则）
+**四条边界合在一起 = 该类网络的完整可行域。** 任何设计决策都在这个包络内移动；论文的贡献是
+第一次画出包络的每条边、证明出来、并用实验标定出来。六方案不是"我们的候选"，是"沿包络走一圈"的路标。
 
-1. *Limits of passive differential anti-aliasing networks at switched-capacitor ΣΔ inputs: cancellation conditions, structural floors, and a reachability bound*
-2. *When matching cannot save you: common-mode and attenuation limits of passive RC ladders in ratiometric ΣΔ measurement*（口语化，备用）
-3. *A quantitative limit theory for board-level passive anti-aliasing networks of COTS ΣΔ converters*（最保守）
+---
 
-推荐 **1**。
+## 一、必要性链（"为什么不逃走"——全部有页码的正文引文）
 
-## Introduction（六段漏斗，现在时；每段一个文献动作）
-
-| 段 | 文献动作 | 引用槽 |
+| 逃生门 | 正文代价引文 | 出处 |
 |---|---|---|
-| I1 | 差分/比值测量为何 Everywhere——**同一机理的四个名字、九十年谱系**：电话"纵向平衡"（**bell1978longitudinal**、ieee820）→音频"阻抗平衡"（**muncy1995noise**）→生物电"电极失衡"（**huhta1973interference**）→仪器"CM→DM 转换"（**pallasareny1991cmrr**、**casas1996basics**）；传感/仪器/成像（wurcer1982a、barber1984applied） | 全槽 |
-| I2 | 已知结论：共模增益来自失配、带内恶化、级联累积——谱系陈述 | **pallasareny1991cascaded**、**hornero2021cm**（G_DC=G₂−G₁ 解析）、gasulla2002cmresp、serranofinetti2019cmnoise、giustolisi2000cmrr、petkovsek2021cmv（跨域需求近邻：汽车）、smither1982commonmode（⚠R12 划界注·非 kill：地震域 1982 已建模无源失衡→系统 CMRR 退化至 20 dB——『无源失衡致 CM 退化建模无先例』不可作新意叙述；但其为电缆缺陷对象、无 RC 梯形/SC 负载/消去条件/平坦度界，引用划界即可） |
-| I3 | 学术界的回答 = 回避（引 Hornero 结论原句）；但灵敏度理论只给了"最坏情况"工具，没给"消去条件"答案 | **hornero2021cm**、**orchard1966inducto**、**director1969the**（工具谱系）、odwyer2009an、lee2012stochas |
-| I4 | 现实约束端：COTS SC-ΣΔ 强制无源 RC（配方文献群 + "单极够用"共识）；SC 负荷与 kickback 的历史（McCreary/Caves 起） | ti_threeguidelines2015、ti_sprpeo2、microchip2001an699、mccreary1975allmos、caves1977sampled、gregorian1986mos、mayes2015、ti_sbaa201_rtd（⚠R12 划界注·非 kill：SBAA201A 已给单级 C_DIFF≥10×C_CM 失配缓解启发式与信号/基准角频率匹配——『含单级工程配方的失配处理亦未见谱系』不可作新意叙述；但单级、无全频段消去推导/多级梯形/平坦度界，引用划界即可）；CT-ΣΔ 出路预告 **breems2023ctsd**、**pavan2011** |
-| I5 | 缺口命题化：回避不可行 ⇒ 需要定量极限理论（P1/P2/P3 三问）；现有传感接口 ΣΔ 均片上解决、不覆盖板级 | **kumar2021**、catania2022、basu2020、couriol2021、koh2004、**norsworthy1996deltasi**、inose1963a（谱系起） |
-| I6 | 本文：三命题 + 验证方法学 + 六网络案例作为证据；组织结构 | （无引用） |
+| 反相两次测量 | "Data accusation of 1 Hz signal takes up to 7 seconds to complete, **14 seconds**."（×2 时间 + 两测间须平稳） | Ji 2016 p.76-77 |
+| 电桥/自动平衡 | 零值检波+反馈+量程电阻整套有源架构；"the unbalance current **converges to exactly zero**" | Keysight §2.3.2 |
+| IC 自举/激光修调 | "0.005% matching → ~90 dB CMRR"——"Discrete implementations **practically impossible**" | Whitlock 2004 p.5 |
+| CT-ΣΔ 换芯片 | AIN 无强制滤波（**勘误确认**），但残余=Rs/6.25kΩ 分压温漂；高阻源仍需缓冲 | AD4134 p.6/p.37；CTSD tut. p.19/22 |
 
-## Theoretical framework（新增主节，符号层）
+→ **测量窗口内不可切换 + 成本敏感 + 高阻源**的交集场景（本设备即全中）无门可逃。
 
-T1 系统模型：无源差分梯形 + 开关电容等效负荷；G_DM 与 G_DC 定义（沿 Hornero 记号）。
-（对称分解的古典基础挂靠 Bartlett 平分定理谱系 fujishiro2017bartlett——本文为其失配摄动伴随）
-T2 P1 推导：**理论家族覆盖三类网络**——(a) 对地电容梯形（本文案例族）、(b) 纯桥电容（大 C_d/无 C_cm：理想对称源下
-  G_DC≡0 结构性成立，即 TI Three Guidelines 准则的理论依据）、(c) 混合（大 C_d + 小 C_cm：失配敏感性按 C_cm 权重回归，
-  系数匹配条件给出量化）。τ-匹配 vs 系数-匹配的包含关系；"整线同偏"充分条件。（sympy 推导，细节入附录）
-T3 P2 推导：缓冲支路 H(s) 与无源直连支路 H(s) 的函数类差异 ⇒ G_DC 结构非零；
-给出地板的量级式并与实测对照。
-T4 P3 推导：平坦度约束 → f_c 上界 → N 阶衰减上界（含级间负荷损耗项）；两阶数值例。
-（古典地基挂靠 **bode1945network** 衰减积分关系——本文边界是其专项化，非首提积分约束）
+---
 
-## Validation methodology（原 Methods，全部降格为"验证工具"）
+## 二、理论核心（写作第一步：sympy 推导，`paper/derivations/`）
 
-V1 门槛化判据（D1–D10/C9，Table 1）；V2 三层验证（L1 解析/MC、L2 宏模型 LTspice、L3 sinc³ 离线）
-+ T00 锚定回归；V3 配对协议三模式（未配对/逐级 τ/整线同偏；n=1000 MC + ≥30 角点）；
-V4 kickback/注入协议（Ron 声明假设扫值）；V5 真实占地口径（EDA 实画 + 读回断言）。
-仪器 case context：恒流+双通道比值一段带过（不展开工程细节，引数据目录即可）。
+- **定理 1（匹配消去，P1-a）**：N 阶无源差分 RC 梯形 G_DC(s)=H_N(s)−H_P(s)。
+  N=1：G_DC≡0 ⟺ τ 匹配（退化为 Thomas 1948 的 AC 版）；N≥2：系数向量含 R1·C2 交叉项 ⟹
+  逐级 τ 不充分（51 dB 实证）；**整线同偏**⟹系数全等⟹G_DC≡0（90.5 dB 实证）。
+- **定理 2（Zcm 载荷，P1-b）**：对地 C_G 即使完美匹配仍降 Zcm(f)、放大源失配敏感度（Whitlock p.4）；
+  本机量化：T2 的 C_G=10nF 在 16 kHz 的 Zcm 值 vs 无穷 Zcm 基准的 CMRR 差（t02 CSV 可提取）。
+- **定理 3（结构地板，P2）**：P 端缓冲 + N 端无源直连 ⇒ H_P 与 H_N 结构不同类（阶数/极点数不同）
+  ⇒ 任何元件取值不能 G_DC≡0；地板量级 ≈|H_N/H_P| 最坏频点比值。六案 56.08–56.31 dB 恒定。
+- **定理 4（可达上界，P3）**：|H(j2πf_b)|≥1−δ ⇒ f_c 上界 ⟹ N 阶在 f_MOD 衰减 ≤ 20N·log₁₀(f_MOD/f_c) −
+  负荷损耗。N=2, δ=0.5dB, f_b=16kHz, f_MOD=4.096MHz → ≈76 dB < 80（实测 62–64，负荷损耗 ~12 dB）。
 
-## Case study & results（证据层；表图同 v2）
+---
 
-R1 基线回归；R2 六网络判定总表（Table 2）；R3 **P1 证据**：配对矩阵（Table 3 + Fig.5 核心图）；
-R4 **P2 证据**：Kelvin 地板六案恒定（叙事谱系：huhta1973interference 证明源失衡机理在放大器 CMRR 之外，
-  本文将其形式化为前端网络的函数类论证并给出量化地板——省一颗缓冲的"经济性选择"之代价）；R5 Pareto（占地反转——工程价值点，一段即可）；
-R6 **P3 证据**：实测衰减贴理想上界曲线（Fig.4 叠界线）；R7 混叠有界风险（sinc³ 合成不足以替代）。
+## 三、IMRaD 结构（v3 槽位不变，框架替换为包络叙事）
 
-## Discussion（四段）
+- **Introduction**：八谱系"四名字九十年" → 各族解到够用 → 宽带精确消去需求的交集新生 → 四条边界贡献预告。
+- **Theoretical framework**：定理 1–4（sympy 推导；附录代数细节）。
+- **Validation methodology**：V1–V5（v3 不变）。
+- **Case study & results**：六网络 = "沿包络走一圈"——R3 配对矩阵走边界Ⅰ（核心图 Fig.5）；
+  R4 Kelvin 恒定走边界Ⅱ；R6 贴界曲线走边界Ⅲ（Fig.4 叠 Bode 界线）；R5 占地反转走边界Ⅳ。
+- **Discussion**：D1 对 Hornero 建设性接续；D2 负端无源直连族=P2 普适律；D3 四扇门的正文代价表；
+  D4 局限如实四条。
 
-D1 对 Hornero 的建设性接续（"回避不可能时的消去条件"——P1+P2 合并陈述）；
-D2 设计规则外推：凡负端无源直连的比值式双通道系统（含 EIT/ERT 一族）受 P2 约束——
-仪放差分链不受此限（对照 wurcer1982a、zhang2020237）；产业级解法=自动平衡电桥虚地置零（keysight_imphandbook，E4980A 架构）——P2 的商用逃生门；
-D3 **三扇逃生门与各自残余**（2026-10-26 质询后重写）：
-  门一 CT-ΣΔ 芯片（adi_ad4134/AD7134：阻性输入+内在抗混叠+4 通道同步——P3/D9 在需求层消失；
-  残余：6 kΩ 输入重负载仍需缓冲、Kelvin 源不对称 P2 不随 ADC 消失、单源/成本；breems2023ctsd、pavan2011 谱系）；
-  门二 纯桥电容网络（TI 准则本身：对称缓冲源下结构性零 CM→DM；残余：引脚 CM 无防护、Kelvin 源不对称
-  使极点结构失配回归、加回 C_cm 即失配回归——量化由 P1 家族(c)给出）；
-  门三 片上缓冲/有源/数字合成（ADS1262 类缓冲只隔离 kickback 不消 fMOD AAF；三阶无源 +7–8 mm²/通道；
-  sinc³ 合成实测不足；wu2015、kumar2021、lozada2025）。
-  立场句：**逃生门各管一段，门后的缝正是本理论划定的**；
-D4 局限四条如实（仿真-only、宏模型温度窗、Ron/vcm 假设、板内落位未验证）。
+---
 
-## 图表（同 v2 规划；新增 Fig.7：文献矛盾示意——回避忠告 vs 手册强制，框架图）
+## 四、题名
 
-## 写作顺序与门禁
+1. *Limits of Passive Differential Anti-Aliasing Networks at SC-ΣΔ Inputs: Cancellation Conditions, Structural Floors, and a Reachability Bound*（推荐——题名即三定理）
+2. *Four Boundaries of Passive Differential Anti-Aliasing at Switched-Capacitor ΣΔ Converter Inputs*（备选——最短）
+3. *When Matching Cannot Save You: The Performance Envelope of Passive Differential RC Front Ends for Ratiometric ΣΔ Measurement*（口语备选）
 
-**先 T1–T4（符号推导，本文真正的新东西）→ 验证节 → 案例/结果 → 讨论 → Intro → 摘要/题名**；
-每段 lint + L/G/F 面板 A/B 放行；推导代码入 `paper/derivations/`（sympy，可复核）。
+---
+
+## 五、论文之外的方向判断
+
+1. **设备已锁定 T2**（V1.4 入库）：接受代价=整线同 m 配对 + D6a 正交口径超线 + D1/D3 靠 PCB+首板关闭；
+2. **写作第一步不是英文 Methods——是 sympy 推导定理 1–4**（`paper/derivations/`）：论文新颖性全在定理层；
+3. P2 仪器论文等首板实测；文献底盘已够（230 条+Zotero 九轴+Obsidian 谱系库）。
