@@ -138,3 +138,16 @@
 本项目的增量收窄为：①多级梯形**配对不变量**（逐级 vs 整线同 m 的机理与 MC 实证）；②**Kelvin 无源负端结构地板**；
 ③同时约束下的**可达性边界**；④门槛化比较流程 + 真实占地。**写作必须以 ①–④ 领衔**，SBAA230/Hornero 为最近前作；
 go/no-go 门槛 = 精读 Hornero 原文与 SBAA230 全文及其引文链（若 ① 已被覆盖，P1 降级为短文或并入 P2）。
+
+
+---
+
+## 第五轮 · 纵深扩展（2026-10-26，14 轴 CrossRef + Hornero 引文链，+79 条）
+
+新增两条纵深轴：**H7 比率与电阻计量**（ratiometric/阻抗前端/精密电阻测量）、**H8 灵敏度与统计电路设计**
+（滤波器灵敏度/容差统计/Pareto 多目标模拟设计）——它们是 SQ2/SQ4 的理论地基，此前检索面过窄未覆盖。
+另：原 ieeebasicsdiff 悬案破案 = **Casas 1996《Basics of analog differential filters》**（IEEE TIM，48 引），
+Hornero 引文链还带出 Pallàs-Areny 1991 两篇经典（差分/级联 CMRR，98+44 引）、教材《Sensors and Signal
+Conditioning》（366 引）、Serrano-Finetti 2019 共模噪声、Gasulla 2002 全差分共模响应等。
+明细两批：纵深 68 条（depth，题录全核）+ 引文链 11 条（refs）。全表见 bib 第五轮段落（含轴标注释）。
+**库总量：68 → 147 条**；Zotero 目录树同步扩展 H7/H8。

@@ -49,6 +49,16 @@
 2. **Sánchez-Romate 归属混淆**：初轮把 "scarfed joints" 文章归 Sánchez-Romate 2021，CrossRef 核实该文实为 **Augustin/Karsten/Kötter 2018 Composites Part A**（即本库 TUHH 博士论文的期刊版，已入库 augustin2018scarfed）；Sánchez-Romate 2021 真身为 Composite Structures 270:114091（bonded repair）；
 3. **Paleari/Nedelcu 刊名**：实为 Nanomaterials 11(6):1543 与 Microsystems & Nanoengineering 8（非 Sensors）。
 
+## 四·五、第五轮纵深扩展定级（2026-10-26，+79 条后的增量）
+
+- 新增理论纵深轴：**H7 比率与电阻计量**（13 条）、**H8 灵敏度与统计电路设计**（18 条）——SQ2/SQ4 的地基；
+- **A 级提升 4 条**（原作谱系必引）：`casas1996basics`（差分滤波器基础，48 引）、
+  `pallasareny1991cmrr`（差分 CMRR 经典，98 引）、`pallasareny1991cascaded`（级联 CMRR，44 引，
+  即 Hornero [11]）、`pallas1993book`（《Sensors and Signal Conditioning》教材，366 引）——A 级共 16 条；
+- 其余 75 条默认 B/C（纵深支撑/现状证据），定级依据 bib 第五轮段落轴标；
+- 悬案销号：`ieeebasicsdiff` → Casas 1996 破案（IEEE TIM，10.1109/19.481347）；
+- 库终量 **147 条**（bib）/Zotero 九轴 153 件（含轴内重复 6 件：一稿多版本）。
+
 ## 五、结论
 
 **评价过关**：新颖性门槛（GO，定位句已立）+ 库内质量（A 级仅 1 条待核、全库定级完成、三处同步）。P1 可进入英文 Methods 起草；

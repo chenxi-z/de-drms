@@ -14,7 +14,8 @@ KEYCHARS = '23456789ABCDEFGHIJKLMNPQRSTUVWXYZ'
 TYPEMAP = {'article': 'journalArticle', 'techreport': 'report', 'phdthesis': 'thesis',
            'manual': 'document', 'misc': 'document'}
 AXIS_NAMES = {'H1': 'H1 ΣΔ-AAF', 'H2': 'H2 差分CMRR', 'H3': 'H3 CT-ΣΔ', 'H4': 'H4 选型方法学',
-              'H5': 'H5 kickback', 'H6': 'H6 CNT-SHM'}
+              'H5': 'H5 kickback', 'H6': 'H6 CNT-SHM', 'H7': 'H7 比率与电阻计量',
+              'H8': 'H8 灵敏度与统计电路设计'}
 
 def parse_bib(path):
     axis, entries, cur = None, [], None
