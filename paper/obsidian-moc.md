@@ -35,7 +35,7 @@ source: "DE-DRMS 仓四件总账：/media/anning/data/Project/DE-DRMS/paper/lite
 | 时间跨度 | **1927–2026**（Bartlett 1927 平分定理首刊 → 2026 最新应用文） | 第六轮拉到 1963，第十二轮补齐 1927 |
 | 定级 | A 级 **19 条**（必引并正面划界）；首轮 68 条时代 A12/B36/C17/D3；第五/六轮 A 级提升至 19 | literature-screen.md |
 | 第十二轮 | +46 条全 verified、六排 dupCount 均 0、unconfirmed 均空 | literature-index.md 第十二轮 |
-| 本地全文 | Obsidian 库 `20-硬件工程/10-项目设计/p1-文献谱系/fulltext/` 八轴目录 **163 份**（2026-10-26 迁入：付费墙回货 133 + 既有 30，md5 校验；文件名 = bib key）；未到货 66 篇仅链接/摘要，状态见 unfetched-papers.csv | literature-index.md 表头；迁移记录见 fulltext/全文库说明.md |
+| 本地全文 | Obsidian 库 `20-硬件工程/10-项目设计/p1-文献谱系/fulltext/` 八轴目录 **164 份**（2026-10-26 迁入：付费墙回货 134 + 既有 30，md5 校验；文件名 = bib key）；未到货 65 篇仅链接/摘要，状态见 unfetched-papers.csv | literature-index.md 表头；迁移记录见 fulltext/全文库说明.md |
 
 十二轮检索史一句话版：①首轮六轴联网侦察（H1–H6）→ ②CrossRef 批量 +22 → ③近年脉络 +18 → ④SQ2 前置核查 +4（发现 SBAA230 误归属）→ ⑤纵深扩轴 H7/H8 +79 → ⑥时间线回填 1963–2012 +20 → ⑦"值不值得研究"四柱尽调（GO）→ ⑧经典谱系复核 +5（九十年跨四域）→ ⑨"为什么没人做"五机制 → ⑩形式化谱系终扫 +3（六族地图）→ ⑪四排深挖 +4（八族半）→ ⑫六排书架并行核实 +46。
 
