@@ -39,7 +39,7 @@
 
 | 段 | 文献动作 | 引用槽 |
 |---|---|---|
-| I1 | 差分/比值测量为何 Everywhere（传感、仪器、成像），共模是其共同敌人 | **pallasareny1991cmrr**、**casas1996basics**、wurcer1982a、barber1984applied（成像同构） |
+| I1 | 差分/比值测量为何 Everywhere——**同一机理的四个名字、九十年谱系**：电话"纵向平衡"（**bell1978longitudinal**、ieee820）→音频"阻抗平衡"（**muncy1995noise**）→生物电"电极失衡"（**huhta1973interference**）→仪器"CM→DM 转换"（**pallasareny1991cmrr**、**casas1996basics**）；传感/仪器/成像（wurcer1982a、barber1984applied） | 全槽 |
 | I2 | 已知结论：共模增益来自失配、带内恶化、级联累积——谱系陈述 | **pallasareny1991cascaded**、**hornero2021cm**（G_DC=G₂−G₁ 解析）、gasulla2002cmresp、serranofinetti2019cmnoise、giustolisi2000cmrr、petkovsek2021cmv（跨域需求近邻：汽车） |
 | I3 | 学术界的回答 = 回避（引 Hornero 结论原句）；但灵敏度理论只给了"最坏情况"工具，没给"消去条件"答案 | **hornero2021cm**、**orchard1966inducto**、**director1969the**（工具谱系）、odwyer2009an、lee2012stochas |
 | I4 | 现实约束端：COTS SC-ΣΔ 强制无源 RC（配方文献群 + "单极够用"共识）；SC 负荷与 kickback 的历史（McCreary/Caves 起） | ti_threeguidelines2015、ti_sprpeo2、microchip2001an699、mccreary1975allmos、caves1977sampled、gregorian1986mos、mayes2015；CT-ΣΔ 出路预告 **breems2023ctsd**、**pavan2011** |
@@ -55,6 +55,7 @@ T2 P1 推导：**理论家族覆盖三类网络**——(a) 对地电容梯形（
 T3 P2 推导：缓冲支路 H(s) 与无源直连支路 H(s) 的函数类差异 ⇒ G_DC 结构非零；
 给出地板的量级式并与实测对照。
 T4 P3 推导：平坦度约束 → f_c 上界 → N 阶衰减上界（含级间负荷损耗项）；两阶数值例。
+（古典地基挂靠 **bode1945network** 衰减积分关系——本文边界是其专项化，非首提积分约束）
 
 ## Validation methodology（原 Methods，全部降格为"验证工具"）
 
@@ -66,7 +67,8 @@ V4 kickback/注入协议（Ron 声明假设扫值）；V5 真实占地口径（E
 ## Case study & results（证据层；表图同 v2）
 
 R1 基线回归；R2 六网络判定总表（Table 2）；R3 **P1 证据**：配对矩阵（Table 3 + Fig.5 核心图）；
-R4 **P2 证据**：Kelvin 地板六案恒定（叙事框架：省一颗缓冲的"经济性选择"之代价量化，成本敏感设计常见）；R5 Pareto（占地反转——工程价值点，一段即可）；
+R4 **P2 证据**：Kelvin 地板六案恒定（叙事谱系：huhta1973interference 证明源失衡机理在放大器 CMRR 之外，
+  本文将其形式化为前端网络的函数类论证并给出量化地板——省一颗缓冲的"经济性选择"之代价）；R5 Pareto（占地反转——工程价值点，一段即可）；
 R6 **P3 证据**：实测衰减贴理想上界曲线（Fig.4 叠界线）；R7 混叠有界风险（sinc³ 合成不足以替代）。
 
 ## Discussion（四段）
