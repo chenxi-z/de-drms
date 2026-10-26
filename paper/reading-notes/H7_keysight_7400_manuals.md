@@ -5,10 +5,10 @@
 
 ## 出处与读法
 
-- **[KS]** Agilent *Impedance Measurement Handbook — A guide to measurement technology and techniques*, 4th Ed.（`paper/literature/H7__impedanc.pdf`，140 页）。
+- **[KS]** Agilent *Impedance Measurement Handbook — A guide to measurement technology and techniques*, 4th Ed.（Obsidian 库 `20-硬件工程/10-项目设计/p1-文献谱系/fulltext/H2-差分CMRR/keysight_imphandbook.pdf`，140 页）。
   精读：§2.1–2.4（测量方法与自动平衡电桥）、§3.1–3.4（端子结构/夹具/电缆/guard）、§4.1–4.6（误差与补偿）、附录 A（夹具附加误差）、§5.1.2/5.9–5.10（高低阻技巧、平衡器件）；RF 章节（2.5–2.7、3.5–3.7、4.7）与 §5.2–5.8/5.11–5.15 浏览。
   **页码约定**：引用写「printed 章-页 / PDF 页」（如 printed 2-7 / PDF p.28；正文页脚为 1-1…5-41、A-1…、B-1…）。
-- **[QT]** QuadTech *7400 Precision LCR Meter Model B* Instruction Manual（`paper/literature/H7_1997_7400.pdf`，118 页，1997 型号、2013 归档版）。
+- **[QT]** QuadTech *7400 Precision LCR Meter Model B* Instruction Manual（Obsidian 库 `20-硬件工程/10-项目设计/p1-文献谱系/fulltext/H2-差分CMRR/quadtech_7400_manual.pdf`，118 页，1997 型号、2013 归档版）。
   精读：Specifications、§2.3–2.4（接线/清零）、§2.6.2.8/.10/.11（精度/平均/接触检查）、§2.6.4.5–.6（失真检测/负载校正）、§2.6.5.4（开短路清零）、§2.8（全部夹具附件）、§3.2（理论）；IEEE-488/RS232/打印/软盘/维护章浏览。
   **页码约定**：页脚 "Page N of 118" 与 PDF 页相同，引用写「p.N」。
 

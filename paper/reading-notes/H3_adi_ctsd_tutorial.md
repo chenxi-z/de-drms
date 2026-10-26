@@ -3,7 +3,7 @@
 > 格式标准（全组沿用）：出处 → 核心命题（原文引用）→ 关键数值（原文）→ 对 P1/P2/P3 的对照 → 没读到的。
 > 读法：pdftotext 全文逐节读，引用一律原文加页码；不转述成模糊话。
 > 出处：ADI Minitutorial，5 章合订（Kawle/Shaikh/Choudhury/Maurino/Ren/Anvekar），32 页，
-> 各章原发表于 analog.com（2021 前后），本地 PDF = `paper/literature/H3_adi_ctsd_tutorial.pdf`。
+> 各章原发表于 analog.com（2021 前后），本地 PDF = Obsidian 库 `20-硬件工程/10-项目设计/p1-文献谱系/fulltext/H3-CT-ΣΔ/adi_ctsd_tutorial.pdf`。
 > 页码 = PDF 页码 = 页脚印刷页码（1:1）。全文逐页读毕。
 
 ## 核心命题（原文）

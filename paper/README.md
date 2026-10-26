@@ -9,20 +9,22 @@ paper/
 ├── README.md            # 本文件（管理规则）
 ├── literature-index.md  # 文献总账：全部来源 + 状态（本地PDF/仅链接）+ 用途（入 git）
 ├── literature.bib       # BibTeX 库（入 git；Zotero 可直接导入）
-├── literature/          # PDF 本体（*.pdf 被 .gitignore 全局忽略 → 仅本地，不入库）
+（全文 PDF 不入本仓——2026-10-26 起统一存 Obsidian，见管理规则 1）
 └── draft/  figures/     # 后续建立：正文草稿 / 论文图（DRAW 轨道产物）
 ```
 
 ## 管理规则
 
-1. **PDF 只留本地**：`*.pdf` 在 .gitignore 全局忽略，仓库只跟踪 index 与 bib——外部资料纪律不变，总账即唯一入库记录。
-2. **命名规范**：`H{轴号}_{关键词}_{作者年份|机构}.pdf`，轴号对应构思文档 §H（H1 ΣΔ-AAF / H2 差分CMRR / H3 CT-ΣΔ / H4 选型方法学 / H5 kickback / H6 CNT-SHM）。
-3. **每新增一篇**：PDF 落 `literature/`（能下则下）→ bib 加条目（元数据不全标 `[待核]`）→ index 加行（含用途一句话）。三者同步更新，同一提交。
+1. **全文 PDF 一律存 Obsidian（2026-10-26 起）**：`Obsidian Vault/20-硬件工程/10-项目设计/p1-文献谱系/fulltext/<H轴>/`（八轴目录，163 份在库）；本仓 `*.pdf`/`*.zip` 被 .gitignore 全局忽略，只跟踪 index 与 bib——外部资料纪律（AGENTS.md）不变，总账即唯一入库记录。
+2. **命名规范**：文件名 = bib key（如 `ji2016ultra.pdf`），轴由所在目录体现；历史 `H{轴}_关键词` 命名已随迁移统一改为 bib key。
+3. **每新增一篇**：PDF 落 Obsidian fulltext 对应轴目录（能下则下）→ bib 加条目（元数据不全标 `[待核]`）→ index 加行（含用途一句话）。三者同步更新，同一提交。
 4. **Zotero**：客户端未运行时以 `literature.bib` 为桥；启动 Zotero 后「文件 → 导入」本文件即可入库；howtoSCI 技能的 `zotero_coverage.py` 依赖 Zotero 缓存，届时可用其盘点。
 5. **论坛/问答帖**（StackExchange、EEVblog、TI E2E）只记 index 不进 bib——正文不引用论坛，仅作现状证据。
 6. **下载失败重试策略**见 index 末节（MDPI 浏览器手动下载即可；付费墙摘要级引用已够 P1）。
 
-## 当前状态（2026-10-25 第二轮后）
+## 当前状态（2026-10-26 全文库迁移后：238 条题录、全文 163 份入 Obsidian、66 篇未到货）
+
+- 历史状态（2026-10-25 第二轮后）：
 
 - 文献总量：**41 项**（第一轮 web 侦察 19 项 + 第二轮 CrossRef API 22 项，后者题录全部已核、带 DOI）；
 - 本地 PDF：7 份（~49 MB）；MDPI 开放获取 2 份（Nauman 2021 综述、Ye 2024）curl 被挑战页拦，浏览器手补；

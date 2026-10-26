@@ -14,7 +14,7 @@
   PhD dissertation, Iowa State University, 2016（导师 John Bowler；委员会含 Nicola Bowler、Degang Chen）。
 - 两条产品线：**APS1006**——ACPD（交流电位降）四点探针材料表征仪（Ch1–5，重点在硬件 Ch2 + 校准 Ch3）；
   **Ch6**——锁相放大器式精密阻抗分析仪（涡流检测）。
-- 本地文件：`paper/literature/H2_ji2016_ultrafas.pdf`。
+- 本地文件：Obsidian 库 `20-硬件工程/10-项目设计/p1-文献谱系/fulltext/H2-差分CMRR/ji2016ultra.pdf`。
 
 ## 核心命题（原文）
 
