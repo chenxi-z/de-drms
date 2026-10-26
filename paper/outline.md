@@ -40,9 +40,9 @@
 | 段 | 文献动作 | 引用槽 |
 |---|---|---|
 | I1 | 差分/比值测量为何 Everywhere——**同一机理的四个名字、九十年谱系**：电话"纵向平衡"（**bell1978longitudinal**、ieee820）→音频"阻抗平衡"（**muncy1995noise**）→生物电"电极失衡"（**huhta1973interference**）→仪器"CM→DM 转换"（**pallasareny1991cmrr**、**casas1996basics**）；传感/仪器/成像（wurcer1982a、barber1984applied） | 全槽 |
-| I2 | 已知结论：共模增益来自失配、带内恶化、级联累积——谱系陈述 | **pallasareny1991cascaded**、**hornero2021cm**（G_DC=G₂−G₁ 解析）、gasulla2002cmresp、serranofinetti2019cmnoise、giustolisi2000cmrr、petkovsek2021cmv（跨域需求近邻：汽车） |
+| I2 | 已知结论：共模增益来自失配、带内恶化、级联累积——谱系陈述 | **pallasareny1991cascaded**、**hornero2021cm**（G_DC=G₂−G₁ 解析）、gasulla2002cmresp、serranofinetti2019cmnoise、giustolisi2000cmrr、petkovsek2021cmv（跨域需求近邻：汽车）、smither1982commonmode（⚠R12 划界注·非 kill：地震域 1982 已建模无源失衡→系统 CMRR 退化至 20 dB——『无源失衡致 CM 退化建模无先例』不可作新意叙述；但其为电缆缺陷对象、无 RC 梯形/SC 负载/消去条件/平坦度界，引用划界即可） |
 | I3 | 学术界的回答 = 回避（引 Hornero 结论原句）；但灵敏度理论只给了"最坏情况"工具，没给"消去条件"答案 | **hornero2021cm**、**orchard1966inducto**、**director1969the**（工具谱系）、odwyer2009an、lee2012stochas |
-| I4 | 现实约束端：COTS SC-ΣΔ 强制无源 RC（配方文献群 + "单极够用"共识）；SC 负荷与 kickback 的历史（McCreary/Caves 起） | ti_threeguidelines2015、ti_sprpeo2、microchip2001an699、mccreary1975allmos、caves1977sampled、gregorian1986mos、mayes2015；CT-ΣΔ 出路预告 **breems2023ctsd**、**pavan2011** |
+| I4 | 现实约束端：COTS SC-ΣΔ 强制无源 RC（配方文献群 + "单极够用"共识）；SC 负荷与 kickback 的历史（McCreary/Caves 起） | ti_threeguidelines2015、ti_sprpeo2、microchip2001an699、mccreary1975allmos、caves1977sampled、gregorian1986mos、mayes2015、ti_sbaa201_rtd（⚠R12 划界注·非 kill：SBAA201A 已给单级 C_DIFF≥10×C_CM 失配缓解启发式与信号/基准角频率匹配——『含单级工程配方的失配处理亦未见谱系』不可作新意叙述；但单级、无全频段消去推导/多级梯形/平坦度界，引用划界即可）；CT-ΣΔ 出路预告 **breems2023ctsd**、**pavan2011** |
 | I5 | 缺口命题化：回避不可行 ⇒ 需要定量极限理论（P1/P2/P3 三问）；现有传感接口 ΣΔ 均片上解决、不覆盖板级 | **kumar2021**、catania2022、basu2020、couriol2021、koh2004、**norsworthy1996deltasi**、inose1963a（谱系起） |
 | I6 | 本文：三命题 + 验证方法学 + 六网络案例作为证据；组织结构 | （无引用） |
 

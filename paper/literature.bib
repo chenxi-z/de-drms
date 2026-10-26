@@ -1344,8 +1344,8 @@
   doi = {},
 }
 
-% [H2] 传感器与信号调理教材（Pallàs-Areny 线源头）
-@article{pallas1993book,
+% [H2] 《Sensors and Signal Conditioning》书评（Schmalzel & Rauth, 2005；原 key 误植 pallas1993book 致门禁重复，2026-10-26 第十二轮补交付改名）
+@article{schmalzel2005review,
   title = {Sensors and signal conditioning},
   author = {L. Schmalzel, John and Rauth, D.A.},
   year = {2005},
@@ -1723,6 +1723,7 @@
 @article{guildner1965tra,
   title   = {Interfacing with a Transformer Ratio-Arm Bridge},
   author  = {Guildner, A.},
+  year    = {1965},
   journal = {Journal of Research of NBS, Section C},
   volume  = {69C},
   number  = {1},
@@ -1807,4 +1808,516 @@
   publisher = {NBS Handbooks},
   url       = {https://archive.org/details/precisionmeasure771boot},
   note      = {Cutkosky/Dunfee 守卫电桥等经典汇编}
+}
+
+% ================= 第十二轮 · 工作流深挖（2026-10-26，六排书架） =================
+
+% [H2·经典A] Bartlett 平分定理定型表述的原始出处（§15, pp.15-16；§16-17 格形节 pp.27-28；Ch.V Line Balances §34-37）——fujishiro2017bartlett 的 T1 正统祖先
+@book{bartlett1930bisection,
+  title     = {The Theory of Electrical Artificial Lines and Filters},
+  author    = {Bartlett, A. C.},
+  year      = {1930},
+  publisher = {Chapman & Hall},
+  address   = {London},
+  url       = {https://archive.org/details/dli.ernet.206148},
+  note      = {开放扫描件（djvu 全文一手核过：平分定理 §15 起于印刷页 p.15，索引作 Bisection theorem, 28）；理想对称理论，无失配/容差统计。勿用 in.ernet.dli.2015.206158 扫描件（题录张冠李戴，实为 The Victory of Television 1939）}
+}
+
+% [H2·经典A] 平分定理真正首刊（1927-11 Phil. Mag.，Crossref 一手核实）——建议将 fujishiro2017bartlett 的 note 回填为 1927 首刊+1930 成书
+@article{bartlett1927bisection,
+  title   = {An Extension of a Property of Artificial Lines},
+  author  = {Bartlett, A. C.},
+  year    = {1927},
+  journal = {The London, Edinburgh, and Dublin Philosophical Magazine and Journal of Science},
+  volume  = {4},
+  number  = {24},
+  pages   = {902--907},
+  month   = nov,
+  doi     = {10.1080/14786441108564396},
+  note      = {Series 7；平分定理首次刊出（1930 教材 §15 为定型表述）。Crossref 存档作者字段误拼 Baetlett，系 T\&F 库元数据笔误，实为 Bartlett；仅摘要级（付费墙）}
+}
+
+% [H2·经典B] 书架指定教材：格形/对称网络综合经典成书（McGraw-Hill 1962, 692 p；archive.org 受限借阅）
+@book{weinberg1962synthesis,
+  title     = {Network Analysis and Synthesis},
+  author    = {Weinberg, Louis},
+  year      = {1962},
+  publisher = {McGraw-Hill},
+  address   = {New York},
+  url       = {https://archive.org/details/networkanalysiss0000wein},
+  note      = {1975 R. E. Krieger 重印；archive.org 两扫描件均受限借阅，格形章章号未能一手核实（如实标注）；格形期刊版锚点见 weinberg1953lattice。只给理想格形综合，无 SC 负载下 RC 多级梯形 CM 消去条件}
+}
+
+% [H2·经典B] Weinberg 格形网络工作的期刊版：对称格形 RLC 两端口综合系统方法——教材-正刊双锚点
+@article{weinberg1953lattice,
+  title   = {RLC Lattice Networks},
+  author  = {Weinberg, Louis},
+  year    = {1953},
+  journal = {Proceedings of the IRE},
+  volume  = {41},
+  number  = {9},
+  pages   = {1139--1144},
+  month   = sep,
+  doi     = {10.1109/jrproc.1953.274448},
+  note      = {解决『理想对称格形如何综合出给定转移函数』，与 P1 的失配多级梯形全频段共模消去正交}
+}
+
+% [H2·经典B] 书架指定教材：格形/桥形两端口综合（Wiley 1957 原版；无开放全文）
+@book{guillemin1957synthesis,
+  title     = {Synthesis of Passive Networks: Theory and Methods Appropriate to the Realization and Approximation Problems},
+  author    = {Guillemin, Ernst A.},
+  year      = {1957},
+  publisher = {John Wiley \& Sons},
+  address   = {New York},
+  url       = {https://openlibrary.org/books/OL4903945M/Synthesis_of_passive_networks},
+  note      = {1977 R. E. Krieger 重印 xvii+741 p, ISBN 0-88275-481-5（OL4903945M 即重印版记录）；同一 work OL6916948W 含 1957 Wiley 原版权。无开放扫描，格形章章号未能一手核实（如实标注）；唯一页码锚点 p.207（阻抗缩放扩展）出自 Wikipedia 平分定理词条引文（二手）。理想对称谱系，不含失配统计}
+}
+
+% [H4·经典C] 双端接插入损耗综合法奠基：现代滤波器『按衰减指标选结构』方法论起点（H4 谱系源头，Orchard 1966 低灵敏度定理的地基）
+@article{darlington1939insertion,
+  title   = {Synthesis of Reactance 4-Poles Which Produce Prescribed Insertion Loss Characteristics: Including Special Applications to Filter Design},
+  author  = {Darlington, S.},
+  year    = {1939},
+  journal = {Journal of Mathematics and Physics},
+  volume  = {18},
+  number  = {1--4},
+  pages   = {257--353},
+  month   = apr,
+  doi     = {10.1002/sapm1939181257},
+  note      = {双端接插入损耗综合法奠基；本身不做容差/共模分析，与 P1/P3 无冲突}
+}
+
+% [H2·经典B] 1930-1975 窗口内对称格形两端口综合的正刊样本：任意两端口化归对称格形的新流程
+@article{forte1959lattice,
+  title   = {A New Synthesis Procedure for Two-Terminal-Pair Networks Using the Symmetrical Lattice Structure},
+  author  = {Forte, S. S.},
+  year    = {1959},
+  journal = {Proceedings of the IEE Part C: Monographs},
+  volume  = {106},
+  number  = {9},
+  pages   = {112},
+  doi     = {10.1049/pi-c.1959.0019},
+  note      = {佐证该时期正刊焦点全在『实现理想对称格形』、未触及臂失配的定量后果——支撑 P1 理论级空白主张}
+}
+
+% [H8·经典B] 平衡格形失配分析最近邻前驱：环形/格形调制器四臂失配→载漏的经典定量分析
+@article{tucker1955unbalance,
+  title   = {Unbalance Effects in Modulators},
+  author  = {Tucker, D. G.},
+  year    = {1955},
+  journal = {Journal of the British Institution of Radio Engineers},
+  volume  = {15},
+  number  = {4},
+  pages   = {199--207},
+  month   = apr,
+  doi     = {10.1049/jbire.1955.0024},
+  note      = {最近邻但对象为调制器单频载波泄漏，非多级无源 RC 梯形 AAF 的全频段共模消去条件，无 Kelvin 地板/平坦度-衰减界结果，不构成 kill——H8 失配谱系重要前驱}
+}
+
+% [H2·专利A] Tektronix 差分衰减器 CMRR 自动校正——"任意失配把部分共模输入转为差模输出"、CMRR 公差"超出实际制造能力"；权利要求为四象限乘法器电调分流 R/C + dc/ac 控制信号（本页核实），3 步平衡 RV1低频→C2平顶→C4高频；单节+有源校正，最接近 P1 的先例但非解析全频段条件
+@misc{link1998differential,
+  title        = {Differential Attenuator Common Mode Rejection Correction Circuit},
+  author       = {Link, Garry N. and Andrews, Roland E.},
+  howpublished = {US Patent 5,796,308, Tektronix Inc.},
+  year         = {1998},
+  url          = {https://patents.google.com/patent/US5796308A/en}
+}
+
+% [H2·专利B] Agilent 差分电压探头——每端 probe-tip 网络传输零点 + 补偿网络传输极点对消（本页核实 claim 15：零点/极点/柔性传输线/差分放大器），逐腿平坦化而非跨腿共模匹配
+@misc{mctigue2005probe,
+  title        = {Differential Voltage Probe},
+  author       = {McTigue, Michael T. and Rush, Kenneth and Kimura, Bob and Lujan, Michael J.},
+  howpublished = {US Patent 6,856,126 B2, Agilent Technologies Inc.},
+  year         = {2005},
+  url          = {https://patents.google.com/patent/US6856126B2/en}
+}
+
+% [H2·专利B] Tektronix LTCC 差分衰减器——匹配作为制造命题（共烧电阻比值匹配、埋层导电板兼作电容极板与散热层、导热过孔，本页核实 claim 1），寄生边缘场决定 CMRR 上限
+@misc{hagerup2002ltcc,
+  title        = {High Speed Differential Attenuator Using a Low Temperature Co-Fired Ceramic Substrate},
+  author       = {Hagerup, William A.},
+  howpublished = {US Patent 6,373,348 B1, Tektronix Inc.},
+  year         = {2002},
+  url          = {https://patents.google.com/patent/US6373348B1/en}
+}
+
+% [H3·专利B] TI CT-ΣΔ 输入 RC 网络共模平移——环滤波器 RC 输入网络 + 共模调整电路（输入端电流沉）+ 调谐电路（本页核实摘要/权利要求），有源共模平移而非无源匹配
+@misc{fayed2010commonmode,
+  title        = {System and Method for Common Mode Translation},
+  author       = {Fayed, Ayman A. and Byrd, Russell and Haroun, Baher},
+  howpublished = {US Patent 7,796,066 B2, Texas Instruments Inc.},
+  year         = {2010},
+  url          = {https://patents.google.com/patent/US7796066B2/en}
+}
+
+% [H5·专利B] Cirrus ΣΔ 输入网络采样——DAC 反馈先预驱采样电容输入极板再采输入信号（本页核实 claim 1/6/7 均开关时序），不涉外部无源差分网络匹配
+@misc{naderi2014sampling,
+  title        = {Systems and Methods for Sampling in an Input Network of a Delta-Sigma Modulator},
+  author       = {Naderi, Ali},
+  howpublished = {US Patent 8,907,829 B1, Cirrus Logic Inc.},
+  year         = {2014},
+  url          = {https://patents.google.com/patent/US8907829B1/en}
+}
+
+% [H2·专利C] Tektronix 宽带仪放 CMR——第二运放增益与共模响应"匹配"第一运放+共模对消信号（本页核实 claim 1），有源通道对消谱系源头；−120~−160 dB 仅限两通道共模响应跟踪带宽内
+@misc{kellogg1980wideband,
+  title        = {Wideband Instrumentation Amplifier with High Common Mode Rejection},
+  author       = {Kellogg, James R.},
+  howpublished = {US Patent 4,206,416, Tektronix Inc.},
+  year         = {1980},
+  url          = {https://patents.google.com/patent/US4206416A/en}
+}
+
+% [H2·专利C] Tektronix 差分端接衰减网络——监视电路感测组合共模+端接电压、控制电路产生定标端接/补偿电流使输入节点直流归零（本页核实 10 项权利要求）；直流/交流共模分开处理的有源方案。注：S2 原报仅列 Pollock，本页核实有共同发明人 Van Epps
+@misc{pollock2007differential,
+  title        = {Differential Termination and Attenuator Network for a Measurement Probe},
+  author       = {Pollock, Ira G. and Van Epps, Richard A.},
+  howpublished = {US Patent 7,164,995 B2, Tektronix Inc.},
+  year         = {2007},
+  url          = {https://patents.google.com/patent/US7164995B2/en}
+}
+
+% [H7] NBS 绝对欧姆源头：Thompson-Lampard 计算电容→10:1 变压器比例臂→1592 Hz 正交电桥→10 kΩ（±2.1 ppm）；对 P1/P2 属换网络类回避谱系
+@article{cutkosky1961evaluation,
+  title   = {Evaluation of the {NBS} Unit of Resistance Based on a Computable Capacitor},
+  author  = {Cutkosky, Robert D.},
+  year    = {1961},
+  journal = {Journal of Research of the National Bureau of Standards, Section A: Physics and Chemistry},
+  volume  = {65A},
+  number  = {3},
+  pages   = {147--158},
+  doi     = {10.6028/jres.065A.018},
+  note    = {全文开放（PMC5287274）；核实：CrossRef API + nvlpubs PDF 首末页（65A No.3, May-Jun 1961, pp.147-158, Paper 65A3-97）}
+}
+
+% [H7] 4TP 导纳标准比较三桥型（直读比率臂/定义变压器/等功率桥+正交桥）+同轴扼流：P2『Kelvin 无源负端结构地板』的计量级原型
+@article{cutkosky1970techniques,
+  title   = {Techniques for Comparing Four-Terminal-Pair Admittance Standards},
+  author  = {Cutkosky, Robert D.},
+  year    = {1970},
+  journal = {Journal of Research of the National Bureau of Standards, Section C: Engineering and Instrumentation},
+  volume  = {74C},
+  number  = {3--4},
+  pages   = {63--78},
+  doi     = {10.6028/jres.074C.008},
+  note    = {面向 1e-8 级与计算电容绝对欧姆链；全部为主动/变压器方案，未给出无源梯形全频段 CM 消去条件（不威胁 P1）；核实：CrossRef API（本轮补获正式 DOI）+ nvlpubs PDF 首末页（74C Nos.3-4, Jul-Dec 1970, pp.63-78）}
+}
+
+% [H7] Dunfee 方法出处：NBS 标准 volt box 电阻比率网络的差值法+自校准守卫式校准（直读比率臂，≤10 ppm）——守卫电桥/直流比率谱系补全
+@article{dunfee1963voltbox,
+  title   = {Method for Calibrating a Standard Volt Box},
+  author  = {Dunfee, Bernadine L.},
+  year    = {1963},
+  journal = {Journal of Research of the National Bureau of Standards, Section C: Engineering and Instrumentation},
+  volume  = {67C},
+  number  = {1},
+  pages   = {1--13},
+  doi     = {10.6028/jres.067C.001},
+  note    = {直流比率计量，与 P1/P2/P3 无碰撞；核实：nvlpubs PDF 首末页（67C No.1, Jan-Mar 1963, pp.1-13, Bernadine L. Dunfee）+ CrossRef API（本轮补获正式 DOI）}
+}
+
+% [H7] AC 电桥方法权威通论（1923 初版至 1971 六版）：Wagner 守卫/Kelvin 双桥/变压器比例臂全部经典消去术总汇——P1『未见于任何谱系』的正面举证负担文献
+@book{hague1971bridges,
+  title     = {Alternating Current Bridge Methods: For the Measurement of Inductance, Capacitance, and Effective Resistance at Low and Telephonic Frequencies},
+  author    = {Hague, Bernard and Foord, T. R.},
+  year      = {1971},
+  publisher = {Sir Isaac Pitman \& Sons},
+  address   = {London},
+  isbn      = {0-273-40291-9},
+  url       = {https://archive.org/details/alternatingcurre0000hagu},
+  note      = {xi+602 pp.; LCCN 71881326; Foord 修订（archive.org associated-names: Foord, Thomas Richard 实证）；版次号『6th』系原侦察依 OpenLibrary 版本记录，本轮 archive.org/LC 渠道元数据未直接给出版次声明；受控借阅，全文未读（仅题录级核实：archive.org metadata API + OpenLibrary ISBN API 交叉）}
+}
+
+% [H7] 比率计量从匝比转向量子合成的现代节点：约瑟夫森电压标准合成激励阻抗电桥（100 pF:10 pF）
+@inproceedings{palafox2014precision,
+  title     = {Precision 10:1 Capacitance Ratio Measurement Using a Josephson Impedance Bridge},
+  author    = {Palafox, Luis and Behr, Ralf and Schurr, J{\"u}rgen and Kibble, Bryan P.},
+  booktitle = {29th Conference on Precision Electromagnetic Measurements (CPEM 2014)},
+  year      = {2014},
+  pages     = {232--233},
+  doi       = {10.1109/CPEM.2014.6898344},
+  note      = {1 V 阵列 ~1e-7、10 V 阵列 ~1e-8 (k=1)；对 P1/P2 为换网络类回避谱系，非反例；核实：CrossRef API（题名/四作者/CPEM 2014/页 232-233/2014-08）；CrossRef 注册作者形式为 Palafox（原报告写 Palafox Gamir，同一人）}
+}
+
+% [H7] 阻抗计量当代转向：约瑟夫森桥 vs 电子数字桥（多相数字正弦合成+采样）现场比对——物理比率臂被数字域替代，绕开而非解决无源差分前端 CM 问题
+@article{marzano2022comparison,
+  title   = {{PTB--INRIM} Comparison of Novel Digital Impedance Bridges with Graphene Impedance Quantum Standards},
+  author  = {Marzano, Martina and Pimsut, Yaowaret and Kruskopf, Mattias and Yin, Yefei and Kraus, Marco and D'Elia, Vincenzo and Callegaro, Luca and Ortolano, Massimo and Bauer, Stephan and Behr, Ralf},
+  year    = {2022},
+  journal = {Metrologia},
+  volume  = {59},
+  number  = {6},
+  pages   = {065001},
+  doi     = {10.1088/1681-7575/ac9187},
+  note    = {10 nF 石墨烯 ACQHR 链，1233 Hz，1e-8/1e-7 量级一致；P1 空白仍在；核实：CrossRef API（题名/全部 10 位作者/卷期页/2022 全符）}
+}
+
+% [H7] 学位论文书架最前沿比率计量代表作：双脉冲驱动约瑟夫森阵列+石墨烯 ACQHR 的 4TP 阻抗电桥（53 Hz–50 kHz，nF/F 与 nΩ/Ω 级）；全书无无源差分 RC 梯形 CM 理论（不威胁 P1）
+@phdthesis{pimsut2024four,
+  title  = {Four Terminal Pair Impedance Bridge Based on Two Pulse-Driven Josephson Arrays and a Graphene Quantum Hall System},
+  author = {Pimsut, Yaowaret},
+  school = {Technische Universit{\"a}t Braunschweig},
+  year   = {2024},
+  doi    = {10.24355/dbbs.084-202409200928-0},
+  note   = {PTB Braunschweig 2.5 所博士论文，Mensch und Buch Verlag 出版，开放获取；核实：DataCite API（DOI 有效/题名/2024/dissertation/出版社）+ PTB publica 54195 与 TU Braunschweig EMG 校友页（作者 Yaowaret Pimsut、题名逐字）；DataCite creators 字段空缺，作者名经 PTB/TU BS 渠道补核}
+}
+
+% [H2] 精密电阻类 DAQ 现状证据：ACPD+涡流阻抗分析仪博士论文，明确『即使 120 dB CMRR 也不够』→ DPDT 极性反转+两次测量软件消 CM；正面支撑 P1 空白
+@phdthesis{ji2016ultra,
+  title  = {Ultra-Fast Alternating Current Potential Drop Measurement System for Materials Characterization and Precision Impedance Analyzer for Eddy Current Measurement},
+  author = {Ji, Yuan},
+  school = {Iowa State University},
+  year   = {2016},
+  url    = {https://behost.lib.iastate.edu/DR/uploads/Ji_iastate_0097E_16148.pdf},
+  note   = {ProQuest 10145577 系列，馆藏开放 PDF；AAF 仅作单端一阶处理；核实：behost PDF 标题页逐字（题名/Yuan Ji/Iowa State University dissertation/Copyright 2016）}
+}
+
+% [H2·经典A] 音频平衡线理论基石：CMRR 由对地共模阻抗平衡决定而非信号对称（与 Muncy 1995 同刊同期；P1 静态/电阻性前身）
+@article{whitlock1995balanced,
+  title   = {Balanced Lines in Audio Systems: Fact, Fiction, and Transformers},
+  author  = {Whitlock, Bill},
+  year    = {1995},
+  journal = {Journal of the Audio Engineering Society},
+  volume  = {43},
+  number  = {6},
+  pages   = {454--464},
+  url     = {https://aes.org/publications/elibrary-page/?id=7944},
+  note    = {仅摘要（AES E-Library 付费墙）；OpenAlex W1543888742 逐字段核对题名/作者/卷期页}
+}
+
+% [H2] SCIN：屏蔽电流经传输阻抗失衡转化为差模噪声、随频率线性上升至 MHz 段（P1 频变失衡→CM/DM 转化的音频域实证，电缆对象）
+@misc{brown2003scin,
+  title        = {Common-Mode to Differential-Mode Conversion in Shielded Twisted-Pair Cables (Shield-Current-Induced Noise)},
+  author       = {Brown, Jim and Whitlock, Bill},
+  year         = {2003},
+  howpublished = {AES 114th Convention Preprint 5747, Amsterdam, March 2003},
+  url          = {https://aes.org/publications/elibrary-page/?id=12594},
+  note         = {作者自存档全文已核: http://audiosystemsgroup.com/AES-SCIN-ASGWeb.pdf（PDF 明文 114th Convention Amsterdam March 2003, Preprint 5747）；OpenAlex W2169674473 同名 JAES 2003 索引}
+}
+
+% [H2] 阻抗平衡→CMRR 定量口径：1 Ω 源失衡即把 120 dB 系统 CMRR 打到 80 dB；50 MΩ 共模输入阻抗下近 1 kΩ 失衡不敏感（Whitlock/Jensen 白皮书线定量代表作）
+@misc{whitlock2004balancedinput,
+  title        = {New Balanced-Input Integrated Circuit Achieves Very High Dynamic Range in Real-World Systems},
+  author       = {Whitlock, Bill and Floru, Fred},
+  year         = {2004},
+  howpublished = {AES 117th Convention Paper 6261, San Francisco, October 2004},
+  url          = {https://www.thatcorp.com/datashts/AES6261_New_Balanced_Input_IC.pdf},
+  note         = {全文已核（THAT Corp 托管 PDF：Convention Paper 6261, 117th Convention 2004-10-28~31 SF；作者 Whitlock-Jensen / Floru-THAT）；接收端 IC 视角、60 Hz 对象，无 SC 负载全频段理论}
+}
+
+% [H1] 2025 新一代 SC 音频 ADC 输入缓冲应用说明：六种差分缓冲方案、无源差分 RC 方案 THD+N 劣化 ~10 dB、无任何失配→CM/THD 定量分析——理论空白在厂商生态依然存在
+@manual{cirrus2025an0556,
+  title        = {AN0556: CS530x Input Buffer/Filter Circuits (Rev. R1)},
+  organization = {Cirrus Logic, Inc.},
+  year        = {2025},
+  url         = {https://statics.cirrus.com/pubs/appNote/CS530x_Input_Buffer_Filter_Circuits.pdf},
+  note        = {全文已核（PDF Revision History: R1, JUL 2025, Copyright 2025）；设计考虑明列『隔离开关电容电流』与抗混叠}
+}
+
+% [H1] 差分二阶滤波『镜像复制配方』最直白标本：宣称能去共模误差但通篇无失配分析、无 CM 频响口径（DAC 输出侧）
+@manual{cirrus2003an48,
+  title        = {AN48: Design Notes for a 2-Pole Filter with Differential Input (Rev. 2)},
+  author       = {Green, Steven},
+  organization = {Cirrus Logic, Inc.},
+  year        = {2003},
+  url         = {https://statics.cirrus.com/pubs/appNote/AN048Rev2.pdf},
+  note        = {全文已核（PDF: AN48REV2 标识、by Steven Green、Copyright 2003 MAR '03）}
+}
+
+% [H1] AKM 旗舰差分音频 ADC 手册：推荐镜像对称一阶 HPF(0.7 Hz)+二阶 LPF(351 kHz) RC、S/(N+D) 随直流偏置 ±（不当劣化 ~6 dB），无失配→共模转化定量——H1 现状证据
+@manual{akm2022ak5578en,
+  title        = {AK5578EN: 8-Channel Differential 32-bit A/D Converter Datasheet (Rev. 1)},
+  organization = {Asahi Kasei Microdevices (AKM)},
+  year        = {2022},
+  url         = {https://www.akm.com/content/dam/documents/products/audio/audio-adc/ak5578en/ak5578en-en-datasheet.pdf},
+  note        = {全文已核（文档码 015016736-E-03、2022/02、72 页；Revision 表 00 First Edition→01）}
+}
+
+% [H1] ESS 旗舰 DAC 手册：差分电流模式输出（『current-mode gives lower THD』）、并联降阻抗与 I/V 指南，布局/元件失配残余失真交片内 THD 补偿电路兜底——厂商用片上校准而非网络理论（DAC 输出方向现状证据）
+@manual{ess2021es9038pro,
+  title        = {ES9038PRO Flagship 32-Bit HyperStream II 8-Channel Audio DAC Datasheet (v3.7)},
+  organization = {ESS Technology, Inc.},
+  year        = {2021},
+  url         = {https://www.esstech.com/wp-content/uploads/2022/09/ES9038PRO-Datasheet-v3.7.pdf},
+  note        = {全文已核（esstech.com 直链；版本页 v3.7、日期 February 8, 2021）}
+}
+
+% [H2] Whitlock『Audio Transformers』章（原 Jensen AN-008 白皮书的现行出版版）：变压器/平衡线 CMRR、法拉第屏蔽与阻抗平衡定量论述的可引用锚点
+@incollection{whitlock2025audiotransformers,
+  title     = {Audio Transformers},
+  author    = {Whitlock, Bill},
+  booktitle = {Handbook for Sound Engineers},
+  edition   = {6},
+  publisher = {Focal Press},
+  year      = {2025},
+  pages     = {481--515},
+  doi       = {10.4324/9781003430292-19},
+  note      = {CrossRef 核（book-chapter，2025-11-26 出版，ISBN 9781003430292，Focal Press/Routledge）；内容仅书目级核实}
+}
+
+% [H7·现状] LCR 仪器域端子结构认知现状：自动平衡电桥 + 2T/5T/4TP 误差机理，无无源差分网络 CM 消去/AAF 内容
+@misc{hioki_lcr_principles,
+  title        = {LCR Meter Measurement Principles},
+  author       = {{Hioki E.E. Corporation}},
+  howpublished = {Hioki Learning Center（在线技术讲座）},
+  url          = {https://www.hioki.com/us-en/learning/usage/lcr-meters_1.html},
+  note         = {2026-10-26 webReader 页面全文核实：2端/5端/4端对结构对比与布线电阻/接触电阻/杂散电容/引线磁耦合误差机理}
+}
+
+% [H7·现状] LCR 手册域 Kelvin+guard 工程现状："Four terminal (BNC) with Guard"（118 页手册，1997）
+@manual{quadtech_7400_manual,
+  title        = {7400 Precision LCR Meter Model B Instruction Manual},
+  organization = {QuadTech, Inc.},
+  year         = {1997},
+  url          = {https://www.ietlabs.com/pdf/Manuals/qt_7400_im.pdf},
+  note         = {IET Labs 档案托管；118 页 PDF 全文下载核实，版权页 "QuadTech, Inc., 1997"；"Four terminal (BNC) with Guard" 接口定义原句在案}
+}
+
+% [H7·谱系] 仪器域 200 年阻抗测量通史（Ohm→digibridge）：问题始终是桥臂平衡与端子结构——"为什么没人做"总图证据
+@techreport{hall_history_impedance,
+  title       = {A History of Impedance Measurements},
+  author      = {Hall, Henry P.},
+  institution = {IET Labs GenRad History Archive},
+  url         = {https://kr.ietlabs.com/pdf/GenRad_History/A_History_of_Z_Measurement.pdf},
+  note        = {63 页合并版 PDF 一手核实（元数据 Author: Henry P. Hall；1775--1915 分期与 Kelvin/Thomson 双桥章节在案）；原为 Keithley 发起的 IEEE 仪器史书稿章节（作者 GR 供职 42 年）；分册档案页 ietlabs.com/genrad\_history/history\_of\_impedance\_measurements（页面存活，标题 "Henry Hall - A History of Impedance Measurements"）}
+}
+
+% [H7·经典] NBS 精密电阻计量专册：标准电阻构造/稳定性 + 电阻比较测量方法（电位计法/比率法）源头
+@techreport{thomas1948precision,
+  title       = {Precision Resistors and Their Measurement},
+  author      = {Thomas, James L.},
+  year        = {1948},
+  institution = {National Bureau of Standards},
+  type        = {NBS Circular},
+  number      = {470},
+  url         = {https://nvlpubs.nist.gov/nistpubs/Legacy/circ/nbscircular470.pdf},
+  note        = {题名页文本层核实："by James L. Thomas ... Issued October 8, 1948"；数字化扫描件 40 页（报告称 35 页系打印页数）；与在库 NBS SP300 各卷（10.6028/nbs.sp.300v2/v6/v9）为不同文号，不重复}
+}
+
+% [H7·边缘对照] 比率式 RTD + SC ΣΔ 单级差分/共模 RC 滤波正典：C_DIFF≥10×C_CM 启发式与信号/基准角频率匹配——P1 多级/全频段主张须与此划界
+@techreport{ti_sbaa201_rtd,
+  title       = {RTD Ratiometric Measurements and Filtering Using the ADS1148 and ADS1248 Family of Devices},
+  author      = {Chioye, Luis},
+  institution = {Texas Instruments},
+  type        = {Application Report},
+  number      = {SBAA201},
+  year        = {2013},
+  url         = {https://www.ti.com/lit/pdf/sbaa201},
+  note        = {SBAA201A，初版 2013-03 / Rev A 2023-03（当次核实 13 页；报告称 10 页为初版篇幅）；"differential capacitor ... at least 10 times larger than the common-mode" 原句在案}
+}
+
+% [H2·现状] 锁相仪器域：差分输入依赖电缆对称假设，CMR=放大器单频规格（≥100 dB @ 1 kHz）而非网络全频段性质
+@techreport{burdett_tn1001,
+  title       = {Specifying Lock-in Amplifiers},
+  author      = {Burdett, R. M.},
+  institution = {AMETEK Signal Recovery},
+  type        = {Technical Note},
+  number      = {TN1001},
+  year        = {2008},
+  url         = {https://www.ameteksi.com/-/media/ameteksi/download_links/documentations/7210/tn1001_specifying_lock-in_amplifiers.pdf},
+  note         = {当次核实版本 V5.0 (01/08) © 2008 AMETEK（原报告称 2000 V2.0 © PerkinElmer，该版无法从现托管文件核实；初版年代仅第三方引文佐证 2000/2002b）；作者 R. M. Burdett 经 Wiley 百科条目等外部引用核实（"Richard" 全名未证实）；差分输入对称假设与 "at least 100 dB at 1 kHz" 原句在案}
+}
+
+% [H2·现状] 电化学工作站前置差分规格现状：CMRR=差模/共模增益之比且随频率下降——放大器规格层，无无源网络/AAF 分析
+@misc{gamry_potentiostat_specs,
+  title        = {Understanding the Specifications of your Potentiostat},
+  author       = {{Gamry Instruments}},
+  howpublished = {Gamry Instruments Application Note --- Instrumentation},
+  year         = {2015},
+  url          = {https://www.gamry.com/application-notes/instrumentation/understanding-specs-of-potentiostat},
+  note         = {WebFetch 网页全文核实；页注日期 2015-10（原报告作 n.d.，现补为 2015）；静电计输入电流/输入阻抗/带宽与 CMRR 定义均在页，"CMRR decreases as the frequency increases" 原句在案}
+}
+
+% [H2·最近邻] 地震仪器域无源失衡→系统 CMRR 退化（20 dB）既有建模先例；无 RC 梯形/SC ΣΔ/消去条件——引用划界必需
+@article{smither1982commonmode,
+  title   = {Common mode interference reduction in seismic recording},
+  author  = {Smither, Miles A. and Pater, Arnold},
+  year    = {1982},
+  journal = {Geophysics},
+  volume  = {47},
+  number  = {12},
+  pages   = {1672--1680},
+  doi     = {10.1190/1.1441316},
+  note    = {仅摘要（Crossref API 全字段核实：SEG，1982-12；正文付费墙）}
+}
+
+% [H2·俄学派] CJFET 双差分输入级 CMRR 提升方法（低温/辐照传感前端）：特殊输出电流加法器压低输入级共模跨导——有源跨导抵消线，与 P1 无源配对不变量互补
+@article{prokopenko2020cmrr,
+  title   = {The Method of Increasing of CMRR for CJFET Dual Differential Input Stages for the Tasks of Processing Sensor Signals Under Conditions of Cryogenic Temperatures and Penetrating Radiation},
+  author  = {Prokopenko, Nikolay and Zhuk, Alexey and Pakhomov, Ilya and Budyakov, Petr and Titov, Alexey},
+  year    = {2020},
+  journal = {2020 IEEE East-West Design \& Test Symposium (EWDTS)},
+  pages   = {1--5},
+  doi     = {10.1109/EWDTS50664.2020.9225016}
+}
+
+% [H1·俄学派] 开关电容离散模拟滤波器 + DDA 输入输出求和前端（denisenko2020 同组后续）——有源 SC 实现线，无无源梯形全频段共模消去理论
+@article{denisenko2024scfilter,
+  title   = {Discrete-Analog Filters on Switchable Capacitors with a Summator of Input and Output Signals on a Differential Difference Operational Amplifier},
+  author  = {Denisenko, Darya and Titov, Alexey and Prokopenko, Nikolay and Butyrlagin, Nikolay},
+  year    = {2024},
+  journal = {2024 IEEE Ural-Siberian Conference on Biomedical Engineering, Radioelectronics and Information Technology (USBEREIT)},
+  pages   = {106--109},
+  doi     = {10.1109/USBEREIT61901.2024.10584055}
+}
+
+% [H4·俄学派] 单颗 DDA 求和实现陷波（LPF+Sallen-Key HPF，低静态电流，Micro-Cap 仿真）——差分有源滤波实现现状件
+@article{denisenko2022notch,
+  title   = {Notch filter on differential difference operational amplifier},
+  author  = {Denisenko, D. Yu. and Prokopenko, N. N. and Ivanov, Yu. I. and Butyrlagin, N. V.},
+  year    = {2022},
+  journal = {Journal of Physics: Conference Series},
+  volume  = {2373},
+  number  = {7},
+  pages   = {072034},
+  doi     = {10.1088/1742-6596/2373/7/072034}
+}
+
+% [H2·中文现状] R-MOSFET-C 全差分四阶 Chebyshev 低通：电压+电流双共模负反馈稳直流工作点，20k–420 kHz 连续调谐——中文文献止步有源 CMFB 实现层，无配对不变量理论
+@article{jiang2004chebyshev,
+  title   = {全差分可调频率四阶Chebyshev滤波器的实现},
+  author  = {江金光 and 何怡刚 and 吴杰},
+  year    = {2004},
+  journal = {电子与信息学报},
+  volume  = {26},
+  number  = {5},
+  pages   = {800--806},
+  url     = {https://jeit.ac.cn/cn/article/id/d3b6d41a-3677-46a9-81d9-aeffb36315c5},
+  note    = {期刊官网页确认无 DOI；UMC 0.5μm CMOS，5V，约16mW}
+}
+
+% [H2·中文现状] ±120V 高共模输入高 CMRR 集成差分放大器——共模抑制靠有源结构实现，不涉无源网络共模消去，与 P1/P2 无冲突
+@article{zhang2024highcmv,
+  title   = {一种高共模电压集成差分放大器的设计},
+  author  = {张鑫 and 魏海龙 and 尤路 and 陈蒙},
+  year    = {2024},
+  journal = {微电子学与计算机},
+  volume  = {41},
+  number  = {2},
+  pages   = {52--57},
+  doi     = {10.19304/J.ISSN1000-7180.2023.0071}
+}
+
+% [H3·中文现状] 开关电容离散时间 ΔΣ、阶数可重构环路滤波器（带宽分辨率可配置，面向工业测量）——全文无『抗混叠/共模/差分』字样，中文 SC-ΣΔ 线对 P1 级问题的负证据
+@article{chen2026dsmod,
+  title   = {一种带宽分辨率可配置的 Delta Sigma 调制器},
+  author  = {陈炜 and 李健 and 魏聪},
+  year    = {2026},
+  journal = {集成电路与嵌入式系统},
+  volume  = {26},
+  number  = {9},
+  pages   = {54--61},
+  doi     = {10.20193/j.ices2097-4191.2026.0016}
+}
+
+% [H3·日方跨域] VCO 基 ΔΣ ADC 综述：该族卖点即『放宽对模拟抗混叠滤波器的要求』——绕开 AAF 的替代技术族，反衬 P1 所攻『无源网络×SC 负载』主线未被覆盖
+@article{li2019vco,
+  title   = {Advances in Voltage-Controlled-Oscillator-Based $\Delta\Sigma$ ADCs},
+  author  = {Li, Shaolan and Sanyal, Arindam and Lee, Kyoungtae and Yoon, Yeonam and Tang, Xiyuan and Zhong, Yi and Ragab, Kareem and Sun, Nan},
+  year    = {2019},
+  journal = {IEICE Transactions on Electronics},
+  volume  = {E102-C},
+  number  = {7},
+  pages   = {509--519},
+  doi     = {10.1587/transele.2018cti0001}
 }

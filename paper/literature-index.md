@@ -288,3 +288,116 @@ Analysis and Synthesis》格形网络章。单频/静态层定量结果在那里
 
 **净效果**：谱系地图从六族扩到八族半（+Bartlett 分解谱系 +NBS 计量谱系）；P2 多一扇产业逃生门（自动平衡电桥）；
 "为什么没人做"多一条机制（IC 内部解决 vs 板级继承）。P1 消去条件在所有谱系中的缺位依然成立。
+
+---
+
+## 第十二轮 · 工作流深挖（2026-10-26，六排书架并行核实，+46 条）
+
+**来源与口径**：六排书架工作流核实载荷——S1 经典综合谱系排 / S2 专利排（条目标签 专利A/B/C） / S3 NBS 计量排 /
+S4 音频白皮书+厂商手册排 / S5 仪器域+TI 边缘对照排 / S6 俄学派+中文+日方排。46 条全为 verified；
+六排 dupCount 均 0、unconfirmed 均空。
+**入库去重（机器比对）**：46 个新 key、19 个新 DOI 与全库逐一比对（key 集合 + DOI 小写 + 题名归一化），零重复；
+轮内互查零重复。追加前全库 184 个 `@` 行（key 183 个，含 1 组重复；门禁正则解析 182）→ 追加后 230 个 `@` 行（门禁解析 228）。
+关联提示：在库 fujishiro2017bartlett 的 note 留有『原始出处 Bartlett 1930 教材，深扫终核卷期』待办，
+本轮 bartlett1930bisection / bartlett1927bisection 即其补锚（遵守『只追加不改动既有条目』未回填，见冲突记录 #2）。
+
+### 总账表（46 条全通过；轴/一作/年份/一句话/DOI·锚点）
+
+| # | 轴 | key | 一作 | 年 | 一句话 | DOI/锚点 |
+|---|---|---|---|---|---|---|
+| 1 | H2 | bartlett1930bisection | Bartlett | 1930 | 平分定理定型表述原始出处（1930 教材 §15）——fujishiro2017bartlett 的 T1 正统祖先 | archive.org/dli.ernet.206148 |
+| 2 | H2 | bartlett1927bisection | Bartlett | 1927 | 平分定理真正首刊（Phil. Mag. S.7, 4(24) 902–907） | 10.1080/14786441108564396 |
+| 3 | H2 | weinberg1962synthesis | Weinberg | 1962 | 格形/对称网络综合经典教材（受限借阅，格形章号未一手核） | archive.org/networkanalysiss0000wein |
+| 4 | H2 | weinberg1953lattice | Weinberg | 1953 | 格形 RLC 两端口综合期刊版（Proc. IRE 41(9)）——教材-正刊双锚点 | 10.1109/jrproc.1953.274448 |
+| 5 | H2 | guillemin1957synthesis | Guillemin | 1957 | 格形/桥形两端口综合教材（Wiley 原版；无开放全文） | OpenLibrary OL4903945M |
+| 6 | H4 | darlington1939insertion | Darlington | 1939 | 双端接插入损耗综合法奠基（H4 谱系源头、Orchard 1966 地基） | 10.1002/sapm1939181257 |
+| 7 | H2 | forte1959lattice | Forte | 1959 | 任意两端口化归对称格形——正刊只做理想对称的窗口内佐证 | 10.1049/pi-c.1959.0019 |
+| 8 | H8 | tucker1955unbalance | Tucker | 1955 | 格形失配分析最近邻前驱：调制器四臂失配→载漏定量 | 10.1049/jbire.1955.0024 |
+| 9 | H2 | link1998differential | Link | 1998 | Tek 差分衰减器 CMRR 电调校正：承认失配→CM 转差模与公差极限，但为有源 trim | US5796308A |
+| 10 | H2 | mctigue2005probe | McTigue | 2005 | Agilent 差分探头：每腿零极点对消平坦化（非跨腿共模匹配） | US6856126B2 |
+| 11 | H2 | hagerup2002ltcc | Hagerup | 2002 | Tek LTCC 差分衰减器：匹配交给共烧工艺，无解析设计条件 | US6373348B1 |
+| 12 | H3 | fayed2010commonmode | Fayed | 2010 | TI CT-ΣΔ 输入 RC 共模：有源电流沉平移而非无源匹配 | US7796066B2 |
+| 13 | H5 | naderi2014sampling | Naderi | 2014 | Cirrus ΣΔ 输入网络内部采样时序，不涉外部无源差分匹配 | US8907829B1 |
+| 14 | H2 | kellogg1980wideband | Kellogg | 1980 | Tek 宽带仪放两运放共模响应匹配+对消——有源对消谱系源头 | US4206416A |
+| 15 | H2 | pollock2007differential | Pollock | 2007 | Tek 差分端接网络：监视+反馈有源消解直流共模（补发明人 Van Epps） | US7164995B2 |
+| 16 | H7 | cutkosky1961evaluation | Cutkosky | 1961 | NBS 绝对欧姆（计算电容→10 kΩ，±2.1 ppm）——换网络类回避谱系 | 10.6028/jres.065A.018 |
+| 17 | H7 | cutkosky1970techniques | Cutkosky | 1970 | 4TP 导纳比较三桥型+同轴扼流——P2 Kelvin 地板的计量级原型 | 10.6028/jres.074C.008 |
+| 18 | H7 | dunfee1963voltbox | Dunfee | 1963 | volt box 差值法+自校准守卫式校准（直流比率谱系补全） | 10.6028/jres.067C.001 |
+| 19 | H7 | hague1971bridges | Hague | 1971 | AC 电桥方法通论（Wagner/Kelvin 双桥/变压器臂总汇）——P1 正面举证负担文献 | ISBN 0-273-40291-9 |
+| 20 | H7 | palafox2014precision | Palafox | 2014 | 约瑟夫森阻抗桥 10:1 电容比率（匝比→量子合成现代节点） | 10.1109/CPEM.2014.6898344 |
+| 21 | H7 | marzano2022comparison | Marzano | 2022 | PTB–INRIM 数字桥 vs 约瑟夫森桥现场比对——计量转向数字域、绕开无源 CM | 10.1088/1681-7575/ac9187 |
+| 22 | H7 | pimsut2024four | Pimsut | 2024 | 双约瑟夫森阵列+石墨烯 ACQHR 4TP 电桥博士论文（当代极限，全书无无源差分 RC CM 理论） | 10.24355/dbbs.084-202409200928-0 |
+| 23 | H2 | ji2016ultra | Ji | 2016 | ACPD 博士论文：明言 120 dB CMRR 不够→DPDT 换向+软件消 CM（实践界现状） | behost.lib.iastate.edu PDF |
+| 24 | H2 | whitlock1995balanced | Whitlock | 1995 | 平衡线 CMRR 由对地共模阻抗平衡决定而非信号对称（P1 静态前身；仅摘要） | AES E-Library 7944 |
+| 25 | H2 | brown2003scin | Brown | 2003 | SCIN：屏蔽电流经传输阻抗失衡转差模、随频率线性升（频变失衡实证，电缆对象） | AES Preprint 5747 |
+| 26 | H2 | whitlock2004balancedinput | Whitlock | 2004 | 阻抗平衡→CMRR 定量：1 Ω 源失衡把 120 dB 系统打到 80 dB（接收端 IC 视角） | AES Paper 6261 |
+| 27 | H1 | cirrus2025an0556 | Cirrus | 2025 | CS530x 输入缓冲 AN：无源差分 RC THD+N 劣化 ~10 dB、无失配→CM 定量——空白在厂商生态仍在 | AN0556 Rev R1 |
+| 28 | H1 | cirrus2003an48 | Green | 2003 | 差分二阶滤波『镜像复制配方』标本：宣称去共模误差但无失配分析 | AN48 Rev 2 |
+| 29 | H1 | akm2022ak5578en | AKM | 2022 | AK5578EN 手册：镜像对称 HPF+LPF 配方、偏置敏感 ~6 dB，无失配→共模定量 | 015016736-E-03 |
+| 30 | H1 | ess2021es9038pro | ESS | 2021 | ES9038PRO：差分电流模式输出、失配残余交片内 THD 补偿兜底（DAC 侧现状） | datasheet v3.7 |
+| 31 | H2 | whitlock2025audiotransformers | Whitlock | 2025 | 『Audio Transformers』章（Jensen AN-008 出版版）：变压器/平衡线 CMRR 定量锚点 | 10.4324/9781003430292-19 |
+| 32 | H7 | hioki_lcr_principles | Hioki | — | LCR 自动平衡电桥+2T/5T/4TP 误差机理——只讲误差源与端子构造，无 CM 消去/AAF | hioki.com 学习页 |
+| 33 | H7 | quadtech_7400_manual | QuadTech | 1997 | "Four terminal (BNC) with Guard"——LCR 手册域 Kelvin+guard 工程现状 | ietlabs.com PDF |
+| 34 | H7 | hall_history_impedance | Hall | — | 200 年阻抗测量通史（Ohm→digibridge）——『为什么没人做』总图证据 | kr.ietlabs.com PDF |
+| 35 | H7 | thomas1948precision | Thomas | 1948 | NBS Circular 470 精密电阻专册：构造/稳定性+比较测量方法源头 | nbscircular470.pdf |
+| 36 | H7 | ti_sbaa201_rtd | Chioye | 2013 | 比率式 RTD+SC ΣΔ 单级差分/共模 RC 正典：C_DIFF≥10×C_CM 启发式（⚠killRisk 划界，见专段） | SBAA201A |
+| 37 | H2 | burdett_tn1001 | Burdett | 2008 | 锁相放大器：差分依赖电缆对称假设、CMR=放大器单频规格（年份按 V5.0/2008 勘误） | AMETEK TN1001 |
+| 38 | H2 | gamry_potentiostat_specs | Gamry | 2015 | 电化学工作站：CMRR 随频率下降——放大器规格层认知现状 | gamry.com |
+| 39 | H2 | smither1982commonmode | Smither | 1982 | 地震域无源失衡→系统 CMRR 退化（20 dB）建模先例（⚠killRisk 最近邻，见专段） | 10.1190/1.1441316 |
+| 40 | H2 | prokopenko2020cmrr | Prokopenko | 2020 | CJFET 双差分输入级 CMRR 跨导抵消（有源线；仅摘要） | 10.1109/EWDTS50664.2020.9225016 |
+| 41 | H1 | denisenko2024scfilter | Denisenko | 2024 | SC 离散模拟滤波+DDA 求和前端（denisenko2020 同组后续，非重复） | 10.1109/USBEREIT61901.2024.10584055 |
+| 42 | H4 | denisenko2022notch | Denisenko | 2022 | 单 DDA 求和陷波（差分有源滤波实现现状件） | 10.1088/1742-6596/2373/7/072034 |
+| 43 | H2 | jiang2004chebyshev | 江金光 | 2004 | 全差分可调四阶 Chebyshev（双 CMFB）——中文止步有源实现层 | jeit.ac.cn（无 DOI） |
+| 44 | H2 | zhang2024highcmv | 张鑫 | 2024 | ±120 V 高共模集成差分放大器——CMRR 靠有源结构实现 | 10.19304/J.ISSN1000-7180.2023.0071 |
+| 45 | H3 | chen2026dsmod | 陈炜 | 2026 | 阶数可重构 SC-ΔΣ 环路滤波器：全文无抗混叠/共模/差分字样（负证据；DOI 勘误加 j. 节） | 10.20193/j.ices2097-4191.2026.0016 |
+| 46 | H3 | li2019vco | Li | 2019 | VCO 基 ΔΣ ADC 综述：该族卖点即放宽 AAF 要求（绕开型替代族） | 10.1587/transele.2018cti0001 |
+
+注：S5 报文的轴名带后缀（"H7 比率计量"/"H2 差分CMRR"），表中取主轴；#32/#34 原条目即无 year 字段，年份列记"—"。
+
+### queriesTried 汇总
+
+本轮六排输入载荷未随附 queriesTried 字段（JSON 仅含 digger/dupCount/unconfirmed/verified 四类键）——
+如实记录为**缺失**，不虚构检索式。各排核实渠道已随条目 oneLine/note 在案
+（CrossRef / OpenAlex / DataCite / archive.org / OpenLibrary / 厂商与档案 PDF 全文 / patents.google.com 页面级核对）。
+
+### unconfirmed 记录
+
+六排 unconfirmed 均为空数组、dupCount 均 0——无待核遗留、无入库名单外条目。
+
+### killRisk 候选专段（2 条，均为『非 kill·须引用划界』级；无真 kill）
+
+1. **ti_sbaa201_rtd**（TI SBAA201A，2013 初版/2023 RevA）——非 kill·边缘对照：SC 输入 ΣΔ ADC 场景已给
+   "CM 电容失配→非对称衰减"的**单级**缓解启发式（C_DIFF≥10×C_CM）与信号/基准两路滤波角频率匹配要求。
+   **条件反驳**：若 P1 行文把『含单级工程配方的失配处理亦未见谱系』当新意，即被此反驳。
+   但其为单级、无全频段消去条件推导、无多级梯形、无平坦度-衰减界——P1/P3 核心主张存活，行文须与此划界。
+   证据：https://www.ti.com/lit/pdf/sbaa201
+2. **smither1982commonmode**（Geophysics 47(12):1672–1680, 1982）——非 kill·最近邻：地震域 1982 已建模
+   『无源失衡（电缆失衡/漏泄）→系统 CMRR 退化至 20 dB』并给出控制方法。
+   **条件反驳**：若 P1 把『无源失衡致 CM 退化建模本身无先例』当新意叙述，即被此反驳。
+   但其无多级 RC 梯形、无开关电容 ΣΔ 负载、无全频段消去条件、无平坦度-衰减界——P1/P2/P3 核心主张存活，须引用划界。
+   证据：https://pubs.geoscienceworld.org/seg/geophysics/article/47/12/1672/68594/（DOI 10.1190/1.1441316）
+
+处置：outline.md **I4**（配方文献群槽）与 **I2**（谱系陈述槽）已分别加划界注，两个 key 已随本轮入库。
+
+### 冲突与勘误记录（先记录，处置如下）
+
+1. **门禁两项预存错误（非本轮引入；第十二轮补交付已修复，2026-10-26）**：`key 重复: pallas1993book`
+   （两条同名 key：1993 Pallàs-Areny 教材条目与 2005 Schmalzel/Rauth 书评条目，后者 key 误植）与
+   `guildner1965tra 学术条目缺 year`。基线取证：追加前工作区与 HEAD 版本跑门禁均报同样 2 错（exit 1）；
+   本轮 46 条追加经机器复检贡献 0 错误、0 新警告（门禁解析 182→228）。
+   **修复（主代理授权修"重复 key/缺字段"类）**：① 2005 书评条目改名 `schmalzel2005review`（题录零改动；
+   literature-screen.md:57 所引 pallas1993book 指 1993 教材条目，改名后语义不变）；② guildner1965tra 补
+   `year = {1965}`——据条目自身 URL 下载 nvlpubs PDF 首页逐字核实『Vol. 69C, No. 1, January-March 1965』，非凭记忆。
+   附带发现（未改动，留库主）：该 PDF 首页实际作者为 L. A. Guildner and R. E. Edsinger、篇名为
+   *Measurement of Capacitance to a Grounded Surface With a Transformer Ratio-Arm Bridge*
+   （在库 title "Interfacing with a Transformer Ratio-Arm Bridge" 系转述，author 漏 Edsinger）。
+2. **fujishiro2017bartlett note 回填建议**（S1：回填为 1927 首刊+1930 成书）——按『只追加不改动既有条目』未回填，记为待办。
+3. **chen2026dsmod DOI 勘误**（S6 核实时已修正：10.20193/j.ices2097-4191.2026.0016；原报少 "j." 节、doi.org 不可解析）——按修正后 DOI 入库。
+4. **burdett_tn1001 年份勘误**（S5：现托管版 V5.0/2008；原报 2000 V2.0 无法从现文件核实）——按 2008 入库并在 note 注版本沿革。
+5. **pollock2007differential 补第二发明人 Van Epps**（S2 页面核实）；**palafox2014precision** CrossRef 注册姓氏为 Palafox（原报 Palafox Gamir，同一人）。
+
+**净效果**：+46 条覆盖经典综合谱系（Bartlett 1927/1930、Weinberg 1953/1962、Guillemin 1957、Darlington 1939、
+Forte 1959、Tucker 1955）、差分 CMRR 专利七件（Tek×4/Agilent/TI/Cirrus）、NBS 与量子计量谱系
+（Cutkosky×2、Dunfee、Thomas、Hague、约瑟夫森桥三件）、音频白皮书线（Whitlock×3+Brown SCIN）、厂商手册四件
+（Cirrus×2/AKM/ESS）、仪器域现状五件（Hioki/QuadTech/Hall/锁相/电化学）、俄学派三件、中文三件、日方一件。
+P1/P2/P3 核心主张无真 kill；两条划界注已入 outline（I2/I4 槽）；谱系证据链自 1927 年补齐。
