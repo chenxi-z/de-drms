@@ -40,7 +40,7 @@
 | 段 | 文献动作 | 引用槽 |
 |---|---|---|
 | I1 | 差分/比值测量为何 Everywhere（传感、仪器、成像），共模是其共同敌人 | **pallasareny1991cmrr**、**casas1996basics**、wurcer1982a、barber1984applied（成像同构） |
-| I2 | 已知结论：共模增益来自失配、带内恶化、级联累积——谱系陈述 | **pallasareny1991cascaded**、**hornero2021cm**（G_DC=G₂−G₁ 解析）、gasulla2002cmresp、serranofinetti2019cmnoise、giustolisi2000cmrr |
+| I2 | 已知结论：共模增益来自失配、带内恶化、级联累积——谱系陈述 | **pallasareny1991cascaded**、**hornero2021cm**（G_DC=G₂−G₁ 解析）、gasulla2002cmresp、serranofinetti2019cmnoise、giustolisi2000cmrr、petkovsek2021cmv（跨域需求近邻：汽车） |
 | I3 | 学术界的回答 = 回避（引 Hornero 结论原句）；但灵敏度理论只给了"最坏情况"工具，没给"消去条件"答案 | **hornero2021cm**、**orchard1966inducto**、**director1969the**（工具谱系）、odwyer2009an、lee2012stochas |
 | I4 | 现实约束端：COTS SC-ΣΔ 强制无源 RC（配方文献群 + "单极够用"共识）；SC 负荷与 kickback 的历史（McCreary/Caves 起） | ti_threeguidelines2015、ti_sprpeo2、microchip2001an699、mccreary1975allmos、caves1977sampled、gregorian1986mos、mayes2015；CT-ΣΔ 出路预告 **breems2023ctsd**、**pavan2011** |
 | I5 | 缺口命题化：回避不可行 ⇒ 需要定量极限理论（P1/P2/P3 三问）；现有传感接口 ΣΔ 均片上解决、不覆盖板级 | **kumar2021**、catania2022、basu2020、couriol2021、koh2004、**norsworthy1996deltasi**、inose1963a（谱系起） |
