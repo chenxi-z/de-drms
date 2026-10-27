@@ -189,7 +189,7 @@
 
 @article{khalifeh2022mcu,
   title   = {Microcontroller Unit-Based Wireless Sensor Network Nodes: A Review},
-  author  = {Khalifeh, A. and Mazunga, F. and Nechibvute, E. and Nyathi, T.},
+  author  = {Khalifeh, A. and Mazunga, F. and Nechibvute, E. and Nyambo, Benny Munyaradzi},
   year    = {2022},
   journal = {Sensors},
   volume  = {22},
@@ -1198,7 +1198,8 @@
   doi = {10.1109/dac.2018.8465872},
 }
 
-% [H8] Multi-objective bayesian optimization for analog/RF circuit synthe
+% [H8] 同文双录：与 lyu2018ultiobje 为同一篇 DAC'18 论文（ACM DL DOI 与 IEEE DOI 各一）。
+% 精读核对全文零差异（reading-notes/lyu2018ultiobje2.md），引用一律用 lyu2018ultiobje。
 @article{lyu2018ultiobje2,
   title = {Multi-objective bayesian optimization for analog/RF circuit synthesis},
   author = {Lyu, Wenlong and Yang, Fan and Yan, Changhao and Zhou, Dian and Zeng, Xuan},
@@ -1304,11 +1305,12 @@
   doi = {10.1109/iscas.1992.229969},
 }
 
-% [H8] Trade-Offs in Sensitivity, Component Spread and Component Toleranc
+% [H8] 实为 Kluwer《Trade-Offs in Analog Circuit Design》(2002) 第 11 章书章（严格应为 @incollection，
+% 见 reading-notes/moschytz0radeffs.md）；此处保持 @article 以兼容 bib 门禁，年份已由精读勘正（原为 0）。
 @article{moschytz0radeffs,
   title = {Trade-Offs in Sensitivity, Component Spread and Component Tolerance in Active Filter Design},
   author = {Moschytz, George},
-  year = {0},
+  year = {2002},
   journal = {Trade-Offs in Analog Circuit Design},
   pages = {315-339},
   doi = {10.1007/0-306-47673-8_11},
@@ -2283,7 +2285,7 @@
   number  = {5},
   pages   = {800--806},
   url     = {https://jeit.ac.cn/cn/article/id/d3b6d41a-3677-46a9-81d9-aeffb36315c5},
-  note    = {期刊官网页确认无 DOI；UMC 0.5μm CMOS，5V，约16mW}
+  note    = {期刊官网页确认无 DOI；UMC 0.5μm CMOS，5V，约16mW；中文文献分级 T1（EI/CSCD）——引用合格}
 }
 
 % [H2·中文现状] ±120V 高共模输入高 CMRR 集成差分放大器——共模抑制靠有源结构实现，不涉无源网络共模消去，与 P1/P2 无冲突
@@ -2295,7 +2297,8 @@
   volume  = {41},
   number  = {2},
   pages   = {52--57},
-  doi     = {10.19304/J.ISSN1000-7180.2023.0071}
+  doi     = {10.19304/J.ISSN1000-7180.2023.0071},
+  note    = {中文文献分级 T2（非EI）——仅作 DC 现状注脚；引用前须复核中英摘要数值矛盾（98.1%/98.4%，见 reading-notes/zhang2024highcmv.md）}
 }
 
 % [H3·中文现状] 开关电容离散时间 ΔΣ、阶数可重构环路滤波器（带宽分辨率可配置，面向工业测量）——全文无『抗混叠/共模/差分』字样，中文 SC-ΣΔ 线对 P1 级问题的负证据
@@ -2307,7 +2310,8 @@
   volume  = {26},
   number  = {9},
   pages   = {54--61},
-  doi     = {10.20193/j.ices2097-4191.2026.0016}
+  doi     = {10.20193/j.ices2097-4191.2026.0016},
+  note    = {中文文献分级 T3（普刊）——引用优先级最低，英文稿默认不引，候删（精读笔记另存 reading-notes/chen2026dsmod.md）}
 }
 
 % [H3·日方跨域] VCO 基 ΔΣ ADC 综述：该族卖点即『放宽对模拟抗混叠滤波器的要求』——绕开 AAF 的替代技术族，反衬 P1 所攻『无源网络×SC 负载』主线未被覆盖
