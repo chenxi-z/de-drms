@@ -1,4 +1,6 @@
 # 精读笔记 · Nimeroff 1972《Precision Measurement and Calibration: Selected NBS Papers on Colorimetry》（NBS SP 300 Vol. 9）
+
+> 2026-10-27 补件更新：SP300 电学 v3（1968）和 v4（1970）已从 NIST 官方补齐（nbs1968sp300v3 / nbs_sp300v4）。以下为此前色度卷异常记录；目标篇尚待在新电学卷内定位并精读，不再标整个电学卷缺件。
 > 格式：出处 → 核心命题（原文引用+页码）→ 关键数值 → 对 P1/P2/P3 对照 → 没读到的。
 > 页码口径：**卷印刷页（PDF 物理页）**；PDF 页 ≈ 印刷页 + 18（§4.5 段经页脚双页码核实）。
 > **结论先行：本卷是色度学卷，未在卷内定位到任何与变压器比例臂电桥 / 量子-数字桥 / Kelvin 四端计量相关的目标论文**——bib 题录（DOI 10.6028/nbs.sp.300v9）即整卷，卷内 37 篇重印全部属 Colorimetry and Spectrophotometry。真正的电学卷为 SP300 Vol 3 / Vol 4（见下方目录证据），不在本库。

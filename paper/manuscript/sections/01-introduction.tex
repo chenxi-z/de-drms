@@ -1,0 +1,10 @@
+\section{Introduction}
+
+A differential filter processes two input voltages before forming the output difference. Unequal processing converts part of a common input into differential output. \citet{casas1996basics} described matching the transfer functions of noncoupled paths and coupling single-ended filters through a floating common point as two approaches to common-mode rejection. The grounded ladders considered here follow the noncoupled-path configuration.
+
+The relevant matching quantities depend on the measurement frequency and the connected load. \citet{hornero2021cm} showed that component mismatch can produce gain peaking and positive phase shifts in the common-mode response. For a passive ladder, the connected load also draws current through the output impedance. A component combination selected from the open-circuit voltage transfer therefore requires an output-impedance description for predicting the loaded response.
+
+The objective of this study is to establish component-level cancellation conditions for grounded second-order differential ladders under specified resistive terminations. We expressed the voltage transfer and output impedance through four coefficients, recovered the component values from those coefficients, and compared cancellation under zero, one and two positive load conductances. Exact counterexamples and independent circuit simulations connected the coefficient conditions to observable differential leakage.
+
+
+The study addresses three connected questions. Which positive component combinations give the same open-circuit response? How does prescribing one or two resistive loads change that set? How does an output bridging capacitor affect the common-mode-to-differential gain relative to the wanted differential gain? The analysis follows the complete transfer functions and branch output impedances, and the numerical examples use the same component-level model throughout.

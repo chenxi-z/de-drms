@@ -1,0 +1,28 @@
+\section{Discussion}
+
+The load specification determines which component combinations meet the cancellation requirement. Open-circuit cancellation fixes two coefficients. A known positive resistive load fixes three combinations, and two distinct positive resistive loads fix all four coefficients. The component-recovery inequalities turn those coefficient requirements into a checkable positive-component design domain.
+
+The distinction between P/Q and P/T gives a direct design procedure. For an open-circuit target, select a and b from the required voltage transfer and choose c and d within Eq.~\eqref{eq:8}. For one specified resistive load, select b, c and a + gd and use the remaining degree of freedom to construct the branch. A requirement spanning two distinct resistive loads calls for equal corresponding components in this topology.
+
+\citet{casas1996basics} used floating coupling to obtain common-mode cancellation in a different circuit configuration. The present grounded ladders retain current paths to ground, and Eq.~\eqref{eq:6} exposes the contribution of the terminal load. \citet{hornero2021cm} described frequency-dependent mismatch through the common-mode response. The coefficient representation connects a complete second-order branch response to the component values and output impedance.
+
+Positive component values are essential to the recovery result. If \(q_1\) = 0, the two series resistors combine into one resistance. The tuples (1,2,0,3) and (3/2,3/2,0,3) then give the same coefficients (9,0,3,0), and Eq.~\eqref{eq:7} becomes singular. The two-load uniqueness result therefore applies to the positive, second-order ladder defined in Section~\ref{sec:model-plane}.
+
+For a frequency-dependent linear load with admittance \(Y_L(s)\), the corresponding branch transfer is \(H_0/[1+Z_0Y_L(s)]\). A design specified for such a load can be evaluated by inserting that admittance before comparing the two branch responses. Equation~\eqref{eq:12} treats the separate case of coupling between the two output nodes.
+
+
+\subsection{A design and verification sequence}
+
+A filter specification can be converted into component constraints in four steps. First, define the source and output measurement planes and the load admittance seen at each output. Second, choose the required denominator coefficients for that termination and select any remaining free coefficients inside the positive-component domain. Third, recover the components with Eq.~\eqref{eq:7} and check every inequality in Eq.~\eqref{eq:8}. Fourth, perturb the component values and the two load admittances independently and evaluate the resulting $G_{DC}$ and $G_{DD}$. The exact equalities define the nominal design; Eqs.~\eqref{eq:sensitivity} and \eqref{eq:load-asymmetry} identify the combinations that need tolerance control.
+
+The two-load result also supplies a verification strategy. Measuring complete branch responses under two known resistive loads constrains four coefficient values. In an experiment, those coefficients would be estimated from complex frequency-response data with uncertainty intervals. The exact theorem supplies the identifiable model structure; the attainable separation between two nearby component tuples depends on measurement uncertainty and the selected frequencies.
+
+\subsection{Experimental validation to complete the manuscript}
+
+\begin{quote}
+\textbf{Pending experimental dataset.} The present results contain exact algebra and circuit simulation. A physical-board comparison of P/Q and P/T under open, 10~k$\Omega$ and 5~k$\Omega$ terminations is reserved for the next revision. The component measurements, complex source and probe impedances, frequency responses, uncertainty budget and repeatability records have not yet been acquired.
+\end{quote}
+
+The experiment will use the same four-component ladder and the component ratios in Table~\ref{tab:branches}. Each branch response will be measured separately before common-mode and differential excitation are applied to the pair. Recording the actual resistor and capacitor values will permit a comparison between the nominal prediction and a prediction using measured components. The load and probe admittances will enter the loaded model at the output measurement plane. Common-mode leakage near the instrument noise floor will be reported as a bounded measurement with the corresponding detection limit.
+
+A second acquisition with the bridging capacitor installed will compare the two complex gains and the gain ratio. The source and probe configuration will be characterized as two independent linear branch equivalents; the resulting loaded transfers and output impedances will be used to test the shared-factor prediction in Eq.~\eqref{eq:12}. The recorded responses will be compared with predictions from the measured-component model using combined prediction and measurement uncertainty.

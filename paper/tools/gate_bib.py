@@ -5,8 +5,13 @@ BIB = pathlib.Path(__file__).resolve().parent.parent / "literature.bib"
 if not BIB.exists():
     print("FATAL: literature.bib 不存在"); sys.exit(1)
 text = BIB.read_text()
-entries = re.findall(r'@(\w+)\{([^,]+),(.*?)\n\}', text, re.S)
+# 本仓格式每条记录从行首开始；注释中的示例不算条目。
+text = re.sub(r'^\s*%.*$', '', text, flags=re.M)
+entries = re.findall(r'^@(\w+)\{([^,]+),(.*?)\n\}', text, re.S | re.M)
 errs, warns, keys = [], [], []
+starts = re.findall(r'^@\w+\{', text, re.M)
+if len(starts) != len(entries):
+    errs.append(f"条目结构不完整：起始 {len(starts)}，闭合解析 {len(entries)}；检查缺失结束括号")
 for etype, key, body in entries:
     keys.append(key)
     if not re.search(r'title\s*=', body):

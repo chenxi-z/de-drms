@@ -1,0 +1,107 @@
+\section{任意级数下的抵消条件}
+\label{sec:general-order}
+
+\subsection{梯形网络的递推表示}
+
+考虑包含 $N\geq1$ 级的支路，每级均由正值串联电阻 $r_j$ 及其后的正值对地电容 $q_j$ 组成。元件归一化方法和频率变量沿用式~\eqref{eq:3}。图~\ref{fig:circuit} 中的二级电路属于这类网络。取电流从网络流向端接负载为正方向，第 $j$ 级的传输矩阵为
+\begin{equation}\label{eq:general-matrix}
+M_j(x)=\begin{bmatrix}1+r_jq_jx&r_j\\q_jx&1\end{bmatrix}.
+\end{equation}
+设 $(A_j,B_j)$ 为 $M_1\cdots M_j$ 的第一行。接入末级后，有
+\begin{equation}\label{eq:general-forward}
+B_j=r_jA_{j-1}+B_{j-1},\qquad
+A_j=A_{j-1}+xq_jB_j,
+\quad A_0=1,\ B_0=0.
+\end{equation}
+由式~\eqref{eq:general-forward} 归纳可得 $\deg A_N=N$、$\deg B_N=N-1$ 且 $A_N(0)=1$。两个多项式的最高次项系数均为正。各级矩阵的行列式均为 1，其乘积的行列式也为 1，因此第一行的两个多项式不存在非常数公因子。
+
+由端口方程可得开路传递函数和输入源短路时的输出阻抗。在两条支路分别接入相同电阻负载后，有
+\begin{equation}\label{eq:general-transfer}
+H_0=\frac1{A_N},\qquad
+\frac{Z_0}{R_*}=\frac{B_N}{A_N},\qquad
+H_g=\frac1{A_N+gB_N}.
+\end{equation}
+当 $N=2$ 时，$A_2=1+ax+bx^2$、$B_2=c+dx$，即得到式~\eqref{eq:5}。保留 $B_N$ 可描述开路电压传递函数未包含的端接信息。
+
+\subsection{唯一恢复与正值元件可实现性检验}
+
+末级元件值可由最高次项系数恢复。以 $\operatorname{lc}(p)$ 表示多项式 $p$ 的最高次项系数，定义
+\begin{equation}\label{eq:general-inverse}
+\begin{aligned}
+q_j&=\frac{\operatorname{lc}(A_j)}{\operatorname{lc}(B_j)},&
+A_{j-1}&=A_j-xq_jB_j,\\
+r_j&=\frac{\operatorname{lc}(B_j)}{\operatorname{lc}(A_{j-1})},&
+B_{j-1}&=B_j-r_jA_{j-1}.
+\end{aligned}
+\end{equation}
+对于全正值元件梯形网络，上述运算恰好逆转式~\eqref{eq:general-forward} 的递推。每一步中，$A_{j-1}$ 的次数为 $j-1$；当 $j>1$ 时，$B_{j-1}$ 的次数为 $j-2$。最终得到 $(A_0,B_0)=(1,0)$。各比值均为正值，且唯一确定。
+
+反之，从满足上述次数要求且 $A_N(0)=1$ 的实系数多项式出发，若每次相减均得到要求的次数、恢复出的每个元件值均为正，且最终得到 $(1,0)$，则逆序执行上述运算，即可由全正值元件梯形网络重构原多项式。因此，这些条件给出了该拓扑可实现性的有限步充要检验。正值或次数检查中任一项不满足，即可排除该候选系数对。
+
+从 $2N$ 个正值元件到 $A_N$ 和 $B_N$ 的 $2N$ 个系数的正向映射为多项式映射。式~\eqref{eq:general-inverse} 给出的逆映射为有理映射，在每个正值元件实现处，其分母均非零。在足够小的邻域内，元件值仍严格为正，最高次项系数仍非零。两个映射在该邻域内光滑且互逆，因此这些系数可作为元件族的局部坐标。
+
+\subsection{匹配自由度的数目}
+
+固定一条参考支路。开路匹配固定了 $A_N$ 的 $N$ 个非常数项系数，在正值元件可实现域内保留 $N$ 个局部自由度。统一阻抗缩放使 $B_N$ 乘以同一个标量因子，同时保持 $A_N$ 不变。当 $N\geq2$ 时，该缩放仅沿更大匹配族中的一个方向变化。
+
+在指定的 $g>0$ 下，匹配固定了 $D_g=A_N+gB_N$ 的全部系数。常数项通过 $D_g(0)=1+gB_N(0)$ 固定 $B_N(0)$，其余 $N$ 个系数固定 $A_N$ 与 $B_N$ 系数的组合。这 $N+1$ 个独立线性约束保留 $N-1$ 个局部自由度。当 $N=1$ 时，单一正值电阻负载已将元件组合唯一确定。
+
+对于两个不同的正值电导，令 $U_i=1/H_{g_i}$。两个完整传递函数可确定
+\begin{equation}\label{eq:general-two-load}
+B_N=\frac{U_2-U_1}{g_2-g_1},\qquad
+A_N=\frac{g_2U_1-g_1U_2}{g_2-g_1}.
+\end{equation}
+因此，若两条支路在两种负载下均匹配，则其 $A_N$ 和 $B_N$ 分别相同。由唯一恢复可知，对应元件值必须相同。该论证适用于上述梯形网络类别中的任意有限 $N$，所用信息为两种负载下包含绝对增益的完整复传递函数。
+
+\subsection{负载类型对匹配族的影响}
+
+已知的有理函数负载可用无量纲导纳 $g(x)=P(x)/Q(x)$ 表示，其中 $P$ 和 $Q$ 为非零且互素的实系数多项式。假设 $QA_N+PB_N$ 不恒为零，使带载响应有定义。两条支路的传递函数相等可得
+\begin{equation}\label{eq:rational-kernel}
+H_g=\frac{Q}{QA_N+PB_N},\qquad
+Q\Delta A+P\Delta B=0.
+\end{equation}
+其中 $\Delta$ 表示支路 P 减去支路 N。由互素性可知，存在多项式 $S$，使 $\Delta A=PS$ 且 $\Delta B=-QS$。次数上限和 $\Delta A(0)=0$ 对 $S$ 的约束为
+\begin{equation}\label{eq:rational-dimension}
+\begin{aligned}
+m&=\min\{N-\deg P,\ N-1-\deg Q\},\\
+d_g&=\max\{0,m+1-\epsilon\},\qquad
+\epsilon=\begin{cases}1,&P(0)\ne0,\\0,&P(0)=0.\end{cases}
+\end{aligned}
+\end{equation}
+当 $m<0$ 时，仅允许 $S=0$。否则，$S$ 有 $m+1$ 个系数；若 $P(0)$ 非零，则其常数项系数必须为零。该线性族与正值元件可实现开域相交后，局部维数仍为 $d_g$。
+
+表~\ref{tab:load-dimensions} 给出将式~\eqref{eq:rational-dimension} 用于常见负载的结果。开路时 $P$ 恒为零，单独列出。纯电容负载改变端接电容，保留 $N$ 个自由度；电阻负载还约束零频增益，将自由度减少至 $N-1$。
+\begin{table}[htbp]
+\centering
+\caption{在一种指定负载下、固定参考支路时的匹配族局部维数。表中各负载参数均为正值。}
+\label{tab:load-dimensions}
+\begin{tabular}{lll}
+\toprule
+负载 & 无量纲导纳 & 维数 \\
+\midrule
+开路 & $0$ & $N$ \\
+电阻 & $g_0$ & $N-1$ \\
+电容 & $\alpha x$ & $N$ \\
+电感 & $\beta/x$ & $\max(N-2,0)$ \\
+串联 RC & $\alpha x/(1+\gamma x)$ & $N-1$ \\
+并联 RC & $g_0+\alpha x$ & $N-1$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+两个不同的已知有理导纳也可确定元件组合。将 $\Delta A+g_1\Delta B=0$ 与 $\Delta A+g_2\Delta B=0$ 相减，得到 $(g_1-g_2)\Delta B=0$。由于两个负载函数不恒等，有 $\Delta B=0$，进而有 $\Delta A=0$。$H_g$ 表达式中可能存在的约分不影响该结论：乘以同一个已知非零多项式 $Q$ 后，两条支路的分母仍保持相等。
+
+\subsection{负载变化与恢复对测量误差的敏感性}
+
+对于独立支路，令 $D_i(g)=A_i+gB_i$。共模转差模增益的精确表达式为
+\begin{equation}\label{eq:general-leakage}
+G_{DC}=-\frac{\Delta A+g\Delta B}{D_P(g)D_N(g)}.
+\end{equation}
+若两条支路在 $g_0>0$ 下匹配，则 $\Delta A=-g_0\Delta B$ 且 $\Delta B(0)=0$。当两侧同时换用另一种相同电阻负载时，
+\begin{equation}\label{eq:general-load-shift}
+G_{DC}(g)=-\frac{(g-g_0)\Delta B}{D_P(g)D_N(g)}.
+\end{equation}
+零频泄漏仍为零，其余随频率变化的失配由多项式 $\Delta B$ 决定。二阶网络的负载变化公式对应 $\Delta B=x\Delta d$。
+
+精确可辨识性与恢复对测量误差的敏感性需要分别检查。式~\eqref{eq:general-two-load} 以负载电导之差为分母，响应的小扰动则满足 $\delta(1/H)\simeq-\delta H/H^2$。两种负载过于接近或响应衰减过强，均会放大测量误差。因此，实验中的元件恢复除代数唯一性结论外，还需要明确频带和不确定性模型。
+\FloatBarrier

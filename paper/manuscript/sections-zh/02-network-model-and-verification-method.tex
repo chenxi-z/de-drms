@@ -1,0 +1,68 @@
+\section{网络模型与验证方法}
+
+\subsection{信号通道与测量平面}
+\label{sec:model-plane}
+
+每条信号通道包含两个串联电阻 \(R_1\) 和 \(R_2\)。电容 \(C_1\) 将电阻中间节点接地，电容 \(C_2\) 将输出节点接地。四个元件值均为正值。两个输入均由理想电压源驱动，初始条件为零；输出取两个 \(C_2\) 上端节点的电压差。图~\ref{fig:circuit} 给出信号通道与端接平面。
+
+差模输入和共模输入定义为
+
+\begin{equation}\label{eq:1}
+v_d=v_p-v_n,\qquad v_c=\frac{v_p+v_n}{2}.
+\end{equation}
+
+在差模输入为零时，共模转差模增益为 \(G_{DC}\) = \(v_{d,\mathrm{out}}/v_{c,\mathrm{in}}\)；在共模输入为零时，差模增益为 \(G_{DD}\) = \(v_{d,\mathrm{out}}/v_{d,\mathrm{in}}\)。共模抑制比为 \(\lvert G_{DD}/G_{DC}\rvert\)。对于传递函数分别为 \(H_P\) 和 \(H_N\) 的独立通道，
+
+\begin{equation}\label{eq:2}
+G_{DC}=H_P-H_N,\qquad
+G_{DD}=\frac{H_P+H_N}{2}.
+\end{equation}
+
+共模抵消要求 \(G_{DC}\) 作为频率的有理函数恒等于零。
+
+\input{figures/fig01-zh.tex}
+
+\subsection{系数表示与负载条件}
+\label{sec:coefficients}
+
+以 \(R_*\) 和 \(C_*\) 为基准归一化元件值，定义
+
+\begin{equation}\label{eq:3}
+r_i=R_i/R_*,\qquad q_i=C_i/C_*,\qquad x=sR_*C_*.
+\end{equation}
+
+支路的四个系数为
+
+\begin{equation}\label{eq:4}
+\begin{aligned}
+a&=r_1q_1+(r_1+r_2)q_2,\\
+b&=r_1r_2q_1q_2,\\
+c&=r_1+r_2,\\
+d&=r_1r_2q_1.
+\end{aligned}
+\end{equation}
+
+由两个节点方程可得开路电压传递函数 \(H_0\) 和输出阻抗 \(Z_0\)：
+
+\begin{equation}\label{eq:5}
+H_0(x)=\frac{1}{1+ax+bx^2},\qquad
+Z_0(x)=R_*\frac{c+dx}{1+ax+bx^2}.
+\end{equation}
+
+输出端与地之间接入电阻 \(R_L\) 时，其归一化电导为 \(g=R_*/R_L\)，带载传递函数为
+
+\begin{equation}\label{eq:6}
+H_g(x)=\frac{H_0(x)}{1+Z_0(x)/R_L}
+      =\frac{1}{1+gc+(a+gd)x+bx^2}.
+\end{equation}
+
+每一种负载条件下，两条通道均连接相同的指定电阻 \(R_L\)。统计匹配支路 N 的可行元件组合时，参考支路 P 保持固定。每个电导条件下比较的对象均为完整传递函数；比较两个电导条件，即分别比较每条通道在这两种负载下随频率变化的传递函数。
+
+\subsection{精确运算与数值验证}
+
+采用精确有理数运算核查系数恒等式和示例元件组合。电路仿真使用 LTspice 26.1.1，取 \(R_*=1\,\mathrm{k\Omega}\)、\(C_*=10\,\mathrm{nF}\)。扫频范围为 10 Hz 至 10 MHz，每十倍频程 24 点，共 145 点。共模激励在两个输入端同时施加 1 V；差模激励分别施加 +0.5 V 和 -0.5 V。
+
+37 个仿真算例覆盖一阶对照、二阶支路、不同元件匹配策略、有限源电阻、对称与非对称电阻端接，以及输出跨接电容。根据保存的网表独立建立节点方程，将所得复节点电压与仿真输出逐点比较。负载分类的解析结论采用第~\ref{sec:model-plane}、\ref{sec:coefficients} 节所述的理想电压源和两侧等值电阻负载假设。
+
+
+\FloatBarrier

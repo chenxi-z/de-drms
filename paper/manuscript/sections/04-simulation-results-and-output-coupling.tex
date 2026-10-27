@@ -1,0 +1,55 @@
+\section{Simulation results and output coupling}
+
+\subsection{Termination-dependent equivalence}
+
+Table~\ref{tab:branches} collects the three branch constructions. The equalities and inequalities were established algebraically before the frequency sweeps.
+
+\begin{table}[htbp]
+\centering
+\caption{Normalized component values and branch coefficients.}
+\label{tab:branches}
+\begin{tabular}{lrrrrrrrr}
+\toprule
+Branch & $r_1$ & $r_2$ & $q_1$ & $q_2$ & $a$ & $b$ & $c$ & $d$ \\
+\midrule
+P & 1 & 1 & 1 & 1 & 3 & 1 & 2 & 1 \\
+Q & 1 & 4 & $1/2$ & $1/2$ & 3 & 1 & 5 & 2 \\
+T & $18/19$ & $20/19$ & $361/180$ & $1/2$ & 2.9 & 1 & 2 & 2 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Figure~\ref{fig:termination-transfer} compares the open and loaded P/Q responses. Figure~\ref{fig:output-impedance} shows the output impedances that distinguish the open-circuit-equivalent branches. Figure~\ref{fig:load-specific} compares T with P after each load is applied.
+
+
+
+The simulations reproduced open-circuit cancellation for P/Q and cancellation at \(R_L=10\,\mathrm{k\Omega}\) for P/T. Changing \(R_L\) to 5 k\(\Omega\) produced unequal P/T responses. Across the 37 cases, the maximum absolute complex node-voltage difference between LTspice and the independently assembled nodal solution was \(1.14\times10^{-15}\) V.
+
+\input{figures/fig03-en.tex}
+\input{figures/fig04-en.tex}
+\input{figures/fig05-en.tex}
+
+\subsection{A bridging capacitor acts on both differential-output gains}
+
+We connected a capacitor \(C_d\) between the two output nodes while retaining the ideal sources and the specified shunt loads. Let \(Z'_P\text{ and }Z'_N\) denote the branch output impedances in parallel with the respective shunt loads, and let \(H_P\) and \(H_N\) denote the loaded transfers before \(C_d\) was added. Solving the two output-node equations gave
+
+\begin{equation}\label{eq:12}
+\begin{aligned}
+G_{DC}&=\frac{H_P-H_N}{D_d},\\
+G_{DD}&=\frac{(H_P+H_N)/2}{D_d},\\
+D_d&=1+sC_d(Z'_P+Z'_N).
+\end{aligned}
+\end{equation}
+
+The shared factor \(D_d\) cancelled from \(G_{DD}/G_{DC}\) wherever the ratio was defined. The bridging capacitor changed both differential-output gains by the same factor and preserved \(G_{DD}/G_{DC}\). Equal loaded branch transfers also preserved \(G_{DC}\) = 0 after the capacitor was connected.
+
+For P/Q with \(R_L=10\,\mathrm{k\Omega}\) and \(C_d=820\,\mathrm{pF}\), the maximum complex-ratio difference was \(5.14\times10^{-12}\) relative to the ratio without the bridging capacitor, evaluated over 145 frequency points. The ratio followed the cancellation of the shared factor in Eq.~\eqref{eq:12}.
+
+
+Figure~\ref{fig:bridge-gains} displays the changes in the separate gains, while Figure~\ref{fig:bridge-cmrr} compares the corresponding rejection ratios.
+
+\input{figures/fig06-en.tex}
+
+\input{figures/fig07-en.tex}
+
+\FloatBarrier

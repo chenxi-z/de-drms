@@ -8,6 +8,8 @@ date: "2026-10-26"
 source: "DE-DRMS 仓四件总账：/media/anning/data/Project/DE-DRMS/paper/literature-index.md（十二轮总账）、paper/literature.bib（230 条）、paper/literature-screen.md（全库定级）、paper/outline.md（v3 框架）；另 docs/design/2026-10-25-信号链论文构思.md"
 ---
 
+> **历史底稿提示（2026-10-27）**：本文件的包络/普适地板/首创性判断未经本轮审查后重新证明，不能作为当前研究结论。当前框架以 `research-focus.md`、`outline.md` v5 为准；当前谱系与全文状态见 `literature-map.md` 和 `paywall-download-list.md`。
+
 # P1 论文·差分前端文献谱系（MOC 总览）
 
 > **本篇是什么**：P1 论文十二轮文献侦察（2026-10-25 ~ 10-26）的入库导航总览。

@@ -41,7 +41,7 @@
 - p.1319（式(19)–(21)）：噪声峰半宽 u_max = f0·T/n（f0 基带、T 采样周期、x = m/n 分点）。
 - p.1320：实际基带滤波器（非理想截止）使峰的尖角变圆（Fig. 8b vs 8a）；由图 10 斜率反推 f0 = 3.0 kHz，与滤波器拐角一致。
 - p.1321（式(28)）：单个噪声峰总功率 = 0.8·u_max³；"Eighty-three percent of this noise is contributed by the primary component for which i_l = 1 (i.e., l = n)."
-- p.1321（Example 1 讨论）：A = u_max 时 SNR = 6/8 = −4.06 dB，与采样率无关（原文如此：'the signal-to-noise ratio is 6/8 = -4.06 dB independent of the sampling rate'）。
+- p.1321（Example 1 讨论）：A = u_max 时 rms 信噪幅度比 = √(π/8)，20·log10(√(π/8)) = −4.06 dB，与采样率无关（2026-10-27 回看印刷 p.1321 核正；旧记 `6/8` 是 OCR 错误，不是原文公式）。
 - p.1322（Example 2）：256 kHz 采样、3 kHz 基带、−9 dB（A≈1/6）正弦：u_max = 13/256，算得 SNR = 35.8 dB，实测 37 dB。
 - p.1322（Appendix）：白噪声模型下噪声峰总和 ≈ N0²；"About [OCR损，约为 2/3] of this total is contained in the two peaks at the ends of the range. The two peaks at the center have about 0.1 of the total."
 - **无 CMRR/共模数据，无滤波器消去条件**。

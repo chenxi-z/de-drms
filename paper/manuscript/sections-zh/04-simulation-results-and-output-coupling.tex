@@ -1,0 +1,55 @@
+\section{仿真结果与输出耦合}
+
+\subsection{端接条件对等效关系的影响}
+
+表~\ref{tab:branches} 汇总三组支路构造。各组等式与不等式关系均在扫频前通过代数运算确定。
+
+\begin{table}[htbp]
+\centering
+\caption{归一化元件值与支路系数。}
+\label{tab:branches}
+\begin{tabular}{lrrrrrrrr}
+\toprule
+支路 & $r_1$ & $r_2$ & $q_1$ & $q_2$ & $a$ & $b$ & $c$ & $d$ \\
+\midrule
+P & 1 & 1 & 1 & 1 & 3 & 1 & 2 & 1 \\
+Q & 1 & 4 & $1/2$ & $1/2$ & 3 & 1 & 5 & 2 \\
+T & $18/19$ & $20/19$ & $361/180$ & $1/2$ & 2.9 & 1 & 2 & 2 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+图~\ref{fig:termination-transfer} 比较 P/Q 的开路和带载响应。图~\ref{fig:output-impedance} 给出区分这两条开路等效支路的输出阻抗。图~\ref{fig:load-specific} 比较两种负载下 T 相对于 P 的响应。
+
+
+
+仿真复现了 P/Q 的开路共模抵消，以及 P/T 在 \(R_L=10\,\mathrm{k\Omega}\) 下的共模抵消。将 \(R_L\) 改为 5 k\(\Omega\) 后，P/T 响应不再相等。在全部 37 个算例中，LTspice 输出与独立节点方程解之间的复节点电压绝对差最大值为 \(1.14\times10^{-15}\) V。
+
+\input{figures/fig03-zh.tex}
+\input{figures/fig04-zh.tex}
+\input{figures/fig05-zh.tex}
+
+\subsection{跨接电容同时作用于两种差分输出增益}
+
+保持理想电压源和指定并联负载不变，在两个输出节点之间接入电容 \(C_d\)。以 \(Z'_P\) 和 \(Z'_N\) 分别表示各支路输出阻抗与本侧负载并联后的阻抗，以 \(H_P\) 和 \(H_N\) 表示接入 \(C_d\) 前的带载传递函数。联立两个输出节点方程可得
+
+\begin{equation}\label{eq:12}
+\begin{aligned}
+G_{DC}&=\frac{H_P-H_N}{D_d},\\
+G_{DD}&=\frac{(H_P+H_N)/2}{D_d},\\
+D_d&=1+sC_d(Z'_P+Z'_N).
+\end{aligned}
+\end{equation}
+
+在 \(G_{DD}/G_{DC}\) 有定义的频点，共同因子 \(D_d\) 从比值中约去。跨接电容以同一因子改变两种差分输出增益，因而保持 \(G_{DD}/G_{DC}\) 不变。若原带载支路传递函数相等，接入跨接电容后仍有 \(G_{DC}\) = 0。
+
+对于 \(R_L=10\,\mathrm{k\Omega}\)、\(C_d=820\,\mathrm{pF}\) 的 P/Q 网络，在 145 个频点上，相对于未接跨接电容时复增益比的最大相对差为 \(5.14\times10^{-12}\)。该结果与式~\eqref{eq:12} 中共同因子的约去一致。
+
+
+图~\ref{fig:bridge-gains} 展示两个独立增益的变化，图~\ref{fig:bridge-cmrr} 比较其共模抑制比。
+
+\input{figures/fig06-zh.tex}
+
+\input{figures/fig07-zh.tex}
+
+\FloatBarrier

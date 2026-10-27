@@ -1,6 +1,13 @@
 # 精读笔记 · Serrano-Finetti, Casas & Pallàs-Areny 2019《Common mode electronic noise in differential circuits》（Measurement 140:207–214）
 > 格式：出处 → 核心命题（原文引用+页码）→ 关键数值 → 对 P1/P2/P3 对照 → 没读到的。
 
+## 2026-10-27 原图复核与适用范围勘误（优先于下方历史解读）
+
+- 已回看原文 p.208–210、Fig.3，并渲染核对 p.210 版面。Fig.3 左图的外部 Vcm 加在两输入共用连接端；右图 eni 是放大器输入等效噪声源，经不同源阻抗路径形成 en+、eni。二者注入位置/传递路径不同。
+- 因而不能把该图概括成“同一外部端口下，确定性信号被精确消去，但随机性使同一共模源漏过”。对同一外部端口、完全相关的单一宽平稳输入和稳定 LTI 电路，Sout=|Gdc|²Sin；Gdc 恒零时该源的随机贡献也为零。这是线性系统分析，不是本文新增结论。
+- 本文 Eq.(12) 的相关性模型可支撑噪声预算；p.210 明确限定白噪声闭式 Eq.(10)/(13)/(15) 不能直接用于有色谱。二阶/带通仅为作者预期，不能据此断言所有文献均无推广。
+- 下方“P1 空缺主张安然”“多级空缺仍在”“无碰撞”等判断撤回。单篇未研究某问题不能证明整体创新性；当前须与 RC 综合、端接及比率测量近缘共同划界。
+
 ## 出处
 - Serrano-Finetti, E.; Casas, Ó.; Pallàs-Areny, R., "Common mode electronic noise in differential circuits," *Measurement*, vol. 140, pp. 207–214, 2019. DOI: 10.1016/j.measurement.2019.04.028。
 - PDF：`fulltext/H2-差分CMRR/serranofinetti2019cmnoise.pdf`（8 页）。bibkey：`serranofinetti2019cmnoise`。
@@ -22,7 +29,7 @@
    （C12 = sqrt(1−t²f)·sgn(G1)·sgn(G2)，式 11, p.209；只依赖带宽失配不依赖增益失配。）
 5. **CMRR 无穷大 ≠ 共模噪声被拒（消去与噪声解耦的关键反例）**（p.210, Fig. 3）：
    > "The differential circuit in Fig. 3 (left), for example, comprises an unbalanced fully-differential low-pass filter connected to a differential amplifier. Since there is no return path for common-mode currents, the filter's CMRR will be infinite and Vcm will not contribute to the output voltage. However, the input common-mode voltage noise eni will propagate differently to the inverting and non-inverting inputs (Fig. 3, right) yielding a low C12, hence a low kNR, and it will contribute to the output voltage noise."
-   （**全差分低通滤波器（无共模回流路径）对确定性共模 CMRR=∞，但随机共模噪声经两支路不等带宽后相关度崩塌照样出噪声**——这是对"差分滤波器共模行为"的另一维（噪声维）刻画，且注意其滤波器例子只定性讨论，未推导滤波器自身的 H_N−H_P 传递函数。）
+   （必须保留端口差别：外部 Vcm 与放大器等效输入噪声 eni 经过不同路径；不能把出噪声归因于随机性本身。滤波器例子为定性图示。）
 6. **高阶情形只是断言可推广、未推导（P1 空缺主张未被触碰的直接证据）**（p.210）：
    > "Nevertheless, the conclusion that differential circuits largely reject input common-mode electronic noise even if gain and signal bandwidth are so poorly matched that the CMRR is low, can be expected to remain true. The same can be said if the frequency response of the circuit is band-pass instead of low-pass, or is second order instead of first order."
    （"二阶/带通同结论可期"——**无推导、无多级梯形、无全频段精确消去条件**；一阶之外全部搁置。）
@@ -40,9 +47,9 @@
 - **P1（消去条件）**：相关度 **高**（本批仅次于 Bockelman 的划界重要性，实为 P1 最贴身的模型文献）。
   ① 式(20) 的 CMRR = [H1+H2]/[2(H1−H2)] 正是 P1 的 G_DC=H_N−H_P 取倒数（承 Casas 1996 谱系，本库已有可串读）；
   ② p.209 一句话给出**一阶双路径的精确消去条件（G1=G2 且 G1f1=G2f2）**——即 P1"单级 τ 匹配充要"的既有文献表述，P1 必须引用并注明出处在此非自己首创；
-  ③ **多级/梯形/全频段充要性完全未触及**（p.210 仅"二阶/带通可期同结论"的断言）——P1 空缺主张安然；
+  ③ p.210 对二阶/带通仅作预期，未给相应闭式；这只界定本篇覆盖，不能证明整体 P1 空白；
   ④ 额外贡献：消去（CMRR）与噪声抑制（kNR/C12）的解耦（Fig. 3 无穷 CMRR 反例），P1 可引为"精确消去条件 ≠ 全部故事"的佐证。
-  **killRisk 判断：须划界，非撞车**——单级条件已有（须引用划界），多级空缺仍在。
+  **killRisk 判断：须划界**——单级条件已有；多级与有色谱问题的新颖性须联合核查其他前作。
 - **P2（Kelvin 结构地板）**：相关度 **低**。无开尔文/四线；但 Fig. 3"无共模回流路径 ⇒ CMRR=∞"的结构性消去思想与 P2 的"结构优先于匹配"论调同族。
 - **P3（平坦度约束下衰减可达上界）**：相关度 **无**。带宽只作一阶极点参数出现，无滤波器综合约束。
 - **方法学（增量四 D1–D10）**：相关度 **中**。其实验设计正是**受控增量失配**：case 1–3 递进增益组 + case 4 故意大失配（tG=0.816, tf=0.832），预测值（Eno,t）对实测值（Eno,m）逐例对照；10 片器件样本报相关系数区间。这是 D1–D10 增量四方法学的直接同型实验（失配增量→输出增量→模型验证），可作为方法学先例引用。

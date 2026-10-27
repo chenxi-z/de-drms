@@ -1,0 +1,195 @@
+{
+  "evidence_root": "/home/anning/Documents/Obsidian Vault/20-\u786c\u4ef6\u5de5\u7a0b/10-\u9879\u76ee\u8bbe\u8ba1/p1-\u6587\u732e\u8c31\u7cfb/verification/2026-10-27-qoder-qwen38flash-140348",
+  "native_raw_sha256": {
+    "/home/anning/Documents/Obsidian Vault/20-\u786c\u4ef6\u5de5\u7a0b/10-\u9879\u76ee\u8bbe\u8ba1/p1-\u6587\u732e\u8c31\u7cfb/verification/2026-10-27-qoder-qwen38flash-140348/A_N1_termination/nets/a_p_oc.raw": "adf8a6c0ad072ae9fa4da64665ff6776f52b26eb078608180b78de9c4e666824",
+    "/home/anning/Documents/Obsidian Vault/20-\u786c\u4ef6\u5de5\u7a0b/10-\u9879\u76ee\u8bbe\u8ba1/p1-\u6587\u732e\u8c31\u7cfb/verification/2026-10-27-qoder-qwen38flash-140348/A_N1_termination/nets/a_p_10k.raw": "12221d19d221d07b96fa678084e861d669316e0eb1079a3cba72b44fa85858a9",
+    "/home/anning/Documents/Obsidian Vault/20-\u786c\u4ef6\u5de5\u7a0b/10-\u9879\u76ee\u8bbe\u8ba1/p1-\u6587\u732e\u8c31\u7cfb/verification/2026-10-27-qoder-qwen38flash-140348/A_N1_termination/nets/a_q_10k.raw": "e2c4b0b179339132194ad9bb8f04e3c4b57347f63787bf3347c9203f14814526",
+    "/home/anning/Documents/Obsidian Vault/20-\u786c\u4ef6\u5de5\u7a0b/10-\u9879\u76ee\u8bbe\u8ba1/p1-\u6587\u732e\u8c31\u7cfb/verification/2026-10-27-qoder-qwen38flash-140348/A_N1_termination/nets/a_t_10k.raw": "8bd0eaf87f0cfeed3f85a37fbed8055d35c574aeb144026e8fce03e2ecb368ae",
+    "/home/anning/Documents/Obsidian Vault/20-\u786c\u4ef6\u5de5\u7a0b/10-\u9879\u76ee\u8bbe\u8ba1/p1-\u6587\u732e\u8c31\u7cfb/verification/2026-10-27-qoder-qwen38flash-140348/A_N1_termination/nets/a_p_5k.raw": "646c05bbf39a65cdc143358e66a5bdf33b58fb3dc3b9c8b3ebd4deb6bbcabd08",
+    "/home/anning/Documents/Obsidian Vault/20-\u786c\u4ef6\u5de5\u7a0b/10-\u9879\u76ee\u8bbe\u8ba1/p1-\u6587\u732e\u8c31\u7cfb/verification/2026-10-27-qoder-qwen38flash-140348/A_N1_termination/nets/a_t_5k.raw": "0f532fc56abcb4db1e9845ee29795c30ba93553142c5f8b6ca2bb83ae4f402ed",
+    "/home/anning/Documents/Obsidian Vault/20-\u786c\u4ef6\u5de5\u7a0b/10-\u9879\u76ee\u8bbe\u8ba1/p1-\u6587\u732e\u8c31\u7cfb/verification/2026-10-27-qoder-qwen38flash-140348/A_N1_termination/nets/v2_pq_10k_cd_cm.raw": "3730d4a4b9a51968649b297f0ec633ae7a9ec7f15309f8a2c96056f0181e0053",
+    "/home/anning/Documents/Obsidian Vault/20-\u786c\u4ef6\u5de5\u7a0b/10-\u9879\u76ee\u8bbe\u8ba1/p1-\u6587\u732e\u8c31\u7cfb/verification/2026-10-27-qoder-qwen38flash-140348/A_N1_termination/nets/v2_pq_10k_cd_dm.raw": "bcab255956bd840acdbbfad116e5f03258e8218e421de46906b0187c525c6f80"
+  },
+  "analytical_vs_native_max_complex_error": {
+    "a_p_oc": 4.444278938805073e-16,
+    "a_p_10k": 4.454424009010536e-16,
+    "a_q_10k": 3.3103687685155823e-16
+  },
+  "qa": [
+    {
+      "figure": "Fig_01_circuit",
+      "canvas_cm": [
+        7.5,
+        5.625
+      ],
+      "png_pixels": [
+        1344,
+        786
+      ],
+      "border_pixels": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "annotation_text_collisions": [],
+      "legend_curve_samples_intersected": 0,
+      "actual_svg_min_glyph_pt": 5.11,
+      "marker_artist_clip_flags": [],
+      "svg_editable_text": true
+    },
+    {
+      "figure": "Fig_02_positive_region",
+      "canvas_cm": [
+        7.5,
+        5.625
+      ],
+      "png_pixels": [
+        1495,
+        1173
+      ],
+      "border_pixels": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "annotation_text_collisions": [],
+      "legend_curve_samples_intersected": 0,
+      "actual_svg_min_glyph_pt": 7.3,
+      "marker_artist_clip_flags": [
+        true,
+        true
+      ],
+      "svg_editable_text": true
+    },
+    {
+      "figure": "Fig_03_termination_transfer",
+      "canvas_cm": [
+        7.5,
+        5.625
+      ],
+      "png_pixels": [
+        1631,
+        1180
+      ],
+      "border_pixels": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "annotation_text_collisions": [],
+      "legend_curve_samples_intersected": 0,
+      "actual_svg_min_glyph_pt": 5.11,
+      "marker_artist_clip_flags": [
+        false,
+        false,
+        false
+      ],
+      "svg_editable_text": true
+    },
+    {
+      "figure": "Fig_04_output_impedance",
+      "canvas_cm": [
+        7.5,
+        5.625
+      ],
+      "png_pixels": [
+        1535,
+        1180
+      ],
+      "border_pixels": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "annotation_text_collisions": [],
+      "legend_curve_samples_intersected": 0,
+      "actual_svg_min_glyph_pt": 5.11,
+      "marker_artist_clip_flags": [],
+      "svg_editable_text": true
+    },
+    {
+      "figure": "Fig_05_load_specific_match",
+      "canvas_cm": [
+        7.5,
+        5.625
+      ],
+      "png_pixels": [
+        1646,
+        1180
+      ],
+      "border_pixels": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "annotation_text_collisions": [],
+      "legend_curve_samples_intersected": 0,
+      "actual_svg_min_glyph_pt": 5.11,
+      "marker_artist_clip_flags": [
+        false,
+        false
+      ],
+      "svg_editable_text": true
+    },
+    {
+      "figure": "Fig_06_bridge_gains",
+      "canvas_cm": [
+        7.5,
+        5.625
+      ],
+      "png_pixels": [
+        1631,
+        1180
+      ],
+      "border_pixels": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "annotation_text_collisions": [],
+      "legend_curve_samples_intersected": 0,
+      "actual_svg_min_glyph_pt": 5.11,
+      "marker_artist_clip_flags": [
+        false,
+        false
+      ],
+      "svg_editable_text": true
+    },
+    {
+      "figure": "Fig_07_bridge_cmrr",
+      "canvas_cm": [
+        7.5,
+        5.625
+      ],
+      "png_pixels": [
+        1566,
+        1201
+      ],
+      "border_pixels": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "annotation_text_collisions": [],
+      "legend_curve_samples_intersected": 0,
+      "actual_svg_min_glyph_pt": 5.11,
+      "marker_artist_clip_flags": [
+        false
+      ],
+      "svg_editable_text": true
+    }
+  ],
+  "template": "howtoSCI/templates/tpl_curve_matrix.py (executed baseline in build/figure-qa; single-panel adaptation here)",
+  "notes": [
+    "All traces are analytical models or existing LTspice evidence, not measurements.",
+    "The region uses a=3,b=1; strict boundaries are excluded.",
+    "One figure environment per independently cropped panel; no mixed-size panel group."
+  ]
+}

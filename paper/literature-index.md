@@ -1,3 +1,5 @@
+> **2026-10-27 当前状态**：正式 bib 249 条；全文状态唯一入口为 `unfetched-papers.csv`，代下载行动表为 `paywall-download-list.md`。下方旧表格是检索历史，其中“仅链接/作者待核/年份 0”等标签不得覆盖当前 bib/CSV。当前研究定位以 `research-focus.md` v5 为准。
+
 # 文献总账（P1 论文 · 2026-10-25 首轮文献侦察）
 
 > 索引与 `docs/design/2026-10-25-信号链论文构思.md` §H 六轴对应。
@@ -401,3 +403,90 @@ Forte 1959、Tucker 1955）、差分 CMRR 专利七件（Tek×4/Agilent/TI/Cirru
 （Cutkosky×2、Dunfee、Thomas、Hague、约瑟夫森桥三件）、音频白皮书线（Whitlock×3+Brown SCIN）、厂商手册四件
 （Cirrus×2/AKM/ESS）、仪器域现状五件（Hioki/QuadTech/Hall/锁相/电化学）、俄学派三件、中文三件、日方一件。
 P1/P2/P3 核心主张无真 kill；两条划界注已入 outline（I2/I4 槽）；谱系证据链自 1927 年补齐。
+
+
+## 2026-10-27 审查后补检与库务治理
+
+### 新增题录（8 条）
+
+以下题录按出版方/Crossref 核对；无法取得的已列 P0，不创建伪精读笔记。NBS 两卷仅核前置题录，不把整卷下载当作每篇正文已读。
+
+| key | 题名 | 年份/出处 | DOI/官方入口 | 当前全文状态 | 用途 |
+| --- | --- | --- | --- | --- | --- |
+| `fialkow1951rcladder` | The Transfer Function of an R‐C Ladder Network | 1951 / Journal of Mathematics and Physics | [来源](https://doi.org/10.1002/sapm195130149) | 未取得正文，已列代下载 P0 | RC 梯形传函及实现条件，N1 经典基线 |
+| `fialkow1952rcnetworks` | The transfer function of general two terminal-pair RC networks | 1952 / Quarterly of Applied Mathematics | [来源](https://doi.org/10.1090/qam/49081) | 未取得正文，已列代下载 P0 | 一般 RC 两端口条件，区分开路传函与端接等效 |
+| `guillemin1949rcsynthesis` | Synthesis of RC‐Networks | 1949 / Journal of Mathematics and Physics | [来源](https://doi.org/10.1002/sapm194928122) | 未取得正文，已列代下载 P0 | 经典 RC 综合，核对拟议元件解集的新颖性 |
+| `wang2017rcladder` | Realization of a transfer function as a passive two‐port RC ladder network with a specified gain | 2017 / International Journal of Circuit Theory and Applications | [来源](https://doi.org/10.1002/cta.2328) | 未取得正文，已列代下载 P0 | 指定增益 RC 梯形实现，当前最直接综合近缘 |
+| `moschytz1999tapering` | Low-sensitivity, low-power active-RC allpole filters using impedance tapering | 1999 / IEEE Transactions on Circuits and Systems II: Analog and Digital Signal Processing | [来源](https://doi.org/10.1109/82.782042) | 未取得正文，已列代下载 P0 | 阻抗渐变和灵敏度，稳健设计族基线 |
+| `moschytz1999realizability` | Realizability constraints for third-order impedance-tapered allpole filters | 1999 / IEEE Transactions on Circuits and Systems II: Analog and Digital Signal Processing | [来源](https://doi.org/10.1109/82.782054) | 未取得正文，已列代下载 P0 | 三阶可实现性约束，N3 需正面比较 |
+| `nbs1968sp300v3` | Precision Measurement and Calibration: Selected NBS Papers on Electricity---Low Frequency | 1968 / National Bureau of Standards | [来源](https://nvlpubs.nist.gov/nistpubs/Legacy/SP/nbsspecialpublication300v3.pdf) | 已补全文，前置题录已核，正文未读 | 补齐低频电学卷，定位此前错投色度卷的目标篇 |
+| `nbs_sp300v4` | Precision Measurement and Calibration: Selected NBS Papers on Electricity---Radio Frequency | 1970 / National Bureau of Standards | [来源](https://nvlpubs.nist.gov/nistpubs/Legacy/SP/nbsspecialpublication300v4.pdf) | 已补全文，前置题录已核，正文未读 | 补齐 RF 电学卷，计量背景按需使用 |
+
+### 题录修复与引用边界
+
+- 修复 `ti_threeguidelines2015` 和 `koide1997redef` 缺少记录结束括号导致的门禁漏计；原文件实际 238 条，旧正则只报 236，不能把它当作库量下降。
+- 对题名身份匹配的 DOI 条目补出版物、卷期页及会议类型；Crossref 请求失败/404 不等同于该 DOI 已证伪。未核条目仍保留待核状态。
+- `mdpi2018_filterselection`：更正独著 Sui-Xian Li 与完整题名；明确其为光学滤光片选型，退出 AAF 空白的直接证据角色。
+- `khalifeh2022mcu`：第三作者 Action Nechibvute、第四作者 Benny Munyaradzi Nyambo；旧笔记的待修提醒已加已修说明。
+- `denisenko2020lpf`：补第三作者 N. V. Butyrlagin；笔记总物理页数 6→7。
+- `gasulla2002cmresp`：出版年 2000、会议类型/卷页补齐；保留旧 key，不再称 Gasulla 2002 正式论文。
+- `koide1997redef`：作者姓氏/名字格式及 IEEE TIM 卷期页核正。
+- `sanchezromate2021cfrp`：按出版元数据补全实际五位作者及完整题名；它不是 Augustin 的同组期刊版。
+- `endres0ensitivi`、`debrunner0hoosing`、`willingham0ffective`、`saberinia0eneratin`、`kim0calable`：年份 0 改真实会议年，保留 key；没有新增“年份 0”占位。
+- `moschytz0radeffs`：正式改为 2002 书章；OCR 公式疑点未随题录修复而解除。
+- `breems2023ctsd`：原题名和出处不准确；按 DOI 10.1109/OJSSCS.2023.3317817 更正为 High-Speed and High-Performance Continuous-Time ADCs for Automotive Receivers，四作者、卷 3、174–184。
+- `sussmanfort2004nonfoster`：旧 IEEE/2004/双作者/DOI 组合误配；按 Wiley DOI 10.1002/mmce.20118 更正为 2006 独著，Int. J. RF and Microwave Computer-Aided Engineering 16(2):135–142，旧 key 仅作兼容。
+- `razbin2025`：正式 PDF 刊载 2026, 35, 015006；保留旧 key，更正出版年。
+- `kerr1993limits`：按官方 PDF 补完整题名，类型改为 NRAO 技术报告。
+- `murmann2012energy`：所得为 CERN 原始讲座幻灯片，题名和文献类型按实物改正，不冒称同行评审论文。
+- `lyu2018ultiobje2`：同文双 DOI，正式 bib 移出别名，统一引用 `lyu2018ultiobje`；笔记/PDF 不删。
+- `chen2026dsmod`：T3 中文条目退出正式 bib；现有笔记/PDF 保留，不再发代下载请求。
+- Candy 1981 引文回看印刷 p.1321：rms SNR 为 √(π/8)，旧 `6/8` 是 OCR 误读；相关笔记已修。
+
+### 本轮新增全文的身份/完整性记录
+
+来源均为公开官网链接；PDF 头、pdfinfo 和前置题录核对通过，未将错误响应/摘要页落为 PDF。SHA-256 供回货去重；这只是身份/文件校验，不是正文精读认证。
+
+| key | 物理页 | 获取来源 | SHA-256 |
+| --- | --- | --- | --- |
+| `razbin2025` | 15 | [来源](https://iopscience.iop.org/article/10.1088/1361-665x/ae2a83/pdf) | `455b12bc35c66f31a63571d18864ad3bb33fdaca92d2171e696e8c233ccd8950` |
+| `kerr1993limits` | 24 | [来源](https://www.gb.nrao.edu/electronics/edir/edir295.pdf) | `18e8744bc8d0407433411d0de1bd3f8b3a9ea10cb51c7e1516a62c172aa917de` |
+| `murmann2012energy` | 56 | [来源](https://indico.cern.ch/event/191624/attachments/273635/382982/murmann20120525cern.pdf) | `0f97d2d7e5c3f8a5f51e19747ee6918253de0800105c370df9121fc41942ce90` |
+| `nbs1968sp300v3` | 512 | [来源](https://nvlpubs.nist.gov/nistpubs/Legacy/SP/nbsspecialpublication300v3.pdf) | `256e1e4f78062ff3a5046e6be85dc720bffcdd1c05fb7fc4bf97d2679c13616a` |
+| `nbs_sp300v4` | 464 | [来源](https://nvlpubs.nist.gov/nistpubs/Legacy/SP/nbsspecialpublication300v4.pdf) | `281285582c82dcb05186d41121467da44458ad9ffef234c25fdb6a967a85085f` |
+
+### 遗留待核
+
+- `pliquett2011ront` 同名 PDF 内容错配：仍需正确目标论文，保留异常证据，不计可用全文。
+- SP300 v3/v4 已补齐；正文目标篇须重新定位。原色度卷不能证明电学论断，也不删原卷。
+- 机械门禁仍有缺 DOI/URL 的遗留题录警告；这些条目的入口/题录应先核，再请下载人员定位。下载失败状态详见 CSV，不用未经核实的链接补成假通过。
+- 未直接写 Zotero SQLite；bib 是本轮修复的桥接来源，已有客户端记录不因“跳过同 DOI”自动更新。
+
+- 收口补核：`styles2008filters` 为 Iain B. Styles 独著，DOI 10.1364/AO.47.005585，已修旧多作者误配；`jssc2005_switchedrc` 按库内原始 PDF 补十作者、40(12):2398–2407、DOI 10.1109/JSSC.2005.856286。
+- `wenner1912guard` 尚有身份/年份冲突：NIST 官方同类题名为 1926，DOI 10.6028/nbsscipaper.211；没有直接将它嫁接为“1912”记录，列待核，不用作最早年份证据。
+
+### 2026-10-27 创新扩展时补核近缘
+
+`adi_emifilter` 作者 Marc Smith，2025-01-15。官网正文已核其提供常规无源 CM/DM 转换分析、传函及差分电容设计，并明确适用于 AAF/ΣΔ；公式为图片，未逐式核对。已补 bib 作者/年份/边界 note，并列入 literature-map 必须划界表。不得再以“工业文档无失配分析”作为创新依据。URL：https://www.analog.com/en/resources/technical-articles/gettin-in-tune-emi-filter.html 。该网页核查不增加 PDF 到货或精读篇数。
+
+## 2026-10-27 扩展考察：新增五条与正文核验记录
+
+前批 244 条 → 本次 249 条；实际库存 169 PDF + 3 TXT；正式 bib 可关联目标文件 169 条；缺件/入口核对 80（P0 10/P1 17/P2 53）。源文件状态与研究证据范围分别登记，不能按题录数宣称阅读覆盖率。
+
+| key | 轴 / 用途 | 全文与核查范围 |
+| --- | --- | --- |
+| gervasoni2017switchedratio | H7，I3 直接近缘；双 ADC 交替采集/比率消漂 | DOI 10.1063/1.4996423；题录及原始摘要已核；两入口 PDF 403，P1 代下 |
+| xin2022systemratio | H7，I3b 近缘；分时测量漂移残差 | DOI 10.1109/TCSI.2021.3119541；机构 PDF 13 页含前置页，p.509 §III-A Eq.(4)–(7) 已核 |
+| kincl2013testfrequency | H8，I5 模拟 RC 测试频点直接近缘 | DOI 10.15598/aeee.v11i6.912；题录及出版方摘要/首页片段已核；本地 PDF 未取得，P1 代下，不瞎补缺失页码 |
+| tadeusiewicz2017diagnostictests | H8，I5 激励/测点/精度方法前作 | DOI 10.1007/s10836-017-5650-4；出版方 PDF 10 页，pp.147–148 和 §4 相关段落已核，未逐例复算 |
+| kundert2006scfilters | H5，I4 采样观察点与噪声折叠工具 | 作者原始文档 25 页；版次 2006、版权脚注 2019 分开记，pp.13–17、21–22 相关段落已核，不冒称期刊 |
+
+三份成功 PDF 均检查 `%PDF-`、pdfinfo、前置题名/作者和指定正文段落；身份/用途核查不等于完整精读。外部全文仍仅在 Obsidian，仓库不存 PDF。
+
+| key | 页数 | 来源 | SHA-256 |
+| --- | --- | --- | --- |
+| `kundert2006scfilters` | 25 | [原始来源](https://designers-guide.org/analysis/sc-filters.pdf) | `9b75431278b9759a75e11b26d94093cdf458595784bd5d77fbb54db547242b27` |
+| `xin2022systemratio` | 13 | [原始来源](https://pure.tue.nl/ws/files/196116318/A_0.32_nW1.07_W_All_Dynamic_Versatile_Resistive_Sensor_Interface_With_System_Level_Ratiometric_Measurement.pdf) | `c8c229a4a2ee1d36153e41bc0fe3e4b54f7f68f920103d0ef64d53909e1664bc` |
+| `tadeusiewicz2017diagnostictests` | 10 | [原始来源](https://link.springer.com/content/pdf/10.1007/s10836-017-5650-4.pdf) | `8a0b4ebfa1e7b3c1eba3fa927fd37ec9cc3ffd0faab70aed450e83ccfaee5358` |
+
+本次校验：`python3 paper/tools/gate_bib.py` 为 249 条、0 错误、4 项遗留 doi/url 警告；bib/CSV key 集一致，无重复非空 DOI；新增三份 PDF SHA-256、当前文档相对文件链接已核，`git diff --check` 通过。动态比率基础恒等式做了精确有理数探测，未计为创新或项目仿真实验。

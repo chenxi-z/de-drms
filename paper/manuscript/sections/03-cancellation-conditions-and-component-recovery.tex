@@ -1,0 +1,88 @@
+\section{Cancellation conditions and component recovery}
+
+\subsection{Positive-component recovery}
+
+The four coefficients determined the components through
+
+\begin{equation}\label{eq:7}
+q_2=\frac{b}{d},\qquad
+r_2=\frac{d^2}{ad-bc},\qquad
+r_1=c-r_2,\qquad
+q_1=\frac{d}{r_1r_2}.
+\end{equation}
+
+Figure~\ref{fig:positive-region} illustrates the positive-component domain at fixed $a$ and $b$. A coefficient tuple admitted positive components exactly when
+
+\begin{equation}\label{eq:8}
+b>0,\qquad d>0,\qquad ad-bc>0,\qquad
+c(ad-bc)>d^2.
+\end{equation}
+
+The first two inequalities made \(q_2\) positive. The third made \(r_2\) positive, and the fourth made \(r_1\) positive. The recovered \(q_1\) was then positive. Substitution of Eq.~\eqref{eq:7} into Eq.~\eqref{eq:4} recovered the original coefficients. Conversely, positive components satisfied Eq.~\eqref{eq:8}, including the identity \(ad-bc=r_1^2r_2q_1^2\). The mapping was therefore one-to-one over the positive-component domain.
+
+\input{figures/fig02-en.tex}
+
+\subsection{Open-circuit cancellation}
+
+For open outputs, \(G_{DC}\) in Eq.~\eqref{eq:2} vanished exactly when
+
+\begin{equation}\label{eq:9}
+a_P=a_N,\qquad b_P=b_N.
+\end{equation}
+
+Fixing a and b left c and d free within Eq.~\eqref{eq:8}. Equal open-circuit transfer therefore admitted a two-parameter component family. Uniform impedance scaling, \(r_i\rightarrow kr_i\) and \(q_i\rightarrow q_i/k\), preserved a and b and supplied one construction within that family.
+
+A second construction demonstrated the additional freedom. In the component order \((r_1,r_2,q_1,q_2)\), branches P = (1,1,1,1) and Q = (1,4,1/2,1/2) both gave a = 3 and b = 1. Different Q/P resistor ratios of 1 and 4 ruled out a uniform impedance-scaling factor. The output-impedance coefficients were \((c,d)\) = (2,1) for P and (5,2) for Q.
+
+\subsection{Cancellation at one positive load conductance}
+
+For a specified \(g>0\), equality of Eq.~\eqref{eq:6} required
+
+\begin{equation}\label{eq:10}
+c_P=c_N,\qquad b_P=b_N,\qquad
+ a_P+gd_P=a_N+gd_N.
+\end{equation}
+
+The constant numerators made equality of the transfer functions equivalent to equality of the denominator coefficients. The three conditions in Eq.~\eqref{eq:10} left one free coefficient in the positive-component domain. Choosing d fixed a through the prescribed value of a + gd, and Eq.~\eqref{eq:7} then recovered the components.
+
+Branches P and T illustrated this family. Branch T = (18/19,20/19,361/180,1/2) gave \((a,b,c,d)\) = (2.9,1,2,2). At g = 0.1, P and T both had the denominator \(1.2+3.1x+x^2\). At g = 0.2, the denominators became \(1.4+3.2x+x^2\) for P and \(1.4+3.3x+x^2\) for T. A load change separated the responses that had matched at the first termination.
+
+\subsection{Cancellation at two distinct positive load conductances}
+
+Suppose the two branches had equal complete transfer functions at \(g_1\) and \(g_2\), with \(g_1>0\), \(g_2>0\) and \(g_1\ne g_2\). Equality of the constant and quadratic denominator coefficients gave \(c_P\) = \(c_N\) and \(b_P\) = \(b_N\). Equality of the linear coefficients gave
+
+\begin{equation}\label{eq:11}
+\Delta a+g_1\Delta d=0,\qquad
+\Delta a+g_2\Delta d=0,
+\end{equation}
+
+where \(\Delta\) denoted the difference between branch coefficients. Subtraction gave \(\Delta d=0\), followed by \(\Delta a=0\). All four coefficients were equal. The inverse mapping in Eq.~\eqref{eq:7} consequently required equal corresponding component values.
+
+For the fixed reference branch, the two-load requirement reduced the admissible matching family from one free coefficient to a single component tuple. Identical components also satisfied the requirement directly, establishing necessity and sufficiency for the stated ladder class.
+
+
+\subsection{Leakage caused by load changes and component deviations}
+
+Let $D_i(g)=1+gc_i+(a_i+gd_i)x+b_ix^2$ denote the denominator of branch $i$. The exact difference between two branch transfers is
+\begin{equation}\label{eq:load-leakage}
+G_{DC}=\frac{D_N(g)-D_P(g)}{D_P(g)D_N(g)}.
+\end{equation}
+For branches matched at a positive conductance $g_0>0$, define $\Delta d=d_P-d_N$. Equation~\eqref{eq:10} then gives
+\begin{equation}\label{eq:load-shift}
+G_{DC}(g)=-\frac{(g-g_0)\Delta d\,x}{D_P(g)D_N(g)}.
+\end{equation}
+The numerator identifies the joint roles of load change and the remaining output-impedance coefficient. A pair with unequal $d$ retains zero leakage at DC after a common load change, but develops frequency-dependent leakage away from DC. Matching the DC outputs alone consequently leaves the one-load ambiguity unresolved.
+
+For small coefficient differences around a matched branch with transfer $H_g$, the first-order leakage is
+\begin{equation}\label{eq:sensitivity}
+G_{DC}\simeq-H_g^2\left[g\Delta c+x(\Delta a+g\Delta d)+x^2\Delta b\right].
+\end{equation}
+Here each difference is taken as branch P minus branch N; the neglected terms are second order in the coefficient deviations at frequencies where the branch denominator is nonzero. The three frequency-dependent weights separate the contributions of the constant, linear and quadratic denominator coefficients. A tolerance allocation can therefore target the loaded coefficient combinations directly.
+
+Unequal external loads introduce an additional conversion mechanism even when the component values of the branches are identical. With conductances $g_P$ and $g_N$,
+\begin{equation}\label{eq:load-asymmetry}
+G_{DC}=-\frac{(g_P-g_N)(c+dx)}{D(g_P)D(g_N)}.
+\end{equation}
+Equation~\eqref{eq:load-asymmetry} makes load balance part of the cancellation specification. Equal components give cancellation under a common termination; the two attached load admittances must also agree.
+
+\FloatBarrier

@@ -1,0 +1,89 @@
+\section{抵消条件与元件值恢复}
+
+\subsection{正值元件恢复}
+图~\ref{fig:positive-region} 给出固定 $a$、$b$ 时的正值元件可实现域。
+
+由四个系数可按下式确定元件值：
+
+\begin{equation}\label{eq:7}
+q_2=\frac{b}{d},\qquad
+r_2=\frac{d^2}{ad-bc},\qquad
+r_1=c-r_2,\qquad
+q_1=\frac{d}{r_1r_2}.
+\end{equation}
+
+系数组合能够恢复为全正值元件的充要条件为
+
+\begin{equation}\label{eq:8}
+b>0,\qquad d>0,\qquad ad-bc>0,\qquad
+c(ad-bc)>d^2.
+\end{equation}
+
+前两个不等式保证 \(q_2\) 为正，第三个保证 \(r_2\) 为正，第四个保证 \(r_1\) 为正，进而保证恢复出的 \(q_1\) 为正。将式~\eqref{eq:7} 代入式~\eqref{eq:4} 可还原原系数。反之，全正值元件满足式~\eqref{eq:8}，且有恒等式 \(ad-bc=r_1^2r_2q_1^2\)。因此，该映射在全正值元件域内为一一映射。
+
+\input{figures/fig02-zh.tex}
+
+\subsection{开路共模抵消}
+
+输出开路时，式~\eqref{eq:2} 中的 \(G_{DC}\) 恒为零的充要条件为
+
+\begin{equation}\label{eq:9}
+a_P=a_N,\qquad b_P=b_N.
+\end{equation}
+
+固定 a 和 b 后，c 和 d 仍可在式~\eqref{eq:8} 的可行域内变化。因此，等开路传递函数对应一个双参数元件族。统一阻抗缩放 \(r_i\rightarrow kr_i\)、\(q_i\rightarrow q_i/k\) 保持 a 和 b 不变，是该元件族中的一种构造。
+
+另一组构造展示了统一缩放以外的自由度。按元件顺序 \((r_1,r_2,q_1,q_2)\)，支路 P = (1,1,1,1) 和 Q = (1,4,1/2,1/2) 均得到 a = 3、b = 1。Q/P 的两个电阻比分别为 1 和 4，无法由同一个阻抗缩放因子产生。P 和 Q 的输出阻抗系数 \((c,d)\) 分别为 (2,1) 和 (5,2)。
+
+\subsection{单一正值负载电导下的共模抵消}
+
+对于指定的 \(g>0\)，式~\eqref{eq:6} 相等要求
+
+\begin{equation}\label{eq:10}
+c_P=c_N,\qquad b_P=b_N,\qquad
+ a_P+gd_P=a_N+gd_N.
+\end{equation}
+
+由于分子均为常数 1，传递函数相等与分母各项系数相等互为充要条件。式~\eqref{eq:10} 的三个条件在全正值元件域内保留一个自由系数。选定 d 后，可由指定的 a + gd 确定 a，再按式~\eqref{eq:7} 恢复元件值。
+
+支路 P 和 T 给出了该元件族的实例。支路 T = (18/19,20/19,361/180,1/2) 对应 \((a,b,c,d)\) = (2.9,1,2,2)。当 g = 0.1 时，P 和 T 的分母均为 \(1.2+3.1x+x^2\)；当 g = 0.2 时，P 和 T 的分母分别变为 \(1.4+3.2x+x^2\) 和 \(1.4+3.3x+x^2\)。负载改变后，原先在第一种端接下匹配的两条响应发生分离。
+
+\subsection{两个不同正值负载电导下的共模抵消}
+
+设两个支路在 \(g_1>0\)、\(g_2>0\) 且 \(g_1\ne g_2\) 时均具有相同的完整传递函数。比较分母常数项和二次项可得 \(c_P\) = \(c_N\)、\(b_P\) = \(b_N\)；比较一次项可得
+
+\begin{equation}\label{eq:11}
+\Delta a+g_1\Delta d=0,\qquad
+\Delta a+g_2\Delta d=0,
+\end{equation}
+
+其中 \(\Delta\) 表示两个支路对应系数之差。两式相减得到 \(\Delta d=0\)，进而有 \(\Delta a=0\)。至此，四个系数均相等，由式~\eqref{eq:7} 的逆映射可知，对应元件值必须相等。
+
+对于固定参考支路，双负载要求将带有一个自由系数的可行匹配族收缩为唯一的元件组合。对应元件相同也直接满足该要求，从而建立了所定义梯形网络类别中的必要性与充分性。
+
+
+\subsection{负载变化与元件偏差引起的泄漏}
+
+以 $D_i(g)=1+gc_i+(a_i+gd_i)x+b_ix^2$ 表示支路 $i$ 的传递函数分母。两个支路传递函数之差的精确表达式为
+\begin{equation}\label{eq:load-leakage}
+G_{DC}=\frac{D_N(g)-D_P(g)}{D_P(g)D_N(g)}.
+\end{equation}
+对于在正值电导 $g_0>0$ 处匹配的支路，定义 $\Delta d=d_P-d_N$。由式~\eqref{eq:10} 可得
+\begin{equation}\label{eq:load-shift}
+G_{DC}(g)=-\frac{(g-g_0)\Delta d\,x}{D_P(g)D_N(g)}.
+\end{equation}
+分子明确给出了负载变化量与剩余输出阻抗系数差的共同作用。对于 $d$ 不相等的支路对，两侧负载同时改变后，直流泄漏仍为零，但非零频率处会出现随频率变化的泄漏。因此，仅匹配直流输出无法消除单一负载条件下的元件不唯一性。
+
+对于匹配支路附近的小系数偏差，设其传递函数为 $H_g$，则一阶泄漏为
+\begin{equation}\label{eq:sensitivity}
+G_{DC}\simeq-H_g^2\left[g\Delta c+x(\Delta a+g\Delta d)+x^2\Delta b\right].
+\end{equation}
+其中，各差值均取支路 P 减去支路 N；在支路分母非零的频点，忽略项为系数偏差的二阶项。三个频率相关权重分别对应分母常数项、一次项和二次项的贡献，因此可直接针对带载系数组合分配容差。
+
+即使两条支路的元件值完全相同，两侧外部负载不等也会产生共模转差模。两侧负载电导分别为 $g_P$ 和 $g_N$ 时，
+\begin{equation}\label{eq:load-asymmetry}
+G_{DC}=-\frac{(g_P-g_N)(c+dx)}{D(g_P)D(g_N)}.
+\end{equation}
+式~\eqref{eq:load-asymmetry} 将负载平衡纳入共模抵消规范。相同元件在相同端接下实现抵消；两侧实际接入的负载导纳也必须相等。
+
+\FloatBarrier

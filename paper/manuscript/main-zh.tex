@@ -1,0 +1,52 @@
+\documentclass[11pt,a4paper,fontset=none,scheme=plain]{ctexart}
+
+
+\usepackage[margin=25mm]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{mathptmx}
+\setmainfont{Times New Roman}
+\setCJKmainfont[ItalicFont={Noto Serif CJK SC},BoldItalicFont={Noto Serif CJK SC Bold}]{Noto Serif CJK SC}
+\setCJKsansfont{Noto Sans CJK SC}
+\setCJKmonofont{Noto Sans Mono CJK SC}
+\renewcommand{\abstractname}{摘要}
+\renewcommand{\refname}{参考文献}
+\renewcommand{\figurename}{图}
+\renewcommand{\tablename}{表}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{placeins}
+\usepackage[round,authoryear]{natbib}
+
+\usepackage{hyperref}
+\hypersetup{colorlinks=true,linkcolor=black,citecolor=black,urlcolor=blue,
+  pdftitle={多级差分电阻电容网络的端接相关共模抵消条件}}
+\providecommand{\doi}[1]{\href{https://doi.org/#1}{\nolinkurl{doi:#1}}}
+\setlength{\emergencystretch}{1.5em}
+\clubpenalty=10000
+\widowpenalty=10000
+\displaywidowpenalty=10000
+\raggedbottom
+\title{多级差分电阻电容网络的端接相关共模抵消条件}
+\author{}
+\date{}
+\begin{document}
+\maketitle
+\begin{abstract}
+差分电阻电容滤波器的共模抵消取决于两条信号通道所接的负载。本文推导两个对地二阶无源梯形网络在开路和电阻负载下的抵消条件。通过四系数表示统一描述开路电压传递函数与输出阻抗，给出由系数恢复正值元件的显式不等式。参考支路固定时，等开路传递函数允许一个双参数匹配元件族；指定一个正值电阻负载后，该元件族降为单参数；在两个不同正值电阻负载下均具有相同完整传递函数，则要求对应元件值相同。显式算例展示了开路等效但输出阻抗不同的支路，以及在某一负载下抵消、改变负载后失配的支路。37个交流仿真算例与独立节点方程解进行了核对，复节点电压绝对差最大值为 \(1.14\times10^{-15}\) V。输出跨接电容在差模传输增益和共模转差模增益中引入相同负载因子，该因子从共模抑制比中约去。结果将抵消规范、指定端接和可行元件族直接联系起来。 链式矩阵递推将上述条件推广到任意级数：通过有限的正实现判据，可由两个首行多项式唯一恢复元件值；开路匹配留下 \(N\) 个局部自由度，指定一个正值电阻负载后降为 \(N-1\)，在两个不同正值电阻负载或两个不同已知有理导纳下完整传递函数一致，则元件值完全相同；常见有理负载类型的匹配维数列表给出，负载改变时零频泄漏保持为零、随频率变化的失配重新分布。
+\end{abstract}
+\noindent\textbf{关键词：}差分 RC 滤波器；共模抑制；电阻端接；输出阻抗；元件恢复。
+
+
+\input{sections-zh/01-introduction.tex}
+\input{sections-zh/00-related-work.tex}
+\input{sections-zh/02-network-model-and-verification-method.tex}
+\input{sections-zh/02a-general-order-theory.tex}
+\input{sections-zh/03-cancellation-conditions-and-component-recovery.tex}
+\input{sections-zh/04-simulation-results-and-output-coupling.tex}
+\input{sections-zh/05-discussion.tex}
+\input{sections-zh/06-conclusions.tex}
+
+\FloatBarrier
+\bibliographystyle{plainnat}
+\bibliography{references}
+\end{document}

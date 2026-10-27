@@ -1,5 +1,7 @@
-# 精读笔记 · Gasulla 2000/2002《On the Common Mode Response of Fully Differential Circuits》（IEEE IMTC 2000, pp.1045–1049）
+# 精读笔记 · Gasulla 2000《On the Common Mode Response of Fully Differential Circuits》（IEEE IMTC 2000, pp.1045–1049）
 > 格式：出处 → 核心命题（原文引用+页码）→ 关键数值 → 对 P1/P2/P3 对照 → 没读到的。
+
+> 2026-10-27 题录复核：原文版权行及会议名均对应 IMTC 2000；bib 年份已改 2000，保留旧 key。以下原“待核”记录是精读时状态，不再作为年份不确定的理由。
 
 ## 出处
 - M. Gasulla, O. Casas, R. Pallàs-Areny, "On the Common Mode Response of Fully Differential Circuits," *Proc. 17th IEEE Instrumentation and Measurement Technology Conference (IMTC)*, pp. 1045–1049. 版权行 "0-7803-5890-2/00/$10.00 © 2000 IEEE"。bib 键 gasulla2002cmresp、年份记 2002、DOI 10.1109/imtc.2000.848900——**DOI 与版权行均为 IMTC 2000，bib 年份 2002 待核**（会议为 2000-05 巴尔的摩；不排除另有 2002 期刊版）。

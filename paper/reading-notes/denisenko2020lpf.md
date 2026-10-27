@@ -3,7 +3,7 @@
 ## 出处
 - Denisenko, D. Yu.; Prokopenko, N. N.; Butyrlagin, N. V.（顿河国立技术大学 / 南联邦大学 / 俄罗斯科学院 IPPM）
 - IOP Conference Series: Materials Science and Engineering 862 (2020) 032073, doi:10.1088/1757-899X/862/3/032073（MIP: Engineering-2020 会议）
-- PDF 共 6 物理页（第 1 页为封面页，正文 p.2–6）。全文已读。
+- PDF 共 7 物理页（第 1 页为封面页，正文及参考文献 p.2–7）。全文已读。
 
 ## 核心命题（原文）
 1. **全差分运放三阶低通滤波器、比经典结构少一颗频率设定电容**（p.2，摘要）：> "The developed circuit contains one capacitor less than in classical LPF."（拓扑创新点是省电容数、降低元件失配敏感面，不是共模误差解析。）

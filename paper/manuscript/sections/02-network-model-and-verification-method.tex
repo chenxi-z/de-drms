@@ -1,0 +1,68 @@
+\section{Network model and verification method}
+
+\subsection{Signal paths and measurement plane}
+\label{sec:model-plane}
+
+Each signal path contained two series resistors, \(R_1\) and \(R_2\). Capacitor \(C_1\) connected the resistor junction to ground, and capacitor \(C_2\) connected the output node to ground. All four component values were positive. Ideal voltage sources drove the two inputs, and the initial conditions were zero. The output was the voltage difference between the two capacitor \(C_2\) nodes. Figure~\ref{fig:circuit} shows the signal paths and termination plane.
+
+We defined the differential and common-mode inputs as
+
+\begin{equation}\label{eq:1}
+v_d=v_p-v_n,\qquad v_c=\frac{v_p+v_n}{2}.
+\end{equation}
+
+The common-mode-to-differential gain was \(G_{DC}\) = \(v_{d,\mathrm{out}}/v_{c,\mathrm{in}}\) with zero differential input. The differential gain was \(G_{DD}\) = \(v_{d,\mathrm{out}}/v_{d,\mathrm{in}}\) with zero common-mode input. The common-mode rejection ratio was \(\lvert G_{DD}/G_{DC}\rvert\). For independent paths with transfer functions \(H_P\) and \(H_N\),
+
+\begin{equation}\label{eq:2}
+G_{DC}=H_P-H_N,\qquad
+G_{DD}=\frac{H_P+H_N}{2}.
+\end{equation}
+
+Cancellation required \(G_{DC}\) to vanish as a rational function of frequency.
+
+\input{figures/fig01-en.tex}
+
+\subsection{Coefficient representation and load conditions}
+\label{sec:coefficients}
+
+We normalized the components by \(R_*\) and \(C_*\) and defined
+
+\begin{equation}\label{eq:3}
+r_i=R_i/R_*,\qquad q_i=C_i/C_*,\qquad x=sR_*C_*.
+\end{equation}
+
+The four branch coefficients were
+
+\begin{equation}\label{eq:4}
+\begin{aligned}
+a&=r_1q_1+(r_1+r_2)q_2,\\
+b&=r_1r_2q_1q_2,\\
+c&=r_1+r_2,\\
+d&=r_1r_2q_1.
+\end{aligned}
+\end{equation}
+
+The open-circuit voltage transfer \(H_0\) and output impedance \(Z_0\) followed from the two node equations:
+
+\begin{equation}\label{eq:5}
+H_0(x)=\frac{1}{1+ax+bx^2},\qquad
+Z_0(x)=R_*\frac{c+dx}{1+ax+bx^2}.
+\end{equation}
+
+A resistance \(R_L\) connected from the output to ground gave the normalized conductance \(g=R_*/R_L\). The loaded transfer was
+
+\begin{equation}\label{eq:6}
+H_g(x)=\frac{H_0(x)}{1+Z_0(x)/R_L}
+      =\frac{1}{1+gc+(a+gd)x+bx^2}.
+\end{equation}
+
+At each load condition, both paths had the same specified resistance \(R_L\). We held the reference branch P fixed when counting the admissible component values of the matching branch N. We compared complete transfer functions at each conductance g. A comparison at two conductances consequently involved two frequency-dependent transfer functions for each path.
+
+\subsection{Exact and numerical verification}
+
+We checked the coefficient identities and example component sets with exact rational arithmetic. The circuit simulations used LTspice 26.1.1, \(R_*=1\,\mathrm{k\Omega}\) and \(C_*=10\,\mathrm{nF}\). The frequency sweep contained 145 points from 10 Hz to 10 MHz, with 24 points per decade. Common-mode excitation applied 1 V to both inputs. Differential excitation applied +0.5 V and -0.5 V to the two inputs.
+
+The 37 simulation cases covered first-order controls, second-order branches, different component-matching strategies, finite source resistance, symmetric and asymmetric resistive terminations, and output bridging capacitance. We independently constructed the nodal equations from the stored netlists and compared the complex node voltages with the simulator outputs. The analytical load-classification results used the ideal-source and equal-resistive-load assumptions in Sections~\ref{sec:model-plane} and~\ref{sec:coefficients}.
+
+
+\FloatBarrier

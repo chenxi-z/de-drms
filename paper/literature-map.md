@@ -1,175 +1,104 @@
-# 文献联系图谱 v1（2026-10-27 · 165 份精读笔记收齐后的谱系综合）
+# 文献联系与划界表 v2（2026-10-27 · 审查后修订）
 
-> **术语说明**：本篇及项目文档中"P1 消去条件""多级梯形精确消去""配对不变量/整线同偏""Kelvin 结构地板""四条边界"等均为**本项目自造的工作用语**，非文献既有概念。文献既有概念 = G_DC / common-mode-to-differential gain（Hornero 2021 eq.(5)、Gasulla 2002）、RC ladder network、mixed-mode S-parameters（Bockelman 1995）等。论文写作时自造词要么改为平实描述、要么显式声明为本文命名。
+> 当前研究问题见 `research-focus.md` v5；本表区分“原文引用关系”“方法相近”“本项目类比”。并列不表示承继，出版先后不证明引用关系。已读笔记的阴性结论只覆盖该篇及所述命题，不自动升级为全领域不存在。
+> 术语采用 G_DC、CMRR、RC ladder、network synthesis 等既有名称。“配对不变量/结构地板/四条边界”等旧工作词的限制见 research-focus §八。
 
-> **本篇是什么**：`paper/reading-notes/` 全部 165 份精读笔记之间的**联系结构**——谱系链、三命题证据矩阵、killRisk 划界簿 v2、跨轴同构对照、库务勘误。它是 `literature-conclusions.md`（v2，29 篇版）的联系侧补全，不取代其结论；写作取材时两份对照使用。
-> **纪律**：每条联系落笔记锚点（`reading-notes/<bibkey>.md`）；笔记里没有的不写；链上"承继/同构/对照"的定性以笔记原文引用为据，不凭题名臆测。基于 2026-10-27 补跑四波（39 篇）+ 既有 125 份（批 1–20 + 杂项波次 + 本人精读 Whitlock）。
+## 一、核心差分谱系：按问题对照，不预画无证据承继箭头
 
----
+| 工作 | 笔记锚点 | 已核内容 | 与 N1 的边界/待办 |
+| --- | --- | --- | --- |
+| Bartlett 1927 | [核心命题](reading-notes/bartlett1927bisection.md#核心命题原文) | 对称网络分解工具 | 不是失配元件解集；是否使用其定理须由实际推导决定 |
+| Weinberg 1953 | [核心命题](reading-notes/weinberg1953lattice.md#核心命题原文) | 格形综合与两个网络函数之差 | 早于 Forte 1959；不能写成承继后者 |
+| Forte 1959 | [出处与定理](reading-notes/forte1959lattice.md#出处) | 对称格形可实现性条件，笔记记录其引 Weinberg | 与消去条件是不同问题；仅由已核引文确认这条联系 |
+| Pallàs-Areny 1991 两篇 | [CMRR 定义](reading-notes/pallasareny1991cmrr.md)、[级联](reading-notes/pallasareny1991cascaded.md) | 四增益描述、级联条件和失配解析 | 定义/级联基线；不能重新发明 G_DC 或把级联问题称全无先例 |
+| Casas 1996 | [核心命题 2–5](reading-notes/casas1996basics.md#核心命题原文) | 非耦合 H1=H2；浮地耦合免容差消去；多阶推广表述 | **高优先划界**：明确对地梯形与全耦合网络的区别，不能泛称多阶精确消去无人提出 |
+| Koide 1997 | [P1/killRisk](reading-notes/koide1997redef.md#对-p1p2p3-的对照) | 复数消去、低频调零、级联附加项 | 单频补偿与全频恒等不同，但“多级条件更复杂”已有先例 |
+| Gasulla 2000 | [核心命题 3、5](reading-notes/gasulla2002cmresp.md#核心命题原文) | 一阶失配及浮容拓扑 G_DC=0 | 旧 key 保留 2002，出版年为 2000；不能只概括成“α+β=0”而漏结构消去 |
+| Serrano-Finetti 2019 | [核心命题 3、5](reading-notes/serranofinetti2019cmnoise.md#核心命题原文) | 一阶完美 CMRR 条件与共模随机噪声区别 | 单级条件为已有结果；噪声不能全部由确定性 CMRR 判断 |
+| Hornero 2021 | [全文笔记](reading-notes/hornero2021cm.md) | G_DC 解析、共模带通及级联警示 | 最近前作；以实际完成的元件解集/端接分析逐项比较，不预称“四增量成立” |
 
-## 一、八轴谱系链（节点 = 笔记，边 = 联系类型）
+Thomas 1948 的比率匹配是 DC 类比（[原文锚点](reading-notes/H7_thomas1948_precisio.md)），不是本文 AC 命题的证明。
 
-### H2 消去条件核心轴（P1 的正面战场）
+## 二、补检主线：经典 RC 综合与灵敏度
 
-```
-Bartlett 1927 平分定理（对称网络 DM/CM 分解古典源头）
-  └承继→ Forte 1959 对称格形综合 → Weinberg 1953 格形综合
-Tucker 1955（臂失配→载漏定量，调制器域）
-Thomas 1948（DC 比率匹配祖先：a/b=A/B ⇒ 引线项恒零, eq.11 p.17）
-  └同构(AC版)→ [P1 本体：AC 多级梯形系数全等条件]
-Gasulla 2002（单级一阶失配公式 α+β=0；浮容拓扑 G_DC≡0 先例）
-Koide 1997（复数差零点消去 + 级联泄漏项）
-Zhang 2020（有源复制，带限）
-hornero2021cm（最近前作：G_DC=G₂−G₁ 单级解析 + "应避免"结论）
-Whitlock 2004（第二机理：Zcm 载荷——完美匹配电容仍伤 HF CMRR）
-bockelman1995（混模 S 参数：只量化"转多少"，不给"何时恒零"）
-```
+2026-10-27 新入 bib 的六篇见下。题录来自 Crossref/出版方；全文获取状态逐项见下载清单。**未取得并阅读正文前，这些条目不设 killRisk=无，不伪造精读笔记。**
 
-- **P1 措辞红线**（notes 全体阴性 + 上链）：不得说"失配处理无先例"（Thomas/sprpeo2 有）；不得说"单级无处理"（Gasulla/Hornero/SBAA201A 有）；只能主张 **AC 多级梯形全频段精确消去条件**（配对不变量）。
-- 本会话新增近缘（均"无威胁但须划界"，见 §三）：`zhang2024highcmv`（DC 四电阻解析式 CMRR_R=(k+1)/4t + 激光修调）、`cini2015`（有源电流模"CMRR independent of resistor mismatches"，域为增益路径）、`kumngern2011oltageco`（对称平均消去需器件匹配，无失配解析）。
+| key | 工作 | 核查问题 |
+| --- | --- | --- |
+| fialkow1951rcladder | Fialkow–Gerst 1951, DOI 10.1002/sapm195130149 | RC 梯形传函与可实现性，哪些系数/元件约束早已得到 |
+| fialkow1952rcnetworks | Fialkow–Gerst 1952, DOI 10.1090/qam/49081 | 一般 RC 两端口理论怎样限制电压比与实现自由度 |
+| guillemin1949rcsynthesis | Guillemin 1949, DOI 10.1002/sapm194928122 | 经典 RC 综合工具；防止将旧综合结果改名为新“配对不变量” |
+| wang2017rcladder | Wang 等 2017, DOI 10.1002/cta.2328 | 指定增益 RC 梯形实现；必须逐式比较，不能仅凭不同应用域判无竞争 |
+| moschytz1999tapering | Moschytz 1999, DOI 10.1109/82.782042 | 阻抗渐变/灵敏度与拟议稳健设计族的关系 |
+| moschytz1999realizability | Moschytz 1999, DOI 10.1109/82.782054 | 三阶可实现性条件；N3 不能声称无源/RC 性能界首次出现 |
 
-### H5 踢回/建立轴（消去母题的时域变体）
+已读的 [Moschytz 2002 书章](reading-notes/moschytz0radeffs.md)可提供散文层基线，公式层 OCR 缺件仍需核版面。Director→Spoto 的引用关系有 [Spoto 笔记](reading-notes/spoto1986tatistic.md)支撑；其余统计工具按方法相近并列：[Pan](reading-notes/pan1993a.md)、[Graeb](reading-notes/graeb2007areto.md)、[Stein](reading-notes/stein1986n.md)。不再将 Spoto 1986→Stapper 1989→Stein 1986 写成历史承继链。
 
-```
-Martin 1982（SC 馈通补偿鼻祖：消去=元件匹配(M6≡M5, C3≡C_总)+CMRR→∞ 理想化）
-  └承继→ ogawa1991lockfeed（双电容相消：匹配 + 快速关断时序条件）
-kawahito1999 → minkyusong1993 → willingham → parsan2008 → zhou2010 → zou2017（SC 输入负荷/建立口径链）
-mayes2015（LTC248x Easy Drive：片内开关图形使平均差分输入电流为零 + 外部 R 平衡条件）★须划界
-schrunder2024（2024 大综述）/ basu2020 / lee2020hall（现行驱动口径）
-```
-- 链内教训（笔记已标）：**低阻节点馈通无害、虚地点有害**（martin1982ew）——与 P2 的 Kelvin 负端直连理由同构。
-- `karthikeyan2002lock` 是占空比调整器、非 kickback 文献，**不得入本链**（目录错配，见 §五）。
+## 三、killRisk / 必须划界清单
 
-### H3 逃生门轴（CT-ΣΔ 内在抗混叠）
+“须划界”表示已有结果与本文主张相邻，不等同于推翻；“待全文”也不等同于无威胁。
 
-```
-ct_cascaded_implicit_aa（Keller 2007，P0 隐式抗混叠正典）
-  → pavan2011 / ranjbar2011（CT-ΣΔ 混叠抑制正典 P0）→ ritter2015 / manivannan2018/2019 / kidambi2019 / saberinia / akbari2017 / koh2004 / wu2015
-AD4134 + adi_ctsd_tutorial（产业实证：AAREJ 85.4/102.5 dB；AIN 无强制外置滤波——v2 〇-1 勘误）
-```
-- 逃生门代价（笔记原文）：Rs/6.25 kΩ 分压温漂（tutorial p.22）；通道间相位 ±0.02°@20kHz vs 外置 RC 1% 容差 ±0.15°（tutorial p.19）；环路延迟/分数阶保持折叠残留（Keller/Manivannan）。
-- **对 P1 的用法**：逃生门不完美处 = P1 必要性证据；但 AD4134 勘误后不得再写"CTSD 门后仍需 RC"。
+| 对象 | 原文证据锚点 | 写作时必须限定 |
+| --- | --- | --- |
+| Casas 1996 | 核心笔记 §核心命题 2–5 | 非耦合/浮地耦合；多阶精确消去已有表述，本文究竟新增哪些元件条件 |
+| Gasulla 2000 | §核心命题 3、5 | 一阶近似失配与拓扑消去不同；不得漏 Fig.4 |
+| Pallàs-Areny 1991 / Koide 1997 | 上表笔记 | 复数级联、单级条件及单频调零均为已有工具 |
+| Serrano-Finetti 2019 | §核心命题 3、5 | 增益/带宽条件已有；确定性消去不等于所有噪声消失 |
+| Hornero 2021 | 全文笔记 | 差别须建立在已完成结果上，不能用研究计划对比前作结论 |
+| Petkovšek 2021 | [P1/killRisk](reading-notes/petkovsek2021cmv.md#对-p1p2p3-的对照) | 两级有源 DC 元件条件为先例；与外置 RC 频域对象不同 |
+| Endres 1992 | [核心命题 2](reading-notes/endres0ensitivi.md#核心命题原文) | PLL 有源瞬态条件为旁系；不提供本文必要性证明 |
+| ADI Smith 2025（adi_emifilter） | [官网](https://www.analog.com/en/resources/technical-articles/gettin-in-tune-emi-filter.html)，文字段落已核，公式图片待核 | 常规无源 CM-to-DM 传函及差分电容缓解已存在；必须将新增限定于实际完成的多级/端接/稳健条件 |
+| TI SBAA201A | [范围与条件](reading-notes/ti_sbaa201_rtd.md) | 单级配方/端接与角频率匹配；不能充当多级必要性证明 |
+| Easy Drive | [P1/killRisk](reading-notes/mayes2015.md#对-p1p2p3-的对照) | 片内平均电荷/外部 DC 平衡，不是外置连续时间传函恒等 |
+| Whitlock | [匹配与 Zcm](reading-notes/H2_whitlock2004_new.md#核心命题原文) | 完美匹配滤波元件下仍有源端失衡；不是无失衡时载荷凭空产生差模 |
+| Smither 1982 | DOI 10.1190/1.1441316，当前仅摘要 | 无源不平衡致共模退化建模已有先例；全文未到，禁止作正文阴性 |
+| Bockelman 1995 | [混模笔记](reading-notes/bockelman1995mixed.md) | 混合模描述及模式转换已有，本文不是新定义 |
+| Moschytz / RC 综合六篇 | §二；缺件清单 | 可实现性、同传函实现族与灵敏度的关系，待全文逐式核查 |
+| Zhang 2024 / Cini 2015 / Prokopenko 2020 | [Zhang](reading-notes/zhang2024highcmv.md)、[Cini](reading-notes/cini2015.md)、[Prokopenko](reading-notes/prokopenko2020cmrr.md) | DC/有源条件是注脚域，不借“领域不同”跳过条件内容核对 |
 
-### H7 计量轴（P2 的产业级原型库）
+## 四、其他轴的证据角色
 
-```
-NBS SP300 分卷：swindells1968（换向消引线差："引线电阻差在 N/R 两换向态不变才完全消去" p.152）
-  + ginnings1970（guard 术语锚点 + volt-box 自比 0.6 ppm）
-Cutkosky 1961/1970（双替换换向平均"equally with opposite sign"；4TP 定义免疫引线串阻）
-Dunfee 1963（守卫等电位=泄漏驱动电压为零）→ Guildner 1965（匝比 1–2×10⁻⁷）→ Thomas 1948 → Hall 通史（Wagner 对偶 Kelvin, p.13）
-Keysight/QuadTech 7400（自动平衡电桥："unbalance current converges to exactly zero"）
-  → marzano2022（PTB Josephson 桥 1×10⁻⁸ 现役顶级）+ grubmuller2016（1 kV 探头 CMRR 59 dB 实证 ≈ P2 地板量级）★
-ti_sbaa201_rtd（工业单级配方正典：C_DIFF≥10×C_CM + τ 匹配）★须划界
-```
-- 共性判语（H7 笔记全体）：计量界全部靠**结构/定义/主动置零**消去，无一靠无源元件匹配——P2"结构地板"的计量级对应。
-- `nimeroff1972recision`：Vol 9 为色度学卷，目标论文不在其中（真目标 Vol3/4 电学卷库未收），引用改投 Vol3/4 待补（§五）。
+- H1 工业配方：Cirrus/TI 文档表明实际使用及约束，但 THD+N 劣化不能在无归因证据时都算成失配造成。
+- H3 替代架构：Keller/Pavan/Ranjbar 是 CT-ΣΔ；[Koh](reading-notes/koh2004.md)的内置滤波与 [Wu](reading-notes/wu2015.md)的非均匀采样/数字 AAF 单独并列。不能将它们画成同一 CT 继承链。
+- H4 方法类比：[SBOA114](reading-notes/H4_ti_sboa114_mfb_methodology.md)含噪声、失真、极点和稳定性方法；[Li 2018](reading-notes/mdpi2018_filterselection.md)研究光学滤光片，只作跨域类比，不能证明电路 AAF 选型空白。
+- H5 开关行为：Martin、Ogawa、Willingham 等只在各自时序/观察点下给条件，不自动转化为连续时间 G_DC 恒零。
+- H6 应用：Augustin 的 TUHH 博士论文与 Augustin 2018 scarfed-joints 期刊文相联系；[Sánchez-Romate 2021](reading-notes/sanchezromate2021cfrp.md)为 URJC 的平行/后续工作，**不是同组期刊版**；其测量接线未声明二线/四线，不能自行补定。
+- H7 计量：换向、guard、主动平衡与 4TP 定义是不同误差处理方法；不能概括整个计量界“无一靠无源元件匹配”。[Barber](reading-notes/barber1984applied.md)的电极接触问题与本论文的板内 Kelvin 路径也要分开。
 
-### H8 理论地基轴（P1/P3 的数学工具箱）
+## 五、覆盖与异常
 
-```
-Orchard 1966（无电感滤波经典）→ director1969（伴随网络灵敏度）
-  └下游→ spoto1986tatistic（工业统计设计范本：mismatch/process 分层协方差；引 Director–Rohrer）★P1 高
-     → stapper1989（缺陷成簇良率模型）→ stein1986（混合密度方差缩减：Mahalanobis ≈2 有效 >4 失效）
-     → pan1993a（"性能最优点≠良率最优点" p.1；灵敏度分级筛选容差门槛——D1–D10 同构先例）★方法学高
-director1993tatistic（统计设计教材）→ graeb2007areto（Pareto 支配 + worst-case 线性化定义源）
-lyu2018ultiobje（MOBO：通用多目标框架，算例全晶体管级，无滤波器算例）
-moschytz0radeffs（2002）★P3 高：RC 极点单根负实轴⇒Q<0.5 不可能性定理 + 元件比(tapering)换性能权衡范式
-debrunner0hoosing（灵敏度 S 与可辨识度 K 解耦：低敏感≠不可辨识）
-vaidyanathan1986（结构无源性+触界⇒低灵敏度，数字格形域堂亲）
-```
-- 本轴对 P1 的两大支援：**endres0ensitivi**（PLL 差分环路滤波器共模零输出 **iff** R1=R3∧R2=R4∧C1=C2——"消去 iff 元件匹配"的独立域同构，含充要条件表述）与 **spoto1986tatistic**（失配→性能的统计分解怎么做的工程范本）。
-- `das2009`：进化拓扑综合（运放/VCO benchmark），与本轴理论无内容重叠；其参考文献 [8] Das & Vemuri ISCAS 2008"无源模拟电路 GA 综合"是潜在待读新条目。
-- `fitch1975ilter`：**题名错位**——实为液压污染控制论文，严禁按题名误引为电路滤波器灵敏度文献（§五）。
+笔记数量、文件数量不等于独立论文数量。当前精确库存与本轮获取结果以 README/下载清单当日盘点为准；已获取未精读、正文缺件、仅摘要、文件错配分别登记。
 
-### H1 配方线（"学术界说别用、厂商逼你用"现状证据）
+- `pliquett2011ront.pdf` 已知内容错配，**不计作目标论文可用全文**；旧文件保留，求正确目标原文。
+- `nimeroff1972recision` 所得为 SP300 色度卷，不能替代目标电学卷；目标电学卷 SP300 v3（1968）/v4（1970）本轮已从 NIST 补齐，前置题录已核，待定位目标篇并重读，不再请求重复代下。
+- Lyu 同文双 DOI 已在正式 bib 去重，统一 key `lyu2018ultiobje`；旧笔记保留。
+- T3 `chen2026dsmod` 已从正式 bib 移出，PDF/笔记不删。此操作不代表对先行工作作负面判定。
+- 中文检索只构成有限题录/摘要筛查，限制见 `cnki-scan.md`；不再写“136 篇正文全阴性”或“中英文献双重确认不存在”。
 
-```
-green2003_an048（"simply duplicating the component values"，零失配分析）
-  → 2025_an0556（无源差分滤波 THD+N 劣化 ~10 dB）→ ak5578en / es9038pr（片内 THD 补偿兜底）
-zamaruiev2019 / chen2009 / xu2014 / xu2002 / gao2010 / sun2011 / ye2024（AAF 现状综述线）
-kumar2021（P0：DT ΔΣ 放松驱动）+ microchip_an699（阶数-衰减配方表）
-```
-- 跨 22 年四厂商镜像配方零失配分析（四份 H1 笔记原文证实）——P1 引言现状段的证据束。
+## 六、2026-10-27 扩展考察证据矩阵
 
-### H4 选型方法学轴
+本节是原始出处到研究问题的逐项联系，不把“可支持工具”误作“已证明本文首创”，也不虚构文献互引边。A/B/C 定义见 research-focus §11.1。新条目尚未另建精读笔记；本节明确保存实际核查段落，防止题录入库被误读为全文精读。
 
-```
-ti_sboa114（MFB 方法学：噪声预算路线 Eq.9，无失配/CMRR）+ mdpi2018_filterselection（多目标选型无解析框架=空白靶子）
-```
+| 证据及定位 | 核查状态 | 可支撑的内容 | 不能据此声称 |
+| --- | --- | --- | --- |
+| Casas 1996 [笔记](reading-notes/casas1996basics.md)，核心命题 2–5；Gasulla 2000 [笔记](reading-notes/gasulla2002cmresp.md)，原文 pp.1045–1049 相关段落 | B / Gasulla A，核拓扑与瞬态相关段落 | 非耦合双路径相等、浮地拓扑与端接/瞬态限定 | 多级精确消去此前完全无人提及 |
+| Hornero 2021 [笔记](reading-notes/hornero2021cm.md)，原文关于失配、共模带通及级联的相关段落；Endres 1992 [笔记](reading-notes/endres0ensitivi.md)，原文有限时间窗建立相关页 | A，指定段落回查 | I1 最近前作；故意失配/建立时间作为 I2/I3 对照 | 故意不对称或缩短某一时间窗建立时间本身是新意 |
+| Serrano-Finetti 2019 [勘误及原图定位](reading-notes/serranofinetti2019cmnoise.md#2026-10-27-原图复核与适用范围勘误优先于下方历史解读)，pp.208–210 Eq.(12)、Fig.3、p.210 有色谱限制 | A，p.210 已渲染目视 | 相关性噪声预算；白噪声闭式的适用界；内部源与外部端口分开 | 同一外部源因随机性而绕过 Gdc 恒零；单篇不足以证明高阶/有色谱全局空白 |
+| Director [笔记](reading-notes/director1969the.md)、Spoto [笔记](reading-notes/spoto1986tatistic.md)、Pan [笔记](reading-notes/pan1993a.md)、Graeb [笔记](reading-notes/graeb2007areto.md) | B | 伴随灵敏度、制造相关性、性能与良率目标区别，支持 I2 方法选择 | JΣJᵀ、Monte Carlo/Pareto/minimax 首次提出；无实测依据的协方差 |
+| TI SBAA201A [笔记](reading-notes/ti_sbaa201_rtd.md)、[原文](https://www.ti.com/lit/an/sbaa201a/sbaa201a.pdf)，输入/REF 滤波与 R 变化相关段落 | A，相关段落 | 比率消去需要路径匹配；参数随传感阻值变化 | 两个同步被测电压通道与 ADC 信号/REF 架构完全相同 |
+| **gervasoni2017switchedratio**：Gervasoni, Carminati, Ferrari, RSI 88(10),104704 (2017), [DOI](https://doi.org/10.1063/1.4996423)；[作者存档](https://re.public.polimi.it/bitstream/11311/1037033/4/pdf_archiveRSINAKvol_88iss_10104704_1_am.pdf) | **C**：题录/原始摘要可核；存档及出版方 PDF 直取 403，正文未取得，须代下 | 双 ADC 交替获取刺激与被测响应以补偿增益漂移是已有方法，I3 必须划界 | 两通道取比/交换采集消漂为本文首创；未拿全文时断言它不覆盖某动态情形 |
+| **xin2022systemratio**：Xin, Baltus, Cantatore, Harpe, TCAS-I 69(2),506–517 (2022), [DOI](https://doi.org/10.1109/TCSI.2021.3119541)，原文 **p.509 §III-A Eq.(4)–(7)、Fig.4** | **A 指定段落**：机构版本已获取，13 物理页含机构前置页，PDF 第 5 页对应 p.509 | 参考/传感器分时测量，激励和 ADC 增益误差留下时差残差；一阶差分抑制慢漂；用于 I3b 最近前作 | 标题 All-Dynamic 表示已研究任意动态 R 波形；或“时差残差”是本文新发现。本文 all-dynamic 指电路运行方式 |
+| **kincl2013testfrequency**：Kincl, Kolka, *Advances in Electrical and Electronic Engineering* 11(6) (2013), [DOI](https://doi.org/10.15598/aeee.v11i6.912)；[出版方原文入口](https://advances.vsb.cz/data/articles/2013/Vol%2011%2C%20No%206/Electrical%20and%20Electronic%20Engineering/Test%20Frequency%20Selection%20Using%20Particle%20Swarm%20Optimization.pdf) | **C**：Crossref 题录与出版方摘要/首页正文片段已核；本地 PDF 未取成，机构镜像返回非 PDF，不算到货 | 模拟线性电路多频参数诊断、灵敏度矩阵条件数选频与 active-RC 例子已有，直接替代单靠 DeBrunner 数字滤波类比 | 选几个频点/换优化器就是 I5 创新；参数识别准确即意味着整带误差有保证 |
+| **tadeusiewicz2017diagnostictests**：Tadeusiewicz, Hałgas, *J. Electronic Testing* 33(2),147–156 (2017), [原文](https://link.springer.com/article/10.1007/s10836-017-5650-4)，pp.147–148 目标/测量精度问题、§4 测试安排 | **A 指定段落**：出版方 PDF 已获取，10 页；未将四个案例逐个复算 | 模拟 DC/AC 测试的激励/测点设计与可观测灵敏度、测量精度约束，是 I5 直接近缘 | 普通测点选择首次提出；该文已经给出本文目标网络整带验收界 |
+| **kundert2006scfilters**：Ken Kundert, *Simulating Switched-Capacitor Filters with SpectreRF*, Version 6c, 28 July 2006，[作者原文](https://designers-guide.org/analysis/sc-filters.pdf)，**pp.13–17、21–22 §3.2–3.4** | **A 指定段落**：25 页已取得；日期按版次 2006，脚注版权 2019 分开记 | 连续输出与采样输出不同、边带至基带转换及采样噪声折叠；I4 方法基础 | LPTV/周期噪声分析为本文发明；此文等同 ADS131A02 内部模型 |
 
-### H6 应用域轴（"测量环节商品化"空白侧证）
+### 6.1 本次补入 killRisk 划界簿
 
-```
-barber1984（EIT 奠基综述：两电极必受接触阻抗之害 "All two-electrode systems suffer…" p.2）★P2 必引划界
-  → augustin2018（TUHH 博士论文：信号 % 量级、无自研前端）→ sanchezromate2021（同组期刊版：测量链一句带过，Agilent 34410A 两电极）
-nauman2021（压阻 SHM 综述：测量零硬件讨论）→ qhobosheane2022（唯一带自制前端=JFET 增益级，无误差预算）
-khan2013（FPGA EIT 恒流源，P2 同构系统旁证）
-```
-- 本轴定性（笔记全体）：应用文献不关心前端理论——P1 空白的需求侧证明；同时 **精度论据不得引应用拉**（Augustin %级信号，v2 C-6）。
+- Gervasoni 2017：比率噪声消去与双 ADC 获取架构直接相邻；**优先补全文**，未读正文不得降风险。
+- Xin 2022：传感器/参考切换、时差漂移与系统比率校正有明确方程；I3b 必须说明同步滤波误差与分时漂移之间的实质区别。
+- Kincl 2013、Tadeusiewicz 2017：I5 的模拟电路直接近缘已经存在，I5 优先降为验证工具，若要独立贡献须增加本网络整带误差保证及不确定度验证。
+- Kundert：I4 的采样观察点/边带工具已有，不能把工具链新增算作科学贡献。
 
----
+### 6.2 仍缺的证据
 
-## 二、三命题 × 证据矩阵（节点→命题：支援/划界/反例/无涉）
-
-| 命题 | 正面支援（引援） | 必须划界（非撞车但近） | 反例搜索阴性（覆盖面） |
-|---|---|---|---|
-| **P1 消去条件** | gasulla2002、koide1997、endres0ensitivi（iff 同构）、martin1982ew、thomas1948（DC 祖先）、bartlett1927/forte1959（对称分解工具） | hornero2021cm、ti_sbaa201_rtd、mayes2015、zhang2024highcmv、cini2015、kumngern2011 | 165 份笔记覆盖全部在库正文，无一处给出"多级无源梯形全频段精确消去条件"推导（各批精读汇报逐篇阴性） |
-| **P2 结构地板** | cutkosky1961/1970、dunfee1963、guildner1965、keysight_7400、swindells1968、ginnings1970、grubmuller2016（59 dB 实证）、marzano2022、lee2000owvoltag（有源伪差分 43 dB 对照）、barber1984（两电极接触阻抗） | smither1982（仅摘要，付费墙：无源失衡→CMRR 20 dB 建模先例）、bockelman1995 | — |
-| **P3 可达边界** | moschytz0radeffs（RC 极点 Q<0.5 + tapering 权衡）、an699（阶数配方表反证）、vaidyanathan1986（跨域旁证）、graeb2007/lyu2018（Pareto 框架）、jiang2015（另一机理家族无上界定理） | — | 无任何一篇给出平坦度-衰减解析上界或 Bode-Fano 型约束对论证 |
-| **增量四（门槛化方法学）** | sboa114（噪声预算）、pan1993a（分级容差门槛）、spoto1986tatistic（mismatch/process 分层）、stein1986（MC 效率边界）、graeb2007（worst-case） | das2009（启发式分摊反衬解析路线必要） | — |
-
----
-
-## 三、killRisk 划界簿 v2（在 MOC §五基础上新增/更新 7 条）
-
-| 条目 | 定级 | 划界要点（锚点） |
-|---|---|---|
-| hornero2021cm | 最近前作（MOC 已录） | 四增量 ①配对不变量 ②Kelvin 地板 ③可达边界 ④门槛化流程领衔行文 |
-| smither1982commonmode | 非 kill·须划界（MOC 已录） | "无源失衡→CMRR 退化建模无先例"不可说 |
-| ti_sbaa201_rtd | 非 kill·边缘对照·**须划界（本会话全文证实）** | 范围=单级一阶 RC+直流+10× 比值压制（"not always possible to exactly match…" p.5）；失配实验 350 nVrms→1 µVrms 随信号增长；τ 匹配判据**弱于**元件条件（同 τ 可不同 R·C 组合）；从未分析多级梯形 → P1 多级/全频段主张显式声明超出其范围 |
-| **mayes2015**（新增） | 非 kill·最近缘商业先例·**须划界** | Easy Drive"平衡条件⇒外 RC 零 DC 误差"与 G_DC=H_N−H_P≡0 形状相同：片内专有算法、DC 域、共模残差靠校准，无 AC 衰减上界/Kelvin 地板/网络综合——P1 引用并显式区分"片内电荷域 DC 消去"与"外置无源传输函数条件" |
-| **endres0ensitivi**（新增） | 佐证非竞争·划界 | "共模消去 iff 元件匹配"独立域同构是 P1 的强力旁证；但其"故意最优失配"解法依赖 ±6° 窗口判据，引用时注明适用域 |
-| **zhang2024highcmv / cini2015**（新增） | 注脚级·划界 | 均在 DC 减法器/有源电流模域：可作 P1 引言"现状=DC 解析+修调补救"注脚；cini2015 摘要句"CMRR independent of resistor mismatches"适用域为增益路径非无源网络频域 |
-| **barber1984applied**（新增） | P2 必引·划界 | "两电极必受接触阻抗之害 + 四电极仍受 pF 级杂散电容之害"（p.2–3）是 P2 双电极论文的必引划界文献：低频直流恰处接触阻抗最不利端 |
-
----
-
-## 四、跨轴同构对照（"消去"母题的四域变体——P1 讨论节的现成结构）
-
-| 域 | 消去手段 | 条件形态 | 锚点笔记 |
-|---|---|---|---|
-| H2 无源 RC（P1 本体） | 系数全等（单级退化为 τ 匹配） | 频域、传输函数条件 | gasulla2002 / koide1997 / hornero2021cm |
-| H5 片内 SC | 馈通补偿/双电容相消 | 元件匹配 **+ 时序条件**（非纯元件条件） | martin1982ew / ogawa1991lockfeed |
-| H8 PLL 环路滤波 | 共模（等输入）输出为零 | **iff** R1=R3 ∧ R2=R4 ∧ C1=C2（充要） | endres0ensitivi |
-| H7 计量 | 换向/替换/结构比率/主动置零 | 操作序列条件（结构性，非元件匹配） | cutkosky1961 / swindells1968 / keysight_7400 |
-| H8 统计设计 | 匹配/工艺分层进协方差 | 统计条件（yield 视角） | spoto1986tatistic / pan1993a |
-
----
-
-## 五、库务勘误清单（本会话精读核出）
-
-**已在 bib 修复（literature.bib，本会话）：**
-1. `khalifeh2022mcu` 第 4 作者 Nyathi → **Nyambo, Benny Munyaradzi**（原文逐字核对）；
-2. `lyu2018ultiobje2` 与 `lyu2018ultiobje` 为同一 DAC'18 论文双录（ACM/IEEE 双 DOI，全文零差异）——bib 加注释，**引用一律用 lyu2018ultiobje**；
-3. `moschytz0radeffs` year 0 → **2002**（Kluwer 书章；严格应为 @incollection，bib 注释已标）。
-
-**待用户/Obsidian 库务会话处理（本仓不碰库内文件）：**
-4. `pliquett2011ront.pdf` **内容错配**：库内文件实为 Kado 2004 等离子体物理论文；目标论文（Physiol. Meas. 32, DOI 10.1088/0967-3334/32/7/s15）为付费墙未到货（paywall-download-list 第 64 项）。异常登记笔记已在 `reading-notes/pliquett2011ront.md`；到货后须重跑精读。
-5. `nimeroff1972recision`：SP300 Vol 9 为色度学卷，目标电学论文在 **Vol 3（低频电学）/Vol 4（射频电学）**，库未收——补卷后重读（引用暂改投 Vol3/4 待补）。
-6. 目录归类错配（内容与轴目录不符，笔记已标注）：`karthikeyan2002lock`（实为占空比调整器，非 kickback，**不得按题名引**）、`fitch1975ilter`（实为液压污染控制，**不得按题名引**）、`khalifeh2022mcu`（WSN 平台综述，非 CNT-SHM 本体）。
-7. 旧合卷笔记 `H7_nbs_sp300_v2v6v9.md` 两处存疑（"computable/compensable"存疑词、锗电阻篇引文）已由新分卷笔记复核处理，以三份分卷笔记为准。
-8. `pan1993a` 数值出入（正文 68.34% vs Table VI 68.73%）与 `zhang2024highcmv` 中英文摘要 98.1%/98.4% 矛盾——均已在笔记「没读到的/待核」登记，引用时避开或回原文核对。
-9. `das2009` 参考文献 [8]（Das & Vemuri ISCAS 2008 无源模拟电路 GA 综合）是潜在新条目，是否入库待用户定。
-
----
-
-## 六、中文文献反例搜索（2026-10-27 补充）
-
-知网扫描（方法与全记录见 `paper/cnki-scan.md`）：中文"抗混叠"题名文献 136 篇逐条判读（97 题过目）+ 差分滤波器/仪表放大器 CMRR/无源灵敏度等定向查询——**四条缺口在中文文献同样无占位**。直域命中《一种ADC前端无源差分抗混叠滤波器设计》（武媛媛 2023，电子与封装）为配方级应用文，按中文文献质量标准（T3 普刊）**不入库**，记录存 cnki-scan.md §三。域外邻居与假朋友清单（RF 平衡滤波器、电力 LC 多目标、图像"差分"）见 cnki-scan.md §四。**库内中文条目定级**：T1 `jiang2004chebyshev`（电子与信息学报，EI）/ T2 `zhang2024highcmv`（微电子学与计算机，引用前复核摘要矛盾）/ T3 `chen2026dsmod`（普刊，默认不引）。
-
-## 七、精读覆盖统计（2026-10-27 收口）
-
-- 笔记总量 **165 份**（`paper/reading-notes/`），对库内 167 份全文（164 PDF + 3 txt）：**全部可读正文已覆盖**。
-- 未覆盖正文仅两类，均为**库外缺件**：pliquett2011（付费墙未到货+库内错配）、SP300 Vol3/4 电学卷（未收集）。
-- 本会话补跑 40 篇处置记录：38 篇完整笔记 + 2 篇如实异常登记（pliquett2011ront、nimeroff1972recision）；防御性重发（orchard1966、shi2013）写盘前查重跳过。
-- P1 反例搜索终态：**全部已读正文阴性**——"多级无源梯形全频段精确消去条件"在八轴谱系内无占位者，P1 空缺主张维持成立。
+I1 的六篇经典/近代综合与灵敏度论文、两本综合专著相关章节、Smither/Whitlock 上游原文，仍按 P0 清单处理。I3 新缺 Gervasoni 正文；I5 新缺 Kincl 可解析 PDF。即便这些题录暂缺正文，竞争关系也不能抹去。广义“尚有空白”判断保持待定，下一步用逐命题对照与小算例证伪。

@@ -1,5 +1,7 @@
 # 精读笔记 · Li 2018《Filter Selection for Optimizing the Spectral Sensitivity of Broadband Multispectral Cameras Based on Maximum Linear Independence》（Sensors 18(5):1455）
 
+> 2026-10-27 复核更新：bib 已按原文更正独著 Sui-Xian Li 及完整题名；该文为光学滤光片选型，只作跨域类比，不证明电路 AAF 方法学空白。 历史摘录中的待修状态保留作溯源，以本条为准。
+
 > 格式：出处 → 核心命题（原文引用+页码）→ 关键数值 → 对 P1/P2/P3 对照 → 没读到的。
 > 读法：pdftotext 逐页；页码 = 期刊页 "X of 17"（PDF 页 = 期刊页）。⚠️ 本 PDF 内嵌预印本水印层（部分页有 "Sensors 2018, 18, x" 双层重复文本，p.5/7/12/13 明显），引用均已取正式层。
 > 定位：**H4 选型方法学靶子**——一篇专门做「从商业货架元件集合中选型」方法学的论文，检验「多目标选型是否存在解析框架」的现状（C 级证据）。

@@ -1,4 +1,6 @@
 # 精读笔记 · Khalifeh 2022《Microcontroller Unit-Based Wireless Sensor Network Nodes: A Review》（Sensors）
+
+> 2026-10-27 复核更新：bib 作者现已按原文修正为 Action Nechibvute 和 Benny Munyaradzi Nyambo。 历史摘录中的待修状态保留作溯源，以本条为准。
 > 格式：出处 → 核心命题（原文引用+页码）→ 关键数值 → 对 P1/P2/P3 对照 → 没读到的。
 > 本篇为 H6 应用域（C 级）证据：按主代理要求只查「测量硬件用什么、是否讨论前端误差/校准、四线/两线制」。
 

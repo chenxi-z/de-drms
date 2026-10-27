@@ -1,5 +1,7 @@
 # 精读笔记 · Moschytz《Trade-Offs in Sensitivity, Component Spread and Component Tolerance in Active Filter Design》（Trade-Offs in Analog Circuit Design, Kluwer 2002, Ch.11）
 
+> 2026-10-27 复核更新：bib 已更正为 2002 年书章（incollection）；公式 OCR 缺失仍待版面核对，不能把题录修复当作公式已核。 历史摘录中的待修状态保留作溯源，以本条为准。
+
 > 格式：出处 → 核心命题（原文引用+页码）→ 关键数值 → 对 P1/P2/P3 对照 → 没读到的。
 
 ## 出处

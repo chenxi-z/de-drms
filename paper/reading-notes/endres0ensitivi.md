@@ -1,5 +1,7 @@
 # 精读笔记 · Endres 1992《Sensitivity of Fast Settling PLLs to Differential Loop Filter Component Variations》（IEEE Frequency Control Symposium 1992）
 
+> 2026-10-27 复核更新：bib 年份已核正为 1992，旧 key 不变。 历史摘录中的待修状态保留作溯源，以本条为准。
+
 > 格式：出处 → 核心命题（原文引用+页码）→ 关键数值 → 对 P1/P2/P3 对照 → 没读到的。
 
 ## 出处

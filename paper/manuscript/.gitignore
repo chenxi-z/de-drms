@@ -1,0 +1,6 @@
+/build/
+/main.pdf
+/main-zh.pdf
+/*.synctex.gz
+/figures/*.png
+/figures/*.pdf
