@@ -46,12 +46,34 @@ Both terms use the reference-channel denominator. For slowly varying $I,R$ and a
 \hat R-R\simeq-\tau_P\dot R-R\frac{\dot I}{I}\Delta\tau,
 \qquad \Delta\tau=\tau_P-\tau_N.
 \end{equation}
-Here $\tau_j=T(A_{j,1}+gB_{j,1})/(1+gB_j(0))$. The second moment $\mu_{2,j}=\int u^2g_j(u)\,\mathrm du$ controls the expansion. For a twice differentiable input $f$,
+Here $A_{j,1}$ and $B_{j,1}$ denote the coefficients of $x$ for channel $j$, and $\tau_j=T(A_{j,1}+gB_{j,1})/(1+gB_j(0))$. Writing $D_j(x)=\sum_k d_{j,k}x^k$, the second moment is
+\begin{equation}\label{eq:second-moment}
+\mu_{2,j}=\int_0^\infty u^2g_j(u)\,\mathrm du
+=2T^2\left[\left(\frac{d_{j,1}}{d_{j,0}}\right)^2-\frac{d_{j,2}}{d_{j,0}}\right].
+\end{equation}
+Keeping terms through second order in the time derivatives gives
+\begin{equation}\label{eq:second-order-ratio}
+\begin{aligned}
+\hat R-R\simeq{}&-\tau_P\dot R-Rh\Delta\tau+\tfrac12\mu_{2,P}\ddot R
++(\mu_{2,P}-\tau_P\tau_N)h\dot R\\
+&+R\left[\tfrac12\Delta\mu_2\frac{\ddot I}{I}-\tau_N\Delta\tau h^2\right],
+\qquad h=\dot I/I,\quad\Delta\mu_2=\mu_{2,P}-\mu_{2,N}.
+\end{aligned}
+\end{equation}
+The terms proportional to $\tau_N$ arise from expanding the reference denominator. The expansion order concerns temporal variation, independently of the ladder order $N$ or the component perturbation size. Equal first moments need not give equal kernels. At $g=0.1$, $(1,1,1,1)$ and $(2,1,3/2,7/360)$ both have $\tau/T=31/12$ but differ in $\mu_2$ by $41T^2/26$ in magnitude. For a twice differentiable input $f$, the first-moment remainder satisfies
 \begin{equation}\label{eq:dynamic-remainder}
 |(g_j\ast f)-f+\tau_j\dot f|
 \le\tfrac12\mu_{2,j}\sup_{v\le t}|f''(v)|.
 \end{equation}
 Apply Eq.~\eqref{eq:dynamic-remainder} to $f=IR$ and $f=I$ before expanding the quotient. Fast edges are evaluated with the exact expression. A slower reference channel has $\Delta\tau<0$ and produces positive error during a rising current at constant resistance (Figure~\ref{fig:dynamic-slew}).
+
+For unit-component ladders, the finite-load delay is
+\begin{equation}\label{eq:unit-delay}
+\frac{\tau(g)}T=\frac{N(N+1)/2+gN(N^2-1)/6}{1+gN}.
+\end{equation}
+It gives $\tau(0)/T=N(N+1)/2$ and $\lim_{g\to\infty}\tau(g)/T=(N^2-1)/6$. A $10\%$ increase in the last reference capacitor at $g=0.1$ gives $\Delta\tau/T=-N/(N+10)$. Changing $R_*$ at fixed $R_L$ changes both $T$ and $g$; the finite-load formula retains both effects.
+
+\input{figures/fig12-en.tex}
 
 \subsection{Matching criterion for a constant resistance}
 \label{sec:constant-resistance-match}
@@ -66,6 +88,8 @@ Raw equality $D_P=D_N$ additionally requires equal direct-current gains. Only wi
 \subsection{Transient common-mode leakage after a load change}
 \label{sec:cm-pulse}
 
+Each branch has simple negative real poles. With the source shorted, let $K$ be the positive-definite branch nodal conductance matrix and $C$ the positive diagonal branch capacitance matrix. The state matrix is similar to the negative symmetric matrix $-C^{-1/2}KC^{-1/2}$. The symmetric matrix has nonzero adjacent off-diagonal entries. The resulting irreducible tridiagonal matrix has simple negative eigenvalues. Two branches may share poles. The product $D_PD_N$ can therefore contain repeated factors; the residue formula below requires distinct poles after cancellation.
+
 For branches matched at $g_0$, observed at $g$, and with $\Delta B=B_P-B_N$, Eq.~\eqref{eq:general-load-shift} gives $F=G_{DC}=-(g-g_0)\Delta B/(D_PD_N)$. Since $F(0)=0$ and the poles are stable, a common-mode step of amplitude $V_c$ produces a decaying differential response. For distinct surviving poles $p_k$ in physical frequency units, define $a_k$ as residues of $F(s)/s$:
 \begin{equation}\label{eq:cm-pulse}
 y(t)=V_c\sum_k a_ke^{p_kt},\qquad
@@ -78,7 +102,7 @@ For P/T in Table~\ref{tab:branches}, matched at $g_0=0.1$ and observed at $g=0.2
 \begin{equation}\label{eq:dynamic-pt}
 F(x)=\frac{0.1x}{(x^2+3.2x+1.4)(x^2+3.3x+1.4)}.
 \end{equation}
-The dimensionless P/T poles are $-2.8,-2.677033,-0.522967,-0.5$. With $T=10~\mu\mathrm s$, the unit-step peak is $0.009197601$ at $28.20333~\mu\mathrm s$ (Figure~\ref{fig:dynamic-pulse}); the slowest surviving pole sets a $20~\mu\mathrm s$ asymptotic time constant. The step-response energy is $3.17497\times10^{-9}V_c^2~\mathrm s$; a finite settling time additionally requires a tolerance.
+The dimensionless P/T poles are $-2.8,-2.677033,-0.522967,-0.5$. With $T=10~\mu\mathrm s$, the unit-step peak is $0.009197601$ at $28.20333~\mu\mathrm s$ (Figure~\ref{fig:dynamic-pulse}); the pole closest to the origin sets a $20~\mu\mathrm s$ asymptotic time constant. The step-response squared integral is $3.17497\times10^{-9}V_c^2~\mathrm s$; the response falls below $1\%$ and $0.1\%$ of the peak for all subsequent times after approximately $158.4$ and $209.2~\mu\mathrm s$, measured from the ideal edge. The plotted $10$~ns ramp uses a finite edge, whereas these values refer to the ideal step.
 
 
 
@@ -86,9 +110,15 @@ The dimensionless P/T poles are $-2.8,-2.677033,-0.522967,-0.5$. With $T=10~\mu\
 \subsection{Transient verification}
 \label{sec:dynamic-verif}
 
-Six baseline native transient cases and two time-step refinements tested three- and four-stage unit-component ladders with $R_*=1~\mathrm{k\Omega}$, $C_*=10~\mathrm{nF}$ and $10~\mathrm{k\Omega}$ terminal loads. The exponential cases were evaluated over $2$--$3$~ms with a maximum time step of $0.1~\mu\mathrm s$; the sinusoidal cases used $20$--$40$~ms and $1~\mu\mathrm s$. The refined maximum steps were $0.05~\mu\mathrm s$ and $0.5~\mu\mathrm s$, respectively. Four matched-channel cases used $R=10~\mathrm{k\Omega}\,e^{200t}$ and either constant current or current proportional to $e^{1000t}$. At $2.5~\mathrm{ms}$, changing excitation changed the matched readout by $5.11377~\Omega$ for $N=3$ and $11.94461~\Omega$ for $N=4$, consistent with Eq.~\eqref{eq:dynamic-exp}.
+Six baseline native transient cases and two time-step refinements tested three- and four-stage unit-component ladders with $R_*=1~\mathrm{k\Omega}$, $C_*=10~\mathrm{nF}$ and $10~\mathrm{k\Omega}$ terminal loads. The exponential cases were evaluated over $2$--$3$~ms with a maximum time step of $0.1~\mu\mathrm s$; the sinusoidal cases used $20$--$40$~ms and $1~\mu\mathrm s$. The refined maximum steps were $0.05~\mu\mathrm s$ and $0.5~\mu\mathrm s$, respectively. Four matched-channel cases used $R=10~\mathrm{k\Omega}\,e^{200t}$ and either constant current or current proportional to $e^{1000t}$. At $2.5~\mathrm{ms}$, changing excitation changed the matched readout by $5.11377~\Omega$ for $N=3$ and $11.94461~\Omega$ for $N=4$, consistent with Eq.~\eqref{eq:dynamic-exp}. For constant current, the signed tracking errors were $-161.01$ and $-255.79~\Omega$, respectively. The first-moment bounds $200R(t)\tau$ were $162.34$ and $259.08~\Omega$. The current-history difference and the signed tracking error quantify different effects.
 
-Two constant-resistance cases used $R=100~\mathrm{k\Omega}$, $I=8~\mu\mathrm A[1+0.2\sin(2\pi100t)]$, and a $10\%$ increase in the last reference-channel capacitor. They gave $\Delta\tau=-2.30769~\mu\mathrm s$ and $-2.85714~\mu\mathrm s$. The signed first-order prediction tracked the exact ratio error closely: the root-mean-square of the prediction residual, normalized by the root-mean-square of the exact error over the same post-warmup window, was $5.59\%$ and $8.63\%$, and the signed correlation between prediction and exact error exceeded $0.996$. These two cases delimit the verified accuracy of the first-order expression at this excitation frequency; they do not establish a validity boundary. Across all cases, the maximum simulated-to-exact ratio discrepancy after warmup was below $1.23\times10^{-6}~\Omega$. The two $N=4$ time-step refinements changed the readout by less than $1.4\times10^{-6}~\Omega$.
+Two constant-resistance cases used $R=100~\mathrm{k\Omega}$, $I=8~\mu\mathrm A[1+0.2\sin(2\pi100t)]$, and a $10\%$ increase in the last reference-channel capacitor. They gave $\Delta\tau=-2.30769~\mu\mathrm s$ and $-2.85714~\mu\mathrm s$. Over the $20$--$40$~ms post-warmup window, the RMS of the first-moment prediction residual divided by the RMS of the exact error was $5.59\%$ and $8.63\%$. Evaluating the complete second-order quotient in Eq.~\eqref{eq:second-order-ratio} against the exact steady sinusoidal responses reduced those ratios to $0.224\%$ and $0.532\%$, respectively. These model calculations use the same 100~Hz excitation and component values as the native cases. Across all cases, the maximum simulated-to-exact ratio discrepancy after warmup was below $1.23\times10^{-6}~\Omega$. The two $N=4$ time-step refinements changed the readout by less than $1.4\times10^{-6}~\Omega$.
+
+\subsection{Fast edges and the physical model boundary}
+
+For a current step from zero to a positive value at constant resistance, the calibrated ratio is the quotient of the two normalized step responses. With the last reference capacitor increased by $10\%$, the initial relative error tends to $+10\%$ for both $N=3$ and $N=4$. High-precision evaluation gives crossings of the $10$~ppm error threshold at $457.26$ and $689.30~\mu\mathrm s$, respectively. Equation~\eqref{eq:mismatch-dynamic} uses derivatives and is inapplicable at the discontinuity; the exact convolution or step-response quotient applies there. For $N=4$, increasing capacitors C1 through C4 separately by $10\%$ gives $\Delta\tau=-0.929,-1.714,-2.357,-2.857~\mu\mathrm s$, demonstrating the dependence on component position.
+
+The ratio model places ideal independent buffers before the ladders and excludes output coupling. A finite buffer response multiplies the corresponding channel transfer. For cascaded normalized responses with finite moments, delays satisfy $\tau_{\rm total,j}=\tau_{\rm buffer,j}+\tau_{\rm ladder,j}$. The buffer and ladder delay mismatches can add or cancel. Ladder mismatch alone therefore does not bound the total mismatch from below. A known resistive buffer output impedance can be included in the first ladder resistance. The sensor resistance remains in the source amplitude; a sensor embedded within the ladder changes the ladder state matrix and requires a different time-varying model. Sampling and probe loading enter at the corresponding measurement planes.
 
 \input{figures/fig08-en.tex}
 \input{figures/fig09-en.tex}

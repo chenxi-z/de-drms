@@ -1,0 +1,81 @@
+{
+  "sources_sha256": {
+    "/home/anning/Documents/Obsidian Vault/20-\u786c\u4ef6\u5de5\u7a0b/10-\u9879\u76ee\u8bbe\u8ba1/p1-\u6587\u732e\u8c31\u7cfb/verification/2026-10-28-pairing-strategies/histogram_data.json": "ab2b8125769d8a8561f570a21913296ed43d3e786a5cadff15b949cb5ce5389b",
+    "/home/anning/Documents/Obsidian Vault/20-\u786c\u4ef6\u5de5\u7a0b/10-\u9879\u76ee\u8bbe\u8ba1/p1-\u6587\u732e\u8c31\u7cfb/verification/2026-10-28-pairing-strategies/representative_worst.csv": "217c3ab739cd044d550058d13ceea745cde6d27d3dd63ef0667a2bc3ff7387ae",
+    "/home/anning/Documents/Obsidian Vault/20-\u786c\u4ef6\u5de5\u7a0b/10-\u9879\u76ee\u8bbe\u8ba1/p1-\u6587\u732e\u8c31\u7cfb/verification/2026-10-28-pairing-strategies/pairing_mc.py": "d3f21a502590272fe66701eb4ac83f7b413a0d0910127c51e502d009c9a75f3f",
+    "/home/anning/Documents/Obsidian Vault/20-\u786c\u4ef6\u5de5\u7a0b/10-\u9879\u76ee\u8bbe\u8ba1/p1-\u6587\u732e\u8c31\u7cfb/verification/2026-10-28-terminal-noise/terminal_sweep.csv": "a8cf96c6c740aed035aff701630d42021728622fe7c672a43dddb8f8daa009e6",
+    "/home/anning/Documents/Obsidian Vault/20-\u786c\u4ef6\u5de5\u7a0b/10-\u9879\u76ee\u8bbe\u8ba1/p1-\u6587\u732e\u8c31\u7cfb/verification/2026-10-28-terminal-noise/noise_summary.json": "ee4c89577a2c51e7d0719d7ca7154d765a10ad282f6bf7b75d74d960a54e9e52",
+    "/home/anning/Documents/Obsidian Vault/20-\u786c\u4ef6\u5de5\u7a0b/10-\u9879\u76ee\u8bbe\u8ba1/p1-\u6587\u732e\u8c31\u7cfb/verification/2026-10-28-terminal-noise/noise_budget.py": "d106939fd8882b8c3749086d39d6064cff679757d5c9e85d0e14f8a8d1a503d6"
+  },
+  "artwork_qa": [
+    {
+      "figure": "Fig_13a_pairing_distribution",
+      "pixels": [
+        1575,
+        1126
+      ],
+      "ink_border": [
+        0,
+        0,
+        35,
+        80
+      ],
+      "canvas_cm": [
+        7.5,
+        5.625
+      ]
+    },
+    {
+      "figure": "Fig_13b_pairing_curves",
+      "pixels": [
+        1575,
+        1126
+      ],
+      "ink_border": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "canvas_cm": [
+        7.5,
+        5.625
+      ]
+    },
+    {
+      "figure": "Fig_14a_terminal_cmrr",
+      "pixels": [
+        1611,
+        1137
+      ],
+      "ink_border": [
+        32,
+        7,
+        0,
+        0
+      ],
+      "canvas_cm": [
+        7.5,
+        5.625
+      ]
+    },
+    {
+      "figure": "Fig_14b_terminal_gain",
+      "pixels": [
+        1611,
+        1137
+      ],
+      "ink_border": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "canvas_cm": [
+        7.5,
+        5.625
+      ]
+    }
+  ],
+  "scope": "Synthetic populations and ideal-network calculations; no measurements."
+}

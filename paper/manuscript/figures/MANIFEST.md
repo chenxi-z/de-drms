@@ -77,3 +77,13 @@ Rebuild with `python3 paper/manuscript/tools/generate_dynamic_figures.py --verif
 - **Fig_10_dynamic_pulse**: positive `outP − outT` after the 1 V common-input edge under 5 kΩ loads. Native ASCII data are streamed, and the raw header's 0.5 ms Offset is applied. The analytical line includes the actual 10 ns finite rise, using the residues of +0.1/[(x²+3.2x+1.4)(x²+3.3x+1.4)] for the step response and averaging over the finite ramp. It agrees with all 7506 selected native points within 4.51×10⁻⁹ V. The native positive peak is 9.1976021 mV at 28.2174 μs after edge start.
 
 `provenance_dynamic.json` contains streamed source hashes, actual exported SVG glyph-size measurements (including subscripts), unclipped marker checks, zero PNG border measurements, and legend/curve intersection checks. All plots use 7.3 pt base Times New Roman with custom Times math and independent single-panel figure environments. Figure 8 shows analytical/native ratio differences for changing resistance; Figure 9 treats constant resistance with channel mismatch. These are distinct conditions.
+
+
+## 2026-10-28 交接修订新增四图
+
+- Fig_11_en/zh：缓冲前后测量平面及比值路径；Fig_12_en/zh：差分泄漏与校准比值两种观测量。
+- Fig_13a/b：三种明确相关模型的分布与各总体最差样本；“同向缩放”与旧互逆阻抗缩放分开。
+- Fig_14a/b：P/Q在8个有限g下的CMRR与绝对差模增益；开路精确匹配不绘有限CMRR。g=1e6是强负载近似，不标成精确无穷大。
+- 生成器为 `tools/generate_review_figures.py --verification <外部verification根目录>`；六个来源哈希和图组尺寸存 `review-provenance.json`。
+- 四份示意SVG须分别跑仓库SVG门禁，文字保持可编辑。数据图保持同图双面板像素等大；共同裁切时个别面板的白边保留，不单独拉伸。
+- 初审发现图例10^6上标小于5pt，已改成纯文本1e6。最终数据图PDF最小字形为6.50/5.11/5.11/5.11pt；生成器断言图例不覆盖曲线采样点。

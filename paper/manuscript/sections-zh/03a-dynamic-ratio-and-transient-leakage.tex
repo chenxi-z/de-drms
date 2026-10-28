@@ -46,12 +46,34 @@ M_1=\int_0^\infty u|g(u)|\,\mathrm du
 \hat R-R\simeq-\tau_P\dot R-R\frac{\dot I}{I}\Delta\tau,
 \qquad \Delta\tau=\tau_P-\tau_N.
 \end{equation}
-其中 $\tau_j=T(A_{j,1}+gB_{j,1})/(1+gB_j(0))$。可用 $\mu_{2,j}=\int u^2g_j(u)\,\mathrm du$ 控制展开余项：对于二阶可导输入 $f$，
+其中 $A_{j,1}$ 和 $B_{j,1}$ 为通道 $j$ 的两个多项式中 $x$ 项的系数，$\tau_j=T(A_{j,1}+gB_{j,1})/(1+gB_j(0))$。令 $D_j(x)=\sum_k d_{j,k}x^k$，二阶矩为
+\begin{equation}\label{eq:second-moment}
+\mu_{2,j}=\int_0^\infty u^2g_j(u)\,\mathrm du
+=2T^2\left[\left(\frac{d_{j,1}}{d_{j,0}}\right)^2-\frac{d_{j,2}}{d_{j,0}}\right].
+\end{equation}
+保留时间导数的二阶项，得到
+\begin{equation}\label{eq:second-order-ratio}
+\begin{aligned}
+\hat R-R\simeq{}&-\tau_P\dot R-Rh\Delta\tau+\tfrac12\mu_{2,P}\ddot R
++(\mu_{2,P}-\tau_P\tau_N)h\dot R\\
+&+R\left[\tfrac12\Delta\mu_2\frac{\ddot I}{I}-\tau_N\Delta\tau h^2\right],
+\qquad h=\dot I/I,\quad\Delta\mu_2=\mu_{2,P}-\mu_{2,N}.
+\end{aligned}
+\end{equation}
+含 $\tau_N$ 的项来自参考通道分母的展开。展开阶次描述时间变化，与梯形级数 $N$ 及元件扰动幅度分别计量。一阶矩相等不保证响应核相等：在 $g=0.1$ 下，$(1,1,1,1)$ 和 $(2,1,3/2,7/360)$ 均有 $\tau/T=31/12$，但二阶矩相差 $41T^2/26$。对于二阶可导输入 $f$，一阶矩展开的余项满足
 \begin{equation}\label{eq:dynamic-remainder}
 |(g_j\ast f)-f+\tau_j\dot f|
 \le\tfrac12\mu_{2,j}\sup_{v\le t}|f''(v)|.
 \end{equation}
 先分别将该界用于 $f=IR$ 和 $f=I$，再展开二者的比值。对于快速变化的边沿，需要使用精确表达式。参考通道较慢时，$\Delta\tau<0$；在电阻恒定、电流上升时，会产生正误差（图~\ref{fig:dynamic-slew}）。
+
+对于单位元件梯形网络，有限负载下的时延为
+\begin{equation}\label{eq:unit-delay}
+\frac{\tau(g)}T=\frac{N(N+1)/2+gN(N^2-1)/6}{1+gN}.
+\end{equation}
+由此得到 $\tau(0)/T=N(N+1)/2$ 及 $\lim_{g\to\infty}\tau(g)/T=(N^2-1)/6$。在 $g=0.1$ 下，参考通道末级电容增加 $10\%$ 时，$\Delta\tau/T=-N/(N+10)$。固定 $R_L$ 而改变 $R_*$ 时，$T$ 和 $g$ 同时改变；有限负载公式保留了这两种效应。
+
+\input{figures/fig12-zh.tex}
 
 \subsection{恒定电阻下的匹配判据}
 \label{sec:constant-resistance-match}
@@ -66,19 +88,21 @@ G_P=G_N\quad\Longleftrightarrow\quad
 \subsection{负载改变后的共模瞬态泄漏}
 \label{sec:cm-pulse}
 
+每条支路均具有互异负实极点。输入源短路后，令 $K$ 为正定节点电导矩阵、$C$ 为正对角电容矩阵，状态矩阵相似于负对称矩阵 $-C^{-1/2}KC^{-1/2}$。该三对角矩阵的非对角相邻项均非零，故特征值互异且为负值。两支路仍可共享极点，因此 $D_PD_N$ 可能含重复因子；下面的留数式要求约分后极点互异。
+
 对于在 $g_0$ 下匹配、在 $g$ 下观测的支路，记 $\Delta B=B_P-B_N$，由式~\eqref{eq:general-load-shift} 得到 $F=G_{DC}=-(g-g_0)\Delta B/(D_PD_N)$。由于 $F(0)=0$ 且极点稳定，幅度为 $V_c$ 的共模阶跃产生衰减的差分响应。以 $p_k$ 表示采用物理频率单位、约分后仍保留的互异极点，以 $a_k$ 表示 $F(s)/s$ 的留数，则有
 \begin{equation}\label{eq:cm-pulse}
 y(t)=V_c\sum_k a_ke^{p_kt},\qquad
 \int_0^\infty y(t)^2\,\mathrm dt
 =V_c^2\sum_{k,j}\frac{a_ka_j}{-(p_k+p_j)}.
 \end{equation}
-若改以 $r_k$ 表示 $F$ 的留数，则 $a_k=r_k/p_k$。冲激响应能量的求和项采用 $r_kr_j$，与上述阶跃响应能量是不同的量。此外，$\sup|y|\le |V_c|\|h_{DC}\|_1$，其中 $h_{DC}=\mathcal L^{-1}F$。存在重极点时，需要使用相应的多项式与指数函数乘积项。
+若改以 $r_k$ 表示 $F$ 的留数，则 $a_k=r_k/p_k$。冲激响应能量的求和项采用 $r_kr_j$，与上述阶跃响应平方积分是不同的量。此外，$\sup|y|\le |V_c|\|h_{DC}\|_1$，其中 $h_{DC}=\mathcal L^{-1}F$。存在重极点时，需要使用相应的多项式与指数函数乘积项。
 
 表~\ref{tab:branches} 中的 P/T 支路在 $g_0=0.1$ 下匹配，在 $g=0.2$ 下观测时，P 减去 T 的传递函数为
 \begin{equation}\label{eq:dynamic-pt}
 F(x)=\frac{0.1x}{(x^2+3.2x+1.4)(x^2+3.3x+1.4)}.
 \end{equation}
-其无量纲极点为 $-2.8,-2.677033,-0.522967,-0.5$。取 $T=10~\mu\mathrm s$，单位阶跃响应在 $28.20333~\mu\mathrm s$ 达到峰值 $0.009197601$（图~\ref{fig:dynamic-pulse}）；约分后保留的最慢极点给出 $20~\mu\mathrm s$ 的渐近时间常数。阶跃响应能量为 $3.17497\times10^{-9}V_c^2~\mathrm s$；要确定有限的稳定时间，还需指定容差。
+其无量纲极点为 $-2.8,-2.677033,-0.522967,-0.5$。取 $T=10~\mu\mathrm s$，单位阶跃响应在 $28.20333~\mu\mathrm s$ 达到峰值 $0.009197601$（图~\ref{fig:dynamic-pulse}）；最接近原点的极点给出 $20~\mu\mathrm s$ 的渐近时间常数。阶跃响应平方积分为 $3.17497\times10^{-9}V_c^2~\mathrm s$；以理想阶跃发生时刻计，响应在约 $158.4$、$209.2~\mu\mathrm s$ 后始终低于峰值的 $1\%$、$0.1\%$。图中的10~ns斜坡采用有限边沿，上述数值则对应理想阶跃。
 
 
 
@@ -91,6 +115,14 @@ F(x)=\frac{0.1x}{(x^2+3.2x+1.4)(x^2+3.3x+1.4)}.
 六个基准原生瞬态算例及两个步长细化算例检验了三级和四级归一化元件值均为 1 的梯形网络，采用 $R_*=1~\mathrm{k\Omega}$、$C_*=10~\mathrm{nF}$ 及 $10~\mathrm{k\Omega}$ 端接负载。四个匹配通道算例采用 $R=10~\mathrm{k\Omega}\,e^{200t}$，激励分别为恒定电流和与 $e^{1000t}$ 成正比的电流。在 $2.5~\mathrm{ms}$ 时，改变激励使匹配通道读数在 $N=3$ 时变化 $5.11377~\Omega$，在 $N=4$ 时变化 $11.94461~\Omega$，与式~\eqref{eq:dynamic-exp} 一致。
 
 两个恒定电阻算例采用 $R=100~\mathrm{k\Omega}$、$I=8~\mu\mathrm A[1+0.2\sin(2\pi100t)]$，并将参考通道末级电容增大 $10\%$。两者分别得到 $\Delta\tau=-2.30769~\mu\mathrm s$ 和 $-2.85714~\mu\mathrm s$。保留符号的一阶预测紧密跟踪精确比值误差：预测残差的均方根除以同一预热后窗口内精确误差的均方根为 $5.59\%$ 与 $8.63\%$，预测与精确误差的带符号相关系数超过 $0.996$。这两个算例界定了该激励频率下一阶表达式的已验证精度，并未给出适用域边界。所有算例中，初始过渡结束后，仿真比值读数与精确值的最大偏差小于 $1.23\times10^{-6}~\Omega$。两个 $N=4$ 的时间步长加密算例使读数变化小于 $1.4\times10^{-6}~\Omega$。
+
+在上述指数电阻算例的 $2.5$~ms 处，恒定电流下三级、四级的有符号跟踪误差分别为 $-161.01$、$-255.79~\Omega$，一阶矩界 $200R(t)\tau$ 分别为 $162.34$、$259.08~\Omega$。电流历史之差与绝对跟踪误差描述不同效应。对同一100~Hz稳态正弦输入，以精确响应为参照，完整二阶比值展开式~\eqref{eq:second-order-ratio} 将相对残差 RMS 从 $5.59\%$、$8.63\%$ 分别降至 $0.224\%$、$0.532\%$；
+
+\subsection{快沿与物理模型边界}
+
+电阻恒定、电流从零阶跃至正值时，校准比值为两通道归一化阶跃响应之商。参考通道末级电容增加 $10\%$ 时，三级、四级的初始相对误差均趋于 $+10\%$。高精度计算得到误差等于10~ppm的交点时刻分别为 $457.26$、$689.30~\mu\mathrm s$。式~\eqref{eq:mismatch-dynamic} 使用时间导数，不适用于不连续点；快沿处应使用精确卷积或阶跃响应之商。对于四级网络，分别将C1至C4增加 $10\%$，得到 $\Delta\tau=-0.929,-1.714,-2.357,-2.857~\mu\mathrm s$，说明时延失配取决于元件位置。
+
+比值模型将理想独立缓冲器放在梯形网络之前，且不含输出耦合。有限缓冲器响应与对应通道传递函数相乘；对具有有限矩的级联归一化响应，时延相加，即 $\tau_{\rm total,j}=\tau_{\rm buffer,j}+\tau_{\rm ladder,j}$。各部分失配可叠加或抵消，因此梯形时延失配并非总失配的下界。已知电阻性缓冲器输出阻抗可并入首级串联电阻。传感电阻在本模型中改变源幅值；若传感电阻位于梯形内部，则状态矩阵随时间变化，须使用另一时变模型。采样与探头加载应在各自实际测量平面纳入。
 
 \input{figures/fig08-zh.tex}
 \input{figures/fig09-zh.tex}

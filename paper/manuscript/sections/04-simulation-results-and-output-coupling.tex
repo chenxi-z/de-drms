@@ -51,6 +51,8 @@ D_d&=1+sC_d(Z'_P+Z'_N).
 
 The shared factor \(D_d\) cancelled from \(G_{DD}/G_{DC}\) wherever the ratio was defined. The bridging capacitor changed both differential-output gains by the same factor and preserved \(G_{DD}/G_{DC}\). Equal loaded branch transfers also preserved \(G_{DC}\) = 0 after the capacitor was connected.
 
+Equation~\eqref{eq:12} describes the differential output. For single-frequency source phasors, put $E=H_Pv_P$, $F=H_Nv_N$ and $X=sC_d(Z'_NE+Z'_PF)$. The coupled-node solution gives $u_P=(E+X)/D_d$ and $u_N=(F+X)/D_d$, hence $u_P/u_N=(E+X)/(F+X)$. Relative to $E/F$, the first-order change of the quotient is $X(1/E-1/F)$ when $|X/E|$ and $|X/F|$ are small. The shared differential-output factor therefore does not preserve the single-ended quotient. The instantaneous dynamic ratio in Section~\ref{sec:dynamic} assumes independent paths; adding a bridge requires the full coupled two-input response.
+
 For P/Q with \(R_L=10\,\mathrm{k\Omega}\) and \(C_d=820\,\mathrm{pF}\), the maximum complex-ratio difference was \(5.14\times10^{-12}\) relative to the ratio without the bridging capacitor, evaluated over 145 frequency points. The ratio followed the cancellation of the shared factor in Eq.~\eqref{eq:12}.
 
 

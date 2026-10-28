@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="620" viewBox="0 0 1400 620">
+<defs><marker id="arrow" markerUnits="userSpaceOnUse" markerWidth="10" markerHeight="9" refX="9" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 Z" fill="#374151"/></marker></defs>
+<rect width="1400" height="620" fill="white"/>
+<text x="700" y="50" text-anchor="middle" font-family="Noto Sans CJK SC" font-size="28" fill="#111827">Component differences and two distinct output observables</text>
+<rect x="40" y="220" width="240" height="100" rx="8" fill="#f1f5f9" stroke="#374151" stroke-width="2"/>
+<text x="160" y="260" text-anchor="middle" font-family="Noto Sans CJK SC" font-size="17" fill="#111827">Tolerance / loading</text>
+<text x="160" y="295" text-anchor="middle" font-family="Noto Sans CJK SC" font-size="22" fill="#111827">ΔA(x), ΔB(x)</text>
+<rect x="365" y="220" width="275" height="100" rx="8" fill="#eff6ff" stroke="#374151" stroke-width="2"/>
+<text x="502" y="260" text-anchor="middle" font-family="Noto Sans CJK SC" font-size="18" fill="#111827">Unequal channel responses</text>
+<text x="502" y="295" text-anchor="middle" font-family="Noto Sans CJK SC" font-size="22" fill="#111827">HP(s), HN(s)</text>
+<line x1="280" y1="270" x2="360" y2="270" stroke="#374151" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="760" y="100" width="590" height="150" rx="8" fill="#eff6ff" stroke="#374151" stroke-width="2"/>
+<text x="1055" y="140" text-anchor="middle" font-family="Noto Sans CJK SC" font-size="21" fill="#111827">Differential output: common-mode leakage</text>
+<text x="1055" y="185" text-anchor="middle" font-family="Noto Sans CJK SC" font-size="23" fill="#111827">GDC = HP − HN</text>
+<text x="1055" y="220" text-anchor="middle" font-family="Noto Sans CJK SC" font-size="20" fill="#111827">Equal DC gains: step → decaying pulse</text>
+<rect x="760" y="350" width="590" height="150" rx="8" fill="#f1f5f9" stroke="#374151" stroke-width="2"/>
+<text x="1055" y="390" text-anchor="middle" font-family="Noto Sans CJK SC" font-size="21" fill="#111827">Calibrated ratio: unequal normalized kernels</text>
+<text x="1055" y="435" text-anchor="middle" font-family="Noto Sans CJK SC" font-size="23" fill="#111827">R_est = [gP * (IR)] / [gN * I]</text>
+<text x="1055" y="470" text-anchor="middle" font-family="Noto Sans CJK SC" font-size="19" fill="#111827">Delay / second-moment differences; nonzero denominator</text>
+<path d="M640,255 H700 V175 H755 M640,285 H700 V425 H755" fill="none" stroke="#374151" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="700" y="570" text-anchor="middle" font-family="Noto Sans CJK SC" font-size="21" fill="#2563eb">Evaluate each observable separately; a leakage pulse is not the resistance-ratio error.</text>
+</svg>

@@ -1,4 +1,5 @@
 \documentclass[11pt,a4paper]{article}
+\pdfminorversion=7
 \usepackage[T1]{fontenc}
 \usepackage[utf8]{inputenc}
 \usepackage[margin=25mm]{geometry}
@@ -24,7 +25,7 @@
 \begin{document}
 \maketitle
 \begin{abstract}
-We derived termination-dependent cancellation conditions and dynamic ratio-error expressions for grounded differential resistor-capacitor ladders with any finite number of stages. Two recursively computed polynomials describe the open-circuit voltage transfer and output impedance, and a successive extraction test gives necessary and sufficient conditions for positive-component recovery. For a fixed reference branch with $N$ stages, open-circuit matching leaves $N$ local degrees of freedom, one specified positive resistive termination leaves $N-1$, and matching complete transfers at two distinct known terminations requires identical corresponding components. A polynomial-kernel expression extends the dimension calculation to rational loads. For constant resistance, equal direct-current-normalized transfers reject excitation changes exactly in a buffered ratio readout. A changing resistance instead produces a current-weighted history average. A moment expansion separates resistance tracking from the signed current-slew contribution associated with channel-delay mismatch. An 84-case AC matrix spanning one to twelve stages was checked against independent nodal solutions. Eight additional three- and four-stage transient cases, including two time-step refinements, verified both the history dependence and the mismatch term. A load-shifted second-order pair also produced a common-mode step pulse with a calculated unit-step peak of $9.197601$~mV/V and a $20~\mu\mathrm s$ asymptotic time constant. The results connect admissible component families, terminal loading and dynamic fidelity within a common network representation.
+Terminal loading and direct-current calibration impose different matching constraints on a differential filter. We classified the constraints for positive grounded resistor-capacitor ladders with any finite number of stages and derived the consequences for dynamic ratio measurements. Classical ladder extraction supplied coefficient coordinates for positive realizations. For a fixed reference branch with $N$ stages, raw open-circuit matching left $N$ local degrees of freedom, and raw matching at one specified positive resistive termination left $N-1$. Direct-current-normalized matching at one such load left $N$ degrees of freedom. Two distinct known positive resistive loads identified the components under either convention using complete exact responses. A polynomial kernel extended the raw matching count to rational loads. For constant resistance, equal normalized channel responses rejected excitation changes exactly in the buffered ratio model. Changing resistance produced a current-weighted history average, with a moment expansion separating tracking delay from channel mismatch. An 84-case AC matrix spanning one to twelve stages was checked against independent nodal solutions of the same ideal element models. Three- and four-stage transient cases checked the history dependence. The second-order ratio approximation reduced relative prediction residuals at 100~Hz from $5.59\%$ and $8.63\%$ to $0.224\%$ and $0.532\%$. A load-shifted second-order pair produced a calculated common-mode step peak of $9.198$~mV/V. The analysis distinguishes raw cancellation from calibrated ratio fidelity and makes the terminal constraints explicit.
 \end{abstract}
 \noindent\textbf{Keywords:} differential RC filter; common-mode rejection; resistive termination; output impedance; component recovery.
 
@@ -36,6 +37,7 @@ We derived termination-dependent cancellation conditions and dynamic ratio-error
 \input{sections/03-cancellation-conditions-and-component-recovery.tex}
 \input{sections/03a-dynamic-ratio-and-transient-leakage.tex}
 \input{sections/04-simulation-results-and-output-coupling.tex}
+\input{sections/04a-noise-and-pairing.tex}
 \input{sections/05-discussion.tex}
 \input{sections/06-conclusions.tex}
 

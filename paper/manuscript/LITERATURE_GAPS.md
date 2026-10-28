@@ -1,6 +1,6 @@
 # 初稿文献证据与待补全文清单
 
-本稿文献表由 2 条扩展为 15 条；11 条有本地全文，4 条 RC 综合文献目前按已核题录/摘要引用。全文存在不代表本轮逐页重读。正文只使用下表列明的支撑范围，不能用题名检索替代逐命题对照。英文与中文稿共用 `references.bib`。
+本稿现引用18条文献；原11条有本地全文，4条RC综合文献及本轮新增3条目前按已核题录/摘要使用。全文存在不代表本轮逐页重读。正文只使用下表列明的支撑范围，不能用题名检索替代逐命题对照。英文与中文稿共用 `references.bib`。
 
 ## 已有全文：本稿实际用途
 
@@ -37,3 +37,17 @@
 - [CityU 作者机构条目](https://scholars.cityu.edu.hk/en/publications/realization-of-a-transfer-function-as-a-passive-two-port-rc-ladde/)：核对 Wang 2017 作者、卷期页、DOI 和摘要；只据摘要说明“指定增益的无源 RC 梯形实现”研究范围。
 
 本轮未下载新的外部 PDF，未将外部论文放进 Git 仓库。
+
+## 2026-10-28 接手续验
+
+原4篇全文缺口保持不变。已实际重试AMS免费直链：网页工具返回403，直接请求返回“Verifying your connection”的HTML，文件头不是`%PDF-`，因此未移入文献库、未记为取得全文。免费访问状态不保证当前环境能够直接下载。
+
+本轮新增3条支撑题录，核对范围为出版方摘要及元数据；不冒称逐页全文审读：
+
+| 条目 | DOI | 本稿允许使用的范围 | 全文状态 |
+|---|---|---|---|
+| Johnson, *Thermal Agitation of Electricity in Conductors* (1928) | `doi:10.1103/PhysRev.32.97` | 实验热噪声及实部阻抗关系的历史来源；[APS摘要](https://journals.aps.org/pr/abstract/10.1103/PhysRev.32.97) | 本轮未取得PDF；补全文可用于原式逐页校核 |
+| Nyquist, *Thermal Agitation of Electric Charge in Conductors* (1928) | `doi:10.1103/PhysRev.32.110` | 平衡态热噪声理论来源；[APS摘要](https://journals.aps.org/pr/abstract/10.1103/PhysRev.32.110) | 本轮未取得PDF；不从摘要推出特定RC梯形的新定理 |
+| Lee, *Chain matrix decompositions, continued fractions and the optimal inhomogeneous ladder networks* (1978) | `doi:10.1016/0016-0032(78)90050-9` | 连分式梯形综合、传输矩阵分解属于既有工具；[出版方摘要](https://www.sciencedirect.com/science/article/abs/pii/0016003278900509) | 全文需补；不得用摘要完成任意RC新颖性划界 |
+
+本轮理论边界修正不依赖“联合可实现性为新结果”的假设。正文给出自身代数推导；原4篇及Lee全文的命题包含关系仍需核查。

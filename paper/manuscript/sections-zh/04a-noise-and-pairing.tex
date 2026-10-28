@@ -1,0 +1,55 @@
+\section{噪声、可观测性与配对假设}
+\label{sec:noise-pairing}
+
+\subsection{输出测量平面的热噪声}
+
+将输入电压源短路，所有电阻（含端接）处于同一温度 $\Theta$，平衡态输出电压的单边噪声谱服从Johnson--Nyquist关系\citep{johnson1928thermal,nyquist1928thermal}
+\begin{equation}\label{eq:thermal-noise}
+S_{u}(f)=4k_B\Theta\,\mathrm{Re}\,Z_{\rm out}(j2\pi f),\qquad
+\sigma_u^2=\int_{f_1}^{f_2}S_u(f)\,\mathrm df.
+\end{equation}
+其中 $Z_{\rm out}=R_*B_N/(A_N+gB_N)$ 包含端接电阻。逐噪声源计算可分开梯形与端接的贡献。在 $\Theta=300$~K、$R_*=1$~k$\Omega$、$C_*=10$~nF、$g=0.1$ 下，单位元件梯形在10~Hz至100~kHz内的积分噪声见表~\ref{tab:noise}。包含端接噪声的全带平衡态方差为 $k_B\Theta/C_N$；固定末级电容时，与 $N$ 无关。减小电容可降低时延，同时增大全带热噪声。
+
+\begin{table}[htbp]
+\centering
+\caption{10~Hz至100~kHz内的输出热噪声计算。噪声等效位数使用梯形贡献，并明确假设梯形输出端量化器的电压跨度为1.2~V。}
+\label{tab:noise}
+\begin{tabular}{rrrr}
+\toprule
+$N$ & 梯形（$\mu$V RMS） & 含端接（$\mu$V RMS） & 噪声等效位数 \\
+\midrule
+1 & 0.5787 & 0.6069 & 19.19 \\
+2 & 0.5619 & 0.6079 & 19.23 \\
+3 & 0.5525 & 0.6078 & 19.26 \\
+4 & 0.5468 & 0.6077 & 19.27 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+最后一列按 $\log_2[V_{\rm span}/(\sqrt{12}\sigma_u)]$ 计算，将输出噪声方差等效为理想量化方差。假设梯形输出端量化器的电压跨度 $V_{\rm span}=1.2$~V时，24位量化步长为 $71.53$~nV，梯形噪声为该步长的7.6至8.1倍RMS。该计算尚未包含转换器噪声、混叠、放大器噪声及估计器带宽，不能作为整机ENOB或不确定度预算。
+
+对非零工作点附近的小幅加性输出波动，校准比值的方差为
+\begin{equation}\label{eq:ratio-noise}
+\frac{\sigma_{\hat R}^2}{\hat R^2}\simeq
+\frac{\sigma_P^2}{u_P^2}+\frac{\sigma_N^2}{u_N^2}
+-\frac{2\,\mathrm{Cov}(\delta u_P,\delta u_N)}{u_Pu_N}.
+\end{equation}
+协方差项描述两通道噪声的相关性。谱密度为 $S_c$ 的公共随机输入对差分输出贡献 $|H_P-H_N|^2S_c$；独立电阻噪声通过各自噪声传递函数进入输出，即使确定性支路响应匹配也仍然存在。
+
+\subsection{CMRR与绝对灵敏度同时报告}
+
+未跨接电容的P/Q（$C_d=0$）在 $g=0.1$ 下，10~Hz至10~MHz扫描的最小CMRR为10~Hz处的 $13.064$~dB。在1~MHz处，CMRR为 $55.96$~dB，但 $|G_{DC}|=4.029\times10^{-7}$，$|G_{DD}|\simeq2.53\times10^{-4}$。1~V共模输入仅产生 $0.403~\mu$V差分输出；10~MHz处对应残差约为 $0.403$~nV。图~\ref{fig:terminal-sweep} 同时报告抑制比与绝对信号增益。
+
+当 $g\to\infty$ 时，P/Q增益比趋于 $|(7+3x)/[2(3+x)]|$，其零频CMRR极限为 $20\log_{10}(7/6)=1.339$~dB，两种输出增益均趋于零。该极限描述理想网络；残差能否检出还取决于激励、带宽、平均方法及接收器噪声。一个量化步长是单次采样的比较尺度，不是普适检出阈值。
+
+\input{figures/fig14-zh.tex}
+
+\subsection{配对总体与元件相关变化}
+
+三个合成总体均采用二级梯形网络，各元件标称值均为1，用于比较元件相关性对抑制比的影响。参考支路元件的独立对数偏差均匀分布于 $[-0.01,0.01]$。独立配对时另行独立抽取第二支路；精确逐级乘积匹配通过调整第二支路，使 $r_{j,N}q_{j,N}=r_{j,P}q_{j,P}$；每一级分别抽取独立 $u_j,v_j$，均匀分布于 $[-0.01,0.01]$，并令 $r_{j,N}=r_{j,P}e^{(u_j-v_j)/2}$、$q_{j,N}=q_{j,P}e^{(v_j-u_j)/2}$，保留已实现参考支路的元件值。同向缩放令 $r_N=mr_P$、$q_N=mq_P$，其中 $\log m$ 均匀分布于同一区间。后两种总体以已实现参考支路为基准，第二支路元件相对标称设计值的偏差可接近 $2\%$。
+
+各总体5000次抽样，在 $g=0.1$ 下取10~Hz至10~MHz共145频点中的最小原始CMRR，中位数依次为 $39.19$、$58.02$、$33.96$~dB；校准响应对应值为 $39.54$、$57.79$、$34.33$~dB。图~\ref{fig:pairing-populations} 给出分布和各原始总体最差样本的曲线。精确逐级乘积约束代表理想调配，当前计算未规定相同调配成本或相同残余测量不确定度。
+
+
+
+\input{figures/fig13-zh.tex}

@@ -1,0 +1,55 @@
+\section{Noise, observability and pairing assumptions}
+\label{sec:noise-pairing}
+
+\subsection{Thermal noise at the output measurement plane}
+
+With the input voltage source shorted and all resistors, including the termination, at temperature $\Theta$, the one-sided equilibrium output voltage spectrum follows the Johnson--Nyquist relation \citep{johnson1928thermal,nyquist1928thermal}
+\begin{equation}\label{eq:thermal-noise}
+S_{u}(f)=4k_B\Theta\,\mathrm{Re}\,Z_{\rm out}(j2\pi f),\qquad
+\sigma_u^2=\int_{f_1}^{f_2}S_u(f)\,\mathrm df.
+\end{equation}
+Here $Z_{\rm out}=R_*B_N/(A_N+gB_N)$ includes the terminal resistor. A source-by-source calculation can separate ladder and terminal contributions. For unit ladders at $\Theta=300$~K, $R_*=1$~k$\Omega$, $C_*=10$~nF and $g=0.1$, integration from $10$~Hz to $100$~kHz gives Table~\ref{tab:noise}. Full-band equilibrium variance, including termination noise, is $k_B\Theta/C_N$, independent of $N$ when the last capacitance is fixed. Reducing capacitance decreases delay and increases full-band thermal noise.
+
+\begin{table}[htbp]
+\centering
+\caption{Calculated output thermal noise over 10~Hz--100~kHz. Noise-equivalent bits use the ladder contribution and an assumed 1.2~V quantizer span at the ladder output.}
+\label{tab:noise}
+\begin{tabular}{rrrr}
+\toprule
+$N$ & Ladder ($\mu$V RMS) & With load ($\mu$V RMS) & Noise-equivalent bits \\
+\midrule
+1 & 0.5787 & 0.6069 & 19.19 \\
+2 & 0.5619 & 0.6079 & 19.23 \\
+3 & 0.5525 & 0.6078 & 19.26 \\
+4 & 0.5468 & 0.6077 & 19.27 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The last column is $\log_2[V_{\rm span}/(\sqrt{12}\sigma_u)]$, obtained by equating output noise variance to ideal quantization variance. An assumed quantizer span $V_{\rm span}=1.2$~V at the ladder output gives a 24-bit step of $71.53$~nV; the ladder noise is $7.6$--$8.1$ such steps RMS. The calculation specifies neither converter ENOB nor an uncertainty budget for a complete instrument. Converter noise, aliasing, amplifier noise and the estimator bandwidth contribute additional terms.
+
+For small additive output fluctuations about nonzero operating voltages, the calibrated ratio has the variance
+\begin{equation}\label{eq:ratio-noise}
+\frac{\sigma_{\hat R}^2}{\hat R^2}\simeq
+\frac{\sigma_P^2}{u_P^2}+\frac{\sigma_N^2}{u_N^2}
+-\frac{2\,\mathrm{Cov}(\delta u_P,\delta u_N)}{u_Pu_N}.
+\end{equation}
+The covariance term accounts for correlated channel noise. A common stochastic input with spectrum $S_c$ contributes $|H_P-H_N|^2S_c$ to the differential-output spectrum. Independent resistor noise enters through each resistor's own transfer and remains even when the deterministic branch responses match.
+
+\subsection{Absolute sensitivity accompanying CMRR}
+
+For the uncoupled P/Q pair ($C_d=0$) at $g=0.1$, the minimum CMRR on the 10~Hz--10~MHz grid is $13.064$~dB at 10~Hz. At 1~MHz the CMRR is $55.96$~dB, but $|G_{DC}|=4.029\times10^{-7}$ and $|G_{DD}|\simeq2.53\times10^{-4}$. A 1~V common-mode input therefore gives only $0.403~\mu$V differential output. At 10~MHz the corresponding residual is approximately $0.403$~nV. Figure~\ref{fig:terminal-sweep} reports rejection and absolute signal gain together.
+
+As $g\to\infty$, the P/Q gain ratio approaches $|(7+3x)/[2(3+x)]|$, whose zero-frequency CMRR limit is $20\log_{10}(7/6)=1.339$~dB. Both output gains tend to zero in this limit. The limiting gain ratios describe the ideal network; a detectable residual additionally depends on excitation, bandwidth, averaging and receiver noise. One quantization step is a single-sample comparison scale, not a universal detection threshold.
+
+\input{figures/fig14-en.tex}
+
+\subsection{Pairing populations and correlated component changes}
+
+Three synthetic populations illustrate how the assumed component correlations affect rejection. All populations use $N=2$ and nominal components $(r_1,r_2,q_1,q_2)=(1,1,1,1)$. The reference components were drawn with independent log deviations uniform on $[-0.01,0.01]$. Independent pairing drew the second branch independently. Exact stage-product matching adjusted the second branch to satisfy $r_{j,N}q_{j,N}=r_{j,P}q_{j,P}$. For each stage, independent $u_j,v_j$ uniform on $[-0.01,0.01]$ give $r_{j,N}=r_{j,P}e^{(u_j-v_j)/2}$ and $q_{j,N}=q_{j,P}e^{(v_j-u_j)/2}$, retaining the realized reference values. Same-direction scaling instead set $r_N=mr_P$ and $q_N=mq_P$, with $\log m$ uniform on the same interval. The latter two populations can place second-branch components approximately $2\%$ from the nominal design because they are defined relative to the realized reference.
+
+For 5000 samples per population at $g=0.1$, the median minimum raw CMRR over 145 frequency points from 10~Hz to 10~MHz was $39.19$, $58.02$ and $33.96$~dB, respectively. The calibrated-response counterparts were $39.54$, $57.79$ and $34.33$~dB. Figure~\ref{fig:pairing-populations} shows the distributions and the worst member of each raw population. Exact stage-product enforcement represents ideal trimming; the calculation does not impose equal trimming cost or equal residual measurement uncertainty.
+
+
+
+\input{figures/fig13-en.tex}
