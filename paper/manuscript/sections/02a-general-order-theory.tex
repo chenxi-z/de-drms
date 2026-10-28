@@ -15,7 +15,7 @@ A_j=A_{j-1}+xq_jB_j,
 \end{equation}
 Induction in Eq.~\eqref{eq:general-forward} gives $\deg A_N=N$, $\deg B_N=N-1$ and $A_N(0)=1$. The leading coefficients are positive. Each stage matrix and the product have determinant one; the first-row polynomials have no nonconstant common factor.
 
-The open-circuit transfer and source-shorted output impedance follow from the terminal equation. A common resistive load on each branch then gives
+The open-circuit transfer and source-shorted output impedance follow from the terminal equation. A common resistive load on each branch then gives the loaded transfer below, the same termination decomposition used in classical synthesis \citep{guillemin1949rcsynthesis}:
 \begin{equation}\label{eq:general-transfer}
 H_0=\frac1{A_N},\qquad
 \frac{Z_0}{R_*}=\frac{B_N}{A_N},\qquad
@@ -25,12 +25,12 @@ For $N=2$, $A_2=1+ax+bx^2$ and $B_2=c+dx$, recovering Eq.~\eqref{eq:5}. Retainin
 
 \subsection{Classical ladder extraction and coefficient coordinates}
 
-With the source shorted, $B_N/A_N$ is the dimensionless driving-point impedance seen from the output. The driving-point impedance admits the following ladder continued fraction \citep{lee1978chain}
+With the source shorted, $B_N/A_N$ is the dimensionless driving-point impedance seen from the output. The driving-point impedance admits the following ladder continued fraction \citep{guillemin1949rcsynthesis,lee1978chain}
 \[
 z_j = \left[q_jx+\left(r_j+z_{j-1}\right)^{-1}\right]^{-1},
 \qquad z_0=0,\quad z_N=B_N/A_N.
 \]
-The successive extraction below expresses continued-fraction ladder synthesis \citep{lee1978chain} in the $(A_j,B_j)$ coordinates for the present RC topology. We use the extraction to count the admissible component families under specified terminal constraints.
+The successive extraction below expresses continued-fraction ladder synthesis \citep{guillemin1949rcsynthesis,lee1978chain} in the $(A_j,B_j)$ coordinates, specialized to single-resistance/single-capacitance arms; recursive transfer calculations for general-arm ladders are classical as well \citep{fialkow1951rcladder}. We use the extraction to count the admissible component families under specified terminal constraints.
 
 The last-stage values can be recovered from the leading coefficients. Writing $\operatorname{lc}(p)$ for the leading coefficient of polynomial $p$, define
 \begin{equation}\label{eq:general-inverse}
@@ -49,11 +49,11 @@ The forward map from the $2N$ positive components to the $2N$ coefficients of $A
 
 \subsection{The number of matching degrees of freedom}
 
-Hold one reference branch fixed. Open-circuit matching fixes the $N$ nonconstant coefficients of $A_N$, leaving $N$ local degrees of freedom in the positive realization domain. Uniform impedance scaling changes $B_N$ by one scalar factor while preserving $A_N$. For $N\geq2$, that scaling follows one direction within a larger matching family.
+Hold one reference branch fixed. Open-circuit matching fixes the $N$ nonconstant coefficients of $A_N$, leaving $N$ local degrees of freedom in the positive realization domain. Multiple positive realizations of one transfer function are classical; the present count concerns the component family that matches a fixed reference branch within this topology. Uniform impedance scaling changes $B_N$ by one scalar factor while preserving $A_N$. For $N\geq2$, that scaling follows one direction within a larger matching family.
 
-At a specified $g>0$, raw matching, $H_{g,P}=H_{g,N}$, fixes all coefficients of $D_g=A_N+gB_N$. The constant coefficient fixes $B_N(0)$ through $D_g(0)=1+gB_N(0)$. The remaining $N$ coefficients fix the combinations of $A_N$ and $B_N$. The $N+1$ independent linear constraints leave $N-1$ local degrees of freedom, including zero for $N=1$.
+At a specified $g>0$, raw matching, $H_{g,P}=H_{g,N}$, fixes all coefficients of $D_g=A_N+gB_N$. Termination previously entered realizability as a restriction on the attainable gain range \citep{fialkow1951rcladder,fialkow1952rcnetworks}; the count below instead concerns the family that matches a given reference branch. The constant coefficient fixes $B_N(0)$ through $D_g(0)=1+gB_N(0)$. The remaining $N$ coefficients fix the combinations of $A_N$ and $B_N$. The $N+1$ independent linear constraints leave $N-1$ local degrees of freedom, including zero for $N=1$.
 
-Direct-current calibration instead compares $G_g=D_g(0)/D_g$. Fixing the normalized denominator imposes $N$ independent constraints and leaves $N$ local degrees of freedom. In coefficient coordinates the normalized coefficient of $x^N$ can be varied through $A_N$ independently of the lower coefficients. The constraint map therefore has rank $N$. For $N=1$, the positive family
+Direct-current calibration instead compares $G_g=D_g(0)/D_g$. Fixing the normalized denominator imposes $N$ independent constraints and leaves $N$ local degrees of freedom. In coefficient coordinates the normalized coefficient of $x^N$ can be varied through $A_N$ independently of the lower coefficients. The constraint map therefore has rank $N$. The gain freedom used here has a classical counterpart in specified-gain synthesis, where the poles are fixed and the gain constant varies over a realizable interval \citep{fialkow1951rcladder,paige1960maximum,wang2017rcladder}. In the present matching problem that freedom is an ambiguity of the partner branch after calibration, with consequences for the uncalibrated differential output. For $N=1$, the positive family
 \[
 r>0,\qquad q=\frac{r+10}{11r}
 \]
@@ -85,7 +85,7 @@ At two distinct positive conductances, put $U_i=1/H_{g_i}$. The two complete tra
 B_N=\frac{U_2-U_1}{g_2-g_1},\qquad
 A_N=\frac{g_2U_1-g_1U_2}{g_2-g_1}.
 \end{equation}
-Two branches that agree at both loads consequently have identical $A_N$ and $B_N$. Unique recovery then requires identical corresponding components. The two-load reconstruction applies to every finite $N$ in the stated ladder class. It uses complete complex transfer functions, including absolute gain, at two loads.
+Two branches that agree at both loads consequently have identical $A_N$ and $B_N$. The stepwise uniqueness of the classical ladder extraction then requires identical corresponding components \citep{guillemin1949rcsynthesis}. The two-load reconstruction applies to every finite $N$ in the stated ladder class. It uses complete complex transfer functions, including absolute gain, at two loads.
 
 Two normalized resistive-load responses also identify the components exactly. Write $D_i(g_k)=c_kD_{\rm ref}(g_k)$ for a candidate branch. The coefficient of $x^N$ is independent of $g_k$ and is nonzero; hence $c_1=c_2=c$. Subtracting the two load equations gives $B_i=cB_{\rm ref}$ and then $A_i=cA_{\rm ref}$. Since $A_i(0)=A_{\rm ref}(0)=1$, $c=1$. The normalized two-load proof uses exact complete responses. A stable noisy-data estimator additionally requires an uncertainty model.
 
@@ -125,7 +125,7 @@ Parallel RC & $g_0+\alpha x$ & $N-1$ \\
 \end{tabular}
 \end{table}
 
-Two distinct known rational admittances also determine the component tuple under raw matching. For $g_k=P_k/Q_k$, multiply $Q_k\Delta A+P_k\Delta B=0$ by the other denominator and subtract. The result is $(P_1Q_2-P_2Q_1)\Delta B=0$. Nonidentical load functions mean $P_1Q_2-P_2Q_1\not\equiv0$, which gives $\Delta B=0$ and then $\Delta A=0$. Each known nonzero $Q_k$ permits cancellation as a rational function, including at isolated zeros by continuation.
+Two distinct known rational admittances also determine the component tuple under raw matching. For $g_k=P_k/Q_k$, multiply $Q_k\Delta A+P_k\Delta B=0$ by the other denominator and subtract. The result is $(P_1Q_2-P_2Q_1)\Delta B=0$. Nonidentical load functions mean $P_1Q_2-P_2Q_1\not\equiv0$, which gives $\Delta B=0$ and then $\Delta A=0$. Each known nonzero $Q_k$ permits cancellation as a rational function, including at isolated zeros by continuation. The loads in Table~\ref{tab:load-dimensions} are time-invariant rational admittances; a periodically switched input requires the separate sampling model introduced in Section~\ref{sec:dynamic}.
 
 \subsection{Load variation and recovery conditioning}
 

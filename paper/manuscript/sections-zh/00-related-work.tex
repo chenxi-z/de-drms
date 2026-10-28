@@ -12,7 +12,9 @@ Casas 和 Pall\`as-Areny 分析了非耦合与耦合模拟差分滤波器，并�
 阻抗平衡也决定实际平衡接口的响应。Whitlock 和 Floru 展示了信号源与接收器的共模阻抗不平衡如何相互作用，并介绍了一种具有高共模输入阻抗的电路\citep{whitlock2004balancedinput}。对于本文梯形网络，需要回答的问题是：两条开路电压传递函数相同的支路，在接入负载后是否仍然相同？开路传递函数确定电压比，输出阻抗确定所接负载如何改变这一电压比。保留这两个函数，便可显式描述端接的影响，直接比较开路匹配与指定有限负载下的匹配。
 
 \subsection{网络实现与容差分析}
-Guillemin 研究了 RC 网络综合；Fialkow 和 Gerst 研究了 RC 梯形网络的传递函数以及一般双端口 RC 网络\citep{guillemin1949rcsynthesis,fialkow1951rcladder,fialkow1952rcnetworks}。Wang 等考察了指定增益下无源双端口 RC 梯形网络的实现\citep{wang2017rcladder}。连分式梯形综合与传输矩阵分解属于已有网络综合工具\citep{lee1978chain}。本文利用该表示建立已知端接导纳施加的约束，计算能够匹配固定参考支路的正值元件族，并区分包含绝对增益的匹配与直流校准后的匹配。
+经典综合的目标是由给定传递函数构造一个网络。Guillemin 建立了连分式梯形综合，并给出端接后的传递结构 $Y_{12}/(1+Y_{22})$\citep{guillemin1949rcsynthesis}。Fialkow 和 Gerst 刻画了梯形网络与一般双端口 RC 网络的传递函数及增益常数的可实现范围\citep{fialkow1951rcladder,fialkow1952rcnetworks}；其连续实现族构造还表明，同一传递函数允许许多正值实现。梯形网络的最大可实现增益由 Paige 和 Kuh 给出，Wang 等借助 Ali 和 Kim 的同余变换证明该范围内任意指定增益均可实现\citep{paige1960maximum,wang2017rcladder,ali1975continuous}。端接在这一理论中以影响可实现增益范围的方式进入\citep{fialkow1951rcladder,fialkow1952rcnetworks}。
+
+本文提出的匹配问题与此不同：本文计算在指定端接和测量口径下带载传递函数等于固定参考支路的正值元件族。传输矩阵与连分式表示是完成该计算的已有工具\citep{guillemin1949rcsynthesis,fialkow1951rcladder,lee1978chain}，本文用其表达已知端接导纳施加的约束。所得计数区分包含绝对增益的匹配与直流校准后的匹配，不属于新的可实现性定理。
 
 元件实现需要与灵敏度一起考虑。Moschytz 讨论了有源滤波器设计中灵敏度、元件值跨度与元件容差之间的权衡\citep{moschytz0radeffs}。Director 和 Rohrer 建立了用于计算网络灵敏度的广义伴随网络框架\citep{director1969the}。Endres 和 Kirkpatrick 研究了差分环路滤波器失配如何在快速建立的锁相环中引入额外瞬态\citep{endres0ensitivi}。这些灵敏度与瞬态研究支持将精确标称抵消条件、元件扰动影响和建立时间规范分别考察；各问题均需要明确的响应函数与评价准则。
 
