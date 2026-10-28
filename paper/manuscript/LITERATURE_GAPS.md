@@ -24,10 +24,10 @@
 
 | 优先级 | 题名与年份 | DOI / 正式入口 | 需要核对的具体问题 |
 |---|---|---|---|
-| P0 | Guillemin, *Synthesis of RC-Networks* (1949) | [10.1002/sapm194928122](https://doi.org/10.1002/sapm194928122) | 给定电压传递与驱动点/输出阻抗的联合综合条件；本稿正元件反解与经典综合结果的关系。 |
-| P0 | Fialkow & Gerst, *The Transfer Function of an R-C Ladder Network* (1951) | [10.1002/sapm195130149](https://doi.org/10.1002/sapm195130149) | 两级梯形等传递函数的参数自由度、正元件约束，是否已有等价参数化。 |
-| P0 | Fialkow & Gerst, *The transfer function of general two terminal-pair RC networks* (1952) | [10.1090/qam/49081](https://doi.org/10.1090/qam/49081) | 端接变化、二端口函数等价与唯一性的相关定理。出版方页面有 PDF 入口，可请机构浏览器先试。 |
-| P0 | Wang, Chen & Chen, *Realization of a transfer function as a passive two-port RC ladder network with a specified gain* (2017) | [10.1002/cta.2328](https://doi.org/10.1002/cta.2328) | 指定增益的连续可实现区间与本稿单/双端接约束的包含关系。 |
+| P0 | Guillemin, *Synthesis of RC-Networks* (1949) | `doi:10.1002/sapm194928122`<br>https://doi.org/10.1002/sapm194928122<br>Wiley **closed**（需机构） | 给定电压传递与驱动点/输出阻抗的联合综合条件；本稿正元件反解与经典综合结果的关系。 |
+| P0 | Fialkow & Gerst, *The Transfer Function of an R-C Ladder Network* (1951) | `doi:10.1002/sapm195130149`<br>https://doi.org/10.1002/sapm195130149<br>Wiley **closed**（需机构；新颖性威胁最大，优先取） | 两级梯形等传递函数的参数自由度、正元件约束，是否已有等价参数化。 |
+| P0 | Fialkow & Gerst, *The transfer function of general two terminal-pair RC networks* (1952) | `doi:10.1090/qam/49081`<br>https://doi.org/10.1090/qam/49081<br>**bronze OA 免费**：[PDF 直链](https://www.ams.org/qam/1952-10-02/S0033-569X-1952-49081-7/S0033-569X-1952-49081-7.pdf) | 端接变化、二端口函数等价与唯一性的相关定理。出版方页面有 PDF 入口，可请机构浏览器先试。 |
+| P0 | Wang, Chen & Chen, *Realization of a transfer function as a passive two-port RC ladder network with a specified gain* (2017) | `doi:10.1002/cta.2328`<br>https://doi.org/10.1002/cta.2328<br>Wiley **closed**（需机构） | 指定增益的连续可实现区间与本稿单/双端接约束的包含关系。 |
 
 这四篇补齐前，正文保留“逐命题比较待完成”的具体标记；不写“首次”“从未研究”或“已有文献均未涉及”。缺口影响新颖性定位的最终强度，不改变本稿已经给出的代数推导是否成立。主库完整下载队列仍见 `../paywall-download-list.md`，本清单只列与本稿核心主张直接相关的缺口。
 
