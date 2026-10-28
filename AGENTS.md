@@ -88,9 +88,9 @@ IOC不手工增删IP，当前源码与旧IOC差异见CubeMX清单，需GUI复存
 | 前端 | **3 颗跟随器 OPA388**（T、M、B 三线；AIN1N 直接经 RC 接 Rsense 底端）；T 点顶端偏置 R_top 10 kΩ / R_b 150 kΩ（E.2）；保护 BAV199（默认）/ 低漏电 ESD 阵列（备选焊盘） |
 | 自校准 | 0.1% Rsense 打底 + 板上 R_ref（100 kΩ 0.01%）自检，**单颗 TMUX1134 切换**（2026-10-18 整合落地，替换原 TMUX1101×2+1102×2 分立方案）；**零点模式**消 ADC 失调（**SEL1/2/3 = PB2 同沿、SEL4 = PB0**，互锁靠固件；原 SEL_K1=PB5 已取消）（切换电路已画：`docs/design/diagram/模拟前端与自校准.svg`，方案见 E.3；**原理图施工级恒流源图**见 `docs/design/diagram/恒流源电路图.svg`）；**全链仿真 2026-10-14 定版**：三层校准机构逐项实测验证（fs 套件） |
 | 测量能力 | **1% 可用范围 ~73 Ω–600 kΩ**（设计量程 10–120 kΩ @≤0.005%）；定级**随 R 变**：**@120 kΩ ≈4½ 位精度**、**@10 kΩ 降到 4 位（typ）/3½ 位（max）**（INL 主导，2026-10-14 按手册 TYP 8/MAX 20 ppm FS 修正，原写"4½ 位精度"未分 R）；5½ 位**分辨率**（准静态，分辨率≠精度）；绝对精度锚定 R_ref（Rsense 在 k 校准中约掉）；冲击 10 ms 级跟踪误差 <0.000023%（E.3.4/E.4.3） |
-| MCU | **STM32U575RGT6**（2026-10-28 换型，原 U545RET6Q 缺货）——M33 160 MHz、**1 MB Flash**、**786 KB SRAM**、USB FS 双角色（USB_DRD_FS）、LQFP-64、**无 SMPS**（纯 LDO）；手册 **DS13737**。**VCAP(30) 须接 2.2 µF 到地（板上 C4）** |
+| MCU | **STM32U575RGT6**（2026-10-28 换型，原 U545RET6Q 缺货）——M33 160 MHz、**1 MB Flash**、**786 KB SRAM**、USB FS 双角色（USB_DRD_FS）、LQFP-64、**无 SMPS**（纯 LDO）；手册 **DS13737**。**VCAP(30) 须接 2.2 µF 到地（板上 C4）**。**首板贴 HSE 16 MHz（X4）**；VDDUSB(48) 接 VCC（不单独断电） |
 | **存储/记录** | **两层**：校准系数 → MCU Flash（EEPROM 仿真）；**测量数据 → 外部 TF (micro SD) 卡，SDMMC1 4-bit**（PC8–PC12 + PD2，CD=**PA15**，各信号经 33 Ω 串阻 + 10 kΩ 上拉）。**2026-10-28：TF 卡改常电，取消 SD_PWR_EN/高边开关，PA8 悬空**（用户不需要极致低功耗）。768 KB/s 冲击采满 |
-| 温度/电源/通信 | **温度传感：2026-10-28 取消（本版无 I²C、无 TMP117）**——代价是失去温度补偿，测量按恒温/短时口径使用；PB6/PB7 保留为将来升级口（`PT100` 亦已否，理由见 E.5.2）；1S 锂电 + BQ24040 + 双 LDO（**数字 TPS7A0233 常开 / 模拟 TPS7A2033 EN 受控**）；**充电固定 500 mA 档**（2026-10-22 简化：删 ISET_HI 切 1 A 链与 BC1.2 判 DCP 逻辑——R6=2 kΩ 挂 ISET1、ISET2 直连 GND；**PC2=BQ_CHG、PB5=BQ_PG 开漏监测**，各 100 kΩ 上拉 VCC）；**电芯选定带 NTC 引线版**（25 ℃ 10 kΩ，经 CN4 3P 直连 TS，板上 NTC/禁充链整删）；USB FS（Type-C）；**USB 在线检测 = VBUS 分压 1M/1M → PC1 内部 ADC（IN2），阈值 3.70 V**（非 OTG 硬件 VBUS，见 E.8.3） |
+| 温度/电源/通信 | **温度传感：2026-10-28 取消（本版无 I²C、无 TMP117）**——代价是失去温度补偿，测量按恒温/短时口径使用；PB6/PB7 保留为将来升级口（`PT100` 亦已否，理由见 E.5.2）；1S 锂电 + **BQ24074**（2026-10-28 换料，QFN-16 带 PowerPath；原 BQ24040）+ 双 LDO（**数字 TPS7A0233 常开 / 模拟 TPS7A2033 EN 受控**）；**充电电流档待核（E.10 #18）**：BQ24074 用 ISET(16)=R2 1 kΩ、ILIM(12)=R8 1 kΩ，**须查 SLUS812 的 K_ISET/K_ILIM 系数**确认实际电流（BQ24040 的公式不适用）；**PC2=BQ_CHG、PB5=BQ_PG 开漏监测**，各 100 kΩ 上拉 VCC；**PC1=BQ_EN**（R47 10 kΩ 下拉，默认关闭充电）；**电芯选定带 NTC 引线版**（经 CN3 1×3P 直连 TS）；USB FS（Type-C），**USB 在线检测 = PC13（外部 NPN 集电极，低=VBUS 在）** |
 | 引脚/时钟/电源域/交互 | **2026-10-28 按 U575 已布线图纸重写（权威表 = `docs/design/pin-assignment.md`，依据 PCB 焊盘网络实测）**：ADC 簇 **PA1–PA7**（DONE=PA1、nRESET=PA2、DRDY=**PA3·EXTI3**、nCS=PA4、SPI1=PA5/6/7）；**PC4=CURR_DIS、PC5=PWR_BTN(WKUP5)、PB0=SEL_K2、PB1=SEL_SENSE**（575 上 24–27 脚信号名，物理脚位与 545 相同）；LED 簇 **PB13/14/15+PC6/PC7**；ANA_EN=**PC3**、BQ_CHG=**PC2**、BQ_PG=**PB5**、SD_CD=**PA15**、SDMMC PC8–PC12+PD2、调试=**USART1(PA9/PA10, AF7)**；**NC：PB2/PB10/PA8/PB4/PB6/PB7/PB8/PB9** |
 
 ## 硬约束（改任何参数都要复核）
@@ -110,9 +110,10 @@ IOC不手工增删IP，当前源码与旧IOC差异见CubeMX清单，需GUI复存
 - **RET6Q 是 SMPS 版，本设计启用内部 SMPS**（2026-10-22 定：IOC `PWR_SMPS_SUPPLY`，与图上 L1 2.2 µH 一致）：
   复位后默认 LDO（RM0456 §10.5.2，范围 4），固件用 REGSEL 切 SMPS，**切换前系统频率须先降至 110 MHz 以下**；
   生成代码里 `HAL_PWREx_ConfigSupply()` 选 **`PWR_SMPS_SUPPLY`**
-- **MCU 免晶振 = PLL 源必须是 MSIS/MSI，不得留 HSE**：HSE 焊盘不贴（E.7），
-  若 IOC 保持 `RCC_PLLSOURCE_HSE` 则 HSE 不起振 → PLL 锁不住 → **SYSCLK 无输出**。
-  ✅ **2026-10-22 销号**：IOC 已改 MSIS 源（VCOInput=16 MHz 经 PLLM=3 → PLLRCLK=160 MHz），见 E.10 #16
+- ~~**MCU 免晶振 = PLL 源必须是 MSIS/MSI**~~ → ❌ **2026-10-28 修订**：用户决定**首板贴装 HSE 16 MHz**
+  （板上 X4 + C1/C2 20 pF + R1 1 MΩ 已布已贴）。**HSE-PLL 与 MSIS-PLL 均可用**，E.10 #16 关闭。
+  **但 USB 仍必须开 CRS**：USB 时钟走 HSI48（非 PLL 分频），HSI48 ±1 % 需 CRS 从 SOF 校准到 ±0.25 %。
+  ⚠️ 负载电容偏大：晶振 12 pF 配 20 pF 电容，实际 ≈13–15 pF，频偏 +10~30 ppm（对 SYSCLK 无影响）
 - ~~**TF 卡供电必须由 `SD_PWR_EN` 断电**~~ → ❌ **2026-10-28 撤销**：TF 卡改常电（用户不需要极致低功耗），
   PA8 悬空、高边开关取消。代价 = 待机多 50–100 µA（卡在位），且掉电安全只剩"正常 flush"一道防线。
   若将来恢复低功耗路线，此项是第一优先（收益远大于其他项）。
@@ -143,7 +144,8 @@ IOC不手工增删IP，当前源码与旧IOC差异见CubeMX清单，需GUI复存
   且 Type-C 只装 Rd 的设备本就无权取 1 A。**BC1.2 结论同日反转**：DS14216 §3.47 末条——U545 USB 外设
   **设备模式片内支持 BC1.2 BCD**（早间"STM32 无 BC1.2"系把 F4/F7 OTG_FS 结论误套 U5，外设代际差异未逐片核）。
   E.8.4 定稿判据 = **片内 BCD 判 DCP/CDP 才切 1 A**，SDP 按枚举电流，BCD 判不出维持 500 mA；
-  BQ24040 仍无 BC1.2，分型全由 MCU 侧 USB 外设完成（使能路径待 RM0456，E.10 #17）
+  ~~BQ24040 仍无 BC1.2，分型全由 MCU 侧 USB 外设完成~~（**该整段 2026-10-22 已删除**：
+  充电改固定单档，BC1.2 判档不再需要；2026-10-28 换料 BQ24074）
 - **"仅凭 SOF/枚举判断 USB 是否在线"（2026-10-14 否）**：插充电头不接 PC 时无 SOF，会被误判为"未插 USB"，
   令 E.8.3"在线不报警不关机"失效
 - **手改 CubeMX IOC 增删 IP 块（2026-10-14 实测否决）**：手写 SPI1/ADC1/USART2/USB_OTG_FS 的 IP 段
