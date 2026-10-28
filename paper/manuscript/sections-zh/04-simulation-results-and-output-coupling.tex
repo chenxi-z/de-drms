@@ -56,7 +56,7 @@ D_d&=1+sC_d(Z'_P+Z'_N).
 
 图~\ref{fig:bridge-gains} 展示两个独立增益的变化，图~\ref{fig:bridge-cmrr} 比较其共模抑制比。
 
-式~\eqref{eq:12} 描述差分输出。对单频源相量，令 $E=H_Pv_P$、$F=H_Nv_N$、$X=sC_d(Z'_NE+Z'_PF)$，耦合节点解为 $u_P=(E+X)/D_d$、$u_N=(F+X)/D_d$，因此 $u_P/u_N=(E+X)/(F+X)$。当 $|X/E|$、$|X/F|$ 足够小时，相对 $E/F$ 的一阶变化为 $X(1/E-1/F)$。共享差分输出因子并不保持单端商不变。第~\ref{sec:dynamic} 节的瞬时动态比值假设两路径独立；加入跨接电容后须使用完整双输入耦合响应。
+式~\eqref{eq:12} 描述差分输出。对单频源相量，令 $E=H_Pv_P$、$F=H_Nv_N$、$X=sC_d(Z'_NE+Z'_PF)$，耦合节点解为 $u_P=(E+X)/D_d$、$u_N=(F+X)/D_d$，因此 $u_P/u_N=(E+X)/(F+X)$。当 $|X/E|$、$|X/F|$ 足够小时，相对 $E/F$ 的一阶变化为 $X(1/E-1/F)$。共享差分输出因子并不保证保持单端商不变。第~\ref{sec:dynamic} 节的瞬时动态比值假设两路径独立；加入跨接电容后须使用完整双输入耦合响应。
 
 \input{figures/fig06-zh.tex}
 

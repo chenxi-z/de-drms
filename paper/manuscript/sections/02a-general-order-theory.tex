@@ -49,7 +49,7 @@ The forward map from the $2N$ positive components to the $2N$ coefficients of $A
 
 \subsection{The number of matching degrees of freedom}
 
-Hold one reference branch fixed. Open-circuit matching fixes the $N$ nonconstant coefficients of $A_N$, leaving $N$ local degrees of freedom in the positive realization domain. Multiple positive realizations of one transfer function are classical; the present count concerns the component family that matches a fixed reference branch within this topology. Uniform impedance scaling changes $B_N$ by one scalar factor while preserving $A_N$. For $N\geq2$, that scaling follows one direction within a larger matching family.
+Hold one reference branch fixed. Open-circuit matching fixes the $N$ nonconstant coefficients of $A_N$, leaving $N$ local degrees of freedom in the positive realization domain. Multiple positive realizations of one transfer function are classical \citep{fialkow1951rcladder,fialkow1952rcnetworks}; the present count concerns the component family that matches a fixed reference branch within this topology. Uniform impedance scaling changes $B_N$ by one scalar factor while preserving $A_N$. For $N\geq2$, that scaling follows one direction within a larger matching family.
 
 At a specified $g>0$, raw matching, $H_{g,P}=H_{g,N}$, fixes all coefficients of $D_g=A_N+gB_N$. Termination previously entered realizability as a restriction on the attainable gain range \citep{fialkow1951rcladder,fialkow1952rcnetworks}; the count below instead concerns the family that matches a given reference branch. The constant coefficient fixes $B_N(0)$ through $D_g(0)=1+gB_N(0)$. The remaining $N$ coefficients fix the combinations of $A_N$ and $B_N$. The $N+1$ independent linear constraints leave $N-1$ local degrees of freedom, including zero for $N=1$.
 
@@ -63,7 +63,7 @@ For $N=2$, branch P = $(1,1,1,1)$ and the positive branch
 \[
 \left(2,2,\frac{217+\sqrt{6769}}{288},\frac{217-\sqrt{6769}}{480}\right)
 \]
-have identical normalized responses at $g=0.1$. The two raw denominators differ by the constant factor $7/6$, giving a raw CMRR of $20\log_{10}(13/2)=16.26$~dB at every frequency. Calibration therefore permits an additional matching direction that does not cancel the raw differential output.
+have identical normalized responses at $g=0.1$. The two raw denominators differ by the constant factor $7/6$. Writing $D_N=(7/6)D_P$ gives $H_N=(6/7)H_P$, so the raw differential gain is $G_{DC}=H_P-H_N=H_P/7$ and the differential-to-differential gain is $G_{DD}=(H_P+H_N)/2=(13/14)H_P$. Their ratio is frequency independent, giving a raw CMRR of $20\log_{10}|G_{DD}/G_{DC}|=20\log_{10}(13/2)=16.26$~dB at every frequency. Calibration therefore permits an additional matching direction that does not cancel the raw differential output: the normalized responses used for the readout agree, while the raw common-to-differential conversion persists.
 
 \begin{table}[htbp]
 \centering
