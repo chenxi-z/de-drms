@@ -221,17 +221,17 @@ void EXTI0_IRQHandler(void)
 }
 
 /**
-  * @brief This function handles EXTI Line1 interrupt.
+  * @brief This function handles EXTI Line5 interrupt (PWR_BTN on PC5, U575).
   */
-void EXTI1_IRQHandler(void)
+void EXTI5_IRQHandler(void)
 {
-  /* USER CODE BEGIN EXTI1_IRQn 0 */
+  /* USER CODE BEGIN EXTI5_IRQn 0 */
 
-  /* USER CODE END EXTI1_IRQn 0 */
+  /* USER CODE END EXTI5_IRQn 0 */
   HAL_GPIO_EXTI_IRQHandler(PWR_BTN_Pin);
-  /* USER CODE BEGIN EXTI1_IRQn 1 */
+  /* USER CODE BEGIN EXTI5_IRQn 1 */
 
-  /* USER CODE END EXTI1_IRQn 1 */
+  /* USER CODE END EXTI5_IRQn 1 */
 }
 
 /**

@@ -1,9 +1,17 @@
-# 当前实施规则（2026-10-24）
+# 当前实施规则（2026-10-28）
 
 用户已授权修改仓库固件、设计文档和说明图，原理图/PCB工程由用户修改。
 先读 `docs/design/README.md`、主文档**附录F**、`pin-assignment.md`、`firmware/DE-DRM/CUBEMX_SETUP.md`。
 当前用户确认与附录F优先于下方旧规约中的硬件决策、性能断言和文件状态。
-直流首板采用T2候选，保留扫频接口但不承诺16 kHz扫频；不恢复TMP117/TF电源开关/VBUS ADC。
+
+**2026-10-28 换型与功能裁剪（用户决定，覆盖下方旧表）**：
+- **MCU 改 STM32U575RGT6**（C5270980）：U545RET6Q 缺货（库存 0）。同 LQFP-64，
+  24–27 脚信号名变但**走线不改**；575 无 SMPS；VCAP(30) 须接 2.2 µF（板上 C4 已布）。
+  Flash 512 KB→1 MB、SRAM 274 KB→786 KB，属升级。
+- **不恢复 TMP117 / 不做 I²C**：PB6/PB7 悬空，主程序不初始化 I2C1。代价=无温度补偿。
+- **TF 卡改常电**：取消 SD_PWR_EN 与高边开关，PA8 悬空。**不追求极致低功耗**。
+- **PA4 保持 ADS_CS，不作 DAC**（575 上该脚有 DAC1_OUT1，本版不用）。
+- 直流首板采用T2候选，保留扫频接口但不承诺16 kHz扫频；不恢复VBUS ADC。
 已有生成固件与EDA，不能再称纯文档阶段。根目录实际Git远端为GitHub `chenxi-z/de-drms`。
 不改EDA；不改历史仿真结果，不降门槛；修改SVG生成器后同步SVG和@2x.png并跑图检和目视。
 IOC不手工增删IP，当前源码与旧IOC差异见CubeMX清单，需GUI复存。
@@ -80,10 +88,10 @@ IOC不手工增删IP，当前源码与旧IOC差异见CubeMX清单，需GUI复存
 | 前端 | **3 颗跟随器 OPA388**（T、M、B 三线；AIN1N 直接经 RC 接 Rsense 底端）；T 点顶端偏置 R_top 10 kΩ / R_b 150 kΩ（E.2）；保护 BAV199（默认）/ 低漏电 ESD 阵列（备选焊盘） |
 | 自校准 | 0.1% Rsense 打底 + 板上 R_ref（100 kΩ 0.01%）自检，**单颗 TMUX1134 切换**（2026-10-18 整合落地，替换原 TMUX1101×2+1102×2 分立方案）；**零点模式**消 ADC 失调（**SEL1/2/3 = PB2 同沿、SEL4 = PB0**，互锁靠固件；原 SEL_K1=PB5 已取消）（切换电路已画：`docs/design/diagram/模拟前端与自校准.svg`，方案见 E.3；**原理图施工级恒流源图**见 `docs/design/diagram/恒流源电路图.svg`）；**全链仿真 2026-10-14 定版**：三层校准机构逐项实测验证（fs 套件） |
 | 测量能力 | **1% 可用范围 ~73 Ω–600 kΩ**（设计量程 10–120 kΩ @≤0.005%）；定级**随 R 变**：**@120 kΩ ≈4½ 位精度**、**@10 kΩ 降到 4 位（typ）/3½ 位（max）**（INL 主导，2026-10-14 按手册 TYP 8/MAX 20 ppm FS 修正，原写"4½ 位精度"未分 R）；5½ 位**分辨率**（准静态，分辨率≠精度）；绝对精度锚定 R_ref（Rsense 在 k 校准中约掉）；冲击 10 ms 级跟踪误差 <0.000023%（E.3.4/E.4.3） |
-| MCU | STM32U545RET6Q（M33 160 MHz、512 KB Flash、274 KB SRAM、USB FS 双角色（DRD）、LQFP-64、**SMPS 版**；手册 **DS14216**，非 U575 的 DS13737） |
-| **存储/记录** | **两层（2026-10-14 新增，E.11）**：校准系数 → MCU Flash（EEPROM 仿真）；**测量数据 → 外部 TF (micro SD) 卡，SDMMC1 4-bit**（PC8–PC12 + PD2，CD=**PA15**（原 PB9 在 LQFP64_SMPS 未引出，二轮复核改），**SD_PWR_EN=PB13 控制高边开关默认断电**）。768 KB/s 冲击采满远超 512 KB Flash 能力 |
-| 温度/电源/通信 | TMP117 外置 4 线探头（**PT100 已否**：贴装温差是瓶颈非传感器精度，2026-10-14 定稿，E.5.2；备选升级口：同位参考试件 K5/K6）；1S 锂电 + BQ24040 + 双 LDO（**数字 TPS7A0233 常开 / 模拟 TPS7A2033 EN 受控**）；**充电固定 500 mA 档**（2026-10-22 简化：删 ISET_HI 切 1 A 链与 BC1.2 判 DCP 逻辑——R6=2 kΩ 挂 ISET1、ISET2 直连 GND；**PC2=BQ_CHG、PB5=BQ_PG 开漏监测**，各 100 kΩ 上拉 VCC）；**电芯选定带 NTC 引线版**（25 ℃ 10 kΩ，经 CN4 3P 直连 TS，板上 NTC/禁充链整删）；USB FS（Type-C）；**USB 在线检测 = VBUS 分压 1M/1M → PC1 内部 ADC（IN2），阈值 3.70 V**（非 OTG 硬件 VBUS，见 E.8.3） |
-| 引脚/时钟/电源域/交互 | **引脚 2026-10-14 全表重排定稿 + 2026-10-20 v3 重分配 + 同日就近二次重排 + 2026-10-22 电源监测改（PB5=BQ_PG、PC2=BQ_CHG）**：ADC 簇收拢 **PA1–PA7 物理连续**（DONE=PA1、nRESET=PA2、DRDY=**PA3·EXTI3**、SPI1=PA4–7，封装 15–23 脚）；调试=**USART1(PA9/PA10, AF7)** 与 SWD 同侧（LPUART1 撤销）；预留=**PA8/PB0**（原则：通信 AF 不动 + 辅助 GPIO 同端口聚堆 + **封装就近**；**LQFP64_SMPS 无 PC4/PC5/PB9/PB12**；TMUX 簇 **PB0/2/10（24–27 连续）**、LED 簇 **PB13/14/15+PC6/PC7（34–38 五连）**、ANA_EN=**PC3**、SD_PWR_EN=**PA8**、SD_CD=**PA15**；U545 无 USART2 不影响 USART1） |
+| MCU | **STM32U575RGT6**（2026-10-28 换型，原 U545RET6Q 缺货）——M33 160 MHz、**1 MB Flash**、**786 KB SRAM**、USB FS 双角色（USB_DRD_FS）、LQFP-64、**无 SMPS**（纯 LDO）；手册 **DS13737**。**VCAP(30) 须接 2.2 µF 到地（板上 C4）** |
+| **存储/记录** | **两层**：校准系数 → MCU Flash（EEPROM 仿真）；**测量数据 → 外部 TF (micro SD) 卡，SDMMC1 4-bit**（PC8–PC12 + PD2，CD=**PA15**，各信号经 33 Ω 串阻 + 10 kΩ 上拉）。**2026-10-28：TF 卡改常电，取消 SD_PWR_EN/高边开关，PA8 悬空**（用户不需要极致低功耗）。768 KB/s 冲击采满 |
+| 温度/电源/通信 | **温度传感：2026-10-28 取消（本版无 I²C、无 TMP117）**——代价是失去温度补偿，测量按恒温/短时口径使用；PB6/PB7 保留为将来升级口（`PT100` 亦已否，理由见 E.5.2）；1S 锂电 + BQ24040 + 双 LDO（**数字 TPS7A0233 常开 / 模拟 TPS7A2033 EN 受控**）；**充电固定 500 mA 档**（2026-10-22 简化：删 ISET_HI 切 1 A 链与 BC1.2 判 DCP 逻辑——R6=2 kΩ 挂 ISET1、ISET2 直连 GND；**PC2=BQ_CHG、PB5=BQ_PG 开漏监测**，各 100 kΩ 上拉 VCC）；**电芯选定带 NTC 引线版**（25 ℃ 10 kΩ，经 CN4 3P 直连 TS，板上 NTC/禁充链整删）；USB FS（Type-C）；**USB 在线检测 = VBUS 分压 1M/1M → PC1 内部 ADC（IN2），阈值 3.70 V**（非 OTG 硬件 VBUS，见 E.8.3） |
+| 引脚/时钟/电源域/交互 | **2026-10-28 按 U575 已布线图纸重写（权威表 = `docs/design/pin-assignment.md`，依据 PCB 焊盘网络实测）**：ADC 簇 **PA1–PA7**（DONE=PA1、nRESET=PA2、DRDY=**PA3·EXTI3**、nCS=PA4、SPI1=PA5/6/7）；**PC4=CURR_DIS、PC5=PWR_BTN(WKUP5)、PB0=SEL_K2、PB1=SEL_SENSE**（575 上 24–27 脚信号名，物理脚位与 545 相同）；LED 簇 **PB13/14/15+PC6/PC7**；ANA_EN=**PC3**、BQ_CHG=**PC2**、BQ_PG=**PB5**、SD_CD=**PA15**、SDMMC PC8–PC12+PD2、调试=**USART1(PA9/PA10, AF7)**；**NC：PB2/PB10/PA8/PB4/PB6/PB7/PB8/PB9** |
 
 ## 硬约束（改任何参数都要复核）
 
@@ -105,8 +113,10 @@ IOC不手工增删IP，当前源码与旧IOC差异见CubeMX清单，需GUI复存
 - **MCU 免晶振 = PLL 源必须是 MSIS/MSI，不得留 HSE**：HSE 焊盘不贴（E.7），
   若 IOC 保持 `RCC_PLLSOURCE_HSE` 则 HSE 不起振 → PLL 锁不住 → **SYSCLK 无输出**。
   ✅ **2026-10-22 销号**：IOC 已改 MSIS 源（VCOInput=16 MHz 经 PLLM=3 → PLLRCLK=160 MHz），见 E.10 #16
-- **TF 卡供电必须由 `SD_PWR_EN`(PA8，2026-10-21 三排由 PB13 迁来) 断电**：待机口径下卡待机电流 50–100 µA，会压垮 E.8.6 的 ≈10.8 µA 预算
-- **SDMMC kernel clock 不得取 SYSCLK/PLL1R**；且 `f_mount`/sync 完成前**不得**拉低 `SD_PWR_EN`（否则毁 FAT 表）
+- ~~**TF 卡供电必须由 `SD_PWR_EN` 断电**~~ → ❌ **2026-10-28 撤销**：TF 卡改常电（用户不需要极致低功耗），
+  PA8 悬空、高边开关取消。代价 = 待机多 50–100 µA（卡在位），且掉电安全只剩"正常 flush"一道防线。
+  若将来恢复低功耗路线，此项是第一优先（收益远大于其他项）。
+- **SDMMC kernel clock 不得取 SYSCLK/PLL1R**（仍然有效）
 - ~~**`ISET_HI`(PB4) 复位期 = NJTRST + 内部上拉，不是 Low**~~ → ✅ **2026-10-21 销号**（ISET_HI 迁 PC2）；
   **2026-10-22 该功能整体删除**（充电固定 500 mA，PC2 改作 BQ_CHG 开漏监测），此待办永久关闭。
   **PA15=SD_CD 复位期内部上拉**与本设计所需方向一致，无冲突（维持）
@@ -171,7 +181,8 @@ IOC不手工增删IP，当前源码与旧IOC差异见CubeMX清单，需GUI复存
   **#14** ✅ 2026-10-22 销号（SDMMCFreq=48 MHz，PLL 已重配）；
   **#13**（TF 持续写）上板后测；**#15**（CRS 内部 SOF）、**#12** 此前已全清。
   外部依赖余项：**#6 方向性 BOM**（价格/库存/交期**由用户核实**，**含 TF 卡座与卡型号**）、
-  **#7 TMP117 连接器用户自选**、**#11 ADC 待机 IOVDD 电流只剩数值待实测**（合法性已定案，见 E.8.6）。
+  ~~**#7 TMP117 连接器用户自选**~~ → ✅ **2026-10-28 关闭**（本版不做 I²C/TMP117）；
+  **#11 ADC 待机 IOVDD 电流只剩数值待实测**（合法性已定案，见 E.8.6）。
   → 原理图/PCB/BOM（**示意图 2026-10-17 已按新 E.6 复核修正**）→ 固件与上位机
   （采样策略按 E.4.3：冲击全程 128 kSPS 采满、按需数字降采样；记录走 FatFS + SDMMC 4-bit）
 
@@ -201,7 +212,7 @@ IOC不手工增删IP，当前源码与旧IOC差异见CubeMX清单，需GUI复存
 | 标注 | 全中文；图底部固定「图注与自查要点」区，逐条对应需求自查项 |
 | 符号 | 电阻用 IEC 矩形；SPST 用刀臂开合区分 NO/NC；运放/缓冲用三角形；标准接地/电源/连接器符号 |
 | 布线 | 正交 + 直角转角；不连接处画小跳线；**结点用实心圆**，器件端子与开关控制脚用**白底圆**（避免被读成短路） |
-| 未定稿内容 | 未定稿的引脚号/参数不写进图（引脚分配已 **2026-10-14 重排定稿 + 二轮复核**、**2026-10-20 v3 重分配 + 同日二次重排（就近原则）+ 2026-10-22 电源监测改**，权威表 = `docs/design/pin-assignment.md`，新图按该表写：**ADC 簇 PA1–PA7 物理连续**（ADC_DONE=PA1、nRESET=PA2、DRDY=PA3·EXTI3、nCS=PA4、SPI1=PA5/6/7）、调试=**USART1(PA9/PA10, AF7)**、SEL_SENSE=PB2（TMUX1134 SEL1/2/3）、SEL_K2=**PB0**（SEL4）、CURR_DIS=PB10、BQ_PG=PB5、SD_CD=PA15、ANA_EN=**PC3**、BQ_CHG=**PC2**、SD_PWR_EN=**PA8**、LED 簇 **PB13/14/15 + PC6 + 状态 PC7（34–38 五连）**、SDMMC PC8–PC12+PD2、预留 **PB4/PB8**；仍未定稿的如 E.10 细项照此原则）。**✅ 2026-10-21 三排后已回填：整体方案框图/电源树/模拟前端与自校准三图引脚全部改对并通过 svg 门禁；TMUX1134 整合与 AAF B 案同步** |
+| 未定稿内容 | 未定稿的引脚号/参数不写进图。**权威表 = `docs/design/pin-assignment.md`（2026-10-28 按 STM32U575RGT6 PCB 焊盘实测重写）**，新图按该表写：**ADC 簇 PA1–PA7**（ADC_DONE=PA1、nRESET=PA2、DRDY=PA3·EXTI3、nCS=PA4、SPI1=PA5/6/7）、调试=**USART1(PA9/PA10, AF7)**、**PC4=CURR_DIS、PC5=PWR_BTN、PB0=SEL_K2、PB1=SEL_SENSE**（575 上 24–27 脚）、BQ_PG=PB5、SD_CD=PA15、ANA_EN=**PC3**、BQ_CHG=**PC2**、LED 簇 **PB13/14/15+PC6/PC7**、SDMMC PC8–PC12+PD2、**NC：PB2/PB10/PA8/PB4/PB6/PB7/PB8/PB9**。⚠️ **旧图的 PB2=SEL_SENSE / PB10=SEL_K2 / SD_PWR_EN=PA8 均已作废**，改图时须更新 |
 
 ### 三个必踩的坑（都已实测）
 
