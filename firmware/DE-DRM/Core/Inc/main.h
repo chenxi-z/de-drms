@@ -57,9 +57,9 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
-/* DC prototype target (design appendix F): CS moved PA4 -> PA8; PA4 reserved.
- * Do not flash onto the unmodified V1.2 wiring. See CUBEMX_SETUP.md before
- * regenerating: the tracked IOC still describes the previous board mapping.
+/* Board mapping verified 2026-10-28 against PCB pad nets (STM32U575RGT6).
+ * 575 renames pins 24-27 vs 545: PC4=CURR_DIS, PC5=PWR_BTN, PB0=SEL_K2,
+ * PB1=SEL_SENSE. PA8/PB2/PB10/PB6/PB7 unused. No I2C, no SD_PWR_EN.
  */
 #define VBAT_MON_Pin GPIO_PIN_0
 #define VBAT_MON_GPIO_Port GPIOC
@@ -79,17 +79,17 @@ void Error_Handler(void);
 #define ADS_DRDY_Pin GPIO_PIN_3
 #define ADS_DRDY_GPIO_Port GPIOA
 #define ADS_DRDY_EXTI_IRQn EXTI3_IRQn
-#define ADS_CS_Pin GPIO_PIN_8
+#define ADS_CS_Pin GPIO_PIN_4
 #define ADS_CS_GPIO_Port GPIOA
 #define SEL_K2_Pin GPIO_PIN_0
 #define SEL_K2_GPIO_Port GPIOB
-#define PWR_BTN_Pin GPIO_PIN_1
-#define PWR_BTN_GPIO_Port GPIOB
-#define PWR_BTN_EXTI_IRQn EXTI1_IRQn
-#define SEL_SENSE_Pin GPIO_PIN_2
+#define PWR_BTN_Pin GPIO_PIN_5
+#define PWR_BTN_GPIO_Port GPIOC
+#define PWR_BTN_EXTI_IRQn EXTI5_IRQn
+#define SEL_SENSE_Pin GPIO_PIN_1
 #define SEL_SENSE_GPIO_Port GPIOB
-#define CURR_DIS_Pin GPIO_PIN_10
-#define CURR_DIS_GPIO_Port GPIOB
+#define CURR_DIS_Pin GPIO_PIN_4
+#define CURR_DIS_GPIO_Port GPIOC
 #define LED_GREEN_Pin GPIO_PIN_13
 #define LED_GREEN_GPIO_Port GPIOB
 #define LED_YELLOW_Pin GPIO_PIN_14

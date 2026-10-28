@@ -1,7 +1,16 @@
-# 当前交接（2026-10-24）
+# 当前交接（2026-10-28）
 
 先读设计README、主文档附录F、当前引脚表和CubeMX清单。
-用户确定直流首板+扫频预留，图纸由用户修改；本轮代码面向附录F目标，尤其CS已迁PA8。
+用户确定直流首板+扫频预留，图纸由用户修改。
+
+**2026-10-28 变更（覆盖下方全部旧引脚/温度/TF电源描述）**：
+- **MCU 改 STM32U575RGT6**（U545RET6Q 缺货）。同 LQFP-64；**PC4=CURR_DIS、PC5=PWR_BTN、
+  PB0=SEL_K2、PB1=SEL_SENSE**（24–27 脚改名，走线未变）；**VCAP(30) 接 2.2 µF（C4）**；无 SMPS。
+- **不做 I²C / 无 TMP117**（PB6/PB7 NC）。
+- **TF 卡常电**，取消 SD_PWR_EN（PA8 NC）。
+- **PA4 = ADS_CS，不作 DAC**。
+- 权威引脚表 = `docs/design/pin-assignment.md`（按 PCB 焊盘实测重写）。
+
 历史性能不得当作已验收；不需在云端重跑LTspice。原始仿真报告保持原判定。
 以下旧交接全文仅为历史，不能复制其中旧引脚/电源/AAF作为新实现指令。
 
@@ -49,12 +58,15 @@
   T 点顶端偏置 R_top 10 kΩ / R_b 150 kΩ（E.2）；保护 BAV199（默认）/ 低漏电 ESD 阵列（备选焊盘）；
   抗混叠 = 每线 **B 案三级阶梯** 6.19 Ω+68 nF → 6.04 Ω+68 nF → 13.7 Ω+27 nF（对地）+ 末级 12 nF 差分，
   fc≈80 kHz（E.4.4，2026-10-19 定版；旧 1 kΩ+10 nF 已于同日作废：与 16 kHz 扫频带重叠）
-- 自校准：0.1% Rsense 打底 + 板上 R_ref（100 kΩ 0.01%）自检，**单颗 TMUX1134 切换**（SEL1/2/3=PB2、SEL4=PB8）：
-  **零点模式**消 ADC 失调（**SEL1/2/3 = PB2 同沿、SEL4 = PB8**；2026-10-18 TMUX1134 整合，原 SEL_K1/SEL_K2 分立方案作废）；
+- 自校准：0.1% Rsense 打底 + 板上 R_ref（100 kΩ 0.01%）自检，**单颗 TMUX1134 切换**（SEL1/2/3=PB1、SEL4=PB0）：
+  **零点模式**消 ADC 失调（**SEL_SENSE=PB1、SEL_K2=PB0**，2026-10-28 按 575 命名；2026-10-18 TMUX1134 整合）；
   δ0 只存 RAM，k 只由上位机写 Flash（电路见 E.3 + diagram/模拟前端与自校准）
-- **MCU：STM32U545RET6Q**（M33 160 MHz、512 KB Flash、**274 KB SRAM**、USB FS 双角色（DRD）、LQFP-64、
-  **SMPS 版但本设计不启用内部 SMPS**；数据手册 **DS14216**，**不是 U575 的 DS13737**）
-  ⚠️ 曾一度定 U575RGT6 / 误写 U575RET6Q，**均已作废**，现为 U545RET6Q
+- **MCU：STM32U575RGT6**（2026-10-28 换型；M33 160 MHz、**1 MB Flash**、**786 KB SRAM**、
+  USB FS 双角色（USB_DRD_FS）、LQFP-64、**无 SMPS**；数据手册 **DS13737**）
+  ⚠️ 原定 U545RET6Q **已缺货**（立创库存 0），改 575RGT6。两者同 LQFP-64，
+  **24–27 脚信号名不同但走线不改**；**575 VCAP(30) 须接 2.2 µF 到地（板上 C4）**
+- **引脚（2026-10-28 按 PCB 焊盘实测，权威表 = `docs/design/pin-assignment.md`）**：
+  **已取消 I²C/TMP117（PB6/PB7 NC）**、**TF 卡常电无 SD_PWR_EN（PA8 NC）**、**PA4=ADS_CS 不作 DAC**
 - **引脚 2026-10-14 全表重排 + 二轮复核 + 2026-10-20 v3 重分配 + 同日二次重排（就近原则）**
   （原则：**通信 AF 不动 + 辅助 GPIO 同端口聚堆 + 封装就近**；权威表 = `docs/design/pin-assignment.md`；
   **LQFP64_SMPS 无 PC4/PC5/PB9/PB12**）：
@@ -75,7 +87,7 @@
   - USB PA11(DM)/PA12(DP)；调试日志 **LPUART1 PA2/PA3**（**U545 无 USART2**）
   - 预留：PA1(WKUP3)、PA10、PB0；**PC13 不用**（VSW 供电仅 3 mA/30 pF）
   - **原 SPI2 预留组已耗尽**（PB13→SD_PWR_EN、PB14→LED 橙、PB15→ANA_EN；PB9 本未引出）；PT100 已否，该预留本就失效
-- 温度：**TMP117 外置 4 线探头（VDD/GND/SDA/SCL），无 ALERT**（连接器用户自选，ADD0 接地版地址 0x48）
+- 温度：**本版不做**（2026-10-28 取消 I²C/TMP117）
 - 通信：USB FS（Type-C，CC×2 各 5.1 kΩ 下拉；外设 USB_DRD_FS，**设备模式片内支持 BC1.2 BCD**）
 - **记录（2026-10-14 新增，E.11）**：测量数据 → **外部 TF (micro SD) 卡，SDMMC1 4-bit**；
   校准系数仍存 MCU Flash（EEPROM 仿真）。理由：768 KB/s 冲击采满远超 512 KB Flash。

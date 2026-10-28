@@ -1,3 +1,26 @@
+# 2026-10-28 换型 STM32U575RGT6（原 U545RET6Q 缺货）
+
+**型号变更**：MCU = **STM32U575RGT6**（C5270980）。同 LQFP-64，24–27 脚信号名变但**走线不改**。
+- 575 **无 SMPS**：删除所有 REGSEL / 升频前降 <110 MHz / `PWR_SMPS_SUPPLY` 相关项（原 E.10 #16/#17 作废）。
+- **VCAP(30) 必须接 2.2 µF 到地**（板上 C4 已布）；575 手册 DS13737。
+- 24–27 脚按 575 命名：**PC4=CURR_DIS、PC5=PWR_BTN、PB0=SEL_K2、PB1=SEL_SENSE**。
+- **不做 I²C/TMP117**（PB6/PB7 NC）；**TF 卡常电无 SD_PWR_EN**（PA8 NC）；**PA4 保持 ADS_CS 不作 DAC**。
+
+# 2026-10-25 按已布线图纸更新
+
+用户确认保留硬件（**2026-10-28 按 U575 改名**）：PA4=ADS_CS（输出High）、PC4=CURR_DIS（输出High）、
+**PC4=CURR_DIS（输出High）、PC5=PWR_BTN（输入上拉）、PB0=SEL_K2（输出Low）、PB1=SEL_SENSE（输出Low）**；PA8=NC。
+这四根普通GPIO可承担对应功能，SPI1保持软件NSS；PA4不能同时作为DAC输出。
+当前IOC仅调整上述已有引脚配置，未手工增删IP；源码宏及PA8模拟态同步修正。
+
+下方2026-10-24表中的PA4/PA8及PB0/PB2/PB10映射由本节取代。
+旧IOC的其他修正仍需完成：PA1方向、PC1/ADC冲突、PC13输入、各初始电平等。
+重新生成须先在临时副本核对，不能覆盖已有SMPS切换、FileX无卡容错和启动修复。
+本轮临时副本使用CubeMX 6.18.1的`config load`与`project generate`测试：
+`-q`与`-s`均未生成C/H源码；加载时还报告旧ADC CommonPathInternal/SelectedChannel等无效参数。
+因此未将临时副本产物回填，**完整重新生成尚未完成**，仍需在CubeMX GUI纠正旧配置后生成。
+当前源码已通过GPIO启动电平主机测试、ARM构建和3项SD启动回归，不代表新IOC已完整生成验证。
+
 # CubeMX 当前修正清单（2026-10-24）
 
 当前源代码已按直流首板目标修正，**DE-DRM.ioc仍为旧GUI基线**，不要直接Generate覆盖源码。
@@ -7,7 +30,7 @@
 | --- | --- |
 | PA1 | ADS_DONE，GPIO_Input、NoPull |
 | PA2 / PA3 | ADS_RESET输出Low；ADS_DRDY下降沿EXTI3、PullUp |
-| PA4 / PA8 | PA4模拟态预留DAC；PA8从SD_PWR_EN改ADS_CS输出High |
+| PA4 / PA8 | **PA4 = ADS_CS 输出 High（2026-10-28 确认不作 DAC）**；**PA8 = NC 悬空**（TF 常电，取消 SD_PWR_EN） |
 | PC1 | 从ADC1_IN2释放为BQ_EN输出Low |
 | PC2 / PB5 | 从ISET_HI/BQ_TS改BQ_CHG/BQ_PG输入、PullUp |
 | PC13 | USB_VBUS_N输入、PullUp（外部NPN检测） |
@@ -19,7 +42,7 @@
 | ADC1 | 2个rank：IN1采样68周期、VREFINT采样391.5周期；删除IN2，不动PC1 |
 | SPI1 | Mode1；SCK/MISO/MOSI引脚High速度，保留33 Ω，上板验证边沿 |
 | I²C1 | 无TMP117，不在主程序初始化；以后需要时GUI重新启用 |
-| PWR | RET6Q现有SMPS电感；升频前HAL_PWREx_ConfigSupply(PWR_SMPS_SUPPLY) |
+| PWR | **575 无 SMPS**：不需要 `PWR_SMPS_SUPPLY` / 升降压切换（原 RET6Q 相关项全部作废）；`HAL_PWREx_ConfigSupply` 用默认 LDO |
 | SYSCLK | MSI→PLL 160 MHz，不启用未装的外部晶振 |
 | SDMMC1 | 禁止在main外设初始化阶段调用；由FileX打开介质时初始化 |
 
@@ -40,7 +63,7 @@ ADC采集/DMA/校准/TF连续记录尚缺，编译成功不等于整机已可测
 
 # DE-DRM CubeMX 工程配置清单
 
-> STM32U545RET6Q LQFP-64 · 配套 `DE-DRM.ioc` · **2026-10-14 重排定稿 + 二轮复核**
+> **STM32U575RGT6** LQFP-64 · 配套 `DE-DRM.ioc` · 引脚以 `docs/design/pin-assignment.md`（PCB 实测）为准
 >
 > 这份清单是把 `firmware/DE-DRM/DE-DRM.ioc` 配齐到**可生成代码、引脚零警告**
 > 所需的全部 CubeMX GUI 操作。设计依据见
@@ -59,7 +82,7 @@ ADC采集/DMA/校准/TF连续记录尚缺，编译成功不等于整机已可测
 
 ## 0. 工程基础（Project Manager）
 
-- [x] MCU：STM32U545RET6Q（已配）
+- [x] MCU：**STM32U575RGT6**（2026-10-28 换型；原 U545RET6Q 缺货。IOC 需改 Mcu.CPN 并复核 RCC/PWR）
 - [x] Project Name：DE-DRM（已配）
 - [x] Toolchain：Makefile（已配）
 - [x] Heap 0x800 / Stack 0x800（IOC 已设）
@@ -143,7 +166,10 @@ ADC采集/DMA/校准/TF连续记录尚缺，编译成功不等于整机已可测
 - [ ] Middleware：Application → **USB_DEVICE**，Class 按上位机协议定（建议 **Custom_HID**，
   免 CDC 在 Win/Linux 装驱动；协议变更须 `shared/protocol/` 与 `docs/protocol/` 成对更新）
 
-### 2.4 I2C1 — TMP117（已配，核对即可）
+### 2.4 I2C1 — **本版不启用**（2026-10-28）
+
+- [x] 主程序**不初始化 I2C1**；PB6/PB7 保持 GPIO 模拟态/悬空。
+- 本版无 TMP117（不做温度补偿，见主文档 E.5.2）。将来恢复时：GUI 勾 I2C1 Fast 400 kHz + 4.7 kΩ 上拉 + TMP117 探头。
 
 - [x] Mode I2C，PB6(SCL) / PB7(SDA)
 - [ ] Speed Mode：**Fast**（400 kHz）
@@ -216,7 +242,7 @@ ADC采集/DMA/校准/TF连续记录尚缺，编译成功不等于整机已可测
 | **SDMMC1** | ✓ | **4** | 持续写吞吐敏感，优先级最高 |
 | **EXTI3** | ✓ | 5 | PA3 ADC_DRDY |
 | SPI1 | ✓ | 6 | ADS131A02 |
-| I2C1 event / error | ✓ | 7 | TMP117 |
+| ~~I2C1 event / error~~ | — | — | **本版不用 I²C**（2026-10-28） |
 | **USART1** | ✓ | 8 | 调试日志（PA9/PA10, AF7） |
 | USB | ✓ | 9 | USB（USB_DRD_FS） |
 | ADC1 | ✓ | 10 | 电池/VBUS 监测 |
@@ -464,7 +490,7 @@ ADC采集/DMA/校准/TF连续记录尚缺，编译成功不等于整机已可测
 | EXTI3（ADS_DRDY） | 5 | 128 kSPS 数据就绪 |
 | SPI1 | 6 | ADS131A02 通信 |
 | USB | **7** | 官方 U545 CDC_ACM 例程就是 7 |
-| I2C1_EV / I2C1_ER | 8 | TMP117 |
+| ~~I2C1_EV / I2C1_ER~~ | ~~8~~ | **本版不用 I²C**（2026-10-28 取消） |
 | USART1 | 9 | 调试日志 |
 | ADC1 | 10 | 慢速电池/VBUS 监测 |
 | EXTI0/EXTI1（MEAS_BTN/PWR_BTN） | 11 | 按键，最低 |
