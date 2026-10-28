@@ -18,18 +18,18 @@
 | endres0ensitivi | PLL 差分环路滤波器失配引入瞬态；原文 pp.213–224、既有笔记。不能跨拓扑照搬其“元件完全匹配”条件。 |
 | moschytz0radeffs | 灵敏度、元件比、元件容差的权衡；原文 Ch.11 pp.315–339，2002 年书章。受损 OCR 公式未用于本文。 |
 
-## 四篇核心综合全文已归档（2026-10-28，待逐命题核读）
+## 四篇核心综合全文已归档并完成逐命题精读（2026-10-28）
 
-本批四份由用户提供，均按bib key归档到Obsidian H8，已从代下载清单移出。
+本批四份由用户提供，均按bib key归档到Obsidian H8，已从代下载清单移出。**逐命题对照已完成**，判定与修改建议见[经典先行工作对照矩阵](reviews/2026-10-28-classical-prior-art-comparison.md)；四份精读笔记已扩充为带页码/定理号锚点的正式笔记。
 
-| 文献 | DOI | PDF页数 / 印刷页码 | 文件与待核任务 |
+| 文献 | DOI | PDF页数 / 印刷页码 | 精读笔记与判定要点 |
 |---|---|---|---|
-| Guillemin 1949 | `doi:10.1002/sapm194928122` | 21 / 22–42 | [归档PDF](</home/anning/Documents/Obsidian Vault/20-硬件工程/10-项目设计/p1-文献谱系/fulltext/H8-灵敏度与统计电路设计/guillemin1949rcsynthesis.pdf>)；比较正元件反解、传递函数与驱动点函数约束。 |
-| Fialkow–Gerst 1951 | `doi:10.1002/sapm195130149` | 24 / 49–72 | [归档PDF](</home/anning/Documents/Obsidian Vault/20-硬件工程/10-项目设计/p1-文献谱系/fulltext/H8-灵敏度与统计电路设计/fialkow1951rcladder.pdf>)；比较同传递函数实现族、正性条件和增益范围。 |
-| Fialkow–Gerst 1952 | `doi:10.1090/qam/49081` | 15 / 113–127 | [归档PDF](</home/anning/Documents/Obsidian Vault/20-硬件工程/10-项目设计/p1-文献谱系/fulltext/H8-灵敏度与统计电路设计/fialkow1952rcnetworks.pdf>)；比较一般两端口条件与当前固定拓扑的范围。 |
-| Wang等2017 | `doi:10.1002/cta.2328` | 15 / 1467–1481 | [归档PDF](</home/anning/Documents/Obsidian Vault/20-硬件工程/10-项目设计/p1-文献谱系/fulltext/H8-灵敏度与统计电路设计/wang2017rcladder.pdf>)；比较指定增益的连续可实现区间与单/双端接约束。 |
+| Guillemin 1949 | `doi:10.1002/sapm194928122` | 21 / 22–42 | [笔记](../reading-notes/guillemin1949rcsynthesis.md)；式(5) 端接结构=本稿 H_g 分解祖先；连分式综合①经典 |
+| Fialkow–Gerst 1951 | `doi:10.1002/sapm195130149` | 24 / 49–72 | [笔记](../reading-notes/fialkow1951rcladder.md)；K 区间理论（Thm 2/4）；p.59–60 同传函连续族；p.62 端接注记 |
+| Fialkow–Gerst 1952 | `doi:10.1090/qam/49081` | 15 / 113–127 | [笔记](../reading-notes/fialkow1952rcnetworks.md)；Thm 1 完整刻画；p.114"一般≠子类"声明；p.120 1 Ω 负载提纲 |
+| Wang等2017 | `doi:10.1002/cta.2328` | 15 / 1467–1481 | [笔记](../reading-notes/wang2017rcladder.md)；Thm 1 指定增益全区间可达；式(9) g₁=g_{n+1}=0 塌缩印证本稿拓扑边界 |
 
-四篇的文件获取缺口已关闭，逐命题包含关系尚待核读。主库完整获取队列见 `../paywall-download-list.md`，本批哈希与来源名见[归档验收记录](../fulltext-archive-2026-10-28.md)。
+四篇的文件获取缺口与逐命题包含关系均已关闭。**正文修改**（引用分层、降格两处、划界句）按对照矩阵 §三清单另行执行；**新缺两条题录**（CrossRef 已核元数据）：Paige–Kuh 1960（`doi:10.1109/tct.1960.1086620`，IRE Trans. CT 7(1):32–40）、Ali–Kim 1975（`doi:10.1109/tcs.1975.1083969`，IEEE TCAS 22(10):831–833），正文引用前须入册。主库完整获取队列见 `../paywall-download-list.md`，本批哈希与来源名见[归档验收记录](../fulltext-archive-2026-10-28.md)。
 
 ## 题录核对入口
 

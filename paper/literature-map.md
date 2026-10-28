@@ -34,7 +34,7 @@ Thomas 1948 的比率匹配是 DC 类比（[原文锚点](reading-notes/H7_thoma
 
 已读的 [Moschytz 2002 书章](reading-notes/moschytz0radeffs.md)可提供散文层基线，公式层 OCR 缺件仍需核版面。Director→Spoto 的引用关系有 [Spoto 笔记](reading-notes/spoto1986tatistic.md)支撑；其余统计工具按方法相近并列：[Pan](reading-notes/pan1993a.md)、[Graeb](reading-notes/graeb2007areto.md)、[Stein](reading-notes/stein1986n.md)。不再将 Spoto 1986→Stapper 1989→Stein 1986 写成历史承继链。
 
-2026-10-28：上述四篇核心综合全文已归档，进入逐命题核读阶段：[Guillemin 1949](reading-notes/guillemin1949rcsynthesis.md#归档核验)、[Fialkow–Gerst 1951](reading-notes/fialkow1951rcladder.md#归档核验)、[Fialkow–Gerst 1952](reading-notes/fialkow1952rcnetworks.md#归档核验)、[Wang–Chen–Chen 2017](reading-notes/wang2017rcladder.md#归档核验)。到货验收见[归档记录](fulltext-archive-2026-10-28.md)，killRisk仍待原文比较。
+2026-10-28：上述四篇核心综合全文已归档**并完成逐命题精读**（75 印刷页，关键定理回版面核对）：[Guillemin 1949](reading-notes/guillemin1949rcsynthesis.md#一论文结构与核心结果带页码)、[Fialkow–Gerst 1951](reading-notes/fialkow1951rcladder.md#一问题设定与拓扑假设对照的第一步)、[Fialkow–Gerst 1952](reading-notes/fialkow1952rcnetworks.md#一问题设定)、[Wang–Chen–Chen 2017](reading-notes/wang2017rcladder.md#一问题设定)。**判定结论**（详见[逐命题对照矩阵](manuscript/reviews/2026-10-28-classical-prior-art-comparison.md)）：递推/提取=①经典；同传函实现族=②现象经典（FG51 pp.59–60 连续族、Wang 数值例）；端接/口径匹配维数与双负载辨识=③四篇外的新装配（文献只有"端接压低 K_max"注记，FG51 p.62/FG52 p.120）；归一化匹配的增益自由=②指定增益理论（FG51 Thm 2→Paige–Kuh 1960→Wang Thm 1）可读出，**其 CMRR 后果（16.26 dB 例）为本稿内容**；动态线=④四篇静态不覆盖，全文献首次性仍由 Xin/Gervasoni 划界承担。到货验收见[归档记录](fulltext-archive-2026-10-28.md)。
 
 ## 三、killRisk / 必须划界清单
 
@@ -42,6 +42,7 @@ Thomas 1948 的比率匹配是 DC 类比（[原文锚点](reading-notes/H7_thoma
 
 | 对象 | 原文证据锚点 | 写作时必须限定 |
 | --- | --- | --- |
+| **四篇经典综合（2026-10-28 已精读销号）** | [对照矩阵](manuscript/reviews/2026-10-28-classical-prior-art-comparison.md) §〇 | 引用分层：方法=经典（Guillemin 式30–36）；同传函多实现=经典现象（FG51 pp.59–60）；端接匹配维数/双负载/归一化口径=本稿装配；指定增益=Paige–Kuh 1960+Wang Thm 1 背景；**新缺题录 Paige–Kuh、Ali–Kim** |
 | Casas 1996 | 核心笔记 §核心命题 2–5 | 非耦合/浮地耦合；多阶精确消去已有表述，本文究竟新增哪些元件条件 |
 | Gasulla 2000 | §核心命题 3、5 | 一阶近似失配与拓扑消去不同；不得漏 Fig.4 |
 | Pallàs-Areny 1991 / Koide 1997 | 上表笔记 | 复数级联、单级条件及单频调零均为已有工具 |
