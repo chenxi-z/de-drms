@@ -1,23 +1,21 @@
-# 全文缺件与代下载清单（2026-10-27 重新盘点）
+# 全文缺件与代下载清单（2026-10-28 更新）
 
-> **可直接转交下载人员。** 旧 199 条请求及“65/66 篇未到”的计数已被实际库存覆盖。本表只列当前正式 bib 中无可用目标全文的条目，已到货不再重复请求；完整状态总账是 `unfetched-papers.csv`（249 条题录，包括已到货）。
+> **可直接转交下载人员。** 旧 199 条请求及“65/66 篇未到”的计数已被实际库存覆盖。本表只列当前正式 bib 中无可用目标全文的条目，已到货不再重复请求；完整状态总账是 `unfetched-papers.csv`（252 条题录，包括已到货）。
 > PDF 放 Obsidian：`/home/anning/Documents/Obsidian Vault/20-硬件工程/10-项目设计/p1-文献谱系/fulltext/<H轴>/`，按下表 key 命名 `key.pdf`。**不要放本 Git 仓库**。取得后需核对题名/作者/页数；HTML、摘要页和错误同名论文不算到货。
 > “直取受限”可能是付费访问，也可能是开放资料的反爬/网络问题；403/418/超时不用于认定付费属性。未逐条尝试的资料单独标明。只需先处理 P0，P1/P2 按研究需要逐批处理。
 
-本次正式 bib **249 条**；需获取/核对入口 **80 条**（P0 10 / P1 17 / P2 53）。本轮累计成功补全文 **8 份**；其中 Xin、Tadeusiewicz、Kundert 指定段落已核，不宣称整篇已精读。
+本次正式 bib **252 条**；需获取/核对入口 **79 条**（P0 6 / P1 18 / P2 55）。此前补全文8份，本批用户再补4份，近两轮累计12份；本批仅完成到货核验，逐命题精读待做。
+
+> **2026-10-28到货更新**：Guillemin 1949、Fialkow–Gerst 1951/1952、Wang 2017四篇已归档并移出代下清单，待逐命题核读。同时补齐上一轮已入bib的Johnson/Nyquist/Lee三条总账记录。归档验收见 [四篇到货记录](fulltext-archive-2026-10-28.md)。
 
 ## 先下载 P0：直接影响核心条件与先行工作判断
 
 | key / 建议文件名 | 完整题录 | DOI / 获取入口 | 当前状态 | 获取用途 |
 | --- | --- | --- | --- | --- |
-| `fialkow1951rcladder.pdf` | The Transfer Function of an R‐C Ladder Network；Fialkow, Aaron and Gerst, Irving；1951；Journal of Mathematics and Physics | [DOI](https://doi.org/10.1002/sapm195130149) | 直取受限；需机构/浏览器或代下 | N1：RC 梯形传函与元件/可实现性约束的经典基线，防止重复已有综合结果 |
-| `fialkow1952rcnetworks.pdf` | The transfer function of general two terminal-pair RC networks；Fialkow, Aaron and Gerst, Irving；1952；Quarterly of Applied Mathematics | [DOI](https://doi.org/10.1090/qam/49081) | 直取受限；需机构/浏览器或代下 | N1：一般 RC 两端口传函与实现条件，界定同传函与端接等效的差别 |
-| `guillemin1949rcsynthesis.pdf` | Synthesis of RC‐Networks；Guillemin, E. A.；1949；Journal of Mathematics and Physics | [DOI](https://doi.org/10.1002/sapm194928122) | 直取受限；需机构/浏览器或代下 | N1：RC 网络综合基础；需区分已知综合程序与本项目新增元件条件 |
 | `guillemin1957synthesis.pdf` | Synthesis of Passive Networks: Theory and Methods Appropriate to the Realization and Approximation Problems；Guillemin, Ernst A.；1957；John Wiley & Sons | [入口](https://openlibrary.org/books/OL4903945M/Synthesis_of_passive_networks) | 未有全文；本轮未逐条尝试 | N1：RC 网络综合相关章节；不需为本轮盲读整本 |
 | `moschytz1999realizability.pdf` | Realizability constraints for third-order impedance-tapered allpole filters；Moschytz, G.S.；1999；IEEE Transactions on Circuits and Systems II: Analog and Digital Signal Processing | [DOI](https://doi.org/10.1109/82.782054) | 直取受限；需机构/浏览器或代下 | N3：三阶可实现性约束；避免把已知界作为新理论 |
 | `moschytz1999tapering.pdf` | Low-sensitivity, low-power active-RC allpole filters using impedance tapering；Moschytz, G.S.；1999；IEEE Transactions on Circuits and Systems II: Analog and Digital Signal Processing | [DOI](https://doi.org/10.1109/82.782042) | 直取受限；需机构/浏览器或代下 | N1/N3：阻抗渐变与灵敏度；核对可制造设计族及既有权衡 |
 | `smither1982commonmode.pdf` | Common mode interference reduction in seismic recording；Smither, Miles A. and Pater, Arnold；1982；Geophysics | [DOI](https://doi.org/10.1190/1.1441316) | 直取受限；需机构/浏览器或代下 | 共模不平衡建模近缘；目前仅摘要，必须补全文 |
-| `wang2017rcladder.pdf` | Realization of a transfer function as a passive two‐port RC ladder network with a specified gain；Wang, Kai and Chen, Michael Z. Q. and Chen, Guanrong；2017；International Journal of Circuit Theory and Applications | [DOI](https://doi.org/10.1002/cta.2328) | 直取受限；需机构/浏览器或代下 | N1：指定增益的 RC 梯形实现；最近直接相关的综合论文，全文逐式划界 |
 | `weinberg1962synthesis.pdf` | Network Analysis and Synthesis；Weinberg, Louis；1962；McGraw-Hill | [入口](https://archive.org/details/networkanalysiss0000wein) | 未有全文；本轮未逐条尝试 | N1：网络综合章节/RC 两端口与实现非唯一性背景，优先相关章节 |
 | `whitlock1995balanced.pdf` | Balanced Lines in Audio Systems: Fact, Fiction, and Transformers；Whitlock, Bill；1995；Journal of the Audio Engineering Society | [入口](https://aes.org/publications/elibrary-page/?id=7944) | 直取受限；需机构/浏览器或代下 | 源端失衡和 Zcm 基线；2004 笔记指向的上游正文 |
 
@@ -42,6 +40,8 @@
 | `pallas1993book.pdf` | Sensors and Signal Conditioning；Pallas-Areny, Ramon and G. Webster, John；1993； | 题录/入口需先核对 | 题录/入口待核；暂勿盲目代下 | N1/源端误差/理论背景补查 |
 | `rogillio2007aliasing.pdf` | Understanding the Aliasing Effects of Delta-Sigma Analog-to-Digital Converters；Rogillio, D.；2007；OSTI | [入口](https://www.osti.gov/servlets/purl/1137235) | 本轮直取失败；需重试或代下 | N1/源端误差/理论背景补查 |
 | `wenner1912guard.pdf` | A Principle Governing the Distribution of Current in Networks；Wenner, F.；1912； | 题录/入口需先核对 | 题录/入口待核；暂勿盲目代下 | N1/源端误差/理论背景补查 |
+| `lee1978chain.pdf` | Chain matrix decompositions, continued fractions and the optimal inhomogeneous ladder networks；Lee, T. N.；1978；Journal of the Franklin Institute | [doi:10.1016/0016-0032(78)90050-9](https://doi.org/10.1016/0016-0032(78)90050-9) | 题录/出版方摘要已核；全文未归档 | 连分式/传输矩阵综合工具与本稿命题边界 |
+
 
 ## 可选 P2：原库其他缺件，不阻塞当前 N1
 
@@ -100,6 +100,9 @@
 | `xiong2022.pdf` | A Continuous-Time Sigma-Delta Modulator With Continuous-Time Delay-Based Integrator；Xiong, Jiu and Liu, Jin and Lee, Hoi；2022；IEEE Transactions on Circuits and Systems II: Express Briefs | [DOI](https://doi.org/10.1109/tcsii.2021.3127024) | 直取受限；需机构/浏览器或代下 | 次级背景或原库补件；不阻塞当前 N1，按需获取 |
 | `zanganeh2013.pdf` | A new high output impedance wideband AC current source with high current swing authority for electrical impedance tomography applications；Zanganeh, Mehran；2013；International Journal of Computing and Network Technology | [DOI](https://doi.org/10.12785/ijcnt/010305) | 直取受限；需机构/浏览器或代下 | 次级背景或原库补件；不阻塞当前 N1，按需获取 |
 | `zhang2022.pdf` | A High Resolution Chemical Sensing Front-end with Integrated Sigma Delta Quantisation；Zhang, Xiuli and Ma, Jinge and Hu, Yuanqi；2022；2022 IEEE International Symposium on Circuits and Systems (ISCAS) | [DOI](https://doi.org/10.1109/iscas48785.2022.9937843) | 直取受限；需机构/浏览器或代下 | 次级背景或原库补件；不阻塞当前 N1，按需获取 |
+| `johnson1928thermal.pdf` | Thermal Agitation of Electricity in Conductors；Johnson, J. B.；1928；Physical Review | [doi:10.1103/PhysRev.32.97](https://doi.org/10.1103/PhysRev.32.97) | 题录/出版方摘要已核；全文未归档 | 热噪声实验与阻抗实部关系的历史来源 |
+| `nyquist1928thermal.pdf` | Thermal Agitation of Electric Charge in Conductors；Nyquist, H.；1928；Physical Review | [doi:10.1103/PhysRev.32.110](https://doi.org/10.1103/PhysRev.32.110) | 题录/出版方摘要已核；全文未归档 | 平衡态热噪声理论来源 |
+
 
 ## 已补齐，不用再代下
 

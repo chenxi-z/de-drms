@@ -34,6 +34,8 @@ Thomas 1948 的比率匹配是 DC 类比（[原文锚点](reading-notes/H7_thoma
 
 已读的 [Moschytz 2002 书章](reading-notes/moschytz0radeffs.md)可提供散文层基线，公式层 OCR 缺件仍需核版面。Director→Spoto 的引用关系有 [Spoto 笔记](reading-notes/spoto1986tatistic.md)支撑；其余统计工具按方法相近并列：[Pan](reading-notes/pan1993a.md)、[Graeb](reading-notes/graeb2007areto.md)、[Stein](reading-notes/stein1986n.md)。不再将 Spoto 1986→Stapper 1989→Stein 1986 写成历史承继链。
 
+2026-10-28：上述四篇核心综合全文已归档，进入逐命题核读阶段：[Guillemin 1949](reading-notes/guillemin1949rcsynthesis.md#归档核验)、[Fialkow–Gerst 1951](reading-notes/fialkow1951rcladder.md#归档核验)、[Fialkow–Gerst 1952](reading-notes/fialkow1952rcnetworks.md#归档核验)、[Wang–Chen–Chen 2017](reading-notes/wang2017rcladder.md#归档核验)。到货验收见[归档记录](fulltext-archive-2026-10-28.md)，killRisk仍待原文比较。
+
 ## 三、killRisk / 必须划界清单
 
 “须划界”表示已有结果与本文主张相邻，不等同于推翻；“待全文”也不等同于无威胁。

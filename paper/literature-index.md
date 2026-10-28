@@ -413,10 +413,10 @@ P1/P2/P3 核心主张无真 kill；两条划界注已入 outline（I2/I4 槽）�
 
 | key | 题名 | 年份/出处 | DOI/官方入口 | 当前全文状态 | 用途 |
 | --- | --- | --- | --- | --- | --- |
-| `fialkow1951rcladder` | The Transfer Function of an R‐C Ladder Network | 1951 / Journal of Mathematics and Physics | [来源](https://doi.org/10.1002/sapm195130149) | 未取得正文，已列代下载 P0 | RC 梯形传函及实现条件，N1 经典基线 |
-| `fialkow1952rcnetworks` | The transfer function of general two terminal-pair RC networks | 1952 / Quarterly of Applied Mathematics | [来源](https://doi.org/10.1090/qam/49081) | 未取得正文，已列代下载 P0 | 一般 RC 两端口条件，区分开路传函与端接等效 |
-| `guillemin1949rcsynthesis` | Synthesis of RC‐Networks | 1949 / Journal of Mathematics and Physics | [来源](https://doi.org/10.1002/sapm194928122) | 未取得正文，已列代下载 P0 | 经典 RC 综合，核对拟议元件解集的新颖性 |
-| `wang2017rcladder` | Realization of a transfer function as a passive two‐port RC ladder network with a specified gain | 2017 / International Journal of Circuit Theory and Applications | [来源](https://doi.org/10.1002/cta.2328) | 未取得正文，已列代下载 P0 | 指定增益 RC 梯形实现，当前最直接综合近缘 |
+| `fialkow1951rcladder` | The Transfer Function of an R‐C Ladder Network | 1951 / Journal of Mathematics and Physics | [来源](https://doi.org/10.1002/sapm195130149) | 2026-10-28全文已归档，身份/页数/哈希已核，待逐命题精读 | RC 梯形传函及实现条件，N1 经典基线 |
+| `fialkow1952rcnetworks` | The transfer function of general two terminal-pair RC networks | 1952 / Quarterly of Applied Mathematics | [来源](https://doi.org/10.1090/qam/49081) | 2026-10-28全文已归档，身份/页数/哈希已核，待逐命题精读 | 一般 RC 两端口条件，区分开路传函与端接等效 |
+| `guillemin1949rcsynthesis` | Synthesis of RC‐Networks | 1949 / Journal of Mathematics and Physics | [来源](https://doi.org/10.1002/sapm194928122) | 2026-10-28全文已归档，身份/页数/哈希已核，待逐命题精读 | 经典 RC 综合，核对拟议元件解集的新颖性 |
+| `wang2017rcladder` | Realization of a transfer function as a passive two‐port RC ladder network with a specified gain | 2017 / International Journal of Circuit Theory and Applications | [来源](https://doi.org/10.1002/cta.2328) | 2026-10-28全文已归档，身份/页数/哈希已核，待逐命题精读 | 指定增益 RC 梯形实现，当前最直接综合近缘 |
 | `moschytz1999tapering` | Low-sensitivity, low-power active-RC allpole filters using impedance tapering | 1999 / IEEE Transactions on Circuits and Systems II: Analog and Digital Signal Processing | [来源](https://doi.org/10.1109/82.782042) | 未取得正文，已列代下载 P0 | 阻抗渐变和灵敏度，稳健设计族基线 |
 | `moschytz1999realizability` | Realizability constraints for third-order impedance-tapered allpole filters | 1999 / IEEE Transactions on Circuits and Systems II: Analog and Digital Signal Processing | [来源](https://doi.org/10.1109/82.782054) | 未取得正文，已列代下载 P0 | 三阶可实现性约束，N3 需正面比较 |
 | `nbs1968sp300v3` | Precision Measurement and Calibration: Selected NBS Papers on Electricity---Low Frequency | 1968 / National Bureau of Standards | [来源](https://nvlpubs.nist.gov/nistpubs/Legacy/SP/nbsspecialpublication300v3.pdf) | 已补全文，前置题录已核，正文未读 | 补齐低频电学卷，定位此前错投色度卷的目标篇 |
@@ -490,3 +490,16 @@ P1/P2/P3 核心主张无真 kill；两条划界注已入 outline（I2/I4 槽）�
 | `tadeusiewicz2017diagnostictests` | 10 | [原始来源](https://link.springer.com/content/pdf/10.1007/s10836-017-5650-4.pdf) | `8a0b4ebfa1e7b3c1eba3fa927fd37ec9cc3ffd0faab70aed450e83ccfaee5358` |
 
 本次校验：`python3 paper/tools/gate_bib.py` 为 249 条、0 错误、4 项遗留 doi/url 警告；bib/CSV key 集一致，无重复非空 DOI；新增三份 PDF SHA-256、当前文档相对文件链接已核，`git diff --check` 通过。动态比率基础恒等式做了精确有理数探测，未计为创新或项目仿真实验。
+
+## 2026-10-28 四篇核心RC综合全文到货
+
+用户提供的四份原文已按bib key归档到Obsidian H8，逐份核对题名、作者、首尾印刷页码及SHA-256，75页均可提取文本。获取缺口已关闭，逐命题精读和创新性包含关系仍待完成。
+
+| key | 印刷页码 / PDF页数 | SHA-256 |
+|---|---|---|
+| `guillemin1949rcsynthesis` | 22–42 / 21 | `c149f8f8841e83a8370da7cfaf7e4d4d79291860009e9f15df74a56cc9125ee4` |
+| `fialkow1951rcladder` | 49–72 / 24 | `704387c064c2c690bf8b8cca970df83acc6e5054074d68a5f6f6de132713866b` |
+| `fialkow1952rcnetworks` | 113–127 / 15 | `a57a44d667bff82fe93ae6268f13de522b522300588c56a25f9d4b6f3da0d9ad` |
+| `wang2017rcladder` | 1467–1481 / 15 | `b396c8c4a8bb91270e534c78048cf251678b02d43eda402ad664d0e726f97893` |
+
+物理库存现为173 PDF＋3 TXT；正式bib与总账均252条，待取/入口核对79条（P0 6/P1 18/P2 55）。增加3条总账记录属于补齐上一轮遗漏，不是本轮新增文献。详见[归档验收记录](fulltext-archive-2026-10-28.md)。
