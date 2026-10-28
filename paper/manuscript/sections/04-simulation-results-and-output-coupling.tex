@@ -1,5 +1,13 @@
 \section{Simulation results and output coupling}
 
+\subsection{General-order verification and model consistency}
+
+The 84-case matrix covered open and resistively loaded branches, several pairing rules, nonuniform same-transfer realizations, fixed-load matching families, reactive loads, source impedance, output coupling and two-load recovery. Orders ranged from one to twelve. With the documented 1~m$\Omega$ inductor series resistance included in the independent model, the largest absolute complex node-voltage discrepancy was $1.68\times10^{-14}$~V.
+
+Against the originally intended ideal-inductor reference, two cases exceeded the unchanged $10^{-7}$~V gate, with errors of $4.54\times10^{-7}$ and $3.57\times10^{-7}$~V. Fresh runs specifying $R_{\rm ser}=0$ agreed with the ideal reference to less than $1.8\times10^{-15}$~V; explicit 1~m$\Omega$ runs reproduced the default-model behavior. The discrepancy arose from different element models. Both original failures and the diagnostic records were retained.
+
+At $10$~kHz, the three-stage same-$A$/different-$B$ construction agreed in the open circuit to a relative difference of $1.4\times10^{-14}$ and separated under a 10~k$\Omega$ load by $3.4\times10^{-4}$. A fixed-load family agreed at $g=0.1$ to $6.7\times10^{-14}$ and differed at $g=0.2$ by $3.2\times10^{-5}$. A capacitive-load matching family agreed under the specified capacitance to $5.3\times10^{-14}$ and differed under resistive loading by $2.2\times10^{-3}$. The comparisons tested complete complex outputs; the following second-order examples make the same mechanisms visible with shorter component tuples.
+
 \subsection{Termination-dependent equivalence}
 
 Table~\ref{tab:branches} collects the three branch constructions. The equalities and inequalities were established algebraically before the frequency sweeps.

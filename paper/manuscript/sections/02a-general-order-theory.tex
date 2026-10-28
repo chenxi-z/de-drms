@@ -13,7 +13,7 @@ B_j=r_jA_{j-1}+B_{j-1},\qquad
 A_j=A_{j-1}+xq_jB_j,
 \quad A_0=1,\ B_0=0.
 \end{equation}
-Induction in Eq.~\eqref{eq:general-forward} gives $\deg A_N=N$, $\deg B_N=N-1$ and $A_N(0)=1$. The leading coefficients are positive. Each stage matrix has determinant one, so the product does as well; the first-row polynomials have no nonconstant common factor.
+Induction in Eq.~\eqref{eq:general-forward} gives $\deg A_N=N$, $\deg B_N=N-1$ and $A_N(0)=1$. The leading coefficients are positive. Each stage matrix and the product have determinant one; the first-row polynomials have no nonconstant common factor.
 
 The open-circuit transfer and source-shorted output impedance follow from the terminal equation. A common resistive load on each branch then gives
 \begin{equation}\label{eq:general-transfer}
@@ -25,7 +25,7 @@ For $N=2$, $A_2=1+ax+bx^2$ and $B_2=c+dx$, recovering Eq.~\eqref{eq:5}. Retainin
 
 \subsection{Unique recovery and the positive realization test}
 
-The last-stage values can be recovered from the highest-degree coefficients. Writing $\operatorname{lc}(p)$ for the leading coefficient of polynomial $p$, define
+The last-stage values can be recovered from the leading coefficients. Writing $\operatorname{lc}(p)$ for the leading coefficient of polynomial $p$, define
 \begin{equation}\label{eq:general-inverse}
 \begin{aligned}
 q_j&=\frac{\operatorname{lc}(A_j)}{\operatorname{lc}(B_j)},&
@@ -34,33 +34,33 @@ r_j&=\frac{\operatorname{lc}(B_j)}{\operatorname{lc}(A_{j-1})},&
 B_{j-1}&=B_j-r_jA_{j-1}.
 \end{aligned}
 \end{equation}
-For a positive ladder, these operations undo Eq.~\eqref{eq:general-forward} exactly. At each step, $A_{j-1}$ has degree $j-1$, and $B_{j-1}$ has degree $j-2$ when $j>1$. The final pair is $(A_0,B_0)=(1,0)$. Each ratio is positive and uniquely specified.
+For a positive ladder, these operations undo Eq.~\eqref{eq:general-forward} exactly. At each step, $\deg A_{j-1}=j-1$ and, when $j>1$, $\deg B_{j-1}=j-2$. The final pair is $(A_0,B_0)=(1,0)$. Each ratio is positive and uniquely specified.
 
-Conversely, start with real polynomials of the stated degrees and $A_N(0)=1$. If every subtraction produces the required degree, every recovered component is positive, and the terminal pair is $(1,0)$, reversing the operations reconstructs the original polynomials from a positive ladder. These conditions therefore give a finite necessary and sufficient realization test for this topology. A failed positivity or degree check rejects the candidate coefficient pair.
+Conversely, start with real polynomials satisfying $\deg A_N=N$, $\deg B_N=N-1$ and $A_N(0)=1$. If the reductions satisfy the stated highest-power constraints, every recovered component is positive, and the terminal pair is $(1,0)$, reversing the operations reconstructs the original polynomials from a positive ladder. The recovery conditions give a finite necessary and sufficient realization test for this topology. A failed recovery check rejects the candidate coefficient pair.
 
-The forward map from the $2N$ positive components to the $2N$ coefficients of $A_N$ and $B_N$ is polynomial. Its inverse in Eq.~\eqref{eq:general-inverse} is rational with nonzero denominators at every positive realization. Strict positivity and the nonzero leading coefficients persist in a sufficiently small neighborhood. The maps are smooth inverses there, making the coefficient values valid local coordinates for the component family.
+The forward map from the $2N$ positive components to the $2N$ coefficients of $A_N$ and $B_N$ is polynomial. The inverse map in Eq.~\eqref{eq:general-inverse} is rational with nonzero denominators at every positive realization. Strict positivity and the nonzero leading coefficients persist in a sufficiently small neighborhood. The maps are smooth inverses there, making the coefficient values valid local coordinates for the component family.
 
 \subsection{The number of matching degrees of freedom}
 
 Hold one reference branch fixed. Open-circuit matching fixes the $N$ nonconstant coefficients of $A_N$, leaving $N$ local degrees of freedom in the positive realization domain. Uniform impedance scaling changes $B_N$ by one scalar factor while preserving $A_N$. For $N\geq2$, that scaling follows one direction within a larger matching family.
 
-At a specified $g>0$, matching fixes all coefficients of $D_g=A_N+gB_N$. The constant coefficient fixes $B_N(0)$ through $D_g(0)=1+gB_N(0)$. The remaining $N$ coefficients fix the combinations of $A_N$ and $B_N$. These $N+1$ independent linear constraints leave $N-1$ local degrees of freedom. When $N=1$, a single positive resistive load already leaves a unique component tuple.
+At a specified $g>0$, matching fixes all coefficients of $D_g=A_N+gB_N$. The constant coefficient fixes $B_N(0)$ through $D_g(0)=1+gB_N(0)$. The remaining $N$ coefficients fix the combinations of $A_N$ and $B_N$. The $N+1$ independent linear constraints leave $N-1$ local degrees of freedom. When $N=1$, a single positive resistive load already leaves a unique component tuple.
 
 At two distinct positive conductances, put $U_i=1/H_{g_i}$. The two complete transfer functions determine
 \begin{equation}\label{eq:general-two-load}
 B_N=\frac{U_2-U_1}{g_2-g_1},\qquad
 A_N=\frac{g_2U_1-g_1U_2}{g_2-g_1}.
 \end{equation}
-Two branches that agree at both loads consequently have identical $A_N$ and $B_N$. Unique recovery then requires identical corresponding components. This argument applies to every finite $N$ in the stated ladder class. It uses complete complex transfer functions, including absolute gain, at two loads.
+Two branches that agree at both loads consequently have identical $A_N$ and $B_N$. Unique recovery then requires identical corresponding components. The two-load reconstruction applies to every finite $N$ in the stated ladder class. It uses complete complex transfer functions, including absolute gain, at two loads.
 
 \subsection{The load type also determines the matching family}
 
-A known rational load can be written as a dimensionless admittance $g(x)=P(x)/Q(x)$, where $P$ and $Q$ are nonzero coprime real polynomials. Assume $QA_N+PB_N$ is not identically zero, so that the loaded response is defined. Equality of the two branch transfers gives
+A known rational load can be written as a dimensionless admittance $g(x)=P(x)/Q(x)$, where $P$ and $Q$ are nonzero coprime real polynomials. The loaded response is defined provided $QA_N+PB_N$ is not identically zero. Equality of the two branch transfers gives
 \begin{equation}\label{eq:rational-kernel}
 H_g=\frac{Q}{QA_N+PB_N},\qquad
 Q\Delta A+P\Delta B=0.
 \end{equation}
-Here $\Delta$ denotes branch P minus branch N. Coprimality implies $\Delta A=PS$ and $\Delta B=-QS$ for a polynomial $S$. The degree bounds and $\Delta A(0)=0$ restrict $S$ to
+Here $\Delta$ denotes branch P minus branch N. Coprimality implies $\Delta A=PS$ and $\Delta B=-QS$ for a polynomial $S$. The highest-power bounds and $\Delta A(0)=0$ restrict $S$ to
 \begin{equation}\label{eq:rational-dimension}
 \begin{aligned}
 m&=\min\{N-\deg P,\ N-1-\deg Q\},\\
@@ -68,7 +68,7 @@ d_g&=\max\{0,m+1-\epsilon\},\qquad
 \epsilon=\begin{cases}1,&P(0)\ne0,\\0,&P(0)=0.\end{cases}
 \end{aligned}
 \end{equation}
-For $m<0$, the only allowable polynomial is $S=0$. Otherwise, $S$ has $m+1$ coefficients, and a nonzero $P(0)$ fixes its constant coefficient to zero. Intersecting this linear family with the open positive realization domain preserves the local dimension $d_g$.
+For $m<0$, the only allowable polynomial is $S=0$. Otherwise, $S$ has $m+1$ coefficients, and a nonzero $P(0)$ fixes the constant coefficient of $S$ to zero. Intersecting this linear family with the open positive realization domain preserves the local dimension $d_g$.
 
 Table~\ref{tab:load-dimensions} applies Eq.~\eqref{eq:rational-dimension} to common loads. The open circuit, for which $P$ is identically zero, is listed separately. A pure capacitor changes the terminal capacitance and retains $N$ degrees of freedom, whereas a resistor also constrains the zero-frequency gain and reduces the count to $N-1$.
 \begin{table}[htbp]
@@ -89,7 +89,7 @@ Parallel RC & $g_0+\alpha x$ & $N-1$ \\
 \end{tabular}
 \end{table}
 
-Two distinct known rational admittances also determine the component tuple. Subtracting $\Delta A+g_1\Delta B=0$ and $\Delta A+g_2\Delta B=0$ gives $(g_1-g_2)\Delta B=0$. Since the load functions are not identical, $\Delta B=0$ and then $\Delta A=0$. Possible cancellations in the representation of $H_g$ do not change this conclusion: multiplication by the same known, nonzero $Q$ preserves equality of the branch denominators.
+Two distinct known rational admittances also determine the component tuple. Subtracting $\Delta A+g_1\Delta B=0$ and $\Delta A+g_2\Delta B=0$ gives $(g_1-g_2)\Delta B=0$. Since the load functions are not identical, $\Delta B=0$ and then $\Delta A=0$. The known, nonzero $Q$ makes equality of the branch transfers equivalent to equality of the polynomial denominators.
 
 \subsection{Load variation and recovery conditioning}
 

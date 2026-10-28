@@ -2,6 +2,8 @@
 
 **论文初稿**：[LaTeX 工程](manuscript/README.md) · [英文 PDF](manuscript/main.pdf) · [中文 PDF](manuscript/main-zh.pdf) · [缺失材料清单](manuscript/MANUSCRIPT_GAPS.md)。在 `paper/manuscript/` 执行 `make` 同时更新两版。
 
+**2026-10-28 接续核查**：[高阶与动态审查结论](manuscript/REVIEW-2026-10-28-followup.md) · [动态分析底稿](dynamic-analysis.md)。保留 zcode 已完成证据，修正动态读出的归一化、适用条件与符号，追加三级/四级核验和三张动态图。
+
 > **当前入口（2026-10-27 审查后重构）**：先读 [研究设计 v5](research-focus.md)，再读 [章节与验证矩阵](outline.md)、[文献联系/划界表](literature-map.md)。不再预设“四条边界＝完整性能包络”“公共比值为必要条件”或“普适 56 dB 地板”。下方较早更新是历史记录，不能覆盖本入口。
 
 - **研究目标**：限定网络类中的消去元件条件、端接敏感性与可用设计族；N1 必要性研究第一优先，SCI 四区底线不变。

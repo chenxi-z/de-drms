@@ -1,61 +1,98 @@
 \section{动态比值误差与共模瞬态泄漏}
 \label{sec:dynamic}
 
-前文的抵消条件是传递函数之间的精确恒等式，在每个频率上成立。本节推导观测窗口内被测电阻与激励电流同时变化时这些条件的含义。模型仍为第~\ref{sec:model-plane}~节的缓冲前端：样品电阻调制信号源幅度，梯形网络本身线性时不变。
+第~\ref{sec:model-plane} 节的缓冲前端将 $v_P=IR$ 和 $v_N=IR_s$ 分别送入两条独立的全正值元件 RC 梯形网络，端接负载为恒定的非负电阻负载。电阻变化改变信号源幅度，各梯形网络仍为稳定的线性时不变系统。下文的卷积包含完整的输入历史，或采用与其等效且相容的初始状态，并要求参考通道输出非零。记 $H_j=1/D_j$、$G_j=H_j/H_j(0)=D_j(0)/D_j$，以 $g_j$ 表示 $G_j$ 的冲激响应。测得输出电压 $u_P,u_N$ 后，经直流增益校准得到
+\begin{equation}\label{eq:ratio-readout}
+\hat R=R_s\frac{H_N(0)}{H_P(0)}\frac{u_P}{u_N}
+=\frac{(g_P\ast IR)(t)}{(g_N\ast I)(t)}.
+\end{equation}
 
 \subsection{匹配通道：精确的加权平均恒等式}
 \label{sec:dynamic-matched}
 
-设两支路在运行负载下的传函经直流增益归一后相等，$G_P=G_N=G$，$G(0)=1$，冲激响应为 $g(t)$，比值读出为
-\begin{equation}\label{eq:ratio-readout}
-\hat R(t)=R_s\,\frac{(g\!\ast\! IR)(t)}{(g\!\ast\! I)(t)} ,
-\end{equation}
-其中 $I(t)$ 为激励电流，$R(t)$ 为样品电阻。由于 $R(t)$ 相对卷积变量为常数，
+当 $G_P=G_N=G$ 时，减去瞬时电阻可得
 \begin{equation}\label{eq:weighted-average}
-\hat R(t)-R(t)=\frac{\bigl(g\!\ast\! I\,[R(\cdot)-R(t)]\bigr)(t)}{(g\!\ast\! I)(t)} .
+\hat R(t)-R(t)=\frac{\displaystyle\int_0^\infty g(u)I(t-u)[R(t-u)-R(t)]\,\mathrm du}
+{(g\ast I)(t)}.
 \end{equation}
-式~\eqref{eq:weighted-average} 对 $I(t)$ 的\textbf{任意波形}精确成立，包括带快沿的阶跃与方波纹波：负载传函匹配时，\emph{任何}激励电流波动都在比值中精确消去。剩余误差是电阻历史值的加权平均。若 $|{\rm d}R/{\rm d}t|\le L_R$、$|I|\le I_{\max}$，则
-\begin{equation}\label{eq:lag-bound}
-|\hat R(t)-R(t)|\;\le\;\frac{L_R\,I_{\max}\,M_1}{\bigl|(g\!\ast\! I)(t)\bigr|},
-\qquad
-M_1=\int_0^\infty \!\!\tau\,|g(\tau)|\,{\rm d}\tau .
+对于正值激励，读数是电阻历史值的加权平均。当电阻恒为 $R_0$ 时，对于所有使分母非零的激励波形，读数均等于 $R_0$。当电阻变化时，激励仍参与确定权重。例如，取 $I=I_0e^{\alpha t}$、$R=R_0e^{\beta t}$，其中 $\alpha,\beta\ge0$，且完整历史均满足相应的指数关系，则有
+\begin{equation}\label{eq:dynamic-exp}
+\hat R(t)=R(t)\frac{G(\alpha+\beta)}{G(\alpha)}.
 \end{equation}
-界采用一阶绝对矩，因为 $N\ge2$ 梯形的冲激响应并非非负：尽管全部极点为实负，留数符号交替。对该梯形类，$M_1\le\sum_k |r_k|/|p_k|^2$，由 $1/D_g$ 的极点与留数给出，而第~\ref{sec:general-order}~节的系数直接提供这些量。
+即使通道完全相同，改变 $\alpha$ 通常仍会改变读数（图~\ref{fig:dynamic-weighting}）。
 
-\subsection{失配通道：电流变化率交叉项}
+对于全正值元件的对地 RC 梯形网络，节点状态矩阵的非对角元素均非负，输入和输出向量也均非负。因此，其矩阵指数给出 $g(t)\ge0$。部分分式展开的留数符号交替，并不意味着冲激响应存在负值区段。于是，
+\begin{equation}\label{eq:dynamic-moment}
+M_1=\int_0^\infty u|g(u)|\,\mathrm du
+=\int_0^\infty ug(u)\,\mathrm du=\tau,
+\qquad \tau=T\frac{D_x'(0)}{D(0)},\quad T=R_*C_*.
+\end{equation}
+若在相关输入历史内满足 $|\dot R|\le L_R$ 和 $|I|\le I_{\max}$，则有
+\begin{equation}\label{eq:lag-bound}
+|\hat R-R|\le\frac{L_R I_{\max}\tau}{|(g\ast I)(t)|}.
+\end{equation}
+若在该段完整历史内始终有 $0<I_{\min}\le I\le I_{\max}$，则上界为 $L_R(I_{\max}/I_{\min})\tau$。若从有限时刻启动，则需要使用实际分母。
+
+\subsection{失配通道：电流变化率的贡献}
 \label{sec:dynamic-mismatch}
 
-当两支路负载传函不等，$G_P\ne G_N$ 时，直流归一化消除静态比值误差，比值误差中出现由电流变化率驱动的项。记负载传函的直流群时延为 $\tau=D'(0)/D(0)$（$x$ 单位下 $\tau=(A_1+gB_1)/(1+gB_0)$，乘 $R_*C_*$ 化为秒），一阶表达式为
-\begin{equation}\label{eq:mismatch-dynamic}
-\hat R-R \;=\; \text{式~\eqref{eq:lag-bound} 的滞后项} \;+\; R\,\frac{\dot I}{I}\,\Delta\tau
-\;+\;O\!\left(\ddot I/I,\ \Delta M_1\right),
-\qquad \Delta\tau=\tau_P-\tau_N .
+归一化响应核不同时，误差的精确分解为
+\begin{equation}\label{eq:dynamic-decomposition}
+\hat R-R=\frac{\displaystyle\int_0^\infty g_P(u)I(t-u)[R(t-u)-R(t)]\,\mathrm du}{(g_N\ast I)(t)}
++R\frac{((g_P-g_N)\ast I)(t)}{(g_N\ast I)(t)}.
 \end{equation}
-交叉项 $R\,(\dot I/I)\,\Delta\tau$ 为一切静态分析所不捕获：一对在每个频率上都完美抑制共模的支路，仍可通过两通道的群时延失配把激励电流动态转化为比值误差。对 $g=0.1$ 下的二阶单位支路，输出电容 $+10\%$ 偏差给出 $\Delta\tau\approx1.67~\mu{\rm s}$；在相对变化率 $\dot I/I=800~{\rm s}^{-1}$、$R=100~{\rm k}\Omega$ 时对应 $133~\Omega$ 的动态比值误差。
+两项均采用参考通道的分母。当 $I,R$ 缓慢变化，且分母的绝对值具有大于零的下界时，展开各卷积可得
+\begin{equation}\label{eq:mismatch-dynamic}
+\hat R-R\simeq-\tau_P\dot R-R\frac{\dot I}{I}\Delta\tau,
+\qquad \Delta\tau=\tau_P-\tau_N.
+\end{equation}
+其中 $\tau_j=T(A_{j,1}+gB_{j,1})/(1+gB_j(0))$。可用 $\mu_{2,j}=\int u^2g_j(u)\,\mathrm du$ 控制展开余项：对于二阶可导输入 $f$，
+\begin{equation}\label{eq:dynamic-remainder}
+|(g_j\ast f)-f+\tau_j\dot f|
+\le\tfrac12\mu_{2,j}\sup_{v\le t}|f''(v)|.
+\end{equation}
+先分别将该界用于 $f=IR$ 和 $f=I$，再展开二者的比值。对于快速变化的边沿，需要使用精确表达式。参考通道较慢时，$\Delta\tau<0$；在电阻恒定、电流上升时，会产生正误差（图~\ref{fig:dynamic-slew}）。
 
-\subsection{静态抵消与动态免疫的等价性}
-\label{sec:welding}
+\subsection{恒定电阻下的匹配判据}
+\label{sec:constant-resistance-match}
 
-第~\ref{sec:general-order}~节的静态条件与第~\ref{sec:dynamic-matched}~节的动态性质是同一命题。在运行负载 $g$ 下，下列陈述等价：
-\begin{enumerate}
-\item $D_P=D_N$（系数向量相等，即静态抵消条件）；
-\item $g_P=g_N$（冲激响应相等）；
-\item 比值读出~\eqref{eq:ratio-readout} 按式~\eqref{eq:weighted-average} 的意义抑制\textbf{每一}激励电流波形。
-\end{enumerate}
-陈述 1 与 2 是同阶多项式相等。由式~\eqref{eq:weighted-average} 的推导，陈述 2 蕴含 3；反之，以冲激对输入激励两通道可分离出 $g_P-g_N$，故 3 蕴含 2。表~\ref{tab:load-dimensions} 的匹配族维数因此不仅刻画静态共模抵消，也刻画\textbf{动态比值读出对激励动态精确免疫}的支路族。
+校准后的读数对所有允许的电流历史均等于任意恒定电阻 $R_0$ 的充要条件为 $g_P=g_N$。充分性由式~\eqref{eq:ratio-readout} 得到。对于必要性，若每个探测电流均满足 $(g_P-g_N)\ast I=0$，则两个响应核必须相等。在正值恒定电流附近施加小扰动，已足以作为探测信号。等价地，
+\begin{equation}\label{eq:dynamic-normalized-match}
+G_P=G_N\quad\Longleftrightarrow\quad
+\frac{D_P}{D_P(0)}=\frac{D_N}{D_N(0)}.
+\end{equation}
+未归一化分母相等，即 $D_P=D_N$，还要求两个直流增益相等。只有同时满足该要求，表~\ref{tab:load-dimensions} 中按未归一化传递函数计算的匹配族维数才适用。当电阻变化时，匹配的响应核给出式~\eqref{eq:weighted-average}，其中的权重仍取决于激励。
 
 \subsection{负载改变后的共模瞬态泄漏}
 \label{sec:cm-pulse}
 
-对 $g_0$ 配平、$g$ 观察的负载偏移族，式~\eqref{eq:general-load-shift} 给出 $G_{DC}=-(g-g_0)\Delta B/(D_P D_N)$，$\Delta B(0)=0$。零频泄漏为零，但响应带宽有限，因此幅度为 $V_c$ 的共模\textbf{阶跃}产生有限的差分脉冲
+对于在 $g_0$ 下匹配、在 $g$ 下观测的支路，记 $\Delta B=B_P-B_N$，由式~\eqref{eq:general-load-shift} 得到 $F=G_{DC}=-(g-g_0)\Delta B/(D_PD_N)$。由于 $F(0)=0$ 且极点稳定，幅度为 $V_c$ 的共模阶跃产生衰减的差分响应。以 $p_k$ 表示采用物理频率单位、约分后仍保留的互异极点，以 $a_k$ 表示 $F(s)/s$ 的留数，则有
 \begin{equation}\label{eq:cm-pulse}
-y(t)=V_c\,\mathcal L^{-1}\!\left[\frac{G_{DC}(s)}{s}\right],
-\qquad
-\|y\|_2^2=V_c^2\sum_{k,j}\frac{r_k r_j}{-(p_k+p_j)} ,
+y(t)=V_c\sum_k a_ke^{p_kt},\qquad
+\int_0^\infty y(t)^2\,\mathrm dt
+=V_c^2\sum_{k,j}\frac{a_ka_j}{-(p_k+p_j)}.
 \end{equation}
-其中留数式给出脉冲能量，峰值受 $\|g_{DC}\|_1$ 约束，$D_P D_N$ 的最慢极点支配恢复时间。对表~\ref{tab:branches} 中 $g_0=0.1$ 配平、$g=0.2$ 观察的 P/T 支路，闭式阶跃响应在 $28~\mu{\rm s}$ 后达到峰值 $9.2\times10^{-3}\,V_c$，并以 $19~\mu{\rm s}$ 尾部衰减（四个极点全为实数，$x$ 单位下介于 $-2.69$ 与 $-0.52$ 之间）。
+若改以 $r_k$ 表示 $F$ 的留数，则 $a_k=r_k/p_k$。冲激响应能量的求和项采用 $r_kr_j$，与上述阶跃响应能量是不同的量。此外，$\sup|y|\le |V_c|\|h_{DC}\|_1$，其中 $h_{DC}=\mathcal L^{-1}F$。存在重极点时，需要使用相应的多项式与指数函数乘积项。
+
+表~\ref{tab:branches} 中的 P/T 支路在 $g_0=0.1$ 下匹配，在 $g=0.2$ 下观测时，P 减去 T 的传递函数为
+\begin{equation}\label{eq:dynamic-pt}
+F(x)=\frac{0.1x}{(x^2+3.2x+1.4)(x^2+3.3x+1.4)}.
+\end{equation}
+其无量纲极点为 $-2.8,-2.677033,-0.522967,-0.5$。取 $T=10~\mu\mathrm s$，单位阶跃响应在 $28.20333~\mu\mathrm s$ 达到峰值 $0.009197601$（图~\ref{fig:dynamic-pulse}）；约分后保留的最慢极点给出 $20~\mu\mathrm s$ 的渐近时间常数。阶跃响应能量为 $3.17497\times10^{-9}V_c^2~\mathrm s$；要确定有限的稳定时间，还需指定容差。
+
+
+
 
 \subsection{瞬态验证}
 \label{sec:dynamic-verif}
 
-四组瞬态仿真检验了上述预测（\(R_*=1~\mathrm{k\Omega}\)、\(C_*=10~\mathrm{nF}\)、运行负载 \(10~\mathrm{k}\Omega\)）。匹配支路在 \(5~\mathrm{kHz}\) 方波电流纹波（\(\pm20\%\)、\(10~\mathrm{ns}\) 沿）与 \(10~\mathrm{ms}\) 内 \(10\to120~\mathrm{k}\Omega\) 电阻斜坡下，最大比值误差 \(320.93~\Omega\)，落在式~\eqref{eq:lag-bound} 的界内（裕量 \(1.08\times\)）；瞬态求解器与独立四阶参考解一致到六位数字。输出电容 \(+10\%\) 偏差与 \(1~\mathrm{kHz}\) 三角电流下，实测平均误差 \(121.9~\Omega\) 与交叉项预测 \(R(\dot I/I)\Delta\tau=133.3~\Omega\) 相差百分之九以内；联合场景将误差放大到匹配基线的 \(4.9\times\)。第~\ref{sec:cm-pulse}~节的共模阶跃脉冲与闭式解的相对差为 \(1.2\times10^{-7}\)。
+指数激励的评估窗口为 $2$--$3$~ms，最大步长为 $0.1~\mu\mathrm s$；正弦激励的窗口为 $20$--$40$~ms，最大步长为 $1~\mu\mathrm s$。细化后的最大步长分别为 $0.05~\mu\mathrm s$ 和 $0.5~\mu\mathrm s$。
+
+六个基准原生瞬态算例及两个步长细化算例检验了三级和四级归一化元件值均为 1 的梯形网络，采用 $R_*=1~\mathrm{k\Omega}$、$C_*=10~\mathrm{nF}$ 及 $10~\mathrm{k\Omega}$ 端接负载。四个匹配通道算例采用 $R=10~\mathrm{k\Omega}\,e^{200t}$，激励分别为恒定电流和与 $e^{1000t}$ 成正比的电流。在 $2.5~\mathrm{ms}$ 时，改变激励使匹配通道读数在 $N=3$ 时变化 $5.11377~\Omega$，在 $N=4$ 时变化 $11.94461~\Omega$，与式~\eqref{eq:dynamic-exp} 一致。
+
+两个恒定电阻算例采用 $R=100~\mathrm{k\Omega}$、$I=8~\mu\mathrm A[1+0.2\sin(2\pi100t)]$，并将参考通道末级电容增大 $10\%$。两者分别得到 $\Delta\tau=-2.30769~\mu\mathrm s$ 和 $-2.85714~\mu\mathrm s$。保留符号的一阶预测与精确响应之间的相对均方根偏差分别为 $5.59\%$ 和 $8.63\%$。所有算例中，初始过渡结束后，仿真比值读数与精确值的最大偏差小于 $1.23\times10^{-6}~\Omega$。两个 $N=4$ 的时间步长加密算例使读数变化小于 $1.4\times10^{-6}~\Omega$。
+
+\input{figures/fig08-zh.tex}
+\input{figures/fig09-zh.tex}
+\input{figures/fig10-zh.tex}
+\FloatBarrier

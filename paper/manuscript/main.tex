@@ -11,20 +11,20 @@
 \usepackage{microtype}
 \usepackage{hyperref}
 \hypersetup{colorlinks=true,linkcolor=black,citecolor=black,urlcolor=blue,
-  pdftitle={Termination-Dependent Cancellation in Multistage Differential Resistor-Capacitor Networks}}
+  pdftitle={Termination Constraints and Dynamic Ratio Error in Multistage Differential Resistor-Capacitor Networks}}
 \providecommand{\doi}[1]{\href{https://doi.org/#1}{\nolinkurl{doi:#1}}}
 \setlength{\emergencystretch}{1.5em}
 \clubpenalty=10000
 \widowpenalty=10000
 \displaywidowpenalty=10000
 \raggedbottom
-\title{Termination-Dependent Cancellation in Multistage Differential Resistor-Capacitor Networks}
+\title{Termination Constraints and Dynamic Ratio Error in Multistage Differential Resistor-Capacitor Networks}
 \author{}
 \date{}
 \begin{document}
 \maketitle
 \begin{abstract}
-Common-mode cancellation in a differential resistor-capacitor filter depends on the loads connected to the two signal paths. We derived the cancellation conditions for two grounded, second-order passive ladders under open-circuit and resistive-load conditions. A four-coefficient representation linked the open-circuit voltage transfer and output impedance to the component values and gave explicit inequalities for positive-component recovery. For a fixed reference branch, equal open-circuit transfer functions admitted a two-parameter family of matching component combinations. One specified positive resistive load reduced the family to one parameter, and matching the complete transfer functions at two distinct positive resistive loads required identical component values. Explicit examples demonstrated both open-circuit equivalence with different output impedances and cancellation at one load that disappeared after the load changed. Thirty-seven alternating-current simulation cases were checked against independent nodal solutions. The maximum absolute complex node-voltage difference was \(1.14\times10^{-15}\) V. For an output bridging capacitor, the derived differential- and common-mode gains contained the same loading factor, which cancelled from the common-mode rejection ratio. The results connected a cancellation specification to the admissible component family through the prescribed termination conditions. Beyond the static conditions, a weighted-average identity showed that equal loaded transfers make the ratio readout reject every excitation-current waveform exactly, a first-order analysis exposed a current-slew cross term governed by the direct-current group-delay mismatch, and a common-mode step on a load-shifted pair produced a finite leakage pulse with a closed-form peak and energy. A recursive chain-matrix treatment extended these conditions to an arbitrary number of stages: component values are uniquely recoverable from the two first-row polynomials through a finite positive-realization test; open-circuit matching leaves \(N\) local degrees of freedom, one specified positive resistive load leaves \(N-1\), and agreement of the complete transfer functions at two distinct positive resistive loads, or at two distinct known rational admittances, forces identical component values. A dimension table covers common rational load types, and a load shift keeps the zero-frequency leakage zero while redistributing the frequency-dependent mismatch.
+We derived termination-dependent cancellation conditions and dynamic ratio-error expressions for grounded differential resistor-capacitor ladders with any finite number of stages. Two recursively computed polynomials describe the open-circuit voltage transfer and output impedance, and a successive extraction test gives necessary and sufficient conditions for positive-component recovery. For a fixed reference branch with $N$ stages, open-circuit matching leaves $N$ local degrees of freedom, one specified positive resistive termination leaves $N-1$, and matching complete transfers at two distinct known terminations requires identical corresponding components. A polynomial-kernel expression extends the dimension calculation to rational loads. For constant resistance, equal direct-current-normalized transfers reject excitation changes exactly in a buffered ratio readout. A changing resistance instead produces a current-weighted history average. A moment expansion separates resistance tracking from the signed current-slew contribution associated with channel-delay mismatch. An 84-case AC matrix spanning one to twelve stages was checked against independent nodal solutions. Eight additional three- and four-stage transient cases, including two time-step refinements, verified both the history dependence and the mismatch term. A load-shifted second-order pair also produced a common-mode step pulse with a calculated unit-step peak of $9.197601$~mV/V and a $20~\mu\mathrm s$ asymptotic time constant. The results connect admissible component families, terminal loading and dynamic fidelity within a common network representation.
 \end{abstract}
 \noindent\textbf{Keywords:} differential RC filter; common-mode rejection; resistive termination; output impedance; component recovery.
 
@@ -33,8 +33,8 @@ Common-mode cancellation in a differential resistor-capacitor filter depends on 
 \input{sections/00-related-work.tex}
 \input{sections/02-network-model-and-verification-method.tex}
 \input{sections/02a-general-order-theory.tex}
-\input{sections/03a-dynamic-ratio-and-transient-leakage.tex}
 \input{sections/03-cancellation-conditions-and-component-recovery.tex}
+\input{sections/03a-dynamic-ratio-and-transient-leakage.tex}
 \input{sections/04-simulation-results-and-output-coupling.tex}
 \input{sections/05-discussion.tex}
 \input{sections/06-conclusions.tex}

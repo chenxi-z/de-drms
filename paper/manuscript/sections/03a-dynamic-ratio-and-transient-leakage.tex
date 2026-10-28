@@ -1,61 +1,96 @@
 \section{Dynamic ratio error and transient common-mode leakage}
 \label{sec:dynamic}
 
-The cancellation conditions above are exact identities between transfer functions, evaluated at every frequency. This section derives what they imply when the measured resistance and the excitation current vary during the observation window. The model remains the buffered front end of Section~\ref{sec:model-plane}: the sample resistance modulates the source amplitude, and the ladder itself is linear and time-invariant.
+The buffered front end of Section~\ref{sec:model-plane} supplies $v_P=IR$ and $v_N=IR_s$ to independent positive RC ladders with constant nonnegative resistive loads. Resistance changes the source amplitude; each ladder remains stable and linear time-invariant. Convolutions below include the complete input prehistory, or an equivalent compatible initial state, and require a nonzero reference output. Write $H_j=1/D_j$, $G_j=H_j/H_j(0)=D_j(0)/D_j$, and let $g_j$ be the impulse response of $G_j$. With measured output voltages $u_P,u_N$, direct-current gain calibration gives
+\begin{equation}\label{eq:ratio-readout}
+\hat R=R_s\frac{H_N(0)}{H_P(0)}\frac{u_P}{u_N}
+=\frac{(g_P\ast IR)(t)}{(g_N\ast I)(t)}.
+\end{equation}
 
 \subsection{Matched channels: an exact weighted-average identity}
 \label{sec:dynamic-matched}
 
-Let the two loaded branch transfers be equal after direct-current gain normalization, $G_P=G_N=G$ with $G(0)=1$ and impulse response $g(t)$, and form the ratio readout
-\begin{equation}\label{eq:ratio-readout}
-\hat R(t)=R_s\,\frac{(g\!\ast\! IR)(t)}{(g\!\ast\! I)(t)} ,
-\end{equation}
-where $I(t)$ is the excitation current and $R(t)$ the sample resistance. Because $R(t)$ is constant with respect to the convolution variable,
+For $G_P=G_N=G$, subtracting the instantaneous resistance yields
 \begin{equation}\label{eq:weighted-average}
-\hat R(t)-R(t)=\frac{\bigl(g\!\ast\! I\,[R(\cdot)-R(t)]\bigr)(t)}{(g\!\ast\! I)(t)} .
+\hat R(t)-R(t)=\frac{\displaystyle\int_0^\infty g(u)I(t-u)[R(t-u)-R(t)]\,\mathrm du}
+{(g\ast I)(t)}.
 \end{equation}
-Equation~\eqref{eq:weighted-average} is exact for every waveform of $I(t)$, including steps and square-wave ripple with fast edges: \emph{any} excitation-current fluctuation cancels from the ratio when the loaded transfers match. The remaining error is a weighted average of the past resistance values. If $|{\rm d}R/{\rm d}t|\le L_R$ and $|I|\le I_{\max}$, then
-\begin{equation}\label{eq:lag-bound}
-|\hat R(t)-R(t)|\;\le\;\frac{L_R\,I_{\max}\,M_1}{\bigl|(g\!\ast\! I)(t)\bigr|},
-\qquad
-M_1=\int_0^\infty \!\!\tau\,|g(\tau)|\,{\rm d}\tau .
+For positive excitation, the readout is a weighted history average. The readout equals $R_0$ for constant resistance $R_0$ under every excitation waveform with nonzero denominator. When resistance varies, excitation remains in the weights. For example, $I=I_0e^{\alpha t}$ and $R=R_0e^{\beta t}$, with $\alpha,\beta\ge0$ and complete exponential prehistories, give
+\begin{equation}\label{eq:dynamic-exp}
+\hat R(t)=R(t)\frac{G(\alpha+\beta)}{G(\alpha)}.
 \end{equation}
-The bound uses the first absolute moment because the impulse response of an $N\ge2$ ladder is not nonnegative; residues alternate in sign although all poles are real and negative. For the ladder class, $M_1\le\sum_k |r_k|/|p_k|^2$ in terms of the poles and residues of $1/D_g$, which the coefficients of Section~\ref{sec:general-order} supply directly.
+The examples with $\beta>0$ give different readouts at different $\alpha$ values even for identical channels (Figure~\ref{fig:dynamic-weighting}).
 
-\subsection{Mismatched channels: the current-slew cross term}
+The nodal state matrix of a positive grounded RC ladder has nonnegative off-diagonal entries; the input and output vectors are nonnegative. The matrix exponential gives $g(t)\ge0$. The first absolute moment is therefore
+\begin{equation}\label{eq:dynamic-moment}
+M_1=\int_0^\infty u|g(u)|\,\mathrm du
+=\int_0^\infty ug(u)\,\mathrm du=\tau,
+\qquad \tau=T\frac{D_x'(0)}{D(0)},\quad T=R_*C_*.
+\end{equation}
+If $|\dot R|\le L_R$ and $|I|\le I_{\max}$ over the relevant prehistory,
+\begin{equation}\label{eq:lag-bound}
+|\hat R-R|\le\frac{L_R I_{\max}\tau}{|(g\ast I)(t)|}.
+\end{equation}
+With $0<I_{\min}\le I\le I_{\max}$ throughout that prehistory, the bound becomes $L_R(I_{\max}/I_{\min})\tau$. Finite startup instead requires the actual denominator.
+
+\subsection{Mismatched channels: the current-slew contribution}
 \label{sec:dynamic-mismatch}
 
-When the loaded transfers differ, $G_P\ne G_N$, the direct-current normalization removes the static ratio error, and the ratio error acquires a term driven by the current slew rate. Writing $\tau=D'(0)/D(0)$ for the direct-current group delay of the loaded transfer (in $x$ units, $\tau=(A_1+gB_1)/(1+gB_0)$, scaled by $R_*C_*$), the first-order expression is
-\begin{equation}\label{eq:mismatch-dynamic}
-\hat R-R \;=\; \text{lag term of Eq.~\eqref{eq:lag-bound}} \;+\; R\,\frac{\dot I}{I}\,\Delta\tau
-\;+\;O\!\left(\ddot I/I,\ \Delta M_1\right),
-\qquad \Delta\tau=\tau_P-\tau_N .
+For different normalized kernels the exact decomposition is
+\begin{equation}\label{eq:dynamic-decomposition}
+\hat R-R=\frac{\displaystyle\int_0^\infty g_P(u)I(t-u)[R(t-u)-R(t)]\,\mathrm du}{(g_N\ast I)(t)}
++R\frac{((g_P-g_N)\ast I)(t)}{(g_N\ast I)(t)}.
 \end{equation}
-The cross term $R\,(\dot I/I)\,\Delta\tau$ is absent from every static analysis: a pair that cancels common-mode perfectly at each frequency can still convert excitation-current dynamics into a ratio error through the group-delay mismatch of the two channels. For the second-order unit branch at $g=0.1$, a $+10\%$ deviation of the output capacitor gives $\Delta\tau\approx1.67~\mu{\rm s}$; at a relative current slew $\dot I/I=800~{\rm s}^{-1}$ and $R=100~{\rm k}\Omega$ this is $133~\Omega$ of dynamic ratio error.
+Both terms use the reference-channel denominator. For slowly varying $I,R$ and a denominator bounded away from zero, expansion of each convolution gives
+\begin{equation}\label{eq:mismatch-dynamic}
+\hat R-R\simeq-\tau_P\dot R-R\frac{\dot I}{I}\Delta\tau,
+\qquad \Delta\tau=\tau_P-\tau_N.
+\end{equation}
+Here $\tau_j=T(A_{j,1}+gB_{j,1})/(1+gB_j(0))$. The second moment $\mu_{2,j}=\int u^2g_j(u)\,\mathrm du$ controls the expansion. For a twice differentiable input $f$,
+\begin{equation}\label{eq:dynamic-remainder}
+|(g_j\ast f)-f+\tau_j\dot f|
+\le\tfrac12\mu_{2,j}\sup_{v\le t}|f''(v)|.
+\end{equation}
+Apply Eq.~\eqref{eq:dynamic-remainder} to $f=IR$ and $f=I$ before expanding the quotient. Fast edges are evaluated with the exact expression. A slower reference channel has $\Delta\tau<0$ and produces positive error during a rising current at constant resistance (Figure~\ref{fig:dynamic-slew}).
 
-\subsection{Equivalence of static cancellation and dynamic immunity}
-\label{sec:welding}
+\subsection{Matching criterion for a constant resistance}
+\label{sec:constant-resistance-match}
 
-The static conditions of Section~\ref{sec:general-order} and the dynamic property of Section~\ref{sec:dynamic-matched} are one statement. At the operating load $g$ the following are equivalent:
-\begin{enumerate}
-\item $D_P=D_N$ (equal coefficient vectors, the static cancellation condition);
-\item $g_P=g_N$ (equal impulse responses);
-\item the ratio readout~\eqref{eq:ratio-readout} rejects every excitation-current waveform, in the sense of Eq.~\eqref{eq:weighted-average}.
-\end{enumerate}
-Statements 1 and 2 are equal polynomials of equal degree. Statement 2 implies 3 by the derivation of Eq.~\eqref{eq:weighted-average}; conversely, driving both channels with an impulse-pair input isolates $g_P-g_N$, so 3 implies 2. The matching-family dimensions of Table~\ref{tab:load-dimensions} therefore count not only static common-mode cancellation but also the families inside which the dynamic ratio readout is exactly immune to excitation dynamics.
+The calibrated readout equals every constant $R_0$ for all admissible current histories if and only if $g_P=g_N$. Sufficiency follows from Eq.~\eqref{eq:ratio-readout}; necessity follows because $(g_P-g_N)\ast I=0$ for every probe current forces equality of the kernels. Small perturbations about a positive constant current suffice as probes. Equivalently,
+\begin{equation}\label{eq:dynamic-normalized-match}
+G_P=G_N\quad\Longleftrightarrow\quad
+\frac{D_P}{D_P(0)}=\frac{D_N}{D_N(0)}.
+\end{equation}
+Raw equality $D_P=D_N$ additionally requires equal direct-current gains. Only with that requirement do the raw matching-family dimensions of Table~\ref{tab:load-dimensions} apply. For varying resistance, matched kernels imply Eq.~\eqref{eq:weighted-average}, with excitation-dependent weights.
 
 \subsection{Transient common-mode leakage after a load change}
 \label{sec:cm-pulse}
 
-For the load-shift family matched at $g_0$ and observed at $g$, Eq.~\eqref{eq:general-load-shift} gives $G_{DC}=-(g-g_0)\Delta B/(D_P D_N)$ with $\Delta B(0)=0$. The zero-frequency leakage vanishes, yet the response is band-limited, so a common-mode \emph{step} of amplitude $V_c$ produces a finite differential pulse
+For branches matched at $g_0$, observed at $g$, and with $\Delta B=B_P-B_N$, Eq.~\eqref{eq:general-load-shift} gives $F=G_{DC}=-(g-g_0)\Delta B/(D_PD_N)$. Since $F(0)=0$ and the poles are stable, a common-mode step of amplitude $V_c$ produces a decaying differential response. For distinct surviving poles $p_k$ in physical frequency units, define $a_k$ as residues of $F(s)/s$:
 \begin{equation}\label{eq:cm-pulse}
-y(t)=V_c\,\mathcal L^{-1}\!\left[\frac{G_{DC}(s)}{s}\right],
-\qquad
-\|y\|_2^2=V_c^2\sum_{k,j}\frac{r_k r_j}{-(p_k+p_j)} ,
+y(t)=V_c\sum_k a_ke^{p_kt},\qquad
+\int_0^\infty y(t)^2\,\mathrm dt
+=V_c^2\sum_{k,j}\frac{a_ka_j}{-(p_k+p_j)}.
 \end{equation}
-with the residue formula for the pulse energy and a peak bounded by $\|g_{DC}\|_1$; the slowest pole of $D_P D_N$ governs the recovery time. For the P/T branches of Table~\ref{tab:branches} matched at $g_0=0.1$ and observed at $g=0.2$, the closed-form step response peaks at $9.2\times10^{-3}\,V_c$ after $28~\mu{\rm s}$ and decays with a $19~\mu{\rm s}$ tail (all four poles real, between $-2.69$ and $-0.52$ in $x$ units).
+If $r_k$ are instead residues of $F$, then $a_k=r_k/p_k$. Impulse-response energy uses $r_kr_j$ in the sum and is a different quantity. The peak satisfies $\sup|y|\le |V_c|\|h_{DC}\|_1$, where $h_{DC}=\mathcal L^{-1}F$. Repeated poles require the corresponding polynomial-exponential terms.
+
+For P/T in Table~\ref{tab:branches}, matched at $g_0=0.1$ and observed at $g=0.2$, the P-minus-T transfer is
+\begin{equation}\label{eq:dynamic-pt}
+F(x)=\frac{0.1x}{(x^2+3.2x+1.4)(x^2+3.3x+1.4)}.
+\end{equation}
+The dimensionless P/T poles are $-2.8,-2.677033,-0.522967,-0.5$. With $T=10~\mu\mathrm s$, the unit-step peak is $0.009197601$ at $28.20333~\mu\mathrm s$ (Figure~\ref{fig:dynamic-pulse}); the slowest surviving pole sets a $20~\mu\mathrm s$ asymptotic time constant. The step-response energy is $3.17497\times10^{-9}V_c^2~\mathrm s$; a finite settling time additionally requires a tolerance.
+
+
+
 
 \subsection{Transient verification}
 \label{sec:dynamic-verif}
 
-Four transient simulations checked these predictions with \(R_*=1~\mathrm{k\Omega}\), \(C_*=10~\mathrm{nF}\), and a \(10~\mathrm{k\Omega}\) operating load. With matched branches, a \(5~\mathrm{kHz}\) square-wave current ripple of \(\pm20\%\) with \(10~\mathrm{ns}\) edges and a resistance ramp from \(10~\mathrm{k}\Omega\) to \(120~\mathrm{k}\Omega\) in \(10~\mathrm{ms}\) gave a maximum ratio error of \(320.93~\Omega\), inside the bound of Eq.~\eqref{eq:lag-bound} with a \(1.08\times\) margin; the transient solver and an independent fourth-order reference solution agreed to six digits. With an output capacitor deviating by \(+10\%\) and a \(1~\mathrm{kHz}\) triangular current, the measured mean error of \(121.9~\Omega\) matched the cross-term prediction \(R(\dot I/I)\Delta\tau=133.3~\Omega\) within nine percent, and the joint scenario amplified the error to \(4.9\times\) the matched baseline. The common-mode step pulse of Section~\ref{sec:cm-pulse} agreed with the closed form to a relative difference of \(1.2\times10^{-7}\).
+Six baseline native transient cases and two time-step refinements tested three- and four-stage unit-component ladders with $R_*=1~\mathrm{k\Omega}$, $C_*=10~\mathrm{nF}$ and $10~\mathrm{k\Omega}$ terminal loads. The exponential cases were evaluated over $2$--$3$~ms with a maximum time step of $0.1~\mu\mathrm s$; the sinusoidal cases used $20$--$40$~ms and $1~\mu\mathrm s$. The refined maximum steps were $0.05~\mu\mathrm s$ and $0.5~\mu\mathrm s$, respectively. Four matched-channel cases used $R=10~\mathrm{k\Omega}\,e^{200t}$ and either constant current or current proportional to $e^{1000t}$. At $2.5~\mathrm{ms}$, changing excitation changed the matched readout by $5.11377~\Omega$ for $N=3$ and $11.94461~\Omega$ for $N=4$, consistent with Eq.~\eqref{eq:dynamic-exp}.
+
+Two constant-resistance cases used $R=100~\mathrm{k\Omega}$, $I=8~\mu\mathrm A[1+0.2\sin(2\pi100t)]$, and a $10\%$ increase in the last reference-channel capacitor. They gave $\Delta\tau=-2.30769~\mu\mathrm s$ and $-2.85714~\mu\mathrm s$. The signed first-order prediction had relative RMS discrepancies of $5.59\%$ and $8.63\%$ against the exact response. Across all cases, the maximum simulated-to-exact ratio discrepancy after warmup was below $1.23\times10^{-6}~\Omega$. The two $N=4$ time-step refinements changed the readout by less than $1.4\times10^{-6}~\Omega$.
+
+\input{figures/fig08-en.tex}
+\input{figures/fig09-en.tex}
+\input{figures/fig10-en.tex}
+\FloatBarrier

@@ -1,0 +1,146 @@
+{
+  "verification_root": "/home/anning/Documents/Obsidian Vault/20-\u786c\u4ef6\u5de5\u7a0b/10-\u9879\u76ee\u8bbe\u8ba1/p1-\u6587\u732e\u8c31\u7cfb/verification",
+  "source_sha256": {
+    "/home/anning/Documents/Obsidian Vault/20-\u786c\u4ef6\u5de5\u7a0b/10-\u9879\u76ee\u8bbe\u8ba1/p1-\u6587\u732e\u8c31\u7cfb/verification/2026-10-28-codex-audit/dynamic-corrections/results.json": "7a0dd25a24746f2e7f6dc62522de0b4a311423c265c002f60f76928dde61c4ba",
+    "/home/anning/Documents/Obsidian Vault/20-\u786c\u4ef6\u5de5\u7a0b/10-\u9879\u76ee\u8bbe\u8ba1/p1-\u6587\u732e\u8c31\u7cfb/verification/2026-10-28-codex-audit/dynamic-corrections/N3_matched_exp_a0/case.net": "5c96e7a4275b568701b26d6d7865953ad5d90aa400cf925510b22d34b2f1df0f",
+    "/home/anning/Documents/Obsidian Vault/20-\u786c\u4ef6\u5de5\u7a0b/10-\u9879\u76ee\u8bbe\u8ba1/p1-\u6587\u732e\u8c31\u7cfb/verification/2026-10-28-codex-audit/dynamic-corrections/N3_matched_exp_a0/case.raw": "a1a7f84741d63a68e0ac7c3b4904e2135772263d6d63e349f1fab6283f5d9b5d",
+    "/home/anning/Documents/Obsidian Vault/20-\u786c\u4ef6\u5de5\u7a0b/10-\u9879\u76ee\u8bbe\u8ba1/p1-\u6587\u732e\u8c31\u7cfb/verification/2026-10-28-codex-audit/dynamic-corrections/N3_matched_exp_a0/case.log": "acf2a10fe90339db0df85dc4ccbda8242c06a4fd4792a01e810820e84ece8e9e",
+    "/home/anning/Documents/Obsidian Vault/20-\u786c\u4ef6\u5de5\u7a0b/10-\u9879\u76ee\u8bbe\u8ba1/p1-\u6587\u732e\u8c31\u7cfb/verification/2026-10-28-codex-audit/dynamic-corrections/N3_matched_exp_a1000/case.net": "a6ee2c12471e5b9db100e9f04cbf5e54ce7be9d5861d34732bc7173e753bc3e9",
+    "/home/anning/Documents/Obsidian Vault/20-\u786c\u4ef6\u5de5\u7a0b/10-\u9879\u76ee\u8bbe\u8ba1/p1-\u6587\u732e\u8c31\u7cfb/verification/2026-10-28-codex-audit/dynamic-corrections/N3_matched_exp_a1000/case.raw": "14d1095d0d450a2be0852003f7f716cd2c5419995f3c1e8115cda894b0e6d7ce",
+    "/home/anning/Documents/Obsidian Vault/20-\u786c\u4ef6\u5de5\u7a0b/10-\u9879\u76ee\u8bbe\u8ba1/p1-\u6587\u732e\u8c31\u7cfb/verification/2026-10-28-codex-audit/dynamic-corrections/N3_matched_exp_a1000/case.log": "6da1169a223dd0265e78a48952656987cf7f2a20c110d0e38db467e76c30a369",
+    "/home/anning/Documents/Obsidian Vault/20-\u786c\u4ef6\u5de5\u7a0b/10-\u9879\u76ee\u8bbe\u8ba1/p1-\u6587\u732e\u8c31\u7cfb/verification/2026-10-28-codex-audit/dynamic-corrections/N4_matched_exp_a0/case.net": "dacfc21a1233879ccb00443834b1ace5e6fbadea88acc63664d8ab03e50fba8d",
+    "/home/anning/Documents/Obsidian Vault/20-\u786c\u4ef6\u5de5\u7a0b/10-\u9879\u76ee\u8bbe\u8ba1/p1-\u6587\u732e\u8c31\u7cfb/verification/2026-10-28-codex-audit/dynamic-corrections/N4_matched_exp_a0/case.raw": "3c796aba202884e145e78ce47279b1edd82579b2a03f4159b7a6ddb742b7bffd",
+    "/home/anning/Documents/Obsidian Vault/20-\u786c\u4ef6\u5de5\u7a0b/10-\u9879\u76ee\u8bbe\u8ba1/p1-\u6587\u732e\u8c31\u7cfb/verification/2026-10-28-codex-audit/dynamic-corrections/N4_matched_exp_a0/case.log": "323c571d5f3bf1261aa2edb66e6b5d52f0715aca0f752439c373d3da5e6d891a",
+    "/home/anning/Documents/Obsidian Vault/20-\u786c\u4ef6\u5de5\u7a0b/10-\u9879\u76ee\u8bbe\u8ba1/p1-\u6587\u732e\u8c31\u7cfb/verification/2026-10-28-codex-audit/dynamic-corrections/N4_matched_exp_a1000/case.net": "658a8ac04035e2ac464f8a677f39bea03adae607a9186bc55086672e59e44c8e",
+    "/home/anning/Documents/Obsidian Vault/20-\u786c\u4ef6\u5de5\u7a0b/10-\u9879\u76ee\u8bbe\u8ba1/p1-\u6587\u732e\u8c31\u7cfb/verification/2026-10-28-codex-audit/dynamic-corrections/N4_matched_exp_a1000/case.raw": "0a2529adc8fdf3052141ab97a875ffdc2d119de506ea6bded0684c9da014bd71",
+    "/home/anning/Documents/Obsidian Vault/20-\u786c\u4ef6\u5de5\u7a0b/10-\u9879\u76ee\u8bbe\u8ba1/p1-\u6587\u732e\u8c31\u7cfb/verification/2026-10-28-codex-audit/dynamic-corrections/N4_matched_exp_a1000/case.log": "60f028499c340e9f5ba7cad2c1ada15805c5d4799754f10819e53b766658e1b9",
+    "/home/anning/Documents/Obsidian Vault/20-\u786c\u4ef6\u5de5\u7a0b/10-\u9879\u76ee\u8bbe\u8ba1/p1-\u6587\u732e\u8c31\u7cfb/verification/2026-10-28-codex-audit/dynamic-corrections/N4_mismatch_sine/case.net": "52a8e9256ad8313fcb6ce81175ab842983a4d706a8c3a7f6ad406e810d5baa9d",
+    "/home/anning/Documents/Obsidian Vault/20-\u786c\u4ef6\u5de5\u7a0b/10-\u9879\u76ee\u8bbe\u8ba1/p1-\u6587\u732e\u8c31\u7cfb/verification/2026-10-28-codex-audit/dynamic-corrections/N4_mismatch_sine/case.raw": "2541c70cabaaa83e7159cacc280a085e6610eb61dd1f7fb65d4412ef170efe2f",
+    "/home/anning/Documents/Obsidian Vault/20-\u786c\u4ef6\u5de5\u7a0b/10-\u9879\u76ee\u8bbe\u8ba1/p1-\u6587\u732e\u8c31\u7cfb/verification/2026-10-28-codex-audit/dynamic-corrections/N4_mismatch_sine/case.log": "5b90ce94996b846cc33ae0efa1351d4e34528c1633814b22433238600409e92f",
+    "/home/anning/Documents/Obsidian Vault/20-\u786c\u4ef6\u5de5\u7a0b/10-\u9879\u76ee\u8bbe\u8ba1/p1-\u6587\u732e\u8c31\u7cfb/verification/2026-10-28-codex-audit/dynamic-corrections/N3_matched_exp_a0/curves.npz": "5fbc97d70a0af483f1dcb60009b23ca4b733ea0d2bd61225b801d2b7c49e5185",
+    "/home/anning/Documents/Obsidian Vault/20-\u786c\u4ef6\u5de5\u7a0b/10-\u9879\u76ee\u8bbe\u8ba1/p1-\u6587\u732e\u8c31\u7cfb/verification/2026-10-28-codex-audit/dynamic-corrections/N3_matched_exp_a1000/curves.npz": "2b3d146f1f83488836c2946b1c423192ac2467379d800e2ec78b7b1d0dce2ccc",
+    "/home/anning/Documents/Obsidian Vault/20-\u786c\u4ef6\u5de5\u7a0b/10-\u9879\u76ee\u8bbe\u8ba1/p1-\u6587\u732e\u8c31\u7cfb/verification/2026-10-28-codex-audit/dynamic-corrections/N4_matched_exp_a0/curves.npz": "489227561560b2cfbdc0b0d4526f94f91061a7fae12f6c64fefcf1b0cc9a555f",
+    "/home/anning/Documents/Obsidian Vault/20-\u786c\u4ef6\u5de5\u7a0b/10-\u9879\u76ee\u8bbe\u8ba1/p1-\u6587\u732e\u8c31\u7cfb/verification/2026-10-28-codex-audit/dynamic-corrections/N4_matched_exp_a1000/curves.npz": "7af9434feef30ae00c7cb7f3c2a67df7155fcea639739628e73e18df58687515",
+    "/home/anning/Documents/Obsidian Vault/20-\u786c\u4ef6\u5de5\u7a0b/10-\u9879\u76ee\u8bbe\u8ba1/p1-\u6587\u732e\u8c31\u7cfb/verification/2026-10-28-codex-audit/dynamic-corrections/N4_mismatch_sine/curves.npz": "097860d855ea46bc72633c3d4b6e3f977e7d583ff8f11378f3f6541fa0e8a3c7",
+    "/home/anning/Documents/Obsidian Vault/20-\u786c\u4ef6\u5de5\u7a0b/10-\u9879\u76ee\u8bbe\u8ba1/p1-\u6587\u732e\u8c31\u7cfb/verification/2026-10-28-dynamic/cases/T2_cm_pulse/case.raw": "adbbd6fafd293439f9e7516b7eb70ebba54340a5697f28d3409842203167a512",
+    "/home/anning/Documents/Obsidian Vault/20-\u786c\u4ef6\u5de5\u7a0b/10-\u9879\u76ee\u8bbe\u8ba1/p1-\u6587\u732e\u8c31\u7cfb/verification/2026-10-28-dynamic/cases/T2_cm_pulse/case.net": "decede3fb1ae0804ffde2a1cd6c8b46ed8278cb19f508bab8c4c53553d05c45a",
+    "/home/anning/Documents/Obsidian Vault/20-\u786c\u4ef6\u5de5\u7a0b/10-\u9879\u76ee\u8bbe\u8ba1/p1-\u6587\u732e\u8c31\u7cfb/verification/2026-10-28-dynamic/cases/T2_cm_pulse/case.log": "b87d8108d2dfc66b75bddf58d7f75af5b6b6e9870a7fff40f8ed93c3598360bf"
+  },
+  "method": "Independent analytic determinant/phasor/finite-ramp pole evaluation, immutable archived curves and streamed native ASCII pulse output; no simulation run.",
+  "metrics": {
+    "N3_current_history_difference_2p5ms_ohm": 5.113766422387,
+    "N3_D_coefficients_ascending": [
+      1.3000000000000003,
+      6.4,
+      5.1,
+      1.0
+    ],
+    "N3_markers_max_abs_native_vs_analytic_ohm": 5.032157952555849e-07,
+    "N4_current_history_difference_2p5ms_ohm": 11.944609097537882,
+    "N4_D_coefficients_ascending": [
+      1.4000000000000004,
+      11.0,
+      15.600000000000001,
+      7.1,
+      1.0
+    ],
+    "N4_markers_max_abs_native_vs_analytic_ohm": 7.809550481852057e-07,
+    "N4_delta_tau_P_minus_N_s": -2.857142857142856e-06,
+    "N4_first_order_relative_RMS": 0.08630421215579627,
+    "N4_exact_phasor_vs_archived_exact_max_ohm": 5.820766091346741e-11,
+    "N4_exact_phasor_vs_native_max_ohm": 1.2209638953208923e-06,
+    "N4_first_order_relative_RMS_at_native_times": 0.0863422395640489,
+    "T2_native_peak_mV": 9.197602092423708,
+    "T2_native_peak_elapsed_us": 28.21739501662128,
+    "T2_selected_native_points": 7506,
+    "T2_raw_offset_s": 0.0005,
+    "T2_finite_ramp_native_max_abs_residual_V": 4.500553041353328e-09,
+    "T2_poles_normalized": [
+      -2.79999999999997,
+      -2.67703296142693,
+      -0.5229670385731248,
+      -0.49999999999997524
+    ],
+    "T2_step_residues": [
+      -0.15527950310567185,
+      0.17341525193450905,
+      -0.8877009662181732,
+      0.8695652173894224
+    ]
+  },
+  "qa": [
+    {
+      "figure": "Fig_08_dynamic_weighting",
+      "canvas_cm": [
+        7.5,
+        5.625
+      ],
+      "png_pixels": [
+        1563,
+        1174
+      ],
+      "border_pixels": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "actual_svg_min_glyph_pt": 7.3,
+      "annotation_collisions": [],
+      "legend_curve_samples_intersected": 0,
+      "marker_artist_clip_flags": [
+        false,
+        false
+      ],
+      "svg_editable_text": true
+    },
+    {
+      "figure": "Fig_09_dynamic_slew",
+      "canvas_cm": [
+        7.5,
+        5.625
+      ],
+      "png_pixels": [
+        1589,
+        1174
+      ],
+      "border_pixels": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "actual_svg_min_glyph_pt": 7.3,
+      "annotation_collisions": [],
+      "legend_curve_samples_intersected": 0,
+      "marker_artist_clip_flags": [
+        false
+      ],
+      "svg_editable_text": true
+    },
+    {
+      "figure": "Fig_10_dynamic_pulse",
+      "canvas_cm": [
+        7.5,
+        5.625
+      ],
+      "png_pixels": [
+        1571,
+        1174
+      ],
+      "border_pixels": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "actual_svg_min_glyph_pt": 5.25,
+      "annotation_collisions": [],
+      "legend_curve_samples_intersected": 0,
+      "marker_artist_clip_flags": [
+        false
+      ],
+      "svg_editable_text": true
+    }
+  ]
+}

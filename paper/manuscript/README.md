@@ -2,8 +2,8 @@
 
 - [英文主文件](main.tex) → [英文PDF](main.pdf)。
 - [中文主文件](main-zh.tex) → [中文PDF](main-zh.pdf)。
-- `sections/`、`sections-zh/`：对应的七节正文；公式、图号、表格和引用保持对应。
-- [图件目录](figures/MANIFEST.md)：7幅原创图，中英文图注、数据来源、生成方法；SVG可编辑，PNG为600dpi，PDF用于TeX排版。
+- `sections/`、`sections-zh/`：对应的九节正文；公式、图号、表格和引用保持对应。
+- [图件目录](figures/MANIFEST.md)：10幅原创图，中英文图注、数据来源、生成方法；SVG可编辑，PNG为600dpi，PDF用于TeX排版。
 - `references.bib`：本稿实际引用15条文献；外部全文保留在Obsidian。
 - [缺失材料清单](MANUSCRIPT_GAPS.md)、[4篇优先代下全文](LITERATURE_GAPS.md)：明确区分待核文献和待采实验。
 
@@ -19,7 +19,11 @@
 python3 tools/generate_figures.py --evidence '/实际的/2026-10-27-qoder-qwen38flash-140348'
 ```
 
-需要numpy、matplotlib、Pillow与CairoSVG。`figures/provenance.json` 保存原始数据哈希、解析/仿真比较和图检结果；不修改既有仿真。
+需要numpy、matplotlib、Pillow与CairoSVG。`figures/provenance.json` 与 `figures/provenance_dynamic.json` 保存原始数据哈希、解析/仿真比较和图检结果；不修改既有仿真。新增动态图可运行 `python3 tools/generate_dynamic_figures.py` 重建。
+
+## 2026-10-28 接续核查
+
+保留 zcode 的一般阶推导、84例AC矩阵和原动态记录。已纠正动态比值的量纲、归一化、符号、适用条件与输入波形口径，追加三级/四级8例原生瞬态和4例电感模型诊断。逐项结论见 [接续审查](REVIEW-2026-10-28-followup.md)。
 
 ## 核查记录
 

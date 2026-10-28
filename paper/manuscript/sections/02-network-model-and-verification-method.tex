@@ -3,7 +3,7 @@
 \subsection{Signal paths and measurement plane}
 \label{sec:model-plane}
 
-Each signal path contained two series resistors, \(R_1\) and \(R_2\). Capacitor \(C_1\) connected the resistor junction to ground, and capacitor \(C_2\) connected the output node to ground. All four component values were positive. Ideal voltage sources drove the two inputs, and the initial conditions were zero. The output was the voltage difference between the two capacitor \(C_2\) nodes. Figure~\ref{fig:circuit} shows the signal paths and termination plane.
+Each signal path was an $N$-stage ladder of positive series resistors and positive grounded capacitors, driven by an ideal voltage source. Figure~\ref{fig:circuit} illustrates the two-stage instance. The output was the difference between the terminal node voltages. Transfer functions used zero initial conditions. In the buffered ratio model, the sample resistance changed the source amplitude before the ladder; the filter components remained fixed, and the input prehistory specified the compatible initial state.
 
 We defined the differential and common-mode inputs as
 
@@ -31,7 +31,7 @@ We normalized the components by \(R_*\) and \(C_*\) and defined
 r_i=R_i/R_*,\qquad q_i=C_i/C_*,\qquad x=sR_*C_*.
 \end{equation}
 
-The four branch coefficients were
+For the second-order illustration, the four branch coefficients were
 
 \begin{equation}\label{eq:4}
 \begin{aligned}
@@ -62,7 +62,9 @@ At each load condition, both paths had the same specified resistance \(R_L\). We
 
 We checked the coefficient identities and example component sets with exact rational arithmetic. The circuit simulations used LTspice 26.1.1, \(R_*=1\,\mathrm{k\Omega}\) and \(C_*=10\,\mathrm{nF}\). The frequency sweep contained 145 points from 10 Hz to 10 MHz, with 24 points per decade. Common-mode excitation applied 1 V to both inputs. Differential excitation applied +0.5 V and -0.5 V to the two inputs.
 
-The 37 simulation cases covered first-order controls, second-order branches, different component-matching strategies, finite source resistance, symmetric and asymmetric resistive terminations, and output bridging capacitance. We independently constructed the nodal equations from the stored netlists and compared the complex node voltages with the simulator outputs. The analytical load-classification results used the ideal-source and equal-resistive-load assumptions in Sections~\ref{sec:model-plane} and~\ref{sec:coefficients}.
+The 37 simulation cases covered first-order controls, second-order branches, different component-matching strategies, finite source resistance, symmetric and asymmetric resistive terminations, and output bridging capacitance. We independently constructed the nodal equations from the stored netlists and compared the complex node voltages with the simulator outputs. The resistive-load classification results used the ideal-source and equal-resistive-load assumptions in Sections~\ref{sec:model-plane} and~\ref{sec:coefficients}.
 
+
+The general-order matrix contained 84 native AC cases with $N=1,2,3,4,6,8,12$. Independent nodal checks used the component values and the documented simulator element models. In particular, an inductor without an explicit series-resistance parameter uses a 1~m$\Omega$ series resistance in LTspice. Two further pairs of diagnostic runs specified zero or 1~m$\Omega$ explicitly. Transient verification used the input waveforms and warmup windows stated in Section~\ref{sec:dynamic-verif}; the two four-stage refinements halved the maximum step.
 
 \FloatBarrier

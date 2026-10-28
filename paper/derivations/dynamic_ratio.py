@@ -1,131 +1,117 @@
 #!/usr/bin/env python3
-"""动态比值测量理论推导与符号/数值核验（2026-10-28，ZCode）。
+"""Exact checks for calibrated dynamic ratios and the P-minus-T step response.
 
-模型（M1，缓冲前端——样品电阻调制源幅度，网络本身 LTI）：
-  v_P(t) = I(t)·R(t),  v_N(t) = I(t)·R_s
-  G_P, G_N = 两支路**直流增益归一**的负载传函（G(0)=1）
-  R̂(t) = R_s · [g_P ⊛ (I·R)](t) / [g_N ⊛ I](t)
-
-产出（全部 sympy 精确 + 数值核验）：
-  P1 匹配通道：R̂ = g,I-加权平均恒等式；误差界 |R̂−R| ≤ L_R·(Imax/Imin)·M₁(|g|)
-  P2 失配通道一阶：R̂−R ≈ 滞后项 + R·İ·Δτ + R·L_R·ΔM₁ 项（Δτ=直流群时延差，
-     Δτ = R*C*·[D_P'(0)/D_P(0) − D_N'(0)/D_N(0)]）
-  P3 焊接定理：负载 g 下 D_P=D_N ⟺ 该负载下任意 I(t) 波动精确消去（动态）——
-     静态消去条件与动态比值稳健性同构
-  P4 CM 瞬态脉冲：G_DC=−(g−g₀)ΔB/(D_P D_N)（g₀ 配平族）的阶跃响应峰值/H₂ 能量/
-     峰值时间，N=2 闭式 + 一般 N 数值
+The buffered sources are vP=I*R and vN=I*Rs. For normalized channel
+kernels gP,gN the calibrated estimate is (gP*(IR))/(gN*I), in ohms.
+Matched kernels reject arbitrary current changes for constant R; varying
+R retains a current-dependent history average. This script checks algebra,
+normalization, the signed delay term, and distinct step/impulse energies.
+It performs no circuit simulation and modifies no historical evidence.
 """
-import sympy as sp
+import argparse
+import json
 from fractions import Fraction as F
+from pathlib import Path
+import mpmath as mp
+import sympy as sp
 
-x, s = sp.symbols('x s', real=True)
+x = sp.symbols('x')
 
-# ---------- 与 B 包一致的 Fraction 链工具（复用口径） ----------
-def chain_poly(rF, qF, gF):
-    """返回 D(x)=A(x)+g·B(x) 的 sympy 多项式（系数精确有理）。"""
-    A = sp.Poly(1, x); B = sp.Poly(0, x)
-    for r, q in zip(rF, qF):
-        B = A*sp.Rational(r) + B
-        A = A + sp.Poly(sp.Rational(q)*x, x)*B
-    D = A + B*sp.Rational(gF)
-    return sp.Poly(D, x), sp.Poly(A, x), sp.Poly(B, x)
+def chain_poly(rs, qs, g):
+    a, b = sp.Poly(1, x), sp.Poly(0, x)
+    for r, q in zip(rs, qs):
+        b = sp.Rational(r) * a + b
+        a = a + sp.Poly(sp.Rational(q) * x, x) * b
+    return a + sp.Rational(g) * b, a, b
 
-def dc_delay(rF, qF, gF):
-    """归一化传函 G=1/D/D(0) 的直流群时延（单位 x，秒=R*C*·该值）。"""
-    D, A, B = chain_poly(rF, qF, gF)
-    p = D.as_expr()
-    return sp.simplify(sp.diff(p, x).subs(x, 0) / p.subs(x, 0))
-
-# ---------- P1/P2 核心恒等式（符号推演，t 域） ----------
-t, tau = sp.symbols('t tau', positive=True)
-# 恒等式：R̂−R = [g⊛(I·(R(t−·)−R(t)))](t) / [g⊛I](t)   （匹配通道，直接可验）
-# 数值核验用卷积离散化；理论部分见 dynamic-analysis.md 推导。
-
-# ---------- P4：N=2 闭式瞬态脉冲 ----------
-def pulse_N2(dp, dn, dB, g, g0):
-    """D_P, D_N 为 N=2 分母（x 多项式），ΔB=Δd·x；返回阶跃响应 y(t)=L⁻¹[G_DC/s]
-    的符号式与峰值/能量量（G_DC=−(g−g0)ΔB/(D_P D_N)，x 域→s 域 1:1）。"""
-    Gdc = -sp.Rational(g-g0)*dB/((dp*dn).as_expr())
-    Y = sp.apart(Gdc/s, s, extension=True) if False else None
-    return Gdc
+def dc_delay(rs, qs, g):
+    """D'_x(0)/D(0); multiply by Rstar*Cstar for seconds."""
+    d = chain_poly(rs, qs, g)[0].as_expr()
+    return sp.cancel(sp.diff(d, x).subs(x, 0) / d.subs(x, 0))
 
 def main():
-    print("="*72)
-    print("P2 直流群时延公式核验（N=2,3）与失配通道 Δτ")
-    print("="*72)
-    # 基线（B 包口径）
-    for N, rr, qq in [(2, [F(6,5), F(4,5)], [F(3,7), F(6,7)]),
-                      (3, [F(6,5), F(4,5), 1], [F(3,7), F(6,7), 1])]:
-        for g in [F(0), F(1,10), F(1,5)]:
-            tau_ = dc_delay(rr, qq, g)
-            print(f"  N={N} g={g}: τ_eff(x-units) = {tau_} = {float(tau_):.6f}")
-    # 失配 Δτ：扰动 B 包的 T/P 例（P 基线 vs Q=固定负载等效族）
-    print("\n  失配例（N=2，FEQ 族）：P=(1,1,1,1)，Q 同 D@g=0.1 但不同元件")
-    P = ([F(1),F(1)],[F(1),F(1)]); g1 = F(1,10)
-    # 用 B 包 perturb 思路：B2=B+tD, A2=A−g1 tD（D=x）
-    Dp = sp.Poly(x, x)
-    Ap, Bp = chain_poly(*P, F(0))[1], chain_poly(*P, F(0))[2]
-    for tF in [F(1,10), F(1,5)]:
-        A2 = sp.Poly(sp.expand(Ap.as_expr() - g1*tF*Dp.as_expr()), x)
-        B2 = sp.Poly(sp.expand(Bp.as_expr() + tF*Dp.as_expr()), x)
-        D_P = (Ap + Bp*g1).as_expr(); D_Q = (A2 + B2*g1).as_expr()
-        dP = sp.diff(D_P, x).subs(x,0)/D_P.subs(x,0)
-        dQ = sp.diff(D_Q, x).subs(x,0)/D_Q.subs(x,0)
-        print(f"   t={tF}: D_P==D_Q? {sp.simplify(D_P-D_Q)==0}；τ_P={float(dP):.6f} τ_Q={float(dQ):.6f}"
-              f" → Δτ={float(dQ-dP):+.6f}（注意：同 D ⟹ 同 τ）")
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--output', type=Path)
+    args = parser.parse_args()
+    report = {'checks': [], 'scope': 'Symbolic/reference calculations, not SPICE or physical measurements.'}
+    def check(name, condition):
+        assert bool(condition), name
+        report['checks'].append({'name': name, 'pass': True})
 
-    print()
-    print("="*72)
-    print("P4 N=2 CM 瞬态脉冲闭式（负载偏移族）")
-    print("="*72)
-    # P=(1,1,1,1), Q: Δd 失配（非等效，直接元件差），g0=配平负载不存在→用一般失配
-    # 取 FEQ 例：在 g0=0.1 配平、g=0.2 观察。D_P=D_Q(记 D)，ΔB=xΔd
-    dpoly, Ap, Bp = chain_poly([F(1),F(1)],[F(1),F(1)], F(0))
-    tF = F(1,10); g0 = F(1,10)
-    A2 = sp.Poly(sp.expand(Ap.as_expr() - g0*tF*Dp.as_expr()), x)
-    B2 = sp.Poly(sp.expand(Bp.as_expr() + tF*Dp.as_expr()), x)
-    ΔB = sp.Poly(sp.expand((B2-Bp).as_expr()), x)   # = tF·x
-    gobs = F(1,5)
-    DPg = (Ap + Bp*gobs).as_expr(); DQg = (A2 + B2*gobs).as_expr()
-    Gdc = sp.expand(-(gobs-g0)*ΔB.as_expr()/(DPg*DQg))
-    print(f"  G_DC(s) = {Gdc}")
-    print(f"  G_DC(0) = {sp.simplify(Gdc.subs(x,0))}（零——脉冲型）")
-    # 阶跃响应：Y(s)=G_DC/s 的留数（x↔s 1:1，数值即可）
-    Y = Gdc/x  # 1/s 用 1/x 表记
-    apart = sp.apart(sp.together(Y), x, full=True)
-    print(f"  Y(s)=G_DC/s 部分分式：{apart}")
-    y = sp.inverse_laplace_transform(Gdc.subs(x, s)/s, s, t)
-    y = sp.simplify(y)
-    print(f"  y(t) = {y}")
-    # 峰值与 H2 能量（数值）
-    yf = sp.lambdify(t, y, 'numpy')
-    import numpy as np
-    ts = np.linspace(0, 20, 400001)  # x 单位（R*C*=1e-5 s；脉冲宽度 ~0.1–10 x）
-    ys = yf(ts)
-    pk = np.max(np.abs(ys)); tpk = ts[np.argmax(np.abs(ys))]
-    print(f"  峰值={pk:.6e}（x 单位）@ t={tpk:.4f} x-units = {tpk*1e-5:.3e} s")
-    # H2 能量：‖g_DC‖²₂ = Σ r_k r_j/(−(p_k+p_j)) 留数式（数值极点）
-    den = sp.denom(sp.together(Gdc)); num = sp.numer(sp.together(Gdc))
-    poles = [complex(p) for p in sp.nroots(sp.Poly(den, x))]
-    res = [complex(num.subs(x, p)/sp.diff(den, x).subs(x, p)) for p in poles]
-    print(f"  极点（x 单位，数值）：{[f'{p.real:.4f}{p.imag:+.4f}j' for p in poles]}")
-    H2sq = sum(res[i]*res[j]/(-(poles[i]+poles[j])) for i in range(len(poles)) for j in range(len(poles)))
-    print(f"  ‖g_DC‖₂² = {H2sq:.6e}；‖g_DC‖₂ = {abs(H2sq)**0.5:.6e}")
-    return 0
+    # Reference voltage includes Rs, so calibration removes its extra factor.
+    ii, rr, rs = sp.symbols('I R Rs', nonzero=True)
+    check('calibrated ratio has resistance units', sp.cancel(rs * ii * rr / (ii * rs)) == rr)
 
-def mismatch_dtau():
-    """P2b 元件偏差的 Δτ：运行负载下两支路直流群时延差 + 一阶动态比值误差预测。"""
-    print("\n" + "="*72)
-    print("P2b 元件偏差的 Δτ（一阶预测：失配通道 R̂−R 含 R·İ·Δτ 项）")
-    print("="*72)
+    # First moment expansion of the quotient, with Delta_tau=P minus N.
+    eps = sp.symbols('eps')
+    ip, rp, tp, tn = sp.symbols('Idot Rdot tauP tauN')
+    quotient = (ii*rr - eps*tp*(ip*rr + ii*rp))/(ii-eps*tn*ip)
+    first = sp.diff(quotient, eps).subs(eps, 0)
+    target = -tp*rp - rr*(ip/ii)*(tp-tn)
+    check('signed first-order moment term', sp.simplify(first-target) == 0)
+
+    # A normalized-shape match need not be a raw-gain match.
+    dp = chain_poly([F(1)], [F(1)], F(1, 10))[0].as_expr()
+    dn = chain_poly([F(2)], [F(6, 11)], F(1, 10))[0].as_expr()
+    check('normalized equality with different raw gains',
+          sp.simplify(dp.subs(x, 0)/dp-dn.subs(x, 0)/dn) == 0 and sp.simplify(dp-dn) != 0)
+
+    # Exact positive two-stage counterexample to varying-R current immunity.
+    d = chain_poly([F(1), F(1)], [F(1), F(1)], F(1, 10))[0].as_expr()
+    g = d.subs(x, 0)/d
+    factor_const = sp.cancel(g.subs(x, 1))
+    factor_exp = sp.cancel(g.subs(x, 2)/g.subs(x, 1))
+    check('matched changing-R estimate depends on current history', factor_const != factor_exp)
+    report['counterexample_dimensionless_beta_1'] = {
+        'constant_current_Rhat_over_R': str(factor_const),
+        'exponential_current_alpha_1_Rhat_over_R': str(factor_exp)}
+
+    # Delay differences for the corrected three/four-stage transient matrix.
+    report['last_reference_capacitor_plus10percent'] = []
+    for n in [2, 3, 4]:
+        qn = [F(1)]*n; qn[-1] = F(11, 10)
+        delta = dc_delay([F(1)]*n, [F(1)]*n, F(1, 10)) - dc_delay([F(1)]*n, qn, F(1, 10))
+        check(f'N{n} reference slower gives negative Delta_tau', delta < 0)
+        report['last_reference_capacitor_plus10percent'].append({'N': n, 'delta_tau_P_minus_N_s': float(delta)*1e-5})
+
+    # Actual P/T construction, both evaluated at the observation load g=.2.
     P = ([F(1), F(1)], [F(1), F(1)])
-    for delta in [F(1, 50), F(1, 20), F(1, 10)]:
-        Q = (P[0], [P[1][0], P[1][1]*(1+delta)])
-        for g in [F(1, 10), F(1, 5)]:
-            tP = dc_delay(*P, g); tQ = dc_delay(*Q, g)
-            print(f"  Δq2=+{float(delta)*100:.0f}% g={g}: τ_P={float(tP):.5f} τ_Q={float(tQ):.5f} "
-                  f"Δτ={float(tQ-tP):+.5f} x = {float(tQ-tP)*10:+.3f} µs")
+    T = ([F(18, 19), F(20, 19)], [F(361, 180), F(1, 2)])
+    DP, AP, BP = chain_poly(*P, F(1, 5))
+    DT, AT, BT = chain_poly(*T, F(1, 5))
+    check('P/T exactly matched at g0=.1', chain_poly(*P, F(1, 10))[0] == chain_poly(*T, F(1, 10))[0])
+    transfer = sp.cancel(1/DP.as_expr()-1/DT.as_expr())
+    from_shift = sp.cancel(-F(1, 10)*(BP.as_expr()-BT.as_expr())/(DP.as_expr()*DT.as_expr()))
+    check('load-shift sign equals P-minus-T output', sp.simplify(transfer-from_shift) == 0)
+    check('positive step numerator', sp.simplify(transfer*DP.as_expr()*DT.as_expr()-x/10) == 0)
+    report['P_minus_T_transfer_x'] = str(transfer)
 
-if __name__ == "__main__":
+    # Unit-step response residues belong to F(x)/x, not to F(x).
+    mp.mp.dps = 60
+    poles = [mp.mpf('-2.8'), (-8-mp.sqrt(29))/5, (-8+mp.sqrt(29))/5, mp.mpf('-.5')]
+    den = sp.Poly(DP.as_expr()*DT.as_expr(), x)
+    derivative = [mp.mpf(str(v)) for v in sp.Poly(sp.diff(den.as_expr(), x), x).all_coeffs()]
+    residues = [mp.mpf('.1')/mp.polyval(derivative, p) for p in poles]
+    step = lambda theta: sum(a*mp.exp(p*theta) for a,p in zip(residues,poles))
+    slope = lambda theta: sum(a*p*mp.exp(p*theta) for a,p in zip(residues,poles))
+    theta_peak = mp.findroot(slope, (mp.mpf('2.5'), mp.mpf('3.1')))
+    scale = mp.mpf('1e-5')
+    step_energy = scale*sum(a*b/(-(p+q)) for a,p in zip(residues,poles) for b,q in zip(residues,poles))
+    quadrature = scale*mp.quad(lambda u: step(u)**2, [0, 1, 3, 10, mp.inf])
+    check('step residue energy agrees with independent quadrature', abs(step_energy/quadrature-1) < mp.mpf('1e-30'))
+    impulse_energy = sum(a*b*p*q/(-(p+q)*scale) for a,p in zip(residues,poles) for b,q in zip(residues,poles))
+    report['P_minus_T_unit_step'] = {
+        'peak_V_per_V': float(step(theta_peak)), 'peak_time_s': float(theta_peak*scale),
+        'asymptotic_time_constant_s': float(-scale/max(poles)),
+        'step_squared_integral_per_Vc2_s': float(step_energy),
+        'impulse_squared_integral_per_s': float(impulse_energy),
+        'poles_dimensionless': [float(p) for p in poles]}
+    report['all_pass'] = True
+    text = json.dumps(report, indent=2, ensure_ascii=False)
+    if args.output:
+        args.output.parent.mkdir(exist_ok=True, parents=True)
+        args.output.write_text(text+'\n')
+    print(text)
+
+if __name__ == '__main__':
     main()
-    mismatch_dtau()
