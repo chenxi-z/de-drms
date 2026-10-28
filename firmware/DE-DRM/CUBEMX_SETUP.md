@@ -93,12 +93,14 @@ ADC采集/DMA/校准/TF连续记录尚缺，编译成功不等于整机已可测
 
 ## 1. 时钟方案（RCC + Clock Configuration）— 🔴 本节有一处必改错误
 
-设计依据：E.7。**MCU 免晶振**（HSE 焊盘不贴），USB 用 HSI48+CRS 校准。
+设计依据：E.7（2026-10-28 修订）。**首板贴 HSE 16 MHz**（X4 已贴），PLL 源可用 HSE 或 MSIS 任一；
+**USB 必须用 HSI48+CRS 校准**（USB 时钟不走 PLL）。
 
 ### 1.1 RCC 模块（System Core → RCC）
 
 - [ ] 🟥 **HSE 必须改为 `BYPASS Clock Source` 或干脆 `Disable`** ——
-  **当前 IOC 是 `Crystal/Ceramic Resonator` 且 `RCC_PLLSOURCE_HSE`，但 E.7 定稿 HSE 晶振不贴！**
+  ✅ **2026-10-28：HSE 已实贴，此矛盾解除**（E.10 #16 关闭）。IOC 可保持 `RCC_PLLSOURCE_HSE`，
+  也可改 MSIS——两者都能跑。**原红色警告（HSE 不贴→PLL 锁不住）已作废**。
   照现状生成代码 → HSE 不起振 → PLL 锁不住 → **SYSCLK 无输出，MCU 跑不起来**（主文档 E.10 #16）
 - [ ] 🟥 **PLL 源改 `MSIS`（MSI）**：`PLL Source Mux = MSI`，`PLLN` 相应重算使 SYSCLK = 160 MHz
   （MSI 出厂 4 MHz；`4 × N / R = 160`）。改完再确认 `HSE_VALUE` 不再被 PLL 链路引用
@@ -107,8 +109,9 @@ ADC采集/DMA/校准/TF连续记录尚缺，编译成功不等于整机已可测
 - [ ] HSI48：**ON**（USB / CRS 用）
 - [x] LSE：**Crystal/Ceramic Resonator**（PC14/PC15 已配，给 RTC）
 - [x] LSI：**ON**
-- [ ] 若坚持"贴 16 MHz 晶振走 HSE"，则必须**回改主文档 E.7 的免晶振结论**并在 E.10 记录理由——
-  二选一，不可维持"文档说不贴、IOC 用 HSE"的矛盾状态
+- [x] ✅ **2026-10-28 已按"贴晶振走 HSE"落定**：E.7 已改写，E.10 #16 关闭。
+  ⚠️ 负载电容待优化：X4 负载 12 pF，板上 C1/C2 = 20 pF（实载 ≈13–15 pF，频偏 +10~30 ppm），
+  对 SYSCLK 无影响；若日后要切 USB 时钟到 PLL 需降到 10 pF
 
 ### 1.2 Clock Configuration 标签页
 
@@ -329,7 +332,7 @@ ADC采集/DMA/校准/TF连续记录尚缺，编译成功不等于整机已可测
 | PC0 / PC1 | ADC1 通道（VBAT / VBUS） | § 2.6 |
 | PC8–PC12 / PD2 | SDMMC1 D0–D3 / CK / CMD | § 2.5 |
 | PC14 / PC15 | LSE | § 1.1 |
-| PH0 / PH1 | HSE（焊盘预留不贴，见 § 1.1 红色项） | § 1.1 |
+| PH0 / PH1 | **HSE 16 MHz 已贴（X4 + C1/C2 20 pF + R1 1 MΩ）** | § 1.1 |
 
 ### 4.4 不配置（保持 Reset State 即正确）
 
@@ -383,8 +386,8 @@ ADC采集/DMA/校准/TF连续记录尚缺，编译成功不等于整机已可测
 
 | 项 | 状态 |
 |---|---|
-| ~~**E.10 #12** DS14216/SLUS941 五项待核~~ | ✅ **2026-10-14 二轮复核全清**：① PC0=ADC1_IN1 / PC1=ADC1_IN2；② 高阻源合法（Table 106 注 3，见 § 2.6）；③ 低功耗表号 Table 62/65/68/70；④ BQ24040 PG 确有（pin 5）；⑤ SDMMC 全手册仅 PC8–PC12/PD2。另清出 4 处换脚（PC4/PC5/PB9/PB12 未引出）+ 电源脚更正 |
-| **E.10 #16** IOC 时钟源与免晶振矛盾（现配 HSE-PLL，但 HSE 不贴） | 🔴 **阻塞固件**，§ 1.1 已列改法 |
+| ~~**E.10 #12** DS14216/SLUS941 五项待核~~ | ✅ **2026-10-14 二轮复核全清**：① PC0=ADC1_IN1 / PC1=ADC1_IN2；② 高阻源合法（Table 106 注 3，见 § 2.6）；③ 低功耗表号 Table 62/65/68/70；④ ~~BQ24040 PG（pin 5）~~ → 换 BQ24074 后 **PG = pin 7**；⑤ SDMMC 全手册仅 PC8–PC12/PD2。另清出 4 处换脚（PC4/PC5/PB9/PB12 未引出）+ 电源脚更正 |
+| ~~**E.10 #16** IOC 时钟源与免晶振矛盾~~ | ✅ **2026-10-28 关闭**：HSE 实贴，矛盾消失 |
 | **E.10 #14** SDMMC 时钟源（现 IOC：PLL2Q 258 MHz、`SDMMCFreq_Value` 实测 **80 MHz** → 需重配到 48 MHz） | 🟥 阻塞生成代码 |
 | ~~**E.10 #15** USB SOF 是否占 PA8~~ | ✅ **销号**：CRS 用**内部 SOF** 信号，不占引脚，PA8=ADC_nRESET 无冲突 |
 | **E.10 #17**（新增）RM0456 四项：① USB_DRD_FS 片内 BCD 使能路径（固件项）；② SMPS 不启用时 VLXSMPS(28)/VDDSMPS(29) 引脚处置（**原理图前须确认**）；③ 复位后默认稳压器模式；④ **ADC1 采样时间离散档**（DS14216 未列，47.5/247.5 系凭惯例，按 GUI 实际档就近取大：VBAT/VBUS ≥64、VREFINT ≥320） | 🟥 ② 阻塞原理图；①③④ 固件/核对项，④ **不阻塞原理图** |
@@ -505,7 +508,7 @@ ADC采集/DMA/校准/TF连续记录尚缺，编译成功不等于整机已可测
 | **GPDMA1** | ✅ **不需要配置** | 2026-10-21 查证：SDMMC 用片上 IDMA（`IDMABASER`），不经 GPDMA1/LPDMA1；SPI1 当前是 polling（20 MHz × 8 bit 远低于 GPDMA 必要阈值）；USB_DRD_FS 内嵌专用 DMA 也不经 GPDMA |
 | **FreeRTOS/RT-Thread 残留** | ✅ 已清 | `Mcu.ThirdPartyNb=0` |
 | **USB Class 已定为 CDC_ACM** | ✅ 与官方例程对齐 | 与 § 2.3 旧文"建议 Custom_HID"冲突——**以本表（CDC_ACM）为准**，理由：U545 官方有完整 CDC_ACM 例程可直接抄，Custom_HID 需自写报告描述符 |
-| **E.10 #16 IOC 时钟源** | 🟥 **未修** | 需 GUI → RCC → PLL Source Mux 改 **MSIS**（IOC 里**没有** `RCC.PLLSourceVirtual` 键——已被 GUI 删，符合"HSE 不贴"定稿） |
+| **E.10 #16 IOC 时钟源** | ✅ **已关闭** | HSE 实贴后 `RCC_PLLSOURCE_HSE` 合法；MSIS 可作备选 |
 | **E.10 #14 SDMMC 时钟源** | ✅ **已默认 = CLK48**（`RCC.SDMMCClockSelection=RCC_SDMMCCLKSOURCE_CLK48`，`SDMMCFreq_Value=48000000`） | 与本设计一致，无需改 |
 
 ### 9.3 时钟树复核（2026-10-21）

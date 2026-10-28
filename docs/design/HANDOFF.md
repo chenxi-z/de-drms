@@ -93,7 +93,7 @@
   校准系数仍存 MCU Flash（EEPROM 仿真）。理由：768 KB/s 冲击采满远超 512 KB Flash。
   走线：每根串 33 Ω 靠 MCU 端；D0–D3+CMD 等长 ±5 mm、CK ±10 mm；CMD 10 kΩ 上拉到 **3V3_SD**；
   卡供电经高边开关（Rds<100 mΩ）由 PB13 控制；**WP 不接**；文件系统 FAT32 簇 32 KB + SDMMC DMA
-- 电源：1S 锂电 103450 + **BQ24040**（OUT=电池节点，无独立 BAT 脚）+ 双 LDO
+- 电源：1S 锂电 103450 + **BQ24074**（2026-10-28 换料；QFN-16 带 PowerPath，BAT/VOUT 分离）+ 双 LDO
   （**数字 TPS7A0233 25 nA 常开 / 模拟 TPS7A2033 6.5 µA、7 µVrms EN 受控**）
 - 电池管理：**报警 3.65 V / 停测软关机 3.50 V**（仅电池供电态生效）；
   充电默认 500 mA、切 1 A 的判据 = **MCU USB 外设片内 BCD 判 DCP/CDP**（2026-10-14 二轮复核反转，见下）。
@@ -113,7 +113,9 @@
   须悬空或 10 kΩ 下拉、`NC(5–8)` 悬空或接 AVSS、AVDD/IOVDD 各 ≥1 µF、REFP/REFN/REFEXT/VNCP 见 E.4.2
 - **RET6Q 是 SMPS 版但不用 SMPS**：生成代码里 `HAL_PWREx_ConfigSupply()` 应选 **`PWR_LDO_SUPPLY`**；
   复位默认稳压器模式 DS14216 未载明（"选错则不上电"系推断，已降级）→ 待 RM0456（E.10 #17）
-- **MCU 免晶振 = PLL 源必须 MSIS/MSI**：HSE 焊盘不贴；IOC 若留 `RCC_PLLSOURCE_HSE` → HSE 不起振
+- ~~**MCU 免晶振 = PLL 源必须 MSIS/MSI**~~ → **2026-10-28 修订：首板贴 HSE 16 MHz**（X4 已贴），
+  HSE-PLL / MSIS-PLL 均可用，E.10 #16 关闭；USB 仍须 CRS 校准 HSI48。原结论如下（仅历史）：
+  ~~HSE 焊盘不贴；IOC 若留 `RCC_PLLSOURCE_HSE` → HSE 不起振
   → PLL 锁不住 → **SYSCLK 无输出**。**当前 IOC 正犯此错**（E.10 #16）
 - **SDMMC kernel clock 不得取 SYSCLK/PLL1R**；现 IOC 的 PLL2Q = 258 MHz **非 48 MHz**，生成代码前必须重配（E.10 #14）
 - **TF 卡断电只在 `f_mount`/sync 完成后执行**，否则毁 FAT 表
@@ -133,14 +135,16 @@
 - 电池尾段硬撑测量；PhotoMOS/干簧做 R_ref 切换（TMUX110x 全温漏电 max 唯一合格）
 - **TF 卡走 SPI 模式（2026-10-14 否）**：250–500 KB/s < 768 KB/s 需求，必丢样
 - **OTG 硬件 VBUS sensing（2026-10-14 否）**：**STM32U5 的 OTG_FS 在 CubeMX 里没有 VBUS 选项**（属 F4/F7 系）；
-  且原写"PA9 5 V 容忍"未经 DS14216 核实。→ 改 **VBUS 分压 1 MΩ/1 MΩ + 100 nF → PC1 内部 ADC**，
+  且原写"PA9 5 V 容忍"未经 DS14216 核实。→ ~~改 VBUS 分压 → PC1 ADC~~ **2026-10-28 实际图纸改为
+  PC13 检测（外部 NPN 集电极，低 = VBUS 在），PC1 改作 BQ_EN**；
   阈值 **3.70 V**（ADC 节点 1.85 V，12-bit 码 ≈2296），可配置。分压 2.6 µA **只在 VBUS 存在时流通，不计入电池待机口径**
 - **"VBUS 有 + 3 s 内无 SOF/未枚举 → 判 DCP"启发式（2026-10-14 二轮复核否）**：挂起 / 枚举失败 / 断线
   皆无 SOF ≠ DCP，且 Type-C 只装 Rd 的设备本就无权取 1 A。**BC1.2 结论同日反转**：DS14216 §3.47 末条——
   **U545 USB 外设设备模式片内支持 BC1.2 BCD**（早间"STM32 无 BC1.2"系把 F4/F7 OTG_FS 结论误套 U5）。
   E.8.4 定稿判据：`VBUS>3.70 V` 确认插着电后，**片内 BCD 判 DCP/CDP → 切 1 A**；判 SDP → 按枚举电流、
-  维持 500 mA；判不出维持 500 mA。BQ24040 仍无 BC1.2，分型全由 MCU 侧完成（使能路径待 RM0456，E.10 #17）。
-  另：BQ24040 **PG 脚确有**（pin 5，开漏低有效，SLUS941 Table 6-1）
+  维持 500 mA；判不出维持 500 mA。~~BQ24040 仍无 BC1.2，分型全由 MCU 侧完成~~
+  → **2026-10-22 该逻辑整体删除**（固定单档充电），**2026-10-28 换料 BQ24074**，本段仅历史。
+  另：**BQ24074 的 PG 是 pin 7**（开漏低有效）；BQ24040 的 pin 5 结论作废
 - **"只看 SOF/枚举判断 USB 在线"（2026-10-14 否）**：插充电头不接 PC 时无 SOF，会误判"未插 USB"，
   令"在线不报警"逻辑失效
 - **手改 CubeMX IOC 增删 IP 块（2026-10-14 实测否）**：手写 SPI1/ADC1/USART2/USB_OTG_FS 的 IP 段会被
@@ -150,10 +154,11 @@
 - ~~**E.10 #12**~~ ✅ **2026-10-14 二轮复核全清**（均按 DS14216/SLUS941 原文）：
   PC0=**IN1**、PC1=**IN2**；**高阻源合法**（Table 106 注 3 "Values without external capacitor"，
   100 nF ≫ 2^12×CADC(5 pF)，代价 = ≥100 ms 级轮询）；低功耗表号 Table 62/65/68/70
-  （Stop3 LDO 4.6/7.7、Standby 0.52、Shutdown 0.40 µA）；BQ24040 **PG 确有**（pin 5）；
+  （Stop3 LDO 4.6/7.7、Standby 0.52、Shutdown 0.40 µA）；BQ24074 **PG = pin 7**；
   SDMMC 信号**全手册仅 PC8–PC12/PD2**。**另清出 4 处换脚**（LQFP64_SMPS 无 PC4/PC5/PB9/PB12）
-- **E.10 #16 — IOC 时钟源与免晶振定稿矛盾（阻塞固件）**：IOC 现配 `RCC_PLLSOURCE_HSE` + `HSE_VALUE=16M`
-  + PH0/PH1 = HSE 模式，而 E.7 定稿 HSE **焊盘不贴**。→ CubeMX 里把 PLL 源改 **MSIS/MSI**（HSE 只留焊盘）
+- ~~**E.10 #16 — IOC 时钟源与免晶振矛盾**~~ ✅ **2026-10-28 关闭**：首板 **HSE 16 MHz 已实贴**
+  （X4 + C1/C2 20 pF + R1 1 MΩ），`RCC_PLLSOURCE_HSE` 不再矛盾；MSIS 可作备选。
+  **USB 仍必须开 CRS**（HSI48 需从 SOF 校准到 ±0.25 %）
 - **E.10 #14 — SDMMC 时钟源**：现 IOC `PLL2Q = 258 MHz`、**`SDMMCFreq_Value` 实测 80 MHz**（2026-10-16 读文件核实）
   → 需重配到 48 MHz（或改 CLK48），**不阻塞原理图**
 - ~~**E.10 #15**~~ ✅ **销号**：CRS 用内部 SOF 同步、不占引脚；PA8=ADC_nRESET 无冲突
@@ -219,7 +224,7 @@
 
 ## 1. 已在库但未提交（untracked）：请建笔记并提交
 - `datasheets/OPA333.pdf`   ← **定版**恒流源运放
-- `datasheets/BQ24040.pdf`  ← **定版**充电管理
+- `datasheets/BQ24074.pdf`  ← **定版**充电管理（2026-10-28 换料；BQ24040.pdf 仅历史）
 - `datasheets/TPS7A02.pdf`  ← **定版**数字轨 LDO（TPS7A0233）
 - `datasheets/TPS7A20.pdf`  ← **定版**模拟轨 LDO（TPS7A2033）
 - `datasheets/TLV755P.pdf`  （LDO 落选备选，仅存档）
@@ -228,9 +233,10 @@
 ## 2. 库里还没有的手册：需下载入库
 - TMUX1101 / TMUX1102（TI SCDS410D）← **定版** R_ref 切换开关（主文档 E.3.2 引用其漏电规格）
 - BAV199 ← **默认贴装**的输入保护双二极管（E.4.1）
-- **STM32U545xx 数据手册 DS14216** ← ⚠️ **已入库并完成二轮复核（2026-10-14）**：定版 MCU 是 U545RET6Q，
-  此前误按 U575 的 DS13737 归档；主文档 E.10 #12 五项已凭此手册全清
-  （PC0=IN1/PC1=IN2、高阻源合法、低功耗表号 Table 62/65/68/70、SDMMC 仅 PC8-12/PD2 一组映射）
+- **STM32U575xx 数据手册 DS13737** ← ⚠️ **2026-10-28 换型后应以此为准**（原 DS14216 为 U545 手册，仅历史）：
+  E.10 #12 五项已凭 DS14216 全清且结论对 575 同族适用
+  （PC0=IN1/PC1=IN2、高阻源合法、低功耗表号、SDMMC 仅 PC8-12/PD2 一组映射）；
+  **575 特有项需查 DS13737**：VCAP 2.2 µF、无 SMPS、Stop3 电流值
 - **STM32U5 参考手册 RM0456** ← 新需求：E.10 #17 **四项**待核依赖它（USB_DRD_FS 片内 BCD 使能路径、
   SMPS 不启用的 VLXSMPS/VDDSMPS 处置、复位默认稳压器、**ADC1 采样时间离散档**）；
   另 PB4 复位期内部上拉的**阻值（RPU）**也只在 RM0456 里给（DS14216 无），决定 §1.1/E.8.4 那条外部下拉取不取得准
