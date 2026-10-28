@@ -12,7 +12,7 @@ Casas 和 Pall\`as-Areny 分析了非耦合与耦合模拟差分滤波器，并�
 阻抗平衡也决定实际平衡接口的响应。Whitlock 和 Floru 展示了信号源与接收器的共模阻抗不平衡如何相互作用，并介绍了一种具有高共模输入阻抗的电路\citep{whitlock2004balancedinput}。对于本文梯形网络，需要回答的问题是：两条开路电压传递函数相同的支路，在接入负载后是否仍然相同？开路传递函数确定电压比，输出阻抗确定所接负载如何改变这一电压比。保留这两个函数，便可显式描述端接的影响，直接比较开路匹配与指定有限负载下的匹配。
 
 \subsection{网络实现与容差分析}
-Guillemin 研究了 RC 网络综合；Fialkow 和 Gerst 研究了 RC 梯形网络的传递函数以及一般双端口 RC 网络\citep{guillemin1949rcsynthesis,fialkow1951rcladder,fialkow1952rcnetworks}。Wang 等考察了指定增益下无源双端口 RC 梯形网络的实现\citep{wang2017rcladder}。这些综合研究构成了从传递函数系数恢复正值元件的理论背景。本文同时保留输出阻抗的分子，考察指定端接如何改变能够匹配固定参考支路的元件集合。\textbf{初稿待补项：尚需完成与上述四篇综合文献逐命题的对照。}
+Guillemin 研究了 RC 网络综合；Fialkow 和 Gerst 研究了 RC 梯形网络的传递函数以及一般双端口 RC 网络\citep{guillemin1949rcsynthesis,fialkow1951rcladder,fialkow1952rcnetworks}。Wang 等考察了指定增益下无源双端口 RC 梯形网络的实现\citep{wang2017rcladder}。与这四篇文献的对照沿四个固定维度逐命题进行：匹配对象（仅电压传函，还是传函连同输出阻抗）、拓扑与阶数假设、是否指定增益、以及所陈述的唯一性或正实现结论。沿这些维度，本文同时保留输出阻抗的分子，考察指定端接如何改变能够匹配固定参考支路的元件集合。在取得四篇原文之前，不在此宣称任何继承与创新的边界；在该对照完成前，本文不作超出推导本身优先性声明之外的表述。
 
 元件实现需要与灵敏度一起考虑。Moschytz 讨论了有源滤波器设计中灵敏度、元件值跨度与元件容差之间的权衡\citep{moschytz0radeffs}。Director 和 Rohrer 建立了用于计算网络灵敏度的广义伴随网络框架\citep{director1969the}。Endres 和 Kirkpatrick 研究了差分环路滤波器失配如何在快速建立的锁相环中引入额外瞬态\citep{endres0ensitivi}。这些灵敏度与瞬态研究支持将精确标称抵消条件、元件扰动影响和建立时间规范分别考察；各问题均需要明确的响应函数与评价准则。
 

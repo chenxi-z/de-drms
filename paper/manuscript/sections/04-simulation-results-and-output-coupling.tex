@@ -2,11 +2,11 @@
 
 \subsection{General-order verification and model consistency}
 
-The 84-case matrix covered open and resistively loaded branches, several pairing rules, nonuniform same-transfer realizations, fixed-load matching families, reactive loads, source impedance, output coupling and two-load recovery. Orders ranged from one to twelve. With the documented 1~m$\Omega$ inductor series resistance included in the independent model, the largest absolute complex node-voltage discrepancy was $1.68\times10^{-14}$~V.
+The 84-case matrix covered open and resistively loaded branches, several pairing rules, nonuniform same-transfer realizations, fixed-load matching families, reactive loads, source impedance, output coupling and two-load recovery, with orders from one to twelve (Table~\ref{tab:case-matrix}). With the documented 1~m$\Omega$ inductor series resistance included in the independent model, the largest absolute complex node-voltage discrepancy was $1.68\times10^{-14}$~V.
 
 Against the originally intended ideal-inductor reference, two cases exceeded the unchanged $10^{-7}$~V gate, with errors of $4.54\times10^{-7}$ and $3.57\times10^{-7}$~V. Fresh runs specifying $R_{\rm ser}=0$ agreed with the ideal reference to less than $1.8\times10^{-15}$~V; explicit 1~m$\Omega$ runs reproduced the default-model behavior. The discrepancy arose from different element models. Both original failures and the diagnostic records were retained.
 
-At $10$~kHz, the three-stage same-$A$/different-$B$ construction agreed in the open circuit to a relative difference of $1.4\times10^{-14}$ and separated under a 10~k$\Omega$ load by $3.4\times10^{-4}$. A fixed-load family agreed at $g=0.1$ to $6.7\times10^{-14}$ and differed at $g=0.2$ by $3.2\times10^{-5}$. A capacitive-load matching family agreed under the specified capacitance to $5.3\times10^{-14}$ and differed under resistive loading by $2.2\times10^{-3}$. The comparisons tested complete complex outputs; the following second-order examples make the same mechanisms visible with shorter component tuples.
+At $10$~kHz, the three-stage same-$A$/different-$B$ construction agreed in the open circuit to $|V_P-V_Q|/|V_P|=1.4\times10^{-14}$ and separated under a 10~k$\Omega$ load by $3.4\times10^{-4}$, where the normalization is the reference-branch output magnitude. A fixed-load family agreed at $g=0.1$ to $6.7\times10^{-14}$ and differed at $g=0.2$ by $3.2\times10^{-5}$. A capacitive-load matching family agreed under the specified capacitance to $5.3\times10^{-14}$ and differed under resistive loading by $2.2\times10^{-3}$, all on the same normalized scale. The comparisons tested complete complex outputs; the following second-order examples make the same mechanisms visible with shorter component tuples.
 
 \subsection{Termination-dependent equivalence}
 
@@ -61,3 +61,28 @@ Figure~\ref{fig:bridge-gains} displays the changes in the separate gains, while 
 \input{figures/fig07-en.tex}
 
 \FloatBarrier
+
+
+\begin{table}[htbp]
+\centering
+\caption{Compact map of the verification matrix. AC cases use 145-point sweeps (10~Hz--10~MHz); transient cases use native simulations with independent state-space references. All netlists, raw exports, logs and hashes are archived with the project evidence.}
+\label{tab:case-matrix}
+\begin{tabular}{llrl}
+\toprule
+Group & Orders & $n$ & Mechanism under test \\
+\midrule
+Single branch & 1--12 & 21 & loaded transfer vs.\ analytic denominator \\
+Pairing rules & 1--12 & 28 & identical / uniform / per-stage-$\tau$ / unpaired \\
+Same-$A$, different-$B$ & 3, 4 & 4 & open-circuit equal, loaded split \\
+Fixed-load family & 2--4 & 6 & equal at $g{=}0.1$, split at $g{=}0.2$ \\
+Load type & 3, 4 & 8 & capacitive-equal, resistive-split; $RL$, $L$ \\
+Source impedance & 3 & 5 & 0/10/100~$\Omega$, same and different \\
+Output bridging & 3, 4 & 8 & $C_d{=}0$/820~pF, common and differential \\
+Two-load recovery & 3, 4 & 4 & exact component recovery from two loads \\
+\midrule
+Dynamic ratio (matched/mismatched) & 2 & 3 & identity, bound, first-order cross term \\
+$N{=}3/4$ transient suite & 3, 4 & 8 & varying-$R$ immunity limits, slew term \\
+Common-mode step pulse & 2 & 1 & closed-form pulse peak and tail \\
+\bottomrule
+\end{tabular}
+\end{table}
