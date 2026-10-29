@@ -238,3 +238,7 @@ hardware/sim/**/plots/
 hardware/sim/**/models/
 hardware/sim/_candidate_models/
 hardware/sim/**/t06_mc_all.csv
+
+# ---------- 论文独立仓库（2026-10-29 拆分） ----------
+# paper/ 已拆为自带 .git 的独立本地仓库，主仓库不再跟踪，也不应看到它的工作区
+/paper/
