@@ -448,7 +448,7 @@ ISR 与采集线程属于同一模块所有权；ISR 可在该模块内启动逐
 
 每份结果包含 valid、reason、sample_position、generation、config_version、baseline_version。
 CRC/格式/ADC故障、非法分母、非有限数、采样缺口、过期、配置切换或依赖不适用均不能参与正常等级确认。
-无效输入立即取消正在进行的等级持续确认，清除滤波有效状态；历史结果仅作带时间戳的诊断。
+采样质量无效立即取消等级持续确认并清除滤波有效状态；仅实时展示过期时按C3屏蔽当前结果，不修改历史算法状态。历史结果保留时间戳。
 恢复后要求连续合格样本覆盖完整滤波建立窗口，再从零累计等级确认时间；无效时段不能计入确认时间。
 LED 显示无效/故障状态，不能维持绿色正常外观；上位机可以同时显示灰色历史值与当前无效原因。
 首版区间等级不锁存；故障诊断可锁存，但与区间等级分开。将来客户要求严重等级锁存须新增明确可配置语义，不暗改旧算法。
@@ -483,7 +483,10 @@ R0 使用有效电阻样本的流式均值/方差评估，数量、时长与稳�
 
 开始：文件READY→请求一致边界B→处理线程跳过raw_ticket<B.raw_next的积压→接收之后的数据。
 首采样边界为B.sample_next；确实收到第一帧后才发布RECORDING，此前仍为STARTING。
-停止：捕获边界E→处理至raw_ticket==E.raw_next→发布END，文件样本范围为[B.sample_next,E.sample_next)。
+停止：处理线程在批次边界暂停原始环消费→异步请求边界E→收到E后恢复消费至raw_ticket==E.raw_next→发布END，文件样本范围为[B.sample_next,E.sample_next)。
+消费屏障只冻结原始环消费者，采集生产者继续；已消费数据必然早于之后捕获的E。等待期间仍处理控制与新鲜度定时事件，不阻塞整个线程。
+边界等待采用可配置有界期限，并同时监督原始环水位；超时或原始环溢出使本次记录INCOMPLETE，走取消/安全停止流程，禁止猜测末边界。
+边界请求失败时不能直接解除屏障并继续向旧记录追加；先确定失败END与资源清理策略。迟到边界由token校验，不能修改下一会话。
 E之后捕获的帧只用于监测。END的ring_end是独立log_ticket，不是E.raw_next。
 开始后首帧前停止得到合法空区间，结果EMPTY（无正常试验记录）；STARTING取消不等待首帧。
 已发生的确定/未知损失使最终结果INCOMPLETE；无法数出全部物理DRDY时标记LOSS_UNKNOWN，不伪造精确序号。
@@ -513,7 +516,7 @@ TF_ACCESS租约在Flash维护中仅用于阻止SD交接/新I/O，不要求有卡
 所有配置修改（包括别名）首版统一通过配置操作，记录期间拒绝；删除前文“记录中可改别名”的例外，避免版本快照漂移。
 停止/取消是现有租约操作，不重新申请与自身冲突的资源；查询不申请租约。安全停止使旧启动失效，但不凭代次变化释放物理资源。
 
-**验收C2：** 遍历上述7类操作的全部有序组合，按集合相交判定唯一预期；再覆盖STOPPING、队列投递失败回滚和隔离未释放。
+**验收C2：** 表中6类资源组合展开为8种业务操作（记录、MSC导出、下载、改配置、R0、校准、保存、升级）；遍历8×8有序组合，按集合相交判定唯一预期；再覆盖STOPPING、队列投递失败回滚和隔离未释放。
 
 ### C3 无样本也必须超时失效
 
@@ -522,12 +525,37 @@ TF_ACCESS租约在Flash维护中仅用于阻止SD交接/新I/O，不要求有卡
 这只限制显示/业务新鲜度，不代替ADC硬件捕获期限。
 当前样本采集时间与检查时刻使用同一单调时间域；不以“处理时刻”刷新旧积压样本的新鲜度。
 
-当now_us-last_valid_capture_us >= stale_timeout_us时立即发布STALE，清滤波和候选确认。
-无样本超时的可见失效上界为stale_timeout_us + 10ms + 实测最大调度延迟；调度延迟在T7/T8记录，不能省略。
-系统无第一帧时保持INITIALIZING/INVALID；RTC校时无影响。停止、换代立即失效，无需等超时。
+维护两个独立状态：
+- 算法状态由有序样本及其采样时间驱动；只因坏帧、已知/未知采样缺口、采集代次或依赖版本改变而重置。
+- 展示状态由单调当前时间驱动。now_us-last_valid_capture_us >= stale_timeout_us时发布STALE覆盖层，禁止正常等级显示，但不修改算法滤波/候选历史。
 
-**验收C3：** 最后有效帧时间100000us、超时20000us：119999有效，120000失效；不调用样本step只调用tick亦成立。
-再测旧帧积压、时间回绕适配、换代和失效后恢复窗口。时间倒退视为时基故障，不作无符号差值误判。
+tick只更新展示状态，不能推进等级确认或复位历史算法；step处理旧积压也不能自动取消STALE。
+处理任务发布输出前必须以同一now_us调用tick，原子发布算法结果与新鲜度组合快照，禁止先发布旧帧的正常等级再补STALE。
+只有新处理到的有效帧时间足够新，且算法结果有效时，才清除STALE；若实际发生采样缺口，则按R8重新建立窗口。
+无第一帧时保持INVALID/INITIALIZING；停止和换代立即使展示失效。RTC校时无影响。
+过期可见上界为stale_timeout_us + 10ms + 实测最大调度延迟；调度延迟计入T7/T8验收。
+
+**验收C3：** 最后有效帧100000us、超时20000us：119999新鲜，120000为STALE；无step仅tick也必须失效。
+相同样本序列采用不同批次/tick插入顺序，历史算法结果一致，允许实时展示新鲜度不同。
+测试积压旧帧不能重新点亮正常灯、连续无丢样积压恢复、真实缺口重建、RTC变化和单调时间倒退（时基故障）。
+
+#### 采集时间来源与精度边界
+
+保持16B原始帧，不为每帧增加时间戳数组。每个采集代次维护固定时间锚点：
+`DRMS_TimeAnchor { uint32_t acquisition_generation, rate_hz; uint64_t sample_seq0, mono_us0; }`。
+mono_us0在该代次第一个观察到的DRDY分配sample_seq0时读取单调微秒时钟；不能使用DMA完成或处理时刻。
+前端必须先初始化锚点，再发布该代次帧；处理端获取一致副本，旧代次未排空前不得覆盖其锚点。
+
+名义采集时间为 `mono_us0 + floor((sample_seq-sample_seq0)*1000000/rate_hz)`。
+实现采用商余分解防乘法溢出，不逐样本累加取整；样本序号采用C1的64-bit扩展。
+该时间是按配置采样率重建的名义时间，不声称逐帧实测DRDY时间，也不承诺ADC时钟与MCU时钟完全一致。
+记录头保存锚点、实际配置采样率和时间质量NOMINAL；未知丢样不得继续用可能错误的序号重建。
+
+采集模块按当前观察到的DRDY周期性发布最近一次实测单调时间与序号（仅一个有界快照），供监督名义时间偏差。
+允许误差由采样档实测确定，必须小于该档stale_timeout_us的四分之一；未取得偏差范围证据时只能声明时间精度未验收。
+偏差越限或LOSS_UNKNOWN时：立即使展示及算法失效、终止当前记录为INCOMPLETE，受控停采并建立新代次/新锚点后恢复监测；不自动恢复记录。
+不得通过修改旧锚点修正已经输出的数据时间。没有新DRDY时仍依靠独立tick判定过期。
+单调微秒时钟后端、读取一致性及回绕扩展在T0/T1明确并测试；不能把100Hz ThreadX tick乘10000冒充微秒捕获精度。
 
 ### C4 文件格式是记录交付前置条件
 
@@ -563,7 +591,8 @@ C6给出的算法公共契约也在此阶段冻结，T6实现不得改变字段�
 
 | 输入/条件 | observed | candidate / confirmed | 当前显示状态 |
 | --- | --- | --- | --- |
-| 无效/过期/版本变化 | 无 | 两者清空 | INVALID，历史值另存 |
+| 样本质量无效/采样缺口/版本变化 | 无 | 两者清空 | INVALID，历史值另存 |
+| 仅实时展示过期 | 算法结果保留 | 算法状态不改变 | STALE覆盖，禁止正常等级显示 |
 | 滤波尚未建立 | 原始值仅诊断 | 两者清空 | WARMUP |
 | 未配置表 | 无 | 两者清空 | UNCONFIGURED |
 | 有confirmed且仍在其保持范围 | 按原表计算，可不同 | 清candidate，保留confirmed | CONFIRMED，明确回差保持标志 |
@@ -577,20 +606,20 @@ candidate变化即从当前样本重新计时；返回历史区间也重新确�
 PENDING时本机显示独立待确认效果；五灯具体动画由交互规格定义，禁止以常亮正常灯表达待确认。
 
 算法公共类型固定为：
-- Input：ohms（double）、capture_us（uint64）、sample_seq（uint64）、acquisition_generation（uint32）、quality_flags（uint32）、config_version/baseline_version（uint64）。
+- Input：ohms（double）、capture_us（uint64，按本代锚点重建的名义时间）、sample_seq（uint64）、acquisition_generation（uint32）、quality_flags（uint32）、config_version/baseline_version（uint64）。
 - Config：rate_hz（uint32）、tau_us/warmup_us/confirm_us/stale_timeout_us（uint64）、r0（double）、baseline_valid（bool）、interval_count（uint8）、intervals[16]。
 - Interval：lo/hi/h（double）、id（uint16）、level（uint8）、last_upper_closed（bool）；显示名称保留在配置编码中，不进入算法热路径。
-- Output：state（INVALID/WARMUP/UNCONFIGURED/UNMAPPED/PENDING/CONFIRMED）、reason（位集合）、observed/candidate/confirmed（int16，-1无）、ratio（double）、hysteresis_hold（bool）、输入对应的位置/版本字段。
+- Output：state（INVALID/WARMUP/UNCONFIGURED/UNMAPPED/PENDING/CONFIRMED）、reason（位集合）、fresh（bool）、freshness_reason（位集合）、observed/candidate/confirmed（int16，-1无）、ratio（double）、hysteresis_hold（bool）、输入对应的位置/版本字段。
 - Context：仅由算法持有，init后不共享可写；具体内部滤波/统计字段可变，调用方不得直接读取。
 
 统一函数：`void drms_monitor_init(DRMS_MonitorContext *ctx);`
 `DRMS_Result drms_monitor_configure(DRMS_MonitorContext *ctx, const DRMS_MonitorConfig *cfg);`
 `void drms_monitor_step(DRMS_MonitorContext *ctx, const DRMS_MonitorInput *in, DRMS_MonitorOutput *out);`
 `void drms_monitor_tick(DRMS_MonitorContext *ctx, uint64_t now_us, DRMS_MonitorOutput *out);`
-configure复制已验证配置，失败保持旧配置；step/tick由处理线程唯一调用。滤波、分类和基线内部函数不作为跨线程公共接口。
+configure复制已验证配置，失败保持旧配置；step/tick由处理线程唯一调用，发布前执行step后tick并一致复制输出；state是算法状态，fresh/freshness_reason是独立展示覆盖。滤波、分类和基线内部函数不作为跨线程公共接口。
 
-**验收C6：** 表驱动覆盖每一行、所有端点、h=0、空隙、跨级、候选反复变化、无样本tick、同样输入不同分批方式。
-同序列和同配置应得相同输出，不受USB/文件/线程调度改变处理批次的影响。
+**验收C6：** 表驱动覆盖每一行、所有端点、h=0、空隙、跨级、候选反复变化、无样本tick、同样输入不同分批方式。展示覆盖与算法结果分别断言。
+同序列和同配置的历史算法结果必须一致；实时展示新鲜度取决于当前单调时间，允许因调度延迟不同而不同。
 
 ### 预算来源与放行条件
 
