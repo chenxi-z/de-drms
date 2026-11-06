@@ -32,14 +32,14 @@
 
 ## 任务依赖与允许停止的位置
 
-T0 → T1 → T2 → T3 → T4 → T5 → T6 → T7 → T8。
+T0 → T1（公共契约冻结）→ T2a（内存边界）→ T3 → T4 → T5 → T2b（文件格式）→ T6 → T7 → T8。
 每个任务独立提交并报告；T4 完成后可交付存储边界阶段，T6 完成后可交付业务纯逻辑阶段。
 T7 才整合线程与启动行为；禁止前面边写边启动半套新状态机。
 现有 MSC 计划先核对并复用；T4 负责补齐本次新所有权模型，不另建第二套存储所有者。
 
 ## 统一类型与接口约定
 
-在 `Core/Inc/drms_contract.h` 定义（前缀路径均为 `firmware/DE-DRMS-Code/`）：
+在 `Core/Inc/drms_architecture_contract.h` 定义（前缀路径均为 `firmware/DE-DRMS-Code/`）：
 
 - `DRMS_Result`：OK、ACCEPTED、BUSY、INVALID、STALE、NO_CHANGE、IO_ERROR、TIMEOUT、CANCELLED、INCOMPLETE、QUARANTINED、UNSUPPORTED。
 - `DRMS_Token`：`uint64_t operation_id; uint32_t generation;`。编号运行期不复用；复位后由 boot_id 区分。
@@ -65,7 +65,7 @@ T7 才整合线程与启动行为；禁止前面边写边启动半套新状态�
 
 ## T1 原子资源裁决与代次
 
-**新增：** `Core/Inc/drms_contract.h`、`Core/Inc/drms_control.h`、`Core/Src/drms_control.c`、`test/test_control_contract.py`。
+**新增：** `Core/Inc/drms_architecture_contract.h`、`Core/Inc/drms_control.h`、`Core/Src/drms_control.c`、`test/test_control_contract.py`。
 **后续接入：** `Core/Src/drms_application.c`，此任务先保留旧入口适配，不并行运行新旧裁决器。
 
 **接口：**
@@ -82,7 +82,7 @@ T7 才整合线程与启动行为；禁止前面边写边启动半套新状态�
 
 **通过：** 每个资源任意时刻最多一个有效所有者；停止没有迟到重启路径。
 
-## T2 记录首末边界与完成槽
+## T2a 记录首末边界与完成槽
 
 **新增：** `Core/Inc/drms_record_session.h`、`Core/Src/drms_record_session.c`、`test/test_record_boundary.py`。
 **修改：** `Core/{Inc,Src}/drms_logging.*`、`drms_acquisition.*`、`drms_application.*`；保持 `drms_fifo` acquire/release语义。
@@ -100,7 +100,7 @@ ready/stop由处理上下文调用；end_get/ack通过单槽同步在存储上�
 - [ ] 测试：STARTING取消、迟到READY、连续两试验、32-bit序号回绕、跨generation拒绝、数据环满仍能发END。
 - [ ] 测试：写/尾/close/flush分别失败均不报告成功；无尾文件解码标记不完整。
 - [ ] 运行 `python3 -m unittest discover -s test -p 'test_record_boundary.py'`，失败→实现→通过；同时跑现有test_logging.py/test_fifo.py/test_log_decoder.py。
-- [ ] 若需记录新的完整元数据，先增加版本化记录规格及解码测试；此任务可先以内存描述符验证边界，但不得宣称v1包含新元数据。
+- [ ] 本任务只验收内存边界；文件/缺尾相关测试移交强制前置任务T2b，未完成T2b不得报告记录交付。
 
 **通过：** 每个成功记录有确定的闭开样本区间；数据/END顺序可证明；存储确认前不能复用槽。安全停止可截短但必须报告原因。
 
@@ -163,11 +163,11 @@ ready/stop由处理上下文调用；end_get/ack通过单槽同步在存储上�
 **新增：** `Core/Inc/drms_filter.h`、`Core/Src/drms_filter.c`、`Core/Inc/drms_classifier.h`、`Core/Src/drms_classifier.c`、`Core/Inc/drms_baseline.h`、`Core/Src/drms_baseline.c`、`test/test_monitor_pipeline.py`。
 **保留/接入：** drms_measurement.h/c中的解码换算；drms_application.c仅协调。
 
-**接口规则：** 各模块显式context；统一 `reset(context)` / `step(context, input, config, output)`，具体结构在任务开始的头文件中固定后测试。input包含R8全部质量/位置/版本字段；调用无I/O、无RTOS、不分配堆。
+**接口规则：** 严格实现设计C6的DRMS_MonitorInput/Config/Output与init/configure/step/tick接口；内部filter/classifier/baseline模块保持显式context。公共头文件在T1冻结，T6不得重新解释单位、端点或状态。调用无I/O、无RTOS、不分配堆。
 
 - [ ] 首版filter明确采用流式一阶IIR：y += alpha*(x-y)，alpha由采样间隔和配置时间常数换算；首样本初始化y=x，时间常数0为旁路。配置另含连续有效建立时间，不以IIR理论完全收敛为有效条件。
 - [ ] 区间采用有序不重叠表及显式端点；未覆盖值输出UNMAPPED。候选跨级直接选择目标区间；回差仅用于退出当前区间，阈值以R/R0单位表示。
-- [ ] 回差必须小于相邻有效区间宽度约束；跨越多个区间不逐级等待。确认时间0允许首次合格结果立即生效。
+- [ ] 回差严格执行C6的2h<区间宽度及空隙约束；跨越多个区间不逐级等待。确认时间0允许首次合格结果立即生效。
 - [ ] 测试边界本身/两侧、上下方向、缺口、回差、跨级；使用合成阈值，不当客户正式参数。
 - [ ] 测试持续确认只差一个样本时出现NaN/CRC故障/缺样/过期/代次变化：计时归零，滤波失效；恢复需完整建立窗口后再确认。
 - [ ] baseline采用有界流式统计；质量规则参数显式输入，测试稳定/超时/异常值；输出候选不直接保存。
@@ -225,4 +225,52 @@ RAM/Flash/栈证据（适用时）：
 
 2026-11-06：已逐项映射八条评审问题、对应模块与故障测试；现有文件名通过仓库读取核对。
 本计划新增模块尚未创建，未执行代码任务；性能和硬件恢复时间未冒充实测值。
-本计划只覆盖架构收敛；正式协议字节规范、新记录格式、客户定标和Bootloader各自需要独立规格/计划。
+本计划只覆盖架构收敛；正式协议字节规范、客户定标和Bootloader另行交付；最小新版记录格式纳入强制任务T2b。
+
+
+## 二次复核后的强制补充任务与门禁
+
+本节与设计C1–C6同时生效，覆盖此前概要接口的歧义。所有[ ]保持未执行，不能把文档检查算作代码测试通过。
+
+### T1补充：公共契约冻结与冲突矩阵
+
+- [ ] 在drms_architecture_contract.h固定C5/C6公共类型及单位，结果枚举补EMPTY；控制/采集/记录代次分别命名，边界类型采用DRMS_CaptureBoundary，不再将raw_ticket当sample_seq。
+- [ ] 定义并编译验证各公共模块init/get_snapshot、控制submit/poll、资源tick以及完成消息结构；在本计划附接口清单（函数签名、调用上下文、同步/异步、所有权）。这是实现开始的可审查交付，不允许跳过到T2a。
+- [ ] 将C2七类操作编码为唯一资源集合表，UPDATE自动展开全资源；测试7×7有序操作对及升级单独位被拒绝/展开。
+- [ ] 查询只读，消费完成槽仅控制线程；测试查询不会吞掉完成结果。
+
+### T2a补充：三种位置验证
+
+- [ ] 用C1的100..109缺102场景分别断言sample/raw/log三个计数，不能只测试连续正常样本。
+- [ ] 捕获边界时注入在途DMA、入环失败和DRDY；边界发布前所有旧DMA已归结；超时不返回可用边界。
+- [ ] 新会话在第一帧前不得报告RECORDING；无第一帧取消不挂起；空记录返回EMPTY。
+- [ ] 不扩大原始/记录帧使608KiB预算失效；低32位扩展超过可证明跨度时LOSS_UNKNOWN并结束记录。
+
+### T2b 新版记录规格与编解码（T5之后，T7之前）
+
+**新增：** `docs/design/2026-11-06-record-v2-format.md`、`test/test_log_v2_codec.py`。
+**修改：** `Core/Inc/drms_log_codec.h`、`Core/Src/drms_log_codec.c`、`Core/Src/drms_logging.c`、`tools/de_drms_log.py`；若涉及控制协议字段，同时更新docs/protocol与shared/protocol对应定义。
+
+- [ ] 先交付C4要求的字节布局表、CRC参数、最大长度、错误处理以及至少一个手工可核算黄金文件；规格自审后才写编码器。未定义字段是此子任务待完成项，不得带入实现猜测。
+- [ ] 测试真实C编码器与Python解码器对配置快照、UID、首末边界、坏帧、已知/未知损失、结束原因解释一致。
+- [ ] 测试每个字节截断和位翻转、超长chunk、重复END、END后额外数据；不完整/非法文件不能显示成功。
+- [ ] 测试v1历史夹具仍按旧规则解码，新写入明确v2，不在旧文件追加未定义字段。
+- [ ] 运行 `python3 -m unittest discover -s test -p 'test_log_v2_codec.py'`，失败→实现→通过；回归现有日志测试。
+
+**通过：** 格式文档、黄金向量、两端编解码与真实存储写入测试齐备；不能以T2a通过代替。
+
+### T6补充：独立tick与分类转换表
+
+- [ ] 按C3建立无样本tick测试：119999/120000us边界、无首帧、旧积压帧、时基倒退、RTC变化。
+- [ ] 按C6转换表逐行测试，包括离开confirmed后PENDING不继续输出旧正常等级、空隙UNMAPPED、候选返回旧区间重新确认。
+- [ ] 相同采样时间序列按1帧/批、多帧/批输入输出一致；tick只能失效，不能在没有新样本时完成等级确认。
+- [ ] IIR alpha在配置变化时计算或缓存，不在每帧无必要重复exp；原始记录不受滤波影响。
+
+### T7/T8补充：可观测上界与最终交付
+
+- [ ] 处理任务有独立10ms新鲜度检查唤醒，不依赖ADC中断继续存在；记录最大调度延迟及过期可见上界。
+- [ ] C1–C6、R1–R8全部有测试对应；接口清单、v2格式、资源矩阵、线程预算必须与代码一致。
+- [ ] 最终报告分列：设计契约完成、软件门禁通过、实板门禁通过、客户参数定标。没有证据的一列不得标完成。
+
+闭环映射：C1→T2a；C2→T1；C3→T6/T7；C4→T2b；C5→T1；C6→T6。
+预算门禁是项目工程策略，真实容量和水位证据来自T0/T7/T8，不混称芯片要求。
