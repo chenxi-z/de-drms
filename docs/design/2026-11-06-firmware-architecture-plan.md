@@ -89,8 +89,8 @@ T7 才整合线程与启动行为；禁止前面边写边启动半套新状态�
 
 **接口：**
 `DRMS_Result drms_record_prepare(DRMS_Token token, uint64_t record_id);`
-`DRMS_Result drms_record_ready(DRMS_Token token, DRMS_Position next_published);`
-`DRMS_Result drms_record_stop_at(DRMS_Token token, DRMS_Position end_exclusive);`
+`DRMS_Result drms_record_ready(DRMS_Token token, DRMS_CaptureBoundary begin);`
+`DRMS_Result drms_record_stop_at(DRMS_Token token, DRMS_CaptureBoundary end_exclusive);`
 `DRMS_Result drms_record_end_get(DRMS_End *out);`
 `DRMS_Result drms_record_end_ack(DRMS_Token token, DRMS_Result result);`
 ready/stop由处理上下文调用；end_get/ack通过单槽同步在存储上下文执行，不能引入多生产者数据环。
@@ -169,7 +169,7 @@ ready/stop由处理上下文调用；end_get/ack通过单槽同步在存储上�
 - [ ] 区间采用有序不重叠表及显式端点；未覆盖值输出UNMAPPED。候选跨级直接选择目标区间；回差仅用于退出当前区间，阈值以R/R0单位表示。
 - [ ] 回差严格执行C6的2h<区间宽度及空隙约束；跨越多个区间不逐级等待。确认时间0允许首次合格结果立即生效。
 - [ ] 测试边界本身/两侧、上下方向、缺口、回差、跨级；使用合成阈值，不当客户正式参数。
-- [ ] 测试持续确认只差一个样本时出现NaN/CRC故障/缺样/过期/代次变化：计时归零，滤波失效；恢复需完整建立窗口后再确认。
+- [ ] 测试持续确认只差一个样本时出现NaN/CRC故障/缺样/代次变化：计时归零，滤波失效；恢复需完整建立窗口后再确认。
 - [ ] baseline采用有界流式统计；质量规则参数显式输入，测试稳定/超时/异常值；输出候选不直接保存。
 - [ ] `python3 -m unittest discover -s test -p 'test_monitor_pipeline.py'` 失败→实现→通过；审查不包含HAL/USB/FileX/ThreadX头。
 
@@ -236,7 +236,7 @@ RAM/Flash/栈证据（适用时）：
 
 - [ ] 在drms_architecture_contract.h固定C5/C6公共类型及单位，结果枚举补EMPTY；控制/采集/记录代次分别命名，边界类型采用DRMS_CaptureBoundary，不再将raw_ticket当sample_seq。
 - [ ] 定义并编译验证各公共模块init/get_snapshot、控制submit/poll、资源tick以及完成消息结构；在本计划附接口清单（函数签名、调用上下文、同步/异步、所有权）。这是实现开始的可审查交付，不允许跳过到T2a。
-- [ ] 将C2七类操作编码为唯一资源集合表，UPDATE自动展开全资源；测试7×7有序操作对及升级单独位被拒绝/展开。
+- [ ] 将C2八种业务操作编码为唯一资源集合表，UPDATE自动展开全资源；测试8×8有序操作对及升级单独位被拒绝/展开。
 - [ ] 查询只读，消费完成槽仅控制线程；测试查询不会吞掉完成结果。
 
 ### T2a补充：三种位置验证
@@ -263,7 +263,7 @@ RAM/Flash/栈证据（适用时）：
 
 - [ ] 按C3建立无样本tick测试：119999/120000us边界、无首帧、旧积压帧、时基倒退、RTC变化。
 - [ ] 按C6转换表逐行测试，包括离开confirmed后PENDING不继续输出旧正常等级、空隙UNMAPPED、候选返回旧区间重新确认。
-- [ ] 相同采样时间序列按1帧/批、多帧/批输入输出一致；tick只能失效，不能在没有新样本时完成等级确认。
+- [ ] 相同采样时间序列按1帧/批、多帧/批输入输出一致；tick只更新实时展示新鲜度，不修改历史算法状态，也不能完成等级确认。
 - [ ] IIR alpha在配置变化时计算或缓存，不在每帧无必要重复exp；原始记录不受滤波影响。
 
 ### T7/T8补充：可观测上界与最终交付
@@ -274,3 +274,18 @@ RAM/Flash/栈证据（适用时）：
 
 闭环映射：C1→T2a；C2→T1；C3→T6/T7；C4→T2b；C5→T1；C6→T6。
 预算门禁是项目工程策略，真实容量和水位证据来自T0/T7/T8，不混称芯片要求。
+
+
+## 第三次复检修订的必测项（2026-11-06）
+
+本节直接落实C1/C3修订，不新增代码实施范围。
+
+- [ ] T0/T1：选择并记录单调微秒时钟后端及其精度/回绕规则，固定DRMS_TimeAnchor类型；用合成时间验证商余换算、长时间运行及低32位序号回绕。
+- [ ] T2a：STOP请求前消费者进入屏障；延迟边界回复期间生产者继续，断言消费者不越过最终E，E后帧不进入旧记录。边界失败/超时/原始环满返回INCOMPLETE且迟到回复无效。
+- [ ] T2b：文件头包含代次时间锚点、采样率和NOMINAL时间质量；缺锚点或代次不匹配拒绝伪正常解码。时钟偏差/未知丢样导致失败结束，不篡改旧时间轴。
+- [ ] T6：相同样本流插入不同tick时序，断言历史算法输出一致；STALE覆盖不清滤波/候选。真实质量故障与采样缺口仍重置算法。
+- [ ] T6/T7：step后tick再原子发布；积压旧帧不能短暂发布正常灯状态。仅当前新鲜有效结果才解除覆盖。
+- [ ] T7/T8：测量ADC名义时间与单调时间偏差并确定监督阈值；阈值小于stale_timeout_us/4。越限终止记录、换代恢复监测；无实板证据时明确时间精度未验收。
+
+自检一致性：资源表6类集合、展开8种操作、测试8×8；记录ready/stop接口均用DRMS_CaptureBoundary；
+算法state与展示fresh分离；16B帧容量不变，新增时间信息仅为有界锚点/监督快照。
