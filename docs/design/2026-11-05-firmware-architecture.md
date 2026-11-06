@@ -474,28 +474,44 @@ R0 使用有效电阻样本的流式均值/方差评估，数量、时长与稳�
 - `raw_ticket`：原始环成功发布帧的64-bit累计数量；失败入环不递增。
 - `log_ticket`：记录环成功发布帧的64-bit累计数量；不得与前两者比较大小。
 - 三者都表示“下一个位置”时使用 `_next` 后缀；区间统一采用 `[first,end_exclusive)`。
-- `DRMS_CaptureBoundary`：`uint32_t acquisition_generation; uint64_t sample_next, raw_next;`。
+- `DRMS_CaptureBoundary`：`uint32_t acquisition_generation; uint64_t sample_next, raw_next, capture_lost_total, unknown_loss_epoch;`。计数与位置在同一边界快照发布。
 
 边界由采集模块串行执行请求：等待当前DMA完成/确认中止，将边界前观察到的DRDY归结为已发布帧或明确损失，
 再在短临界区捕获sample_next/raw_next。等待发生在临界区之外，不屏蔽中断等DMA。
 边界准备期间无法捕获的DRDY计为损失；不能声称边界无扰动。不能在捕获时混入尚未归结的旧DMA。
 超时按R4失败/隔离，不生成伪完整边界。
 
-开始：文件READY→请求一致边界B→处理线程跳过raw_ticket<B.raw_next的积压→接收之后的数据。
+开始：文件READY→处理线程在批次边界暂停原始环消费→异步请求一致边界B→收到匹配token的B后解除屏障，跳过raw_ticket<B.raw_next的积压→接收之后的数据。
+开始与停止共用边界屏障，屏障期间不消费/丢弃原始帧，但仍响应取消与展示定时检查。READY并不等于已得到B；不得预先放行记录入口。
 首采样边界为B.sample_next；确实收到第一帧后才发布RECORDING，此前仍为STARTING。
 停止：处理线程在批次边界暂停原始环消费→异步请求边界E→收到E后恢复消费至raw_ticket==E.raw_next→发布END，文件样本范围为[B.sample_next,E.sample_next)。
 消费屏障只冻结原始环消费者，采集生产者继续；已消费数据必然早于之后捕获的E。等待期间仍处理控制与新鲜度定时事件，不阻塞整个线程。
 边界等待采用可配置有界期限，并同时监督原始环水位；超时或原始环溢出使本次记录INCOMPLETE，走取消/安全停止流程，禁止猜测末边界。
 边界请求失败时不能直接解除屏障并继续向旧记录追加；先确定失败END与资源清理策略。迟到边界由token校验，不能修改下一会话。
 E之后捕获的帧只用于监测。END的ring_end是独立log_ticket，不是E.raw_next。
-开始后首帧前停止得到合法空区间，结果EMPTY（无正常试验记录）；STARTING取消不等待首帧。
-已发生的确定/未知损失使最终结果INCOMPLETE；无法数出全部物理DRDY时标记LOSS_UNKNOWN，不伪造精确序号。
+开始后首帧前停止，只有B.sample_next==E.sample_next且无损失时才返回EMPTY；有采样但全部丢失则INCOMPLETE。STARTING取消不等待首帧。
+仅本次[B,E)内的确定/未知损失使最终结果INCOMPLETE；无法数出全部物理DRDY时标记LOSS_UNKNOWN，不伪造精确序号。
+
+#### 本次记录的损失归属
+
+capture_lost_total只计未发布到原始环的采样（DMA忙/失败/入环失败），同一采样最多计一次；
+CRC坏帧已发布，属于独立quality_bad计数，不再重复计capture_lost。
+边界先归结旧DMA再快照，因此捕获损失为E.capture_lost_total-B.capture_lost_total。
+unknown_loss_epoch每次无法证明采样连续性时递增；B/E不同则本次LOSS_UNKNOWN。
+未知丢样发生后当前代次停止接收新记录，恢复必须建立新代次；不能在不可信代次上仅清错误继续。
+
+记录环丢弃由处理线程按record_id单独累计；写卡失败单独记storage_error。开始前诊断计数不归入本次试验。
+新记录以边界快照为基准，不清全局计数；结束后损失不修改已经冻结的END。
+若无法获得E，END标记end_known=false、LOSS_UNKNOWN并给出last_confirmed_position；不得用其冒充精确末边界。
+END需包含capture_lost、log_dropped、quality_bad、unknown_loss及storage_error；禁止将各阶段可能重复的计数直接相加称为精确总丢样。
+边界超时的开始操作关闭预备文件并返回FAILED/CANCELLED（实际错误码IO_ERROR/TIMEOUT/CANCELLED）；
+已有记录则以INCOMPLETE收尾。只有所有者确认不再引用旧token后才复用边界槽。
 
 不扩大512KiB记录环中的16B帧：保持低32-bit序号，完整64-bit起始锚点放在会话描述符。
 处理端按顺序扩展，任何连续可证明跨度须小于2^31个采样；违反时停止本次记录并标记LOSS_UNKNOWN。
 世代切换前先排空或明确废弃旧环，不能混代复用。环ticket内部也以64-bit快照处理，不假设单条64-bit写原子。
 
-**验收C1：** 合成DRDY100..109，其中102未读出，raw_ticket只增加9；记录边界仍为[100,110)，
+**验收C1：** 开始/停止边界回复各延迟多个批次，消费者均不得越界；监测期丢样、结束后丢样不得污染新记录。合成DRDY100..109，其中102未读出，raw_ticket只增加9；记录边界仍为[100,110)，
 结果INCOMPLETE且缺口102明确。另测在途DMA、入环失败、低32位回绕、空记录、连续两次试验、取消后迟到边界。
 
 ### C2 确定的操作资源集合
@@ -523,39 +539,51 @@ TF_ACCESS租约在Flash维护中仅用于阻止SD交接/新I/O，不要求有卡
 处理任务除数据唤醒外，必须有独立定时唤醒，每10ms至少检查一次测量新鲜度。
 `stale_timeout_us` 是配置中的正整数微秒，最低10000；采样档验收同时给出适用范围。
 这只限制显示/业务新鲜度，不代替ADC硬件捕获期限。
-当前样本采集时间与检查时刻使用同一单调时间域；不以“处理时刻”刷新旧积压样本的新鲜度。
+算法时间与实时新鲜度使用不同字段，不得直接相减：
+- 算法时间：采样序号与配置采样率重建的名义时间，用于滤波、持续确认、离线复现。
+- 新鲜度时间：同一MCU单调时钟域内捕获的DRDY时间下界，与当前单调时间比较。
 
-维护两个独立状态：
-- 算法状态由有序样本及其采样时间驱动；只因坏帧、已知/未知采样缺口、采集代次或依赖版本改变而重置。
-- 展示状态由单调当前时间驱动。now_us-last_valid_capture_us >= stale_timeout_us时发布STALE覆盖层，禁止正常等级显示，但不修改算法滤波/候选历史。
+tick只更新展示覆盖，不推进或重置历史算法。真实坏帧、采样缺口、代次/依赖变更才重置算法。
+step后必须执行tick，再原子发布算法状态和fresh标志；旧积压不能重新点亮正常灯。
+展示过期上界为stale_timeout_us + 10ms + 实测最大调度延迟，不等待ADC继续产生中断。
 
-tick只更新展示状态，不能推进等级确认或复位历史算法；step处理旧积压也不能自动取消STALE。
-处理任务发布输出前必须以同一now_us调用tick，原子发布算法结果与新鲜度组合快照，禁止先发布旧帧的正常等级再补STALE。
-只有新处理到的有效帧时间足够新，且算法结果有效时，才清除STALE；若实际发生采样缺口，则按R8重新建立窗口。
-无第一帧时保持INVALID/INITIALIZING；停止和换代立即使展示失效。RTC校时无影响。
-过期可见上界为stale_timeout_us + 10ms + 实测最大调度延迟；调度延迟计入T7/T8验收。
+#### 时间元数据：固定小侧表，不扩充原始帧
 
-**验收C3：** 最后有效帧100000us、超时20000us：119999新鲜，120000为STALE；无step仅tick也必须失效。
-相同样本序列采用不同批次/tick插入顺序，历史算法结果一致，允许实时展示新鲜度不同。
-测试积压旧帧不能重新点亮正常灯、连续无丢样积压恢复、真实缺口重建、RTC变化和单调时间倒退（时基故障）。
+保留16B原始帧与512KiB记录环。原始环新增65项时间侧表，每项显式32B，共2080B，计入RAM预算。
+每64个raw_ticket构成一块，侧表项包含block_id（uint64）、first_capture_mono_us（uint64）、
+acquisition_generation（uint32）、valid（uint32）和保留8B。用block_id%65定位，不能用%64：4096帧滑动窗口可能跨65个块。
 
-#### 采集时间来源与精度边界
+生产者在块的第一帧成功入环前发布侧表项，first_capture_mono_us取该帧DRDY时刻（暂存在唯一在途DMA描述符中），
+不是DMA完成时间。随后以release发布帧。消费者acquire取得帧后先按block_id和代次校验并复制元数据，再释放环槽。
+代次切换须先停止生产、确认消费者不再使用旧环，再清侧表；不能在旧帧可读时改写代次。
+发布新块前按acquire读取的原始环消费水位确认旧项所对应帧已全部消费；不满足即数据通路故障，不能覆盖旧时间后继续。
+侧表只服务实时展示，不另复制到512KiB记录环；记录文件保存代次锚点和名义时间质量。
 
-保持16B原始帧，不为每帧增加时间戳数组。每个采集代次维护固定时间锚点：
-`DRMS_TimeAnchor { uint32_t acquisition_generation, rate_hz; uint64_t sample_seq0, mono_us0; }`。
-mono_us0在该代次第一个观察到的DRDY分配sample_seq0时读取单调微秒时钟；不能使用DMA完成或处理时刻。
-前端必须先初始化锚点，再发布该代次帧；处理端获取一致副本，旧代次未排空前不得覆盖其锚点。
+帧使用所在块第一帧时间作为保守下界capture_lower_bound_us，真实采集时间不早于它。
+因此可能提前判旧，不会把实际旧数据判新。块中间长时间丢样也保持保守，不能以估计周期外推这个下界。
+正常无丢样时保守偏差小于64/rate_hz秒；配置校验要求stale_timeout_us至少为max(10000,ceil(128000000/rate_hz))，
+保留两个块周期余量。此为设计策略，不是芯片指标；实际调度仍单独验收。
 
-名义采集时间为 `mono_us0 + floor((sample_seq-sample_seq0)*1000000/rate_hz)`。
-实现采用商余分解防乘法溢出，不逐样本累加取整；样本序号采用C1的64-bit扩展。
-该时间是按配置采样率重建的名义时间，不声称逐帧实测DRDY时间，也不承诺ADC时钟与MCU时钟完全一致。
-记录头保存锚点、实际配置采样率和时间质量NOMINAL；未知丢样不得继续用可能错误的序号重建。
+输出新鲜度依据最后一份合格算法输入的capture_lower_bound_us；当前算法INVALID/WARMUP等状态仍禁止正常显示。
+读取一致的输出/时间快照之后再读取now_us：
+1. 没有合格输入：fresh=false，NO_SAMPLE。
+2. now_us < capture_lower_bound_us：fresh=false，TIMEBASE_FAULT，不做无符号减法，不截零掩盖异常。
+3. 否则age=now_us-capture_lower_bound_us；age>=stale_timeout_us为STALE，否则仅表示新鲜，不代表算法有效。
+底层时钟回绕由单调时钟后端扩展；后端故障不能通过改写旧时间修正。
 
-采集模块按当前观察到的DRDY周期性发布最近一次实测单调时间与序号（仅一个有界快照），供监督名义时间偏差。
-允许误差由采样档实测确定，必须小于该档stale_timeout_us的四分之一；未取得偏差范围证据时只能声明时间精度未验收。
-偏差越限或LOSS_UNKNOWN时：立即使展示及算法失效、终止当前记录为INCOMPLETE，受控停采并建立新代次/新锚点后恢复监测；不自动恢复记录。
-不得通过修改旧锚点修正已经输出的数据时间。没有新DRDY时仍依靠独立tick判定过期。
-单调微秒时钟后端、读取一致性及回绕扩展在T0/T1明确并测试；不能把100Hz ThreadX tick乘10000冒充微秒捕获精度。
+#### 名义时间轴与长期频差
+
+每代固定锚点 `DRMS_TimeAnchor { uint32_t acquisition_generation, rate_hz; uint64_t sample_seq0, mono_us0; }`。
+mono_us0在该代第一个观察到的DRDY读取。名义时间为
+`mono_us0 + floor((sample_seq-sample_seq0)*1000000/rate_hz)`，用商余分解防溢出。
+名义时间不与now_us比较新鲜度；ADC与MCU正常频差随时长积累仅记时间精度诊断，不因此停采或判记录不完整。
+不得修改历史锚点使旧数据跳时；文件标记NOMINAL，不承诺逐帧实测时间精度。
+只有实际采集故障、LOSS_UNKNOWN或单调时基本身失效才按相应故障策略处理；频差诊断不等同于上述故障。
+
+**验收C3：** 下界100000us、超时20000us：119999新鲜，120000过期；now=99999报告TIMEBASE_FAULT。
+名义时间人为领先/落后now数秒，只要实测下界新鲜，不能因正常频差结束记录。
+测试侧表跨65块、环绕、多批消费、发布/释放交错、代次更换和低32位序号回绕。
+同样本序列不同tick插入时序的历史算法结果一致；长时间无DRDY仍必须过期。
 
 ### C4 文件格式是记录交付前置条件
 
@@ -606,10 +634,10 @@ candidate变化即从当前样本重新计时；返回历史区间也重新确�
 PENDING时本机显示独立待确认效果；五灯具体动画由交互规格定义，禁止以常亮正常灯表达待确认。
 
 算法公共类型固定为：
-- Input：ohms（double）、capture_us（uint64，按本代锚点重建的名义时间）、sample_seq（uint64）、acquisition_generation（uint32）、quality_flags（uint32）、config_version/baseline_version（uint64）。
+- Input：ohms（double）、capture_us（uint64，名义算法时间）、capture_lower_bound_us（uint64，MCU实测时间下界）、sample_seq（uint64）、acquisition_generation（uint32）、quality_flags（uint32）、config_version/baseline_version（uint64）。
 - Config：rate_hz（uint32）、tau_us/warmup_us/confirm_us/stale_timeout_us（uint64）、r0（double）、baseline_valid（bool）、interval_count（uint8）、intervals[16]。
 - Interval：lo/hi/h（double）、id（uint16）、level（uint8）、last_upper_closed（bool）；显示名称保留在配置编码中，不进入算法热路径。
-- Output：state（INVALID/WARMUP/UNCONFIGURED/UNMAPPED/PENDING/CONFIRMED）、reason（位集合）、fresh（bool）、freshness_reason（位集合）、observed/candidate/confirmed（int16，-1无）、ratio（double）、hysteresis_hold（bool）、输入对应的位置/版本字段。
+- Output：state（INVALID/WARMUP/UNCONFIGURED/UNMAPPED/PENDING/CONFIRMED）、reason（位集合）、capture_lower_bound_us（uint64）、fresh（bool）、freshness_reason（位集合）、observed/candidate/confirmed（int16，-1无）、ratio（double）、hysteresis_hold（bool）、输入对应的位置/版本字段。
 - Context：仅由算法持有，init后不共享可写；具体内部滤波/统计字段可变，调用方不得直接读取。
 
 统一函数：`void drms_monitor_init(DRMS_MonitorContext *ctx);`

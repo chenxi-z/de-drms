@@ -44,7 +44,7 @@ T7 才整合线程与启动行为；禁止前面边写边启动半套新状态�
 - `DRMS_Result`：OK、ACCEPTED、BUSY、INVALID、STALE、NO_CHANGE、IO_ERROR、TIMEOUT、CANCELLED、INCOMPLETE、QUARANTINED、UNSUPPORTED。
 - `DRMS_Token`：`uint64_t operation_id; uint32_t generation;`。编号运行期不复用；复位后由 boot_id 区分。
 - `DRMS_Position`：`uint32_t generation; uint64_t index;`。index 是唯一采集生产端发布的流位置，不依赖记录帧布局。
-- `DRMS_End`：token、`uint64_t record_id, ring_end, lost_count;`、first/end_exclusive（DRMS_Position）、reason（DRMS_Result）。
+- `DRMS_End`：token、`uint64_t record_id, ring_end, lost_count;`、first/end_exclusive/last_confirmed_position（DRMS_Position）、end_known（bool）、capture_lost/log_dropped/quality_bad（uint64）、unknown_loss/storage_error（bool）、reason（DRMS_Result）。lost_count仅保留兼容诊断，不作为跨阶段相加的精确总数。
 - `DRMS_Resource` 位集合：ACQUISITION_CONFIG、RECORD_SESSION、TF_ACCESS、FLASH_MAINTENANCE、UPDATE_EXCLUSIVE。
 - `DRMS_Health`：ABSENT、READY、FAULT；`DRMS_Owner`：LOCAL、EXPORTING、EXPORTED、RELEASING、QUARANTINED。
 - 异步命令先返回接受/拒绝；最终结果由 token 匹配的完成槽/事件获得。裸指针载荷不跨线程，除非有显式固定池所有权。
@@ -281,11 +281,48 @@ RAM/Flash/栈证据（适用时）：
 本节直接落实C1/C3修订，不新增代码实施范围。
 
 - [ ] T0/T1：选择并记录单调微秒时钟后端及其精度/回绕规则，固定DRMS_TimeAnchor类型；用合成时间验证商余换算、长时间运行及低32位序号回绕。
-- [ ] T2a：STOP请求前消费者进入屏障；延迟边界回复期间生产者继续，断言消费者不越过最终E，E后帧不进入旧记录。边界失败/超时/原始环满返回INCOMPLETE且迟到回复无效。
-- [ ] T2b：文件头包含代次时间锚点、采样率和NOMINAL时间质量；缺锚点或代次不匹配拒绝伪正常解码。时钟偏差/未知丢样导致失败结束，不篡改旧时间轴。
+- [ ] T2a：START和STOP请求前消费者均进入屏障；延迟边界回复期间生产者继续，断言消费者不越过最终E，E后帧不进入旧记录。边界失败/超时/原始环满返回INCOMPLETE且迟到回复无效。
+- [ ] T2b：文件头包含代次时间锚点、采样率和NOMINAL时间质量；缺锚点或代次不匹配拒绝伪正常解码。正常时钟频差只作诊断；未知丢样导致失败结束，不篡改旧时间轴。
 - [ ] T6：相同样本流插入不同tick时序，断言历史算法输出一致；STALE覆盖不清滤波/候选。真实质量故障与采样缺口仍重置算法。
 - [ ] T6/T7：step后tick再原子发布；积压旧帧不能短暂发布正常灯状态。仅当前新鲜有效结果才解除覆盖。
-- [ ] T7/T8：测量ADC名义时间与单调时间偏差并确定监督阈值；阈值小于stale_timeout_us/4。越限终止记录、换代恢复监测；无实板证据时明确时间精度未验收。
+- [ ] T7/T8：测量并报告名义时间精度，正常频差不得触发记录终止。新鲜度严格采用C3实测时间侧表，不使用名义时间减now；无实板证据时明确时间精度未验收。
 
 自检一致性：资源表6类集合、展开8种操作、测试8×8；记录ready/stop接口均用DRMS_CaptureBoundary；
-算法state与展示fresh分离；16B帧容量不变，新增时间信息仅为有界锚点/监督快照。
+算法state与展示fresh分离；16B帧容量不变，新增时间信息为有界锚点和65×32B原始环侧表，总计另计RAM，不改变帧大小。
+
+
+## 第四次复检收敛：直接执行清单
+
+以下接口/测试在对应任务中实施，禁止保留被替代的“名义时间偏差越限即停录”实现。
+
+### 公共接口补齐（T1）
+
+- [ ] DRMS_CaptureBoundary增加capture_lost_total/unknown_loss_epoch（uint64），与sample_next/raw_next一致发布。
+- [ ] DRMS_End增加end_known和last_confirmed_position，以及分阶段损失字段；未知末边界不写伪精确end。
+- [ ] DRMS_MonitorInput/Output增加capture_lower_bound_us；tick只用此字段计算实时新鲜度，capture_us只供算法。
+- [ ] 新建 `Core/Inc/drms_capture_time.h`、`Core/Src/drms_capture_time.c`，侧表固定65×32B，静态断言大小；新增 `test/test_capture_time.py` 编译真实模块。
+- [ ] 接口：`DRMS_Result drms_capture_time_publish(uint64_t raw_ticket, uint64_t consumed_raw_next, uint32_t acquisition_generation, uint64_t drdy_mono_us);`
+  仅生产者在块首帧发布前调用，consumed_raw_next取原始环acquire读取的消费水位；以及`DRMS_Result drms_capture_time_lookup(uint64_t raw_ticket, uint32_t acquisition_generation, uint64_t *lower_bound_us);`
+  仅消费者在释放原始环槽前调用。侧表覆盖资格必须使用原始环已消费水位，publish前检查，不得仅依赖valid标志。
+
+### 启停屏障和损失隔离（T2a/T2b）
+
+- [ ] 统一START_BOUNDARY_WAIT/STOP_BOUNDARY_WAIT，均不pop原始环；定时和取消事件仍处理。
+- [ ] B/E回复都核对token与代次；超时后旧回复只能清理，不重新开放记录入口。
+- [ ] 监测期capture_lost_total=7，B=7，E=7：本次capture_lost=0；E后增加到9仍不修改本次END。
+- [ ] B=7，E=9：本次capture_lost=2；CRC坏帧增加quality_bad，不重复增加capture_lost。
+- [ ] 第一帧缺失不得移动B伪装成功；B/E相等且无损失才EMPTY，有采样但全丢失为INCOMPLETE。
+- [ ] E无法取得：end_known=false、LOSS_UNKNOWN、最后可确认位置；文件解码明确不完整。
+- [ ] v2头/尾包含对应锚点、分阶段损失与未知边界字段，黄金文件覆盖上述各场景。
+
+### 时间与实时显示（T6/T7/T8）
+
+- [ ] 测试侧表槽0在第65块到达时仍按真实消费水位判断是否可覆盖；4096帧滑动窗口跨65块不串时间。
+- [ ] 消费者复制时间后才释放帧槽；故意交错生产/消费验证读不到新块替换的旧时间。
+- [ ] 录入DRDY实测时间，下界>=now的两种情况分别检查：相等允许age=0，严格领先报告时基故障。
+- [ ] 注入长期正常频差，让名义时间领先/落后数秒：记录保持正常，新鲜度按实测下界判断。
+- [ ] 陈旧数据配最新处理时刻仍为STALE；实际停止DRDY后仅tick也失效。
+- [ ] 配置校验最小stale_timeout_us按C3两个块周期公式；侧表2080B及在途DRDY时间槽纳入map预算，不放进原始/记录帧。
+
+通过标准：启停无消费者越界、损失只归属本次区间、无无符号时间下溢、正常频差不误终止试验；
+测试记录必须列出上述反例的断言与执行结果，不以静态文档检查替代。
