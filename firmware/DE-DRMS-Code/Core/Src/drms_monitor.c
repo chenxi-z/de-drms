@@ -18,6 +18,7 @@ struct DRMS_MonitorContext {
   uint64_t last_config_version, last_baseline_version;
   /* 最近一次 step 的算法结果（tick 只叠加展示覆盖，不改算法状态） */
   DRMS_MonitorOutput last_output;
+  uint8_t have_output; /* INVALID 步之后仍可展示其捕获时间 */
 };
 
 /* 调用方（T7）以 DRMS_MONITOR_CONTEXT_BYTES 对齐字节区分配 context。 */
@@ -52,6 +53,7 @@ static void fill_output(DRMS_MonitorContext *ctx, DRMS_MonitorOutput *out,
 void drms_monitor_init(DRMS_MonitorContext *ctx)
 {
   memset(ctx, 0, sizeof(*ctx));
+  ctx->have_output = 0;
   ctx->classifier.confirmed = -1;
   ctx->classifier.candidate = -1;
   ctx->last_output.confirmed = -1;
@@ -81,6 +83,7 @@ DRMS_Result drms_monitor_configure(DRMS_MonitorContext *ctx, const DRMS_MonitorC
   drms_filter_configure(&candidate.filter, cfg->rate_hz, cfg->tau_us, cfg->warmup_us);
   drms_classifier_configure(&candidate.classifier, cfg);
   candidate.have_last = 0;
+  candidate.have_output = 0;
   candidate.last_seq = 0;
   candidate.last_output.confirmed = -1;
   candidate.last_output.candidate = -1;
@@ -135,6 +138,7 @@ void drms_monitor_step(DRMS_MonitorContext *ctx, const DRMS_MonitorInput *in,
     ctx->last_seq = in->sample_seq;
     fill_output(ctx, out, DRMS_MONITOR_INVALID, reason, 0.0, -1, -1, -1, 0, in);
     ctx->last_output = *out;
+    ctx->have_output = 1;
     return;
   }
   /* --- 有效样本 --- */
@@ -152,6 +156,7 @@ void drms_monitor_step(DRMS_MonitorContext *ctx, const DRMS_MonitorInput *in,
     fill_output(ctx, out, DRMS_MONITOR_INVALID, DRMS_REASON_NO_BASELINE,
                 0.0, -1, -1, -1, 0, in);
     ctx->last_output = *out;
+    ctx->have_output = 1;
     return;
   }
   ratio = ratio_of(ctx, filtered);
@@ -161,6 +166,7 @@ void drms_monitor_step(DRMS_MonitorContext *ctx, const DRMS_MonitorInput *in,
     fill_output(ctx, out, DRMS_MONITOR_WARMUP, DRMS_REASON_WARMUP,
                 ratio, observed, candidate, confirmed, 0, in);
     ctx->last_output = *out;
+    ctx->have_output = 1;
     return;
   }
   /* --- 分类（C6 转换表） --- */
@@ -172,6 +178,7 @@ void drms_monitor_step(DRMS_MonitorContext *ctx, const DRMS_MonitorInput *in,
     state = DRMS_MONITOR_UNCONFIGURED;
   fill_output(ctx, out, state, 0, ratio, observed, candidate, confirmed, hysteresis, in);
   ctx->last_output = *out;
+  ctx->have_output = 1;
 }
 
 void drms_monitor_tick(DRMS_MonitorContext *ctx, uint64_t now_us, DRMS_MonitorOutput *out)
@@ -179,12 +186,13 @@ void drms_monitor_tick(DRMS_MonitorContext *ctx, uint64_t now_us, DRMS_MonitorOu
   if (!ctx || !out)
     return;
   *out = ctx->last_output; /* 历史算法状态只读复制 */
-  if (!ctx->have_last || ctx->last_output.state == DRMS_MONITOR_INVALID)
+  if (!ctx->have_output)
   {
     out->fresh = 0;
     out->freshness_reason = DRMS_FRESH_NO_SAMPLE;
     return;
   }
+  /* 无基线/UNCONFIGURED 等算法状态不影响展示新鲜度：电阻显示独立于等级判断 */
   uint64_t lower = ctx->last_output.capture_lower_bound_us;
   if (now_us < lower)
   {

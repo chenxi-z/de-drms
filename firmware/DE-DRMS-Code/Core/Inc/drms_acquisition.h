@@ -17,6 +17,7 @@ void drms_acq_drdy(void);
 int drms_acq_pop(DRMS_RawFrame *frame);
 extern volatile uint32_t drms_acq_running, drms_acq_rate, drms_acq_reference;
 extern volatile uint32_t drms_acq_edges, drms_acq_overruns, drms_acq_queue_drops;
+extern volatile uint32_t drms_acq_last_push_ms;
 extern volatile uint32_t drms_acq_error;
 
 /* 一致边界（C1/T2a）。采集模块串行执行边界请求：service 只在无在途 DMA 的

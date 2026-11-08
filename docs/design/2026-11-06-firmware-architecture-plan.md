@@ -410,6 +410,50 @@ tick 只读复制不改历史；旧积压帧 tick 即 STALE；1 帧/批与多帧
 
 **通过：** 单一所有者可从调用图验证；启动/停止/配置/导出没有跨线程同步循环等待；RAM有余量。
 
+### T7 执行记录（2026-11-08）
+
+**交付物**：`drms_application.c` 重写为协调层（控制裁决 T1 → 记录会话 T2a → 监测管线 T6 → 存储 T4）：
+开机自动监测 4 kSPS（记录默认关闭）、RECORD 经 `drms_control_submit` 走租约裁决、
+B/E 一致边界在同一轮内归结、END 发布后请求 `drms_log_stop` 排空收尾、ack 后回监测；
+测量键语义 = 记录叠加（记录中→结束记录；监测中→开始记录；无采集→启动）；
+`STATUS` 追加 `monitor`/`fresh` 字段；`drms_capture_time`/`drms_control`/`drms_record_session`/
+`drms_resource_lifecycle` 入 Makefile + postgenerate 清单；`test/test_architecture_integration.py` 6 项
+（复用 app 编译产物）。全量 223/223（1 项 ARM map 检查按设计跳过，T8 单独执行）。
+
+**线程表与静态预算**（实测，写入本记录作为 T0 清单的收口）：
+
+| 线程 | 栈 | 优先级 | 职责 | 阻塞点 |
+| --- | --- | --- | --- | --- |
+| Main Thread | 4 KiB（Tx 池） | 5 | 控制裁决 + 采样管线 + 会话边界 + LED + UART 控制台 | 命令队列、`tx_thread_sleep(1)` |
+| FileX App Thread | 4 KiB（Fx 池） | 10 | `drms_storage_poll` + `drms_log_poll`（介质唯一所有者） | FileX I/O |
+| USBX Device App | 1024 B（Ux 池） | 10 | USBX 设备栈 | USB 事件 |
+| CDC diagnostics | 3 KiB（静态） | 11 | CDC 轮询 | sleep(1) |
+| ThreadX timer | 1024 B（默认） | 5 | 系统定时 | — |
+
+池：Tx 8 KiB / Fx 8 KiB / Ux 40 KiB（均在 .bss 内，不重复计入栈）。
+**RAM 实测**：`.data` 408 B + `.bss` 713888 B = **697.6 KiB**（门禁 736 KiB，**余量 38.4 KiB**）；
+三大缓冲未扩大：原始环 0x10000=64 KiB、记录环 0x80000=512 KiB、staging 0x8000=32 KiB。
+新增模块增加 4.5 KiB（含 4096 B monitor context + 2080 B 时间侧表 + 控制/会话状态）。
+
+**测试覆盖**：开机无卡进入监测且记录关闭；无卡 RECORD 被拒且监测继续；有卡 RECORD 成功、
+END 后监测继续（停止记录≠停止采集）；未配置表/无基线时不冒充 CONFIRMED；算法模块
+无 HAL/RTOS 头与符号（静态边界检查）。
+
+**决议（ledger）**：
+- Ruling: 名义时间锚点在 `begin()` 以 wall-clock 建立（`DRMS_TimeAnchor.mono_us0 = HAL_GetTick()*1000`），
+  `capture_lower_bound_us` 取最近入环时刻——**这是无 DRDY 实测条件下的过渡实现**，T8 板测须换为
+  DRDY 实测时间（C3 要求），此句写入代码注释与本节，不得视为已验收。
+- Ruling: `drms_acq_last_push_ms` 为过渡诊断变量（T8 移除）。
+- Ruling: 按键语义按架构文档"记录叠加在监测之上"实现，替换旧"测量键=启停采集"（旧行为仅 STOP 键停止采集）。
+- Ruling: 非本阶段操作（配置/R0/校准/导出/下载/升级）在 dispatch 内明确返回 UNSUPPORTED，
+  不静默接受——避免假成功；其接线归各自交付。
+- Ruling: 兼容性适配——`test_application.py` 的 mock 扩展了 FileX/Flash/SD 桩并把 3 个旧断言更新为
+  T7 语义（开机即监测、去抖 250 ms、停机需排空）。这些是行为变更导致的测试更新，不是放宽门槛。
+- Ruling: `drms_acq_boundary_service()` 在 B 与 E 路径都在同一轮内调用，避免请求跨轮悬挂（实测缺陷修复）。
+
+**结论**：软件验收通过（主机集成）。128 kSPS、持续写卡、USB、DRDY 时序等实时性能**未做板测**——
+正式能力仍限于已验证的 4 kSPS 软件路径（T8 板测项）。
+
 ## T8 系统验收与交接
 
 - [ ] `python3 -m unittest discover -s test -p 'test_*.py'` 全通过，记录数量；新增测试必须调用真实C生产模块，不能只检查源字符串或复写算法。

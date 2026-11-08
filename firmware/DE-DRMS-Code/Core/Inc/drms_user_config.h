@@ -31,6 +31,9 @@
 
 void drms_user_config_init(void);
 
+/* 注入当前仪器校准代次（load 的 R0 依赖检查用；T7 接线）。 */
+void drms_user_config_set_calibration_generation(uint64_t generation);
+
 /* 开机恢复：读取 A/B 两页有效提交，取 config_version 最新者；未知 schema
  * 保留原始页并进入恢复状态（普通保存拒绝覆盖）；两页均无效 → 出厂默认。 */
 void drms_user_config_load(void);

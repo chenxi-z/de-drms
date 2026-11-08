@@ -9,7 +9,7 @@ from pathlib import Path
 import re
 
 DEFAULT = Path(__file__).resolve().parents[1] / 'firmware/DE-DRMS-Code'
-SOURCES = ('drms_usb', 'drms_storage', 'drms_msc', 'drms_user_config', 'drms_user_backend', 'drms_monitor', 'drms_filter', 'drms_classifier', 'drms_baseline', 'drms_console', 'drms_runtime', 'drms_cdc', 'drms_measurement', 'drms_fifo', 'drms_acquisition',
+SOURCES = ('drms_usb', 'drms_storage', 'drms_msc', 'drms_control', 'drms_record_session', 'drms_capture_time', 'drms_resource_lifecycle', 'drms_user_config', 'drms_user_backend', 'drms_monitor', 'drms_filter', 'drms_classifier', 'drms_baseline', 'drms_console', 'drms_runtime', 'drms_cdc', 'drms_measurement', 'drms_fifo', 'drms_acquisition',
            'drms_calibration_codec', 'drms_calibration_journal', 'drms_calibration_flash', 'drms_log_codec', 'drms_logging', 'drms_time_codec', 'drms_aux', 'drms_command', 'drms_application', 'drms_power', 'drms_power_stm32')
 
 

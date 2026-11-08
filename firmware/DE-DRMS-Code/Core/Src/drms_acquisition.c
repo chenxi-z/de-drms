@@ -13,6 +13,7 @@ static volatile uint32_t busy, last_completion;
 static uint32_t inflight_sequence;
 static unsigned int frame_size, powered;
 volatile uint32_t drms_acq_running, drms_acq_rate, drms_acq_reference;
+volatile uint32_t drms_acq_last_push_ms; /* 最近帧入环时刻（过渡用；T8 换 DRDY 实测） */
 volatile uint32_t drms_acq_edges, drms_acq_overruns, drms_acq_queue_drops;
 volatile uint32_t drms_acq_error;
 
@@ -305,6 +306,7 @@ void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *spi)
     }
     else
       ++raw_ticket_next;
+    drms_acq_last_push_ms = HAL_GetTick();
     last_completion = HAL_GetTick();
   }
   busy = 0;
