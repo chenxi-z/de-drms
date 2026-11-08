@@ -484,6 +484,67 @@ RAM/Flash/栈证据（适用时）：
 自查映射：R1→T2；R2→T1；R3→T5；R4→T3；R5→T4；R6→T0/T7/T8；R7/R8→T6。
 不得仅以“编译成功”“全部完成”结束交接；下一个agent必须能从结果重放验证。
 
+### T8 执行记录（2026-11-08）
+
+```text
+阶段 / 提交：T0–T8 全部完成；ef46519(T0) 357bb71(T1) bca2ae4(T2a) d6ab633(T3) c6ce3f0(T4)
+             103f3d3(T5) 907c944(T2b) 585191e(T6) d0d1da7(T7) + T8 本提交
+输入基线：HEAD 37be37e，U575 固件工作区（未跟踪）；104 项既有测试
+修改文件与边界：新增 12 个模块（contract/control/capture_time/record_session/
+  resource_lifecycle/msc/user_config/user_backend/monitor/filter/classifier/baseline）
+  + 修改 acquisition/logging/storage/application/log_codec/USBX-MSC/链接脚本/Makefile/postgenerate
+  + 新增 10 个测试文件 + 1 份 v2 格式规格 + 10 份执行记录
+接口变化及调用方：见各任务"冻结接口清单"；调用方为 drms_application（T7 接线）
+测试命令、退出码、数量：python3 -m unittest discover -s test -p 'test_*.py'
+  → exit 0，223 项通过 / 1 项跳过（T8 已单独补跑：6/6 通过，不再跳过）
+故障注入与结果：掉电逐步注入 ~40 点（T5）；逐字节截断 ~209 例 + 位翻转 ~418 例（T2b）；
+  超时/隔离/迟到回调/环满/序号回绕/时基倒退/NaN/非法 UTF-8 全覆盖（各任务记录）
+资源所有者与释放证据：T1 租约表（4 深）+ T3 生命周期 5 态 + T4 单一介质所有者；
+  "无法证明静止则隔离且保持占用"有注入测试；无超时静默释放路径
+RAM/Flash/栈证据：.data 408 + .bss 713888 = 697.6 KiB ≤ 736 KiB 门禁（余量 38.4 KiB）；
+  三缓冲 64+512+32 KiB 未扩大；Flash 最高符号 0x0801D92C ≪ 0x080F8000（992 KiB 内）
+未完成项及阻塞条件：见下表
+结论：软件验收通过（含 RF 契约与资源门禁）；板测未执行——128 kSPS / 持续写卡 /
+  USB / DRDY 时序 / 实际 Flash 掉电 / MSC 枚举复制 均未验收
+```
+
+**契约与门禁映射（证据落点）**
+
+| 契约 | 落点 | 主要测试 |
+| --- | --- | --- |
+| C1 三种位置与一致边界 | drms_acquisition + drms_record_session | test_record_boundary（20）、test_capture_time（9） |
+| C2 操作资源集合 | drms_control_resources_for + 8×8 矩阵 | test_control_contract（13） |
+| C3 无样本/新鲜度/名义时间 | drms_capture_time + drms_monitor.tick | test_capture_time、test_monitor_pipeline |
+| C4 文件格式 | 2026-11-06-record-v2-format.md + 双端 codec | test_log_v2_codec（8，含黄金文件） |
+| C5 公共接口门禁 | drms_architecture_contract.h + 各模块 snapshot | test_control_contract + 全部模块编译检查 |
+| C6 区间/回差/输出状态 | drms_filter/classifier/baseline/monitor | test_monitor_pipeline（18） |
+| R1 边界与文件完成 | 会话状态机 + END 单槽 + ack | test_record_boundary、T7 集成 |
+| R2 预占与裁决 | drms_control | test_control_contract |
+| R3 配置/R0 原子持久化 | drms_user_config + A/B 页 | test_user_config（9）、test_user_journal（4） |
+| R4 取消/隔离/恢复 | drms_resource_lifecycle | test_resource_lifecycle（13） |
+| R5 介质所有权 | drms_msc + drms_storage 双轴 | test_storage_ownership（10） |
+| R6 实时期限与预算 | T7 线程表 + RAM/Flash 实测 | test_architecture_integration（6） |
+| R7 处理模块边界 | filter/classifier/baseline/monitor | test_monitor_pipeline + 静态 include 检查 |
+| R8 无效输入与恢复 | monitor step/tick 语义 | test_monitor_pipeline |
+
+**分列结论（不得合并）**
+
+| 列 | 状态 | 依据 |
+| --- | --- | --- |
+| 设计契约完成 | ✅ | C1–C6、R1–R8 均有冻结接口与对应测试 |
+| 软件门禁通过 | ✅ | 223/223；postgenerate OK；ARM 构建零警告；diff --check 通过 |
+| 实板门禁通过 | ❌ **未执行** | 无硬件：128 kSPS、持续写卡、USB、DRDY 时序、Flash 掉电、MSC 复制 |
+| 客户参数定标 | ❌ **未定标** | 阈值/回差/确认时间/质量门限均为合成值；保持 UNCONFIGURED |
+
+**板测待办（按优先级）**
+
+1. DRDY 实测时间替换 wall-clock 过渡锚点（`drms_capture_time_publish` 的消费水位路径已就绪）。
+2. 128 kSPS：DRDY→SPI 最坏延迟、处理最长失调度、原始/记录环水位峰值。
+3. 持续写卡：卡最长停顿与 768 KB/s 吞吐；写入失败路径（拔卡/写满）。
+4. USB：CDC+MSC 双类枚举、导出往返、写保护拒绝、插拔/挂起。
+5. 内部 Flash 用户区擦写与掉电（含 NMI ECC 行为）、校准代次依赖。
+6. 按键/长按/LED 时序按交互规格验收（本任务仅功能语义）。
+
 ## 本次文档自审记录
 
 2026-11-06：已逐项映射八条评审问题、对应模块与故障测试；现有文件名通过仓库读取核对。
