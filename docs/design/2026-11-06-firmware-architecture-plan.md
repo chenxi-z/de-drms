@@ -358,6 +358,42 @@ apply/save/commit 全部 UNSUPPORTED 不覆盖；撕裂提交标志回落另一�
 
 **通过：** 失效时无正常等级；算法可离线复现；内存不随任意时窗增长。实际默认时常/质量门限需客户或台架依据，未定标时不启用正常等级输出。
 
+### T6 执行记录（2026-11-08）
+
+**交付物**：`Core/Inc/drms_filter.h`、`Core/Src/drms_filter.c`（一阶 IIR，alpha 在 configure 时一次算好
+缓存，tau=0 旁路，首样本 y=x，建立窗口以连续有效名义样本时间累计且故障即清零）；
+`Core/Inc/drms_classifier.h`、`Core/Src/drms_classifier.c`（有序不重叠表 + 显式端点、跨级直达、
+回差保持 [lo-h,hi+h]（h=0 严格原表映射）、候选变化/返回历史即重计、confirm_us=0 当帧确认）；
+`Core/Inc/drms_baseline.h`、`Core/Src/drms_baseline.c`（Welford 流式统计，参数显式输入，
+未配置返回 UNCONFIGURED，候选不直接保存）；`Core/Src/drms_monitor.c`（C6 冻结公共接口 init/configure/
+step/tick 的落地 + DRMS_MonitorContext 定义 + 4096B 分配上限静态断言）；全部已入 Makefile 与
+postgenerate 清单；`test/test_monitor_pipeline.py` 18 项。全量 217/217；ARM 构建零警告。
+
+**边界自检**：四个算法模块 include 仅 contract/filter/classifier/baseline/stdint/string/math——
+无 HAL/USB/FileX/ThreadX；drms_application.c 未接线（T7 统一接入，旧显示路径保持）。
+
+**测试覆盖**：IIR 旁路/首样本/收敛；建立窗口与故障后全窗口重启；无效输入七类（NaN/质量/缺口/重复/
+代次/配置版本/基线版本）→ INVALID、confirmed/candidate 双清、恢复需干净样本重新 PENDING；无基线
+阻断映射但滤波继续；未配置表 UNCONFIGURED；确认按名义样本时间（非批次耗时）；候选变化/返回历史重计；
+跨级直达；回差保持与 h=0 严格端点；末项闭合上端；空隙 UNMAPPED；交界归右侧；tick 边界
+（119999 新鲜/120000 STALE/时基倒退 TIMEBASE_FAULT/无样本 NO_SAMPLE/长期无 DRDY 仅 tick 也过期）；
+tick 只读复制不改历史；旧积压帧 tick 即 STALE；1 帧/批与多帧/批输出一致；基线 Welford 统计与
+三态（NOT_READY/UNCONFIGURED/OK）与稳定限值。
+
+**决议（ledger）**：
+- Ruling: 名义样本间隔 dt=1/rate_hz 对每个有效样本都计满（含首样本）——确认计时与建立窗口统一约定，
+  4 样本 @250us = 1000us；滤波器 IIR 初始化不消费 dt。
+- Ruling: h=0 的保持范围 = 严格原表映射（lookup==confirmed），而不是闭区间 [lo,hi]——与 C6
+  "h=0 时严格使用原区间端点"一致（半开区间端点本身不属于区间）。
+- Ruling: 无有效基线 → INVALID+NO_BASELINE，但**不重置滤波**（基线缺失不是采样质量故障，
+  R8 的重置清单仅覆盖质量/缺口/版本）。
+- Ruling: 新增 `Core/Src/drms_monitor.c`（C6 公共函数的落地单元 + context 定义），计划文件列表未列——
+  contract.h 已在 T1 声明该 API，必须有实现宿主。
+- Ruling: 质量位约定冻结：input.quality_flags 非 0 即无效样本（解码级映射由处理管线在 T7 完成）。
+
+**结论**：软件验收通过（主机合成测试）。客户阈值与默认时间参数未定标——保持 UNCONFIGURED，
+不启用正常等级输出（C6/客户定标另行交付）。
+
 ## T7 线程集成、启动与预算
 
 **修改：** Core/Src/app_threadx.c、drms_runtime.c、drms_application.c、USBX/App、FILEX/App实际入口、Makefile、tools/firmware_postgenerate.py。

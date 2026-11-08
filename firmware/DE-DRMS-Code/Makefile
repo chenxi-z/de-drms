@@ -47,6 +47,10 @@ Core/Src/drms_storage.c \
 Core/Src/drms_msc.c \
 Core/Src/drms_user_config.c \
 Core/Src/drms_user_backend.c \
+Core/Src/drms_monitor.c \
+Core/Src/drms_filter.c \
+Core/Src/drms_classifier.c \
+Core/Src/drms_baseline.c \
 Core/Src/drms_console.c \
 Core/Src/drms_runtime.c \
 Core/Src/drms_cdc.c \

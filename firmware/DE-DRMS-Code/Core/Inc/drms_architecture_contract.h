@@ -229,9 +229,11 @@ typedef struct {
   uint64_t baseline_version;
 } DRMS_MonitorOutput;
 
-/* 算法上下文：仅由算法持有，init 后不共享可写；内部字段 T6 定义，
- * 调用方不得直接读取。step/tick 由处理线程唯一调用，发布前 step 后 tick
- * 并一致复制输出。 */
+/* 算法上下文：仅由算法持有，init 后不共享可写；内部字段在 drms_monitor.c
+ * 定义，调用方不得直接读取。step/tick 由处理线程唯一调用，发布前 step 后
+ * tick 并一致复制输出。分配：调用方提供 DRMS_MONITOR_CONTEXT_BYTES 的
+ * 对齐字节区并以 (DRMS_MonitorContext *)cast 传入。 */
+#define DRMS_MONITOR_CONTEXT_BYTES 4096u
 typedef struct DRMS_MonitorContext DRMS_MonitorContext;
 
 /* 公共算法接口（T6 实现；公共头在 T1 冻结，T6 不得改变字段语义）。
