@@ -307,6 +307,40 @@ cancel（IRQ 入口）撤就绪→RELEASING→LOCAL 收敛且代次递增；换�
 
 **通过：** 无卡可提交；任意提交阶段掉电不形成配置/R0错配；固件和工具不会覆盖32KiB配置区。
 
+### T5 执行记录（2026-11-08）
+
+**交付物**：`Core/Inc/drms_user_config.h`（schema1 布局文档化于头注释：小端固定整数、IEEE754 binary64
+显式编码、TLV 长度化字段、CRC-32/ISO-HDLC=zlib 参数、总长 ≤4096B、页尾提交四字）；`Core/Src/drms_user_config.c`
+（编码/整体校验/A-B 页事务：apply 暂存、save 持久化、commit_baseline 配置+R0 原子提交、load 依赖检查）；
+`Core/Src/drms_user_journal.c` 未建——页提交逻辑内聚于 user_config.c，Flash 后端独立为
+`Core/Src/drms_user_backend.c`（对齐 drms_calibration_flash 模式，已入 Makefile+postgenerate 清单）；
+`STM32U575xx_FLASH.ld` ROM 1008K→992K + USERDATA 16K 保留区；postgenerate 同步（ROM 恢复值 992、
+USERDATA 分区检查、新增源文件）；`test/test_user_config.py` 9 项 + `test/test_user_journal.py` 4 项。
+全量 191/191；ARM 构建零警告；map 核对最高 Flash 符号 0x0801D92C ≪ 0x080F8000（应用不越入用户区）。
+
+**测试覆盖**：黄金向量（魔数/版本/长度/CRC/提交四字位置）；区间校验 12 类拒绝（零宽/倒序/重叠/乱序/
+NaN/Inf/回差≥半宽/负回差/超16项/名称>48B/非法UTF8/截断UTF8）+ 16 项合法 + 空表合法（UNCONFIGURED）；
+apply 版本门（STALE/整包拒绝不生效）；save 脏标志与同值 NO_CHANGE 不擦写；**掉电逐步注入**（begin/erase/
+每个 program/提交前后共 ~40 个注入点，重启必得完整旧或完整新快照）；commit_baseline 原子性（失败旧 R0 保留、
+版本不升）；NaN/零 R0 拒绝；校准代次变化 → 载入后 R0 失效（旧值保留可诊断）；未来 schema 页保留且
+apply/save/commit 全部 UNSUPPORTED 不覆盖；撕裂提交标志回落另一页；A/B 轮换保持旧副本；四字粒度+尾部补白；
+双页取最新。
+
+**决议（ledger）**：
+- Ruling: 页提交逻辑内聚于 `drms_user_config.c`（计划中的 `drms_user_journal.c` 并入），Flash 后端独立为
+  `drms_user_backend.c`——与校准"journal 纯逻辑 + flash 后端"两文件结构等价，未建第二套后端。
+- Ruling: schema1 内未知 TLV 类型按长度跳过但不做保留回写（真正的向前兼容边界是 schema 版本字节，
+  载入即进 UNSUPPORTED 恢复态并拒绝普通写路径）；该边界已在头注释冻结。
+- Ruling: 监测参数（rate/tau/warmup/confirm/stale）为可选段：未配置（rate=0）不编码，编码后载入校验
+  一致——参数未配置即算法层 UNCONFIGURED（C6）。
+- Ruling: R0 依赖检查在 load 内执行（当前校准代次由 `drms_user_config_set_calibration_generation`
+  注入，T7 接线）；失效仅清 valid 标志，不删除旧值。
+- Ruling: 事务接口为同步后端处理接口；CDC 线程不得直接调用（T7 由控制路径投递）。
+- Ruling: 版本语义冻结——apply 成功 run_version+1；commit_baseline 成功再 +1（配置与 R0 一起发布）；
+  失败一律不升版本；持久化版本只在页提交成功后跟随。
+
+**结论**：软件验收通过（主机注入后端）。实板 Flash 擦写/掉电与 NMT ECC 行为未执行——随 T8 板测。
+
 ## T6 纯算法拆分与无效恢复
 
 **新增：** `Core/Inc/drms_filter.h`、`Core/Src/drms_filter.c`、`Core/Inc/drms_classifier.h`、`Core/Src/drms_classifier.c`、`Core/Inc/drms_baseline.h`、`Core/Src/drms_baseline.c`、`test/test_monitor_pipeline.py`。

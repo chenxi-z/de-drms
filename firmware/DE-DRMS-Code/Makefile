@@ -45,6 +45,8 @@ Core/Src/app_threadx.c \
 Core/Src/drms_usb.c \
 Core/Src/drms_storage.c \
 Core/Src/drms_msc.c \
+Core/Src/drms_user_config.c \
+Core/Src/drms_user_backend.c \
 Core/Src/drms_console.c \
 Core/Src/drms_runtime.c \
 Core/Src/drms_cdc.c \

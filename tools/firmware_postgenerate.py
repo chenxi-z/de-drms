@@ -9,7 +9,7 @@ from pathlib import Path
 import re
 
 DEFAULT = Path(__file__).resolve().parents[1] / 'firmware/DE-DRMS-Code'
-SOURCES = ('drms_usb', 'drms_storage', 'drms_msc', 'drms_console', 'drms_runtime', 'drms_cdc', 'drms_measurement', 'drms_fifo', 'drms_acquisition',
+SOURCES = ('drms_usb', 'drms_storage', 'drms_msc', 'drms_user_config', 'drms_user_backend', 'drms_console', 'drms_runtime', 'drms_cdc', 'drms_measurement', 'drms_fifo', 'drms_acquisition',
            'drms_calibration_codec', 'drms_calibration_journal', 'drms_calibration_flash', 'drms_log_codec', 'drms_logging', 'drms_time_codec', 'drms_aux', 'drms_command', 'drms_application', 'drms_power', 'drms_power_stm32')
 
 
@@ -24,14 +24,21 @@ def replace_known(text, old, new, name):
 def repaired(relative, text):
     if relative == 'STM32U575xx_FLASH.ld':
         match = re.search(r'(ROM\s*\(rx\)\s*:\s*ORIGIN = 0x08000000,\s*LENGTH = )(\d+)K', text)
-        if not match or match[2] not in ('1008', '1024', '2048'):
+        if not match or match[2] not in ('992', '1008', '1024', '2048'):
             raise ValueError('unknown Flash layout; check MCU capacity')
-        text = text[:match.start(2)] + '1008' + text[match.end(2):]
+        text = text[:match.start(2)] + '992' + text[match.end(2):]
+        if 'USERDATA (rx)' not in text:
+            text = text.replace('  CALDATA (rx)',
+                '  /* 用户数据 A/B（0x080F8000，16K）：不参与链接加载，仅保留地址；\n'
+                '     写入由 drms_user_backend 在运行期执行（T5）。 */\n'
+                '  USERDATA (rx) : ORIGIN = 0x080F8000, LENGTH = 16K\n  CALDATA (rx)', 1)
         if 'CALDATA (rx)' not in text:
             text = text.replace('  SRAM4\t(xrw)',
                 '  CALDATA (rx) : ORIGIN = 0x080FC000, LENGTH = 16K /* two 8 KiB settings slots */\n  SRAM4\t(xrw)', 1)
         if not re.search(r'CALDATA\s*\(rx\)\s*:\s*ORIGIN = 0x080FC000,\s*LENGTH = 16K', text):
             raise ValueError('unknown linker settings partition')
+        if not re.search(r'USERDATA\s*\(rx\)\s*:\s*ORIGIN = 0x080F8000,\s*LENGTH = 16K', text):
+            raise ValueError('unknown linker user-data partition')
         return text
     if relative == 'Core/Src/sdmmc.c':
         if 'HAL_StatusTypeDef sd_init_status = HAL_ERROR;' not in text or 'static HAL_StatusTypeDef sd_startup_init(' not in text:
