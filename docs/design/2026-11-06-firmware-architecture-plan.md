@@ -63,6 +63,33 @@ T7 才整合线程与启动行为；禁止前面边写边启动半套新状态�
 
 **通过：** 基线可复现，已有失败有明确归因；若生成工程缺失或基线失败原因不明，停止后续，不把失败带入重构。
 
+### T0 执行记录（2026-11-08）
+
+- **git 状态**：HEAD=37be37e；`git status --short` 共 828 行，快照存于本计划 SDD 工作区（`.superpowers/sdd/2026-11-06-firmware-architecture-plan/t0_git_status.txt`）。
+  关键事实：`firmware/DE-DRMS-Code/` 整目录**未跟踪**（U575 重建工程与全部应用源码在工作区、未入库）；
+  旧 `firmware/DE-DRM/`（545 工程）标记删除；用户另有 sim/文档/测试改动未提交。按用户规则不批量暂存、不清理、不重置。
+- **实际 drms 模块**（全部未跟踪）：Inc 16 个（acquisition/application/calibration(+backend)/cdc/command/console/fifo/log_codec/logging/measurement/power/runtime/storage/time/usb）；Src 19 个（另含 calibration_codec/calibration_flash/calibration_journal/power_stm32/aux/time_codec）。
+- **测试基线**：`python3 -m unittest discover -s test -p 'test_*.py'` → **104 项全过（3.0 s）**，与计划"不把历史104项当固定现状"一致——当前即为 104。
+- **生成恢复检查**：`python3 tools/firmware_postgenerate.py`（不带 --apply）→ `OK: known CubeMX template fixes are present`，无差异，无需解释。
+- **ARM 构建**：`make -C firmware/DE-DRMS-Code -j6 BUILD_DIR=/tmp/de-drms-architecture-baseline` 成功。
+  工具链 arm-none-eabi-gcc 13.2.1（15:13.2.rel1-2）、Python 3.12.3、GNU Make 4.3。
+  ELF：text 120144、data 408、bss 709184、dec 829736。
+- **map RAM/Flash**：链接区 RAM 768 KiB @0x20000000、ROM 1008 KiB @0x08000000、CALDATA 16 KiB @0x080FC000（两 8 KiB 校准槽）、SRAM4 16 KiB @0x28000000（当前未用）。
+  `.data` 408 B + `.bss` 0xac240=705,088 B（688.5 KiB）+ `_user_heap_stack` 4 KiB ≈ **693 KiB / 768 KiB**，静态余量约 75 KiB。
+  608 KiB 三大缓冲实测在位：原始环 `.bss.frames` 0x10000=64 KiB（drms_acquisition.c:8，4096×16 B）、
+  记录环 `.bss.records` 0x80000=512 KiB（drms_logging.c:15，32768×16 B）、staging 0x8000=32 KiB（drms_logging.c:17）。DRMS_RawFrame=16 B 确认。
+- **线程/栈/池/优先级/阻塞点**（当前源码实测）：
+  | 线程 | 栈 | 优先级 | 主循环与阻塞点 |
+  | --- | --- | --- | --- |
+  | Main Thread（app_threadx.c:78） | 4 KiB，从 Tx App 池分配 | 5 | `drms_runtime_run`→poll：命令队列(16×DRMS_Command)接收、`drain_frames`（测量/校准统计/记录入环）、LED 100 ms、辅助 1 s、UART 控制台（rx 128 B 环、tx 1 KiB DMA）；`tx_thread_sleep(1)` |
+  | FileX App Thread（app_filex.c:104） | 4 KiB，从 Fx App 池 | 10 | `drms_storage_poll`（SD 挂载/CD）+`drms_log_poll`（记录环→staging→FileX 写卡，FileX 内部阻塞） |
+  | USBX Device App Main Thread（app_usbx_device.c:92） | 1024 B，从 Ux App 池 | 10 | USBX 设备栈入口 |
+  | CDC diagnostics（drms_cdc.c:96） | 3 KiB（768×4 B，静态） | 11 | `drms_cdc_poll`+sleep(1) |
+  | ThreadX 定时器线程 | 默认 1024 B | 5（tx_user.h:116） | 系统定时 |
+  | 池 | Tx 8 KiB / Fx 8 KiB / Ux 40 KiB（app_azure_rtos_config.h:53-59） | — | 线程栈从池分配，池在 .bss 内 |
+  ISR 路径：ADS_DRDY(EXTI3)→`drms_acq_drdy`（**32-bit `drms_acq_edges` 序号**，C1 需扩展为 64-bit 流位置）→SPI DMA；DMA 完成 ISR→fifo push，失败置 error=6 并停采集。UART RX 单字节中断环。按键 EXTI 置位后由主线程轮询。与计划差异：无边界屏障、无 cancel/隔离、单主线程既做处理又做控制——由 T1/T2a/T7 重构。
+- **结论**：基线可复现，无失败项，不停止。T0 通过（软件层面；无硬件项）。
+
 ## T1 原子资源裁决与代次
 
 **新增：** `Core/Inc/drms_architecture_contract.h`、`Core/Inc/drms_control.h`、`Core/Src/drms_control.c`、`test/test_control_contract.py`。
