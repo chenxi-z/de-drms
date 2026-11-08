@@ -109,6 +109,45 @@ T7 才整合线程与启动行为；禁止前面边写边启动半套新状态�
 
 **通过：** 每个资源任意时刻最多一个有效所有者；停止没有迟到重启路径。
 
+### T1 执行记录（2026-11-08）
+
+**交付物**：`Core/Inc/drms_architecture_contract.h`（公共契约唯一位置，仅标准 C 类型）、
+`Core/Inc/drms_control.h`、`Core/Src/drms_control.c`、`Core/Inc/drms_capture_time.h`、
+`Core/Src/drms_capture_time.c`、`test/test_control_contract.py`（13 项）、`test/test_capture_time.py`（9 项）。
+测试先失败（缺实现）后实现；全量 `test_*.py` 126/126 通过（104 旧 + 22 新）。
+`drms_control.c`/`drms_capture_time.c` 暂不入 Makefile（T7 统一接线），ARM 构建不受影响。
+
+**冻结接口清单**（签名 / 调用上下文 / 同步性 / 所有权）：
+
+| 签名 | 上下文 | 同步性 | 所有权与说明 |
+| --- | --- | --- | --- |
+| `void drms_control_init(DRMS_ControlDispatch)` | 启动 | 同步 | 注入投递钩子；清零全部控制状态 |
+| `DRMS_Result drms_control_submit(const DRMS_ControlRequest*)` | 任意线程 | 同步返回 ACCEPTED/BUSY/INVALID/CANCELLED | 复制请求入 8 深有界队列；不返回 token |
+| `void drms_control_poll(uint32_t max_requests)` | 仅控制任务 | 同步 | reserve→dispatch；reserve 失败/投递失败即写完成记录回滚 |
+| `DRMS_Result drms_control_reserve(uint32_t resources, DRMS_Token*out)` | 仅控制任务 | 同步 | 一次性全量检查，无部分占用；UPDATE_EXCLUSIVE 展开为全部；lease 表 4 深 |
+| `DRMS_Result drms_control_complete(DRMS_Token, DRMS_Result, uint32_t quiescent_mask)` | 仅控制任务 | 同步 | quiescent 掩码内归还，其余转隔离（保持占用）；代次不符返回 STALE 仅清理 |
+| `void drms_control_stop(void)` / `DRMS_Result drms_control_resume(void)` | 仅控制任务 | 同步 | stop 幂等（代次只增一次）；resume 要求无活动租约 |
+| `uint32_t drms_control_collect(DRMS_ControlCompletion*, uint32_t)` | 仅控制任务 | 同步 | 排空完成环（8 深，溢出丢最旧并计数） |
+| `void drms_control_get_snapshot(DRMS_ControlSnapshot*)` | 任意（只读） | 同步（短临界区复制） | 不消费完成结果 |
+| `uint32_t drms_control_resources_for(DRMS_Operation)` | 纯查询 | 同步 | C2 资源集合唯一定义 |
+| `void drms_capture_time_reset(void)` | 采集所有者（代次切换） | 同步 | 停产+消费者确认后调用 |
+| `DRMS_Result drms_capture_time_publish(raw_ticket, consumed_raw_next, gen, drdy_mono_us)` | 仅生产者（块首帧入环前） | 同步 | 覆盖资格用消费水位判定；不足返回 IO_ERROR 不覆盖 |
+| `DRMS_Result drms_capture_time_lookup(raw_ticket, gen, *lower_bound_us)` | 仅消费者（释放环槽前） | 同步 | 无效/覆盖/换代返回 STALE |
+| `uint64_t drms_capture_time_nominal_us(const DRMS_TimeAnchor*, sample_seq)` | 纯函数 | 同步 | 商余分解防溢出；只供算法不供新鲜度 |
+| `drms_monitor_init/configure/step/tick`（contract.h 声明） | 仅处理线程 | 同步 | T6 实现公共体已冻结 |
+
+**状态写入上下文自审**：submit（任意线程，PRIMASK 短临界区）；poll/complete/stop/resume/collect（仅控制任务）；init（启动）。租约表写者全部为控制任务上下文；快照读经临界区。
+
+**决议（ledger）**：
+- Ruling: `drms_control_submit` 不返回 token——C5 明文"submit只复制命令并返回ACCEPTED/BUSY/INVALID"，请求方以 (source,session,request_id) 关联完成记录，内部 operation_id 由 reserve 分配并随 dispatch/complete 交付。若作他解会违反 C5 冻结文本。
+- Ruling: 投递失败回滚 = `complete(token, result, 全租约资源)`——工作从未到达后端，租约整体静止，无隔离项；完成记录 quiescent_mask=全租约。
+- Ruling: 8×8 矩阵中不相交对的第二个操作无完成记录（在途），以 dispatch 次数=2、双租约并存、reserved_mask=两集合并集断言。
+- Ruling: 单调微秒时钟后端选 **TIM2 @1 MHz、32 位计数 + 单写者 64 位扩展**（ISR 双读稳定取值），精度=±1 µs 计数粒度；回绕由唯一所有者上下文扩展。已在 contract.h 注释冻结；实板精度/回绕验收留 T7/T8。
+- Ruling: 新增 `drms_control_resume()`——R2 要求"只有全部必要清理完成才解除 STOPPING"，stop 单向无法表达该解除路径。
+- 侧表 2080 B 静态断言（`sizeof(DRMS_CaptureTimeEntry)==32`）+ `drms_capture_time_bytes()` 供预算测试。
+
+**结论**：软件验收通过（主机测试）；无硬件项。C5 门禁（先头文件后实现、自包含编译、类型/单位/上下文清单）已满足。
+
 ## T2a 记录首末边界与完成槽
 
 **新增：** `Core/Inc/drms_record_session.h`、`Core/Src/drms_record_session.c`、`test/test_record_boundary.py`。
