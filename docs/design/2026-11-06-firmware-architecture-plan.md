@@ -170,6 +170,36 @@ ready/stop由处理上下文调用；end_get/ack通过单槽同步在存储上�
 
 **通过：** 每个成功记录有确定的闭开样本区间；数据/END顺序可证明；存储确认前不能复用槽。安全停止可截短但必须报告原因。
 
+### T2a 执行记录（2026-11-08）
+
+**交付物**：`Core/Inc/drms_record_session.h`、`Core/Src/drms_record_session.c`（纯逻辑会话状态机，无 HAL/RTOS）；
+`drms_acquisition.{h,c}` 增加 64 位流记账（sample_seq/raw_ticket/capture_lost_total/unknown_loss_epoch）、
+采集代次与一致边界 request/service/get（service 仅在无在途 DMA 的静止时刻快照，DMA 完成路径自动调用）；
+`drms_logging.{h,c}` 增加 64 位 log_ticket（END.ring_end 域）与 enqueue 返回值；`test/test_record_boundary.py` 20 项。
+全量 `test_*.py` 146/146（104 旧含回归 + 42 新）。ARM 构建通过零警告（text 120592，bss 709312）。
+`drms_record_session.c` 暂不入 Makefile（T7 接线）。
+
+**测试覆盖**（对计划条目）：100..109 缺 102 三位置断言（sample 跨 10/raw 跨 9/log 9，INCOMPLETE 且缺口=1）；
+积压 SKIP/窗口 RECORD/边界后 MONITOR；未处理数据 STOP 不漏帧；重复 STOP 保持首次 E（NO_CHANGE）；
+STARTING 取消+迟到 READY STALE；连续两会话（槽未 ack 前 BUSY）；32 位序号回绕扩展与 ≥2^31 不可证明跨度→LOSS_UNKNOWN；
+重复序号→LOSS_UNKNOWN；跨 generation E 拒绝（STALE）后超时收尾（end_known=false+TIMEOUT）；
+START 屏障超时；屏障期原始环满→INCOMPLETE；监测期损失不归属（B=7,E=7→0；B=0,E=2→2）；E 后损失不改冻结 END；
+B==E 无损失→EMPTY、有样全丢→INCOMPLETE；首帧缺失不移动 B；在途 DMA 归结后才发布边界；环满仍发布 END（log_dropped→INCOMPLETE）；
+延迟 E 回复期间消费者不越过 E、E 后帧不进旧记录；END 槽 ack 语义（错 token STALE）。
+
+**决议（ledger）**：
+- Ruling: `end_known` ⟺ 捕获到一致 E。失败路径（超时/取消/环满）一律 end_known=false、end_exclusive 置零、
+  LOSS_UNKNOWN=true（有 B 无 E 时尾部连续性不可证明，对齐 C1"E 无法取得"条）；文件内已记录范围由 ring_end + last_confirmed_position 界定。
+- Ruling: 新增 `drms_record_session_request_stop()` 与 `note_log_ticket/note_recorded/note_consumed/poll/barrier/classify` ——
+  处理循环的屏障与回报协议需要显式入口；`drms_record_session_configure(wait_ms)` 供测试与 T7 配置边界等待期限。
+- Ruling: 会话不直接读采集模块——B/E 以值传入（纯逻辑可测）；`prepare` 后处理循环须先 `note_consumed` 同步消费水位。
+- Ruling: T2a 不改 `drms_application.c`（避免半套新状态机上线，符合 T7"禁止边写边启动"）；应用层接线归 T7。
+- Ruling: `drms_log_enqueue` 返回入环结果并保留全局诊断 `drms_log_dropped` 自增（既有 STATUS 语义不变）；
+  会话级 log_dropped 由 note_recorded 按返回值另计。
+- ctypes 教训（已固化在测试中）：C 按值结构体参数（DRMS_CaptureBoundary）必须声明为结构体类型而非 POINTER，否则寄存器错位产生随机垃圾。
+
+**结论**：软件验收通过（主机联合仿真）；无硬件项。文件/缺尾解码语义留待 T2b。
+
 ## T3 取消、隔离和资源恢复
 
 **新增：** `Core/Inc/drms_resource_lifecycle.h`、`Core/Src/drms_resource_lifecycle.c`、`test/test_resource_lifecycle.py`。
