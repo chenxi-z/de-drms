@@ -219,6 +219,31 @@ B==E 无损失→EMPTY、有样全丢→INCOMPLETE；首帧缺失不移动 B；�
 
 **通过：** 无超时后内存重用、无无界等待、无无限恢复循环；无法证明静止时资源隔离而非假释放。
 
+### T3 执行记录（2026-11-08）
+
+**交付物**：`Core/Inc/drms_resource_lifecycle.h`、`Core/Src/drms_resource_lifecycle.c`（无 HAL：后端钩子表注入）；
+`drms_acquisition.{h,c}` 增加采集生命周期后端 `drms_acq_resource_backend()`（abort=先抑制 CURR_DIS 再有界
+`HAL_SPI_Abort`、静止证据=无在途 DMA 且采集已停止、recover=清错误闩锁由 acq_start 重建新代次）；
+`test/test_resource_lifecycle.py` 13 项（9 项注入后端 + 3 项真实采集后端）。全量 159/159；
+回归 test_power*.py / test_sd_driver_recovery.py / test_usb_dcd_abort.py 全过（模块未改动）。ARM 构建零警告。
+
+**生命周期语义**（R4）：cancel 进入 CANCELLING 并立即一次有界中止尝试（abort=ACCEPTED 即 QUIESCENT）；
+tick 周期 probe 静止证据，期限到达再尝试一次 abort/恢复，仍无法确认 → QUARANTINED（保持占用、拒绝 activate、
+不假释放）；quiescent() 为所有者确认（ACTIVE/CANCELLING→QUIESCENT，已静止时幂等）；release 仅在 QUIESCENT
+后归还；recover 仅显式调用、失败保持隔离不循环。取消总期限默认为未验证占位值（1000 ms），
+`drms_resource_configure` 供测试注入小超时；**实测定值归 T7/T8 依据后端驱动阻塞上限**——
+已核实边界：`HAL_SPI_Abort` 同步返回（HAL 内部标志等待，有界）；SD/FileX 操作由驱动超时约束（T4 接管存储后端时核对）。
+
+**决议（ledger）**：
+- Ruling: 存储与电源后端适配器**不在 T3 落地**——TF 生命周期语义在 T4（所有权/MSC 在途读取取消）才成形，
+  电源安全停止序在 T7 接线；T3 以注入后端验证生命周期本体 + 采集真实后端示范，避免半套钩子造成假接口。
+- Ruling: `drms_resource_recover` 成功返回 DRMS_OK（同步完成语义）；cancel 返回 ACCEPTED（异步取消开始）。
+- Ruling: 无后端资源的 cancel 返回 UNSUPPORTED 且保持 ACTIVE（如 UPDATE_EXCLUSIVE 整机租约的取消由 T7 系统级路径处理）。
+- Ruling: 安全停止验证点——采集后端 cancel() 内即时抑制完成（QUIESC）而存储仍 ACTIVE/CANCELLING；
+  总期限到达未确认静止 → QUARANTINED → 快照可证明"不得虚报已保存"。
+
+**结论**：软件验收通过（主机注入时钟）；无硬件项。
+
 ## T4 TF 双轴状态与 MSC 接入
 
 **修改：** drms_storage.h/c、drms_logging.c、USBX/App/ux_device_msc.c（以实际生成文件名为准，先 rg 确认）、既有MSC适配、test/test_storage_lifecycle.py。

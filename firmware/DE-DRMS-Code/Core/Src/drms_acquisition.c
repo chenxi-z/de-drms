@@ -336,3 +336,40 @@ void drms_acq_poll(void)
   if (drms_acq_error && powered)
     drms_acq_stop();
 }
+
+/* ---------------- 资源生命周期后端（T3/R4） ---------------- */
+
+static DRMS_Result acq_backend_abort(void)
+{
+  if (!drms_acq_running && !busy)
+    return DRMS_ACCEPTED; /* 已静止：无在途 DMA，回调不会再使用旧缓冲 */
+  /* 安全动作优先：先抑制激励，再有界中止传输（HAL_Abort 同步返回）。 */
+  HAL_GPIO_WritePin(CURR_DIS_GPIO_Port, CURR_DIS_Pin, GPIO_PIN_SET);
+  if (drms_acq_running)
+    ++unknown_loss_epoch; /* 中止后观察到的 DRDY 无法计数 */
+  drms_acq_running = 0;
+  HAL_StatusTypeDef status = HAL_SPI_Abort(&hspi1);
+  busy = 0;
+  cs(1);
+  return (status == HAL_OK) ? DRMS_ACCEPTED : DRMS_IO_ERROR;
+}
+
+static DRMS_Result acq_backend_probe(void)
+{
+  return (!busy && !drms_acq_running) ? DRMS_ACCEPTED : DRMS_BUSY;
+}
+
+static DRMS_Result acq_backend_recover(void)
+{
+  /* 清除错误闩锁；重新建立采集走 acq_start（新代次、计数清零）。 */
+  drms_acq_error = 0;
+  return DRMS_ACCEPTED;
+}
+
+static const DRMS_ResourceBackend acq_backend = {
+    acq_backend_abort, acq_backend_probe, acq_backend_recover};
+
+const DRMS_ResourceBackend *drms_acq_resource_backend(void)
+{
+  return &acq_backend;
+}

@@ -2,6 +2,7 @@
 #define DRMS_ACQUISITION_H
 #include <stdint.h>
 #include "drms_architecture_contract.h"
+#include "drms_resource_lifecycle.h"
 
 typedef struct {
   uint8_t bytes[12];
@@ -31,4 +32,9 @@ uint64_t drms_acq_sample_seq_next(void); /* 观察到的 DRDY 总数（丢样占
 uint64_t drms_acq_raw_ticket_next(void); /* 成功发布到原始环的帧总数 */
 uint64_t drms_acq_capture_lost_total(void);
 uint64_t drms_acq_unknown_loss_epoch(void);
+
+/* 资源生命周期后端（T3/R4）：abort = 先抑制激励再有界中止 SPI 传输；
+ * 静止证据 = 无在途 DMA 且采集已停止（HAL_Abort 返回后完成回调不再触碰
+ * 旧缓冲）；recover = 清除错误闩锁，重新启动由 acq_start 建立新代次。 */
+const DRMS_ResourceBackend *drms_acq_resource_backend(void);
 #endif
