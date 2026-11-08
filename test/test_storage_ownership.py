@@ -26,6 +26,7 @@ typedef struct {
 #define FX_NULL 0
 #define FX_DRIVER_UNINIT 9
 #define FX_DRIVER_READ 2
+#define FX_DRIVER_INIT 4
 #define FX_SD_VOLUME_NAME "SD"
 #define GPIO_PIN_RESET 0
 #define SD_CD_GPIO_Port 0
@@ -51,7 +52,7 @@ volatile uint32_t drms_log_state,drms_storage_shutdown_ready;
 void drms_log_removed(void) { drms_log_state=0; }
 FX_MEDIA sdio_disk;
 uint32_t fx_sd_media_memory[128];
-int card_absent=1, opens, aborts, uninits, open_result, flushes, closes, flush_result, close_result;
+int card_absent=1, opens, aborts, uninits, sd_inits, open_result, flushes, closes, flush_result, close_result;
 uint8_t disk_image[64 * 512];
 int HAL_GPIO_ReadPin(int p,int n) { return card_absent; }
 UINT fx_media_open(FX_MEDIA *m,const char *n,void (*f)(FX_MEDIA *),void *d,void *b,unsigned long z)
@@ -61,6 +62,7 @@ UINT fx_media_flush(FX_MEDIA *m) { ++flushes; return flush_result; }
 UINT fx_media_close(FX_MEDIA *m) { ++closes; return close_result; }
 void fx_stm32_sd_driver(FX_MEDIA *m) {
   if(m->fx_media_driver_request==9) { ++uninits; return; }
+  if(m->fx_media_driver_request==4) { ++sd_inits; m->fx_media_driver_status=0; return; }
   if(m->fx_media_driver_request==2) { /* FX_DRIVER_READ */
     if(card_absent) { m->fx_media_driver_status=1; return; }
     unsigned int sector=m->fx_media_driver_logical_sector;
@@ -224,6 +226,20 @@ class StorageOwnershipTest(unittest.TestCase):
         self.lib.drms_msc_set_wait_hook(ctypes.cast(WAIT, ctypes.c_void_p))
         self.assertEqual(self.lib.drms_msc_read(0, 1, out2), 0)
         self.assertEqual(bytes(out1[:4]), bytes(out2[:4]))
+
+    def test_read_request_and_cancel_are_mutually_exclusive(self):
+        # 自查修复回归：所有权检查与槽占用必须在同一临界区——
+        # 取消后到达的读请求必须被拒，且不得留下无人归结的占槽请求。
+        self.export()
+        self.lib.drms_msc_cancel()
+        out = (ctypes.c_ubyte * 512)()
+        self.assertEqual(self.lib.drms_msc_read(0, 1, out), 2)  # BUSY，不占槽
+        # 槽未被占用：收敛取消（回到 LOCAL）后可重新导出并立即可读
+        self.lib.drms_msc_service()
+        self.assertEqual(self.owner(), 0)
+        self.lib.drms_storage_poll()
+        self.export()
+        self.assertEqual(self.lib.drms_msc_read(0, 1, out), 0)
 
     def test_cancel_and_card_removal_revoke_export(self):
         gen = self.export()

@@ -313,10 +313,10 @@ class PipelineTest(unittest.TestCase):
         history = self.tick(100000)
         self.assertEqual(history.confirmed, 0)
         # 真实质量故障重置算法
-        self.step(1.0, 3, quality=1)
+        self.step(1.0, 3, quality=1, lower=100000)
         out = self.tick(100000)
         self.assertEqual(out.state, INVALID_S)
-        self.assertFalse(out.fresh)  # 无合格输入：NO_SAMPLE 覆盖
+        self.assertTrue(out.fresh)  # 捕获时间新鲜：展示覆盖独立于算法状态
 
     def test_same_sequence_one_or_many_per_batch_identical(self):
         self.configure(tau=100000, warmup=500, confirm=0)
@@ -348,6 +348,17 @@ class PipelineTest(unittest.TestCase):
             self.lib.drms_monitor_step(self.ctx, ctypes.byref(inp), ctypes.byref(o))
             outputs_b.append(o.ratio)
         self.assertEqual(outputs_a, outputs_b)
+
+    def test_configure_rejects_too_many_intervals(self):
+        # interval_count 超上限必须整体拒绝，且不破坏既有配置
+        self.configure(tau=0, warmup=0, confirm=0)
+        self.assertEqual(self.step(1.0, 1).state, CONFIRMED_S)
+        cfg = Config(rate_hz=4000, tau_us=0, warmup_us=0, confirm_us=0,
+                     stale_timeout_us=20000, r0=100000.0, baseline_valid=True,
+                     interval_count=17)  # 越界
+        self.assertEqual(self.lib.drms_monitor_configure(self.ctx, ctypes.byref(cfg)), INVALID)
+        # 旧配置仍可用（配置失败保持旧配置，C6）
+        self.assertEqual(self.step(1.0, 2).state, CONFIRMED_S)
 
     def test_baseline_streaming_statistics(self):
         lib = self.lib

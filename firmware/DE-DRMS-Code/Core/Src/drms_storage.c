@@ -110,6 +110,14 @@ void drms_storage_release_driver(void)
   release_driver();
 }
 
+/* 导出期初始化原始 SD 访问（FileX 已关闭、驱动已释放）。 */
+void drms_storage_begin_raw_access(void)
+{
+  sdio_disk.fx_media_driver_request = FX_DRIVER_INIT;
+  sdio_disk.fx_media_driver_status = FX_IO_ERROR; /* 驱动写回真实结果 */
+  fx_stm32_sd_driver(&sdio_disk);
+}
+
 DRMS_Result drms_storage_raw_read(uint32_t lba, uint32_t blocks, uint8_t *out)
 {
   if (!drms_storage_card_present())

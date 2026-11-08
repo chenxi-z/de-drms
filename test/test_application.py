@@ -141,7 +141,7 @@ uint32_t HAL_GetUIDw2(void);
             '    unsigned int fx_media_total_sectors; } FX_MEDIA;')
         fxh = fxh.replace('#define FX_IO_ERROR 1',
             '#define FX_IO_ERROR 1\n'
-            '#define FX_DRIVER_UNINIT 9\n'
+            '#define FX_DRIVER_UNINIT 9\n#define FX_DRIVER_INIT 4\n'
             '#define FX_NULL 0\n'
             '#define FX_SD_VOLUME_NAME "SD"\n'
             'UINT fx_media_open(FX_MEDIA *, const char *, void (*)(FX_MEDIA *), void *, void *, unsigned long);')

@@ -17,6 +17,8 @@ extern volatile unsigned int drms_storage_status;
 void drms_storage_snapshot(DRMS_Owner *owner, DRMS_Health *health);
 /* 挂载成功时缓存的卡容量（512B 扇区）；0 = 未知。 */
 uint32_t drms_storage_capacity_sectors(void);
+/* 导出期初始化原始 SD 访问（FileX 已关闭、驱动已释放后调用一次）。 */
+void drms_storage_begin_raw_access(void);
 /* 原始扇区读（导出期由 drms_msc_service 调用；与 FileX 共用同一 SD 驱动入口，
  * 二者绝不并发：交接由所有权状态机保证）。 */
 DRMS_Result drms_storage_raw_read(uint32_t lba, uint32_t blocks, uint8_t *out);

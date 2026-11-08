@@ -22,6 +22,7 @@ typedef struct {
 #define FX_IO_ERROR 1
 #define FX_NULL 0
 #define FX_DRIVER_UNINIT 9
+#define FX_DRIVER_INIT 4
 #define FX_DRIVER_READ 2
 #define FX_SD_VOLUME_NAME "SD"
 #define GPIO_PIN_RESET 0

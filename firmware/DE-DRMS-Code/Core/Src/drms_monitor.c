@@ -65,8 +65,10 @@ DRMS_Result drms_monitor_configure(DRMS_MonitorContext *ctx, const DRMS_MonitorC
 {
   if (!ctx || !cfg)
     return DRMS_INVALID;
-  if (cfg->rate_hz == 0)
+  if (cfg->rate_hz == 0 || cfg->interval_count > DRMS_MONITOR_INTERVALS_MAX)
     return DRMS_INVALID;
+  /* 先全量校验，再原地写入：避免在调用方栈上复制整个 context
+   * （主线程栈仅 4 KiB，context≈1.2 KiB）。 */
   for (unsigned int i = 0; i < cfg->interval_count; ++i)
   {
     const DRMS_MonitorInterval *iv = &cfg->intervals[i];
@@ -76,19 +78,21 @@ DRMS_Result drms_monitor_configure(DRMS_MonitorContext *ctx, const DRMS_MonitorC
     if (i && !(lo >= cfg->intervals[i - 1].hi))
       return DRMS_INVALID; /* 有序不重叠 */
   }
-  DRMS_MonitorContext candidate = *ctx;
-  candidate.config = *cfg;
-  candidate.configured = 1;
+  ctx->config = *cfg;
+  ctx->configured = 1;
   /* 配置变更：算法状态整体重建（版本变化路径） */
-  drms_filter_configure(&candidate.filter, cfg->rate_hz, cfg->tau_us, cfg->warmup_us);
-  drms_classifier_configure(&candidate.classifier, cfg);
-  candidate.have_last = 0;
-  candidate.have_output = 0;
-  candidate.last_seq = 0;
-  candidate.last_output.confirmed = -1;
-  candidate.last_output.candidate = -1;
-  candidate.last_output.observed = -1;
-  *ctx = candidate;
+  drms_filter_configure(&ctx->filter, cfg->rate_hz, cfg->tau_us, cfg->warmup_us);
+  drms_classifier_configure(&ctx->classifier, cfg);
+  ctx->have_last = 0;
+  ctx->have_output = 0;
+  ctx->last_seq = 0;
+  ctx->last_generation = 0;
+  ctx->last_config_version = 0;
+  ctx->last_baseline_version = 0;
+  memset(&ctx->last_output, 0, sizeof(ctx->last_output));
+  ctx->last_output.confirmed = -1;
+  ctx->last_output.candidate = -1;
+  ctx->last_output.observed = -1;
   return DRMS_OK;
 }
 

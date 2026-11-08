@@ -21,6 +21,7 @@ static uint32_t cancel_epoch;
 static struct {
   uint32_t state; /* 0 空闲, 1 在途, 2 归结-成功, 3 归结-失败 */
   uint32_t lba, blocks, generation;
+  uint32_t cancel_epoch; /* 请求发起时的取消纪元：仅此后的取消才作废本请求 */
   uint8_t *out;
 } read_mailbox;
 
@@ -170,6 +171,7 @@ static void finish_export_request(void)
     return;
   }
   drms_storage_release_driver();
+  drms_storage_begin_raw_access(); /* 原始读所需的 SD 初始化（导出期一次） */
   owner_state = (uint32_t)DRMS_OWNER_EXPORTED;
   __atomic_add_fetch(&export_generation, 1U, __ATOMIC_ACQ_REL);
   last_error = DRMS_OK;
@@ -201,8 +203,7 @@ static void service_read_mailbox(void)
   if (read_mailbox.state != 1)
     return;
   if (owner_state != DRMS_OWNER_EXPORTED ||
-      read_mailbox.generation != export_generation ||
-      __atomic_load_n(&cancel_epoch, __ATOMIC_RELAXED) != 0)
+      read_mailbox.generation != export_generation)
   {
     /* 撤销/换代/取消：在途读作废，归结为失败后归还槽 */
     read_mailbox.state = 3;
@@ -234,9 +235,8 @@ static void service_read_mailbox(void)
 
 void drms_msc_service(void)
 {
-  if (__atomic_load_n(&cancel_epoch, __ATOMIC_RELAXED) &&
-      (owner_state == DRMS_OWNER_EXPORTED || owner_state == DRMS_OWNER_EXPORTING))
-    owner_state = (uint32_t)DRMS_OWNER_RELEASING; /* 存储线程收敛 IRQ 请求 */
+  /* 取消已在 drms_msc_cancel 内把所有权原子转为 RELEASING；
+   * 这里不再依据全局取消纪元判定，否则新一次导出会被旧纪元反复打回。 */
   if (request_export && owner_state == DRMS_OWNER_LOCAL)
     finish_export_request();
   service_read_mailbox();
@@ -264,13 +264,21 @@ DRMS_Result drms_msc_read(uint32_t lba, uint32_t blocks, uint8_t *out)
 {
   if (!out || !blocks)
     return DRMS_INVALID;
-  if (owner_state != DRMS_OWNER_EXPORTED)
+  uint32_t mask = crit_enter();
+  /* 所有权检查必须在临界区内与槽占用同时完成：否则 cancel（IRQ 入口）
+   * 可在检查与置位之间把所有权转走，留下一个永不归结的占槽请求。 */
+  if ((DRMS_Owner)owner_state != DRMS_OWNER_EXPORTED)
+  {
+    crit_exit(mask);
     return DRMS_BUSY; /* 未导出/释放中/隔离：NOT READY */
+  }
   uint32_t capacity = drms_storage_capacity_sectors();
   if (!capacity || blocks > capacity ||
       lba > capacity - blocks) /* 减法校验拒绝溢出/越界 */
+  {
+    crit_exit(mask);
     return DRMS_INVALID;
-  uint32_t mask = crit_enter();
+  }
   if (read_mailbox.state == 1)
   {
     crit_exit(mask);
@@ -280,6 +288,7 @@ DRMS_Result drms_msc_read(uint32_t lba, uint32_t blocks, uint8_t *out)
   read_mailbox.lba = lba;
   read_mailbox.blocks = blocks;
   read_mailbox.generation = export_generation;
+  read_mailbox.cancel_epoch = cancel_epoch;
   read_mailbox.out = out;
   crit_exit(mask);
   for (uint32_t round = 0; round < DRMS_MSC_READ_WAIT_ROUNDS; ++round)
@@ -291,12 +300,13 @@ DRMS_Result drms_msc_read(uint32_t lba, uint32_t blocks, uint8_t *out)
   }
   mask = crit_enter();
   uint32_t state = read_mailbox.state;
-  if (state >= 2)
-    read_mailbox.state = 0; /* 已归结：可复用 */
-  crit_exit(mask);
-  if (state == 2)
-    return DRMS_OK;
+  DRMS_Result outcome = DRMS_OK;
   if (state == 3)
-    return last_error == DRMS_OK ? DRMS_IO_ERROR : last_error;
+    outcome = DRMS_IO_ERROR;
+  if (state >= 2)
+    read_mailbox.state = 0; /* 已归结：清槽归还 */
+  crit_exit(mask);
+  if (state >= 2)
+    return outcome; /* 成功或失败都由本次调用观察并归还 */
   return DRMS_TIMEOUT; /* 未归结：槽保持占用，out 不得复用 */
 }
