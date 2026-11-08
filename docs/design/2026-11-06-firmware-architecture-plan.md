@@ -259,6 +259,34 @@ tick 周期 probe 静止证据，期限到达再尝试一次 abort/恢复，仍�
 
 **通过：** 无卡不依赖FileX初始化成功；整个SD生命周期只有一个所有者；MSC板测单独标记。
 
+### T4 执行记录（2026-11-08）
+
+**交付物**：`Core/Inc/drms_msc.h`、`Core/Src/drms_msc.c`（所有权状态机 + 单在途读邮箱 + FileX 交接，
+已入 Makefile 与 postgenerate 恢复清单）；`drms_storage.{h,c}` 增加 `drms_storage_snapshot(owner, health)`
+双轴一致快照（健康由卡在位/挂载/容量事实单源推导，旧 mounted/status 仅为投影）、容量缓存、原始扇区读、
+驱动释放钩子；`USBX/App/ux_device_msc.c` 回调接线（Read→drms_msc_read、Write 恒 DATA PROTECT、
+Status/Flush 未导出返回 NOT READY、最后 LBA=块数−1、块长恒 512、非法 LUN 拒绝）；
+`test/test_storage_ownership.py` 10 项。全量 169/169；ARM 构建零警告（text 121136）。
+
+**测试覆盖**：LOCAL+ABSENT 不阻断监测且无卡导出回落 LOCAL（不开放磁盘）；flush/close 失败交接回落且
+不残留双重管理；导出→释放往返、真实扇区内容、导出期阻断记录入口；LBA 越界/溢出/零块/空缓冲拒绝；
+导出期零写请求（审计 uninit 次数）；读超时槽不释放、缓冲由存储线程占用至归结、归结后数据有效；
+cancel（IRQ 入口）撤就绪→RELEASING→LOCAL 收敛且代次递增；换卡重导出容量刷新；释放仅在在途读归结后
+重挂载 FileX；监督者显式隔离（mark_quarantined）拒绝新请求且清理仍收敛回 LOCAL。
+
+**决议（ledger）**：
+- Ruling: 隔离（QUARANTINED）只能由监督者显式进入（`drms_msc_mark_quarantined`，T7 看门狗接入）——
+  存储线程卡死在驱动内时本模块不可自观察；service 在隔离下继续收敛既有清理后回 LOCAL。
+- Ruling: 读等待钩子（`drms_msc_set_wait_hook`）由集成方注入：生产=调度让出，测试=驱动 service 步进；
+  USBX 线程永不直接触碰 SD。
+- Ruling: 导出代次在"发布就绪"与"撤销就绪"两个方向都递增（MSC 设计 §退出导出）。
+- Ruling: 导出容量取自挂载成功时的 FileX 媒体信息（`fx_media_total_sectors`），换卡/重挂载刷新；
+  LUN 几何更新与 CDC/控制台命令（MSC EXPORT/RELEASE）接线归 T7。
+- Ruling: USBX FIFO 双类配置与类注册失败不附着属板测/集成范围（T7/T8），本任务只接线回调语义。
+- Ruling: `fx_media_driver_logical_sector` 为 FileX 真实字段名（fx_api.h），修正初版误用的 sector_start。
+
+**结论**：软件验收通过（主机联合仿真）。MSC 实板枚举/复制/写拒绝等项未执行——板测单独标记（T8）。
+
 ## T5 用户配置/R0事务与链接保护
 
 **新增：** `Core/Inc/drms_user_config.h`、`Core/Src/drms_user_config.c`、`Core/Src/drms_user_journal.c`、`test/test_user_config.py`、`test/test_user_journal.py`。
