@@ -345,6 +345,15 @@ class ControlContractTest(unittest.TestCase):
                                                                     OP_RESOURCES[second]), OK)
                     self.assertEqual(self.snapshot().reserved_mask, 0, (first, second))
 
+    def test_resources_for_is_the_single_source_of_the_matrix(self):
+        # C2 资源集合唯一定义：矩阵测试与实现共用同一函数，防止两处漂移
+        self.lib.drms_control_resources_for.restype = ctypes.c_uint32
+        self.lib.drms_control_resources_for.argtypes = [ctypes.c_int]
+        for op, expected in OP_RESOURCES.items():
+            self.assertEqual(self.lib.drms_control_resources_for(op), expected, op)
+        self.assertEqual(self.lib.drms_control_resources_for(0), 0)
+        self.assertEqual(self.lib.drms_control_resources_for(9), 0)
+
     def test_update_exclusive_expands_to_all_resources(self):
         token = Token()
         self.assertEqual(self.lib.drms_control_reserve(UPDATE_EXCL, ctypes.byref(token)), ACCEPTED)
