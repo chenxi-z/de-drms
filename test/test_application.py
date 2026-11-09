@@ -158,6 +158,7 @@ uint32_t HAL_GetUIDw2(void);
         (p / 'app_filex.h').write_text('#ifndef TEST_FX_H\n#define TEST_FX_H\n' + fxh + '\n#endif\n')
         (p / 'tx_api.h').write_text(TX_HEADER)
         fx = FX_MOCK.replace('volatile uint32_t drms_acq_overruns,drms_acq_queue_drops;', '')
+        fx = fx.replace('uint32_t drms_msc_blocks_recording(void) { return mock_msc_blocked; }', '')
         fx = fx.replace('uint32_t HAL_GetTick(void) { return ticks; }', '')
         fx = fx.replace('ticks;', 'unused_log_ticks;')
         fx += '\n/* SD 驱动替身：UNINIT 计数，读请求按卡状态返回 */\n'

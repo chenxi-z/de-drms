@@ -1,4 +1,5 @@
 #include "drms_usb.h"
+#include "drms_msc.h"
 #include "app_usbx_device.h"
 #include "main.h"
 
@@ -33,12 +34,12 @@ unsigned int drms_usb_init(void)
   if (drms_usb_status != UX_SUCCESS)
     return drms_usb_status;
 
-  /* OTG FS has 320 32-bit FIFO words. EP0 control, EP1 CDC bulk,
-     EP2 CDC notification: 128 + 64 + 64 + 32 = 288 words. */
+  /* OTG FS has 320 32-bit FIFO words, including EP3 MSC bulk IN. */
   if (HAL_PCDEx_SetRxFiFo(&hpcd_USB_OTG_FS, 128) != HAL_OK ||
       HAL_PCDEx_SetTxFiFo(&hpcd_USB_OTG_FS, 0, 64) != HAL_OK ||
       HAL_PCDEx_SetTxFiFo(&hpcd_USB_OTG_FS, 1, 64) != HAL_OK ||
-      HAL_PCDEx_SetTxFiFo(&hpcd_USB_OTG_FS, 2, 32) != HAL_OK)
+      HAL_PCDEx_SetTxFiFo(&hpcd_USB_OTG_FS, 2, 32) != HAL_OK ||
+      HAL_PCDEx_SetTxFiFo(&hpcd_USB_OTG_FS, 3, 32) != HAL_OK)
     return drms_usb_status = UX_ERROR;
 
   ready = 1;
@@ -55,9 +56,15 @@ unsigned int drms_usb_state_change(unsigned long state)
     configured = 1;
   else if (state <= UX_DEVICE_RESET || state == UX_DEVICE_REMOVED ||
            state == UX_DCD_STM32_DEVICE_DISCONNECTED)
+  {
     configured = suspended = 0;
+    drms_msc_cancel();
+  }
   else if (state < UX_DEVICE_CONFIGURED)
+  {
     configured = 0;
+    drms_msc_cancel();
+  }
   update_current();
   return UX_SUCCESS;
 }

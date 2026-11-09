@@ -24,6 +24,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "drms_msc.h"
+#include "ux_device_class_storage.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -81,6 +82,7 @@ VOID USBD_STORAGE_Deactivate(VOID *storage_instance)
 {
   /* USER CODE BEGIN USBD_STORAGE_Deactivate  */
   UX_PARAMETER_NOT_USED(storage_instance);
+  drms_msc_cancel();
   /* USER CODE END USBD_STORAGE_Deactivate */
 
   return;
@@ -105,13 +107,17 @@ UINT USBD_STORAGE_Read(VOID *storage_instance, ULONG lun, UCHAR *data_pointer,
 
   /* USER CODE BEGIN USBD_STORAGE_Read */
   UX_PARAMETER_NOT_USED(storage_instance);
-  UX_PARAMETER_NOT_USED(media_status);
-  if (lun != 0)
-    return UX_ERROR; /* 非法 LUN，不截断成合法请求 */
+  if (media_status)
+    *media_status = UX_DEVICE_CLASS_STORAGE_SENSE_STATUS(
+        UX_SLAVE_CLASS_STORAGE_SENSE_KEY_NOT_READY, 0x3a, 0);
+  if (lun != 0 || lba > UINT32_MAX || number_blocks > UINT32_MAX)
+    return UX_ERROR;
   DRMS_Result result = drms_msc_read((uint32_t)lba, (uint32_t)number_blocks,
                                      (uint8_t *)data_pointer);
   if (result != DRMS_OK)
-    return UX_ERROR; /* 未就绪/越界/超时/介质错误都不得返回伪成功 */
+    return UX_ERROR;
+  if (media_status)
+    *media_status = 0;
   /* USER CODE END USBD_STORAGE_Read */
 
   return status;
@@ -140,7 +146,9 @@ UINT USBD_STORAGE_Write(VOID *storage_instance, ULONG lun, UCHAR *data_pointer,
   UX_PARAMETER_NOT_USED(data_pointer);
   UX_PARAMETER_NOT_USED(number_blocks);
   UX_PARAMETER_NOT_USED(lba);
-  UX_PARAMETER_NOT_USED(media_status);
+  if (media_status)
+    *media_status = UX_DEVICE_CLASS_STORAGE_SENSE_STATUS(
+        UX_SLAVE_CLASS_STORAGE_SENSE_KEY_DATA_PROTECT, 0x27, 0);
   return UX_ERROR; /* 只读导出：写回调返回保护错误，不触达 SD */
   /* USER CODE END USBD_STORAGE_Write */
 
@@ -191,13 +199,20 @@ UINT USBD_STORAGE_Status(VOID *storage_instance, ULONG lun, ULONG media_id,
   UINT status = UX_SUCCESS;
 
   /* USER CODE BEGIN USBD_STORAGE_Status */
-  UX_PARAMETER_NOT_USED(storage_instance);
   UX_PARAMETER_NOT_USED(media_id);
+  uint32_t blocks;
+  if (lun != 0 || !storage_instance || drms_msc_media_info(&blocks) != DRMS_OK || !blocks)
+  {
+    if (media_status)
+      *media_status = UX_DEVICE_CLASS_STORAGE_SENSE_STATUS(
+          UX_SLAVE_CLASS_STORAGE_SENSE_KEY_NOT_READY, 0x3a, 0);
+    return UX_ERROR;
+  }
+  UX_SLAVE_CLASS_STORAGE *storage = (UX_SLAVE_CLASS_STORAGE *)storage_instance;
+  storage->ux_slave_class_storage_lun[0].ux_slave_class_storage_media_last_lba = blocks - 1u;
   if (media_status)
     *media_status = 0;
-  if (lun != 0)
-    return UX_ERROR;
-  return drms_msc_media_ready() ? UX_SUCCESS : UX_ERROR; /* 未导出 = NOT READY */
+  return UX_SUCCESS;
   /* USER CODE END USBD_STORAGE_Status */
 
   return status;

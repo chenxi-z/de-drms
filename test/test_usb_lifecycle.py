@@ -43,7 +43,8 @@ MOCK = r'''
 PCD_HandleTypeDef hpcd_USB_OTG_FS;
 int vbus_absent=1, starts, stops, disconnects, charge500;
 int stack_result, fifo_result, start_result, stop_result;
-int fifo_words;
+int fifo_words, msc_cancels;
+void drms_msc_cancel(void) { ++msc_cancels; }
 int HAL_GPIO_ReadPin(int p,int n) { return vbus_absent; }
 void HAL_GPIO_WritePin(int p,int n,int value) { charge500=value; }
 int HAL_PCD_Start(PCD_HandleTypeDef *p) { ++starts; return start_result; }
@@ -79,7 +80,7 @@ class USBLifecycleTest(unittest.TestCase):
 
     def setUp(self):
         for name in ('starts', 'stops', 'disconnects', 'charge500', 'stack_result',
-                     'fifo_result', 'start_result', 'stop_result', 'fifo_words'):
+                     'fifo_result', 'start_result', 'stop_result', 'fifo_words', 'msc_cancels'):
             self.value(name).value = 0
         self.value('vbus_absent').value = 1
         self.assertEqual(self.lib.drms_usb_init(), 0)
@@ -88,7 +89,7 @@ class USBLifecycleTest(unittest.TestCase):
         self.lib.drms_usb_poll()
         self.assertEqual(self.value('starts').value, 0)
         self.assertLessEqual(self.value('fifo_words').value, 320)
-        self.assertGreater(self.value('fifo_words').value, 0)
+        self.assertEqual(self.value('fifo_words').value, 320)
 
     def test_attach_is_idempotent_and_detach_notifies_stack(self):
         self.value('vbus_absent').value = 0
@@ -115,6 +116,13 @@ class USBLifecycleTest(unittest.TestCase):
         self.assertEqual(self.value('charge500').value, 1)
         self.lib.drms_usb_state_change(0)
         self.assertEqual(self.value('charge500').value, 0)
+
+    def test_reset_cancels_export_but_suspend_does_not(self):
+        self.lib.drms_usb_state_change(3)
+        self.lib.drms_usb_state_change(244)
+        self.assertEqual(self.value('msc_cancels').value, 0)
+        self.lib.drms_usb_state_change(0)
+        self.assertEqual(self.value('msc_cancels').value, 1)
 
     def test_failed_start_retries_without_granting_current(self):
         self.value('vbus_absent').value = 0

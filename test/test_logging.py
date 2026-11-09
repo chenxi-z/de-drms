@@ -35,6 +35,8 @@ volatile unsigned int drms_storage_mounted=1,drms_storage_status;
 volatile uint32_t drms_acq_overruns,drms_acq_queue_drops;
 uint8_t file_bytes[1048576];
 uint32_t written_bytes,writes,closes,flushes,invalidates,creates,fail_at,ticks;
+uint32_t mock_msc_blocked;
+uint32_t drms_msc_blocks_recording(void) { return mock_msc_blocked; }
 UINT fx_file_create(FX_MEDIA *m,char *name) { ++creates;return 0; }
 UINT fx_file_open(FX_MEDIA *m,FX_FILE *f,char *name,UINT mode) { return 0; }
 UINT fx_file_write(FX_FILE *f,void *p,ULONG n) {
@@ -63,7 +65,7 @@ class LoggingTest(unittest.TestCase):
         cls.tmp = tempfile.TemporaryDirectory()
         p = Path(cls.tmp.name)
         (p / 'app_filex.h').write_text(HEADER)
-        (p / 'main.h').write_text('')
+        (p / 'main.h').write_text('#include <stdint.h>\n#define __get_PRIMASK() 0u\n#define __disable_irq() ((void)0)\n#define __set_PRIMASK(x) ((void)(x))\n')
         (p / 'mock.c').write_text(MOCK)
         src = ROOT / 'firmware/DE-DRMS-Code/Core'
         subprocess.run(['cc', '-shared', '-fPIC', '-Wall', '-Werror=implicit-function-declaration',
@@ -96,7 +98,7 @@ class LoggingTest(unittest.TestCase):
 
     def setUp(self):
         self.lib.drms_log_init()
-        for name in ('written_bytes', 'writes', 'closes', 'flushes', 'invalidates', 'creates', 'fail_at', 'ticks'):
+        for name in ('written_bytes', 'writes', 'closes', 'flushes', 'invalidates', 'creates', 'fail_at', 'ticks', 'mock_msc_blocked'):
             self.value(name).value = 0
         self.value('drms_storage_mounted').value = 1
         self.metadata = Metadata(rate=4000, scale=150000., reference=100000.)
@@ -105,6 +107,11 @@ class LoggingTest(unittest.TestCase):
         self.assertEqual(self.lib.drms_log_start(ctypes.byref(self.metadata)), 1)
         self.lib.drms_log_poll()
         self.assertEqual(self.value('drms_log_running').value, 1)
+
+    def test_export_reservation_blocks_record_start(self):
+        self.value('mock_msc_blocked').value = 1
+        self.assertEqual(self.lib.drms_log_start(ctypes.byref(self.metadata)), 0)
+        self.assertEqual(self.value('drms_log_state').value, 0)
 
     def test_header_records_footer_and_normal_stop_flush(self):
         self.start()

@@ -2,6 +2,7 @@
 #include "drms_log_codec.h"
 #include "drms_fifo.h"
 #include "drms_storage.h"
+#include "drms_msc.h"
 #include "app_filex.h"
 #include "main.h"
 #include <stdio.h>
@@ -39,10 +40,17 @@ uint64_t drms_log_ticket_next(void)
 
 int drms_log_start(const DRMS_LogMetadata *request)
 {
-  uint32_t expected = 0;
-  if (!drms_storage_mounted || !__atomic_compare_exchange_n(&drms_log_state, &expected,
-                      1U, 0, __ATOMIC_ACQ_REL, __ATOMIC_ACQUIRE))
+  if (!request)
     return 0;
+  uint32_t mask = __get_PRIMASK();
+  __disable_irq();
+  if (!drms_storage_mounted || drms_msc_blocks_recording() || drms_log_state)
+  {
+    __set_PRIMASK(mask);
+    return 0;
+  }
+  __atomic_store_n(&drms_log_state, 1U, __ATOMIC_RELEASE);
+  __set_PRIMASK(mask);
   metadata = *request;
   __atomic_store_n(&action, 1U, __ATOMIC_RELEASE);
   return 1;

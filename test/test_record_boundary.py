@@ -85,6 +85,7 @@ MOCK = r'''
 SPI_HandleTypeDef hspi1={.Instance=1,.Init={SPI_DATASIZE_8BIT,SPI_POLARITY_LOW,SPI_PHASE_2EDGE,SPI_FIRSTBIT_MSB,SPI_MODE_MASTER,SPI_NSS_SOFT}};
 FX_MEDIA sdio_disk;
 volatile unsigned int drms_storage_mounted=1,drms_storage_status;
+uint32_t drms_msc_blocks_recording(void) { return 0; }
 uint8_t file_bytes[1048576];
 uint32_t written_bytes,writes,closes,flushes,invalidates,creates,fail_at,ticks;
 static uint16_t response=0xff02;

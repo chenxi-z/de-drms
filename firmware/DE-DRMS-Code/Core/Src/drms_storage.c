@@ -1,6 +1,7 @@
 #include "drms_storage.h"
 #include "drms_logging.h"
 #include "drms_power.h"
+#include "drms_msc.h"
 #include "app_filex.h"
 #include "main.h"
 
@@ -39,7 +40,7 @@ void drms_storage_invalidate(void)
 
 int drms_storage_prepare_shutdown(void)
 {
-  if (drms_log_state)
+  if (drms_log_state || drms_msc_owner() != DRMS_OWNER_LOCAL)
     return 0;
   if (drms_storage_mounted)
   {
@@ -63,6 +64,8 @@ int drms_storage_prepare_shutdown(void)
 
 void drms_storage_poll(void)
 {
+  if (drms_msc_owner() != DRMS_OWNER_LOCAL)
+    return;
   if (HAL_GPIO_ReadPin(SD_CD_GPIO_Port, SD_CD_Pin) != GPIO_PIN_RESET)
   {
     if (drms_storage_mounted)
@@ -93,8 +96,6 @@ void drms_storage_poll(void)
  * 健康由本文件事实单源推导：卡不在位 → ABSENT；在位但未挂载 → FAULT 或
  * ABSENT（按最近事实）；挂载成功 → READY。旧 mounted/status 继续表达
  * FileX 事实，供既有投影（STATUS 文本）使用，不承担第二状态源。 */
-#include "drms_msc.h"
-
 uint32_t drms_storage_capacity_sectors(void)
 {
   return capacity_cache;
@@ -111,11 +112,12 @@ void drms_storage_release_driver(void)
 }
 
 /* 导出期初始化原始 SD 访问（FileX 已关闭、驱动已释放）。 */
-void drms_storage_begin_raw_access(void)
+DRMS_Result drms_storage_begin_raw_access(void)
 {
   sdio_disk.fx_media_driver_request = FX_DRIVER_INIT;
   sdio_disk.fx_media_driver_status = FX_IO_ERROR; /* 驱动写回真实结果 */
   fx_stm32_sd_driver(&sdio_disk);
+  return sdio_disk.fx_media_driver_status == FX_SUCCESS ? DRMS_OK : DRMS_IO_ERROR;
 }
 
 DRMS_Result drms_storage_raw_read(uint32_t lba, uint32_t blocks, uint8_t *out)

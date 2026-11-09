@@ -26,6 +26,7 @@
 #include "drms_storage.h"
 #include "drms_logging.h"
 #include "drms_power.h"
+#include "drms_msc.h"
 
 /* USER CODE END Includes */
 
@@ -69,7 +70,7 @@ FX_MEDIA        sdio_disk;
 void fx_app_thread_entry(ULONG thread_input);
 
 /* USER CODE BEGIN PFP */
-
+static void drms_msc_wait(void) { tx_thread_sleep(1); }
 /* USER CODE END PFP */
 
 /**
@@ -138,10 +139,15 @@ UINT MX_FileX_Init(VOID *memory_ptr)
   TX_PARAMETER_NOT_USED(thread_input);
   drms_storage_init();
   drms_log_init();
+  drms_msc_init();
+  drms_msc_set_wait_hook(drms_msc_wait);
   ULONG last_attempt = tx_time_get() - TX_TIMER_TICKS_PER_SECOND;
   for (;;)
   {
     ULONG now = tx_time_get();
+    if (drms_shutdown_requested)
+      drms_msc_cancel();
+    drms_msc_service();
     if (drms_shutdown_requested)
     {
       if (drms_storage_mounted)

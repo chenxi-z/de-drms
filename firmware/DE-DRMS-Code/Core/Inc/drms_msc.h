@@ -20,7 +20,7 @@ DRMS_Result drms_msc_request_release(void);
 uint32_t drms_msc_blocks_recording(void);
 
 /* USBX 线程同步读：有界等待；超时后请求槽保持占用直至存储线程归结，
- * 调用方不得复用 out 缓冲。等待期间反复调用注入的等待钩子（生产=让出调度，
+ * 存储线程只使用内部扇区缓冲；超时后调用方可复用 out。等待期间反复调用注入的等待钩子（生产=让出调度，
  * 测试=驱动 service 步进）。 */
 DRMS_Result drms_msc_read(uint32_t lba, uint32_t blocks, uint8_t *out);
 

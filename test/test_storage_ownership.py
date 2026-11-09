@@ -47,22 +47,23 @@ void fx_stm32_sd_driver(FX_MEDIA *);
 
 MOCK = r'''
 #include "app_filex.h"
+#include "drms_msc.h"
 #include <string.h>
 volatile uint32_t drms_log_state,drms_storage_shutdown_ready;
 void drms_log_removed(void) { drms_log_state=0; }
 FX_MEDIA sdio_disk;
 uint32_t fx_sd_media_memory[128];
-int card_absent=1, opens, aborts, uninits, sd_inits, open_result, flushes, closes, flush_result, close_result;
+int card_absent=1, opens, aborts, uninits, sd_inits, open_result, flushes, closes, flush_result, close_result, cancel_on_flush, raw_init_result, cancel_on_raw_init;
 uint8_t disk_image[64 * 512];
 int HAL_GPIO_ReadPin(int p,int n) { return card_absent; }
 UINT fx_media_open(FX_MEDIA *m,const char *n,void (*f)(FX_MEDIA *),void *d,void *b,unsigned long z)
 { ++opens; if(open_result==0) m->fx_media_total_sectors=64; return open_result; }
 UINT fx_media_abort(FX_MEDIA *m) { ++aborts; return 0; }
-UINT fx_media_flush(FX_MEDIA *m) { ++flushes; return flush_result; }
+UINT fx_media_flush(FX_MEDIA *m) { ++flushes; if(cancel_on_flush) { cancel_on_flush=0; drms_msc_cancel(); } return flush_result; }
 UINT fx_media_close(FX_MEDIA *m) { ++closes; return close_result; }
 void fx_stm32_sd_driver(FX_MEDIA *m) {
   if(m->fx_media_driver_request==9) { ++uninits; return; }
-  if(m->fx_media_driver_request==4) { ++sd_inits; m->fx_media_driver_status=0; return; }
+  if(m->fx_media_driver_request==4) { ++sd_inits; if(cancel_on_raw_init) { cancel_on_raw_init=0; drms_msc_cancel(); } m->fx_media_driver_status=raw_init_result; return; }
   if(m->fx_media_driver_request==2) { /* FX_DRIVER_READ */
     if(card_absent) { m->fx_media_driver_status=1; return; }
     unsigned int sector=m->fx_media_driver_logical_sector;
@@ -107,7 +108,8 @@ class StorageOwnershipTest(unittest.TestCase):
         lib = self.lib
         lib.drms_msc_init()
         lib.drms_storage_init()
-        for name in ('opens', 'aborts', 'uninits', 'flushes', 'closes'):
+        self.u32('drms_log_state').value = 0
+        for name in ('opens', 'aborts', 'uninits', 'sd_inits', 'flushes', 'closes', 'cancel_on_flush', 'raw_init_result', 'cancel_on_raw_init'):
             ctypes.c_int.in_dll(lib, name).value = 0
         for name in ('open_result', 'flush_result', 'close_result', 'card_absent'):
             ctypes.c_int.in_dll(lib, name).value = 0
@@ -145,6 +147,12 @@ class StorageOwnershipTest(unittest.TestCase):
         self.assertEqual(self.owner(), 0)  # LOCAL
         self.lib.drms_storage_poll()
         self.assertEqual(self.u32('drms_storage_mounted').value, 1)
+
+    def test_filex_worker_services_msc_mailbox(self):
+        source = (ROOT / 'firmware/DE-DRMS-Code/FileX/App/app_filex.c').read_text()
+        self.assertIn('drms_msc_init();', source)
+        self.assertIn('drms_msc_set_wait_hook(', source)
+        self.assertIn('drms_msc_service();', source)
 
     def test_local_absent_allows_monitoring_and_blocks_record_start_only(self):
         # 无卡：LOCAL+ABSENT——纯监测可用（互锁=0），记录因无卡被自然拒绝
@@ -189,6 +197,60 @@ class StorageOwnershipTest(unittest.TestCase):
         self.assertEqual(self.lib.drms_msc_blocks_recording(), 0)
         self.assertGreater(self.lib.drms_msc_export_generation(), gen)  # 代次推进
 
+    def test_export_rejected_while_recording_or_opening(self):
+        self.mount()
+        for state in (1, 2, 3):
+            self.u32('drms_log_state').value = state
+            self.assertEqual(self.lib.drms_msc_request_export(), 2, state)
+            self.assertEqual(self.owner(), 0)
+        self.u32('drms_log_state').value = 0
+        self.assertEqual(self.lib.drms_msc_request_export(), 1)
+        self.assertEqual(self.lib.drms_msc_blocks_recording(), 1)
+
+    def test_usb_disconnect_while_local_does_not_unmount_or_abort(self):
+        self.mount()
+        self.u32('drms_log_state').value = 2
+        self.lib.drms_msc_cancel()
+        self.lib.drms_msc_service()
+        self.assertEqual(self.owner(), 0)
+        self.assertEqual(self.u32('drms_storage_mounted').value, 1)
+        self.assertEqual(self.u32('drms_log_state').value, 2)
+        self.assertEqual(ctypes.c_int.in_dll(self.lib, 'uninits').value, 0)
+
+    def test_disconnect_during_handoff_does_not_enable_raw_access(self):
+        self.mount()
+        ctypes.c_int.in_dll(self.lib, 'cancel_on_flush').value = 1
+        self.assertEqual(self.lib.drms_msc_request_export(), 1)
+        self.lib.drms_msc_service()
+        self.assertEqual(ctypes.c_int.in_dll(self.lib, 'sd_inits').value, 0)
+        self.assertNotEqual(self.owner(), 2)
+        self.assertEqual(self.lib.drms_msc_media_ready(), 0)
+
+    def test_raw_initialization_failure_never_presents_media(self):
+        self.mount()
+        ctypes.c_int.in_dll(self.lib, 'raw_init_result').value = 1
+        self.assertEqual(self.lib.drms_msc_request_export(), 1)
+        self.lib.drms_msc_service()
+        self.assertNotEqual(self.owner(), 2)
+        self.assertEqual(self.lib.drms_msc_media_ready(), 0)
+
+    def test_disconnect_during_raw_initialization_does_not_publish_export(self):
+        self.mount()
+        ctypes.c_int.in_dll(self.lib, 'cancel_on_raw_init').value = 1
+        self.assertEqual(self.lib.drms_msc_request_export(), 1)
+        self.lib.drms_msc_service()
+        self.assertNotEqual(self.owner(), 2)
+        self.assertEqual(self.lib.drms_msc_media_ready(), 0)
+
+    def test_exported_card_cannot_be_remounted_by_storage_poll(self):
+        self.export()
+        before = ctypes.c_int.in_dll(self.lib, 'opens').value
+        self.assertEqual(self.u32('drms_storage_mounted').value, 0)
+        self.lib.drms_storage_poll()
+        self.assertEqual(self.u32('drms_storage_mounted').value, 0)
+        self.assertEqual(ctypes.c_int.in_dll(self.lib, 'opens').value, before)
+        self.assertEqual(self.owner(), 2)
+
     def test_read_validates_lba_and_capacity(self):
         self.export()
         out = (ctypes.c_ubyte * 512)()
@@ -216,16 +278,24 @@ class StorageOwnershipTest(unittest.TestCase):
         # 槽保持占用：新请求拒绝，out1 不得复用
         out2 = (ctypes.c_ubyte * 512)()
         self.assertEqual(self.lib.drms_msc_read(0, 1, out2), 2)  # BUSY
-        # 存储线程归结：service 执行在途读并把数据写入 out1（缓冲由存储
-        # 线程占用直至归结），随后槽归还
+        # USBX may reuse its buffer immediately after timeout. Late completion
+        # must only touch storage-owned memory.
         self.lib.drms_msc_service()
-        self.assertNotEqual(bytes(out1[:4]), b'\x00\x00\x00\x00')
+        self.assertEqual(bytes(out1[:4]), b'\x00\x00\x00\x00')
         # 恢复泵钩子后新请求正常受理并完成
         WAIT = self.WAITHOOK(lambda: self.lib.drms_msc_service())
         self._keep_wait2 = WAIT
         self.lib.drms_msc_set_wait_hook(ctypes.cast(WAIT, ctypes.c_void_p))
         self.assertEqual(self.lib.drms_msc_read(0, 1, out2), 0)
-        self.assertEqual(bytes(out1[:4]), bytes(out2[:4]))
+        self.assertNotEqual(bytes(out2[:4]), bytes(out1[:4]))
+
+    def test_multi_sector_read_preserves_all_bytes(self):
+        self.export()
+        image = (ctypes.c_ubyte * (64 * 512)).in_dll(self.lib, 'disk_image')
+        image[512] = 99
+        out = (ctypes.c_ubyte * 1024)()
+        self.assertEqual(self.lib.drms_msc_read(0, 2, out), 0)
+        self.assertEqual(bytes(out), bytes(image[:1024]))
 
     def test_read_request_and_cancel_are_mutually_exclusive(self):
         # 自查修复回归：所有权检查与槽占用必须在同一临界区——
