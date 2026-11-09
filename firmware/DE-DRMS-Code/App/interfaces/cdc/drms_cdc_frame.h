@@ -38,4 +38,16 @@ typedef struct {
  * views is indexed by rule; an absent optional field has a null value. */
 int drms_cdc_fields_validate(const uint8_t *payload, size_t length,
     const DRMS_CDCFieldRule *rules, size_t rule_count, DRMS_CDCFieldView *views);
+
+typedef struct {
+  uint64_t boot;
+  uint32_t next_session, session, healthy;
+} DRMS_CDCSession;
+/* Entropy provider returns success only after its hardware health checks pass. */
+typedef int (*DRMS_CDCEntropy)(void *context, uint64_t *random_value);
+/* Call exactly once per boot; reconnect uses disconnect, not reinitialization. */
+int drms_cdc_session_init(DRMS_CDCSession *state, DRMS_CDCEntropy entropy, void *context);
+int drms_cdc_session_hello(DRMS_CDCSession *state, uint32_t request_session,
+                           uint64_t request_id, uint32_t *session);
+void drms_cdc_session_disconnect(DRMS_CDCSession *state);
 #endif

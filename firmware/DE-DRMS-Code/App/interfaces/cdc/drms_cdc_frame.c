@@ -205,3 +205,38 @@ int drms_cdc_fields_validate(const uint8_t *payload, size_t length,
     memcpy(views, found, rule_count * sizeof(*views));
   return 0;
 }
+
+int drms_cdc_session_init(DRMS_CDCSession *state, DRMS_CDCEntropy entropy, void *context)
+{
+  if (!state)
+    return 1;
+  memset(state, 0, sizeof(*state));
+  uint64_t boot = 0;
+  if (!entropy || !entropy(context, &boot) || !boot)
+    return 1;
+  state->boot = boot;
+  state->next_session = 1u;
+  state->healthy = 1u;
+  return 0;
+}
+
+int drms_cdc_session_hello(DRMS_CDCSession *state, uint32_t request_session,
+                           uint64_t request_id, uint32_t *session)
+{
+  if (!state || !session || !state->healthy || request_session || request_id != 1u)
+    return 1;
+  if (!state->session)
+  {
+    if (!state->next_session)
+      return 1;
+    state->session = state->next_session++;
+  }
+  *session = state->session;
+  return 0;
+}
+
+void drms_cdc_session_disconnect(DRMS_CDCSession *state)
+{
+  if (state)
+    state->session = 0;
+}

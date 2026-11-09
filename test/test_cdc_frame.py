@@ -18,6 +18,10 @@ class FieldRule(ctypes.Structure):
 class FieldView(ctypes.Structure):
     _fields_ = [('value', ctypes.POINTER(ctypes.c_uint8)), ('length', ctypes.c_uint16)]
 
+class Session(ctypes.Structure):
+    _fields_ = [('boot', ctypes.c_uint64), ('next_session', ctypes.c_uint32),
+                ('session', ctypes.c_uint32), ('healthy', ctypes.c_uint32)]
+
 
 class CDCFrameTest(unittest.TestCase):
     @classmethod
@@ -40,6 +44,11 @@ class CDCFrameTest(unittest.TestCase):
         cls.lib.drms_cdc_frame_encode.restype = ctypes.c_size_t
         cls.lib.drms_cdc_fields_validate.argtypes = [ctypes.c_void_p, ctypes.c_size_t,
             ctypes.POINTER(FieldRule), ctypes.c_size_t, ctypes.POINTER(FieldView)]
+        cls.entropy = ctypes.CFUNCTYPE(ctypes.c_int, ctypes.c_void_p, ctypes.POINTER(ctypes.c_uint64))
+        cls.lib.drms_cdc_session_init.argtypes = [ctypes.POINTER(Session), cls.entropy, ctypes.c_void_p]
+        cls.lib.drms_cdc_session_hello.argtypes = [ctypes.POINTER(Session), ctypes.c_uint32,
+            ctypes.c_uint64, ctypes.POINTER(ctypes.c_uint32)]
+        cls.lib.drms_cdc_session_disconnect.argtypes = [ctypes.POINTER(Session)]
         cls.vectors = json.loads((ROOT / 'shared/protocol/de-drms-cdc-v2.json').read_text())['vectors']
 
     @classmethod
@@ -130,6 +139,37 @@ class CDCFrameTest(unittest.TestCase):
             buf = ctypes.create_string_buffer(payload)
             result = self.lib.drms_cdc_fields_validate(buf, len(payload), None, 0, None)
             self.assertEqual(result != 0, tag in known, tag)
+
+    def test_session_requires_healthy_nonzero_entropy_and_does_not_reuse_ids(self):
+        state = Session()
+        result = ctypes.c_uint32()
+        fail = self.entropy(lambda _, out: 0)
+        self.assertNotEqual(self.lib.drms_cdc_session_init(ctypes.byref(state), fail, None), 0)
+        self.assertNotEqual(self.lib.drms_cdc_session_hello(ctypes.byref(state), 0, 1, ctypes.byref(result)), 0)
+        def zero_entropy(_, out):
+            out[0] = 0
+            return 1
+        zero = self.entropy(zero_entropy)
+        self.assertNotEqual(self.lib.drms_cdc_session_init(ctypes.byref(state), zero, None), 0)
+        def random_ok(_, out):
+            out[0] = 0x1234567887654321
+            return 1
+        healthy = self.entropy(random_ok)
+        self.assertEqual(self.lib.drms_cdc_session_init(ctypes.byref(state), healthy, None), 0)
+        self.assertNotEqual(self.lib.drms_cdc_session_hello(ctypes.byref(state), 0, 2, ctypes.byref(result)), 0)
+        self.assertEqual(self.lib.drms_cdc_session_hello(ctypes.byref(state), 0, 1, ctypes.byref(result)), 0)
+        self.assertEqual(result.value, 1)
+        self.assertEqual(self.lib.drms_cdc_session_hello(ctypes.byref(state), 0, 1, ctypes.byref(result)), 0)
+        self.assertEqual(result.value, 1)
+        self.lib.drms_cdc_session_disconnect(ctypes.byref(state))
+        self.assertEqual(self.lib.drms_cdc_session_hello(ctypes.byref(state), 0, 1, ctypes.byref(result)), 0)
+        self.assertEqual(result.value, 2)
+        state.next_session = 0xffffffff
+        self.lib.drms_cdc_session_disconnect(ctypes.byref(state))
+        self.assertEqual(self.lib.drms_cdc_session_hello(ctypes.byref(state), 0, 1, ctypes.byref(result)), 0)
+        self.assertEqual(result.value, 0xffffffff)
+        self.lib.drms_cdc_session_disconnect(ctypes.byref(state))
+        self.assertNotEqual(self.lib.drms_cdc_session_hello(ctypes.byref(state), 0, 1, ctypes.byref(result)), 0)
 
 
 if __name__ == '__main__':
