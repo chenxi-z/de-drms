@@ -152,6 +152,8 @@ HOOKS = {
     'Core/Inc/sdmmc.h': ('extern HAL_StatusTypeDef sd_init_status;',),
     'Core/Inc/app_threadx.h': ('#define TX_APP_STACK_SIZE (4U * 1024U)',),
     'Core/Src/stm32u5xx_it.c': ('if (drms_calibration_nmi())',),
+    'USBX/App/ux_device_descriptors.c': ('drms_identity_format(HAL_GetUIDw0()',
+        '#include "../../App/platform/stm32/drms_identity.h"', '#include "main.h"'),
     'USBX/App/app_usbx_device.c': ('drms_usb_init()', 'drms_cdc_start()', 'TX_DISABLE\n      drms_usb_state_change'),
     'USBX/App/ux_device_cdc_acm.c': ('drms_cdc_activate(cdc_acm_instance);', 'drms_cdc_deactivate();',
         'drms_cdc_parameter_change(cdc_acm_instance);'),

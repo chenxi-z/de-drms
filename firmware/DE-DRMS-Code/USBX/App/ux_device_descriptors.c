@@ -23,6 +23,8 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "main.h"
+#include "../../App/platform/stm32/drms_identity.h"
 
 /* USER CODE END Includes */
 
@@ -224,7 +226,17 @@ uint8_t *USBD_Get_String_Framework(ULONG *Length)
   USBD_Desc_GetString((uint8_t *)USBD_SERIAL_NUMBER, USBD_string_framework + count, &len);
 
   /* USER CODE BEGIN String_Framework1 */
-
+  /* count points to the serial string length byte. */
+  _Static_assert(sizeof(USBD_MANUFACTURER_STRING) + sizeof(USBD_PRODUCT_STRING) +
+                 DRMS_IDENTITY_CAPACITY + 12u < USBD_STRING_FRAMEWORK_MAX_LENGTH,
+                 "USB string framework too small for device identity");
+  char identity[DRMS_IDENTITY_CAPACITY];
+  if (drms_identity_format(HAL_GetUIDw0(), HAL_GetUIDw1(), HAL_GetUIDw2(),
+                           identity, sizeof(identity)))
+  {
+    USBD_Desc_GetString((uint8_t *)identity, USBD_string_framework + count, &len);
+    USBD_string_framework[count + 1u + len] = 0;
+  }
   /* USER CODE END String_Framework1 */
 
   /* Get the length of USBD_string_framework */
