@@ -37,8 +37,10 @@ volatile uint32_t drms_battery_mv=3700,drms_battery_valid=1;
 static DRMS_Time clock_value;
 void drms_aux_poll(void) {}
 unsigned int drms_usb_can_io(void) { return 0; }
-int sd_card_present;
-int HAL_GPIO_ReadPin(int p,int n) { return n==18 ? (sd_card_present ? 0 : 1) : 1; }
+int sd_card_present, measure_down, power_down;
+int HAL_GPIO_ReadPin(int p,int n) {
+  return n==18 ? (sd_card_present ? 0 : 1) : n==13 ? !measure_down : n==14 ? !power_down : 1;
+}
 int drms_power_backend_enter(void) { return 0; }
 void drms_time_get(DRMS_Time *t) { *t=clock_value; }
 int drms_time_set(const char *text) { return drms_time_parse(text,&clock_value); }
@@ -94,6 +96,7 @@ class ApplicationTest(unittest.TestCase):
 #define LED_RED_Pin 11
 #define ADS_DRDY_Pin 12
 #define MEAS_BTN_Pin 13
+#define MEAS_BTN_GPIO_Port 0
 #define PWR_BTN_Pin 14
 #define PWR_BTN_GPIO_Port 0
 #define USB_VBUS_N_GPIO_Port 0
@@ -181,6 +184,7 @@ uint32_t HAL_GetUIDw2(void);
         subprocess.run(['cc', '-shared', '-fPIC', '-Wall', '-Werror=implicit-function-declaration',
                         '-I', str(p), '-I', str(src / 'Inc'),
                         *[str((src.parent / 'App/application/measurement' if name in ('monitor', 'filter', 'classifier', 'baseline') else src / 'Src') / f'drms_{name}.c') for name in names],
+                        str(src.parent / 'App/interfaces/local_ui/drms_button.c'),
                         str(p / 'mock.c'), '-lm', '-o', str(p / 'app.so')], check=True)
         cls.instance = 0
 
@@ -319,11 +323,60 @@ uint32_t HAL_GetUIDw2(void);
         self.lib.drms_log_poll()
         self.assertEqual((self.value('drms_log_state').value, self.value('closes').value), (0, 1))
 
+    def press_measure(self):
+        ctypes.c_int.in_dll(self.lib, 'measure_down').value = 1
+        self.lib.drms_application_poll()
+        self.lib.advance_ms(50)
+        self.lib.drms_application_poll()
+        ctypes.c_int.in_dll(self.lib, 'measure_down').value = 0
+        self.lib.drms_application_poll()
+        self.lib.advance_ms(50)
+        self.lib.drms_application_poll()
+
+    def test_measurement_long_press_does_not_start_recording(self):
+        self.insert_card()
+        ctypes.c_int.in_dll(self.lib, 'measure_down').value = 1
+        self.lib.drms_application_poll()
+        for _ in range(21):
+            self.lib.advance_ms(100)
+            self.frames(1, 280000, 4200000)
+        ctypes.c_int.in_dll(self.lib, 'measure_down').value = 0
+        self.lib.drms_application_poll()
+        self.lib.advance_ms(50)
+        self.lib.drms_application_poll()
+        self.lib.drms_log_poll()
+        self.assertEqual(self.value('drms_log_state').value, 0)
+
+    def test_button_held_on_boot_is_ignored_until_release(self):
+        self.insert_card()
+        ctypes.c_int.in_dll(self.lib, 'measure_down').value = 1
+        self.lib.drms_application_init()
+        for _ in range(21):
+            self.lib.advance_ms(100)
+            self.frames(1, 280000, 4200000)
+        ctypes.c_int.in_dll(self.lib, 'measure_down').value = 0
+        self.lib.drms_application_poll()
+        self.lib.advance_ms(50)
+        self.lib.drms_application_poll()
+        self.lib.drms_log_poll()
+        self.assertEqual(self.value('drms_log_state').value, 0)
+
+    def test_power_short_waits_for_debounced_release(self):
+        ctypes.c_int.in_dll(self.lib, 'power_down').value = 1
+        self.lib.drms_application_poll()
+        self.lib.advance_ms(50)
+        self.lib.drms_application_poll()
+        self.assertEqual(self.value('drms_acq_running').value, 1)
+        ctypes.c_int.in_dll(self.lib, 'power_down').value = 0
+        self.lib.drms_application_poll()
+        self.lib.advance_ms(50)
+        self.lib.drms_application_poll()
+        self.assertEqual(self.value('drms_acq_running').value, 0)
+
     def test_measurement_button_starts_and_stops_recording(self):
         # T7：记录叠加在监测之上——按键开始/结束记录，监测不停止
         self.insert_card()
-        self.lib.HAL_GPIO_EXTI_Falling_Callback(13)
-        self.lib.drms_application_poll()
+        self.press_measure()
         self.lib.drms_log_poll()
         self.lib.drms_application_poll()  # 会话归结：文件就绪+边界 B
         self.lib.drms_log_poll()
@@ -332,7 +385,7 @@ uint32_t HAL_GetUIDw2(void);
         for _ in range(3):
             self.lib.advance_ms(100)
             self.frames(2, 280000, 4200000)  # 累计 300 ms > 250 ms 去抖门限
-        self.lib.HAL_GPIO_EXTI_Falling_Callback(13)
+        self.press_measure()
         # 停机收尾：E → END → 存储排空写卡 → 会话 ack（各轮交替推进）
         for _ in range(4):
             self.lib.drms_application_poll()

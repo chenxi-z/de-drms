@@ -15,6 +15,7 @@
 #include "drms_usb.h"
 #include "drms_runtime.h"
 #include "drms_power.h"
+#include "../../App/interfaces/local_ui/drms_button.h"
 #include "main.h"
 #include "tx_api.h"
 #include <stdio.h>
@@ -32,12 +33,13 @@ static ULONG command_memory[16 * (sizeof(DRMS_Command) / sizeof(ULONG))];
 static DRMS_Calibration calibration;
 static DRMS_Sample latest;
 static DRMS_Time clock_snapshot;
-static volatile uint32_t ready, stop_requested, button_events;
+static volatile uint32_t ready, stop_requested;
+static DRMS_Button measurement_button, power_button;
 static uint32_t cal_active, cal_count, cal_result, cal_started, cal_dirty;
 static int64_t voltage_sum, sense_sum;
 static double requested_reference;
 static uint32_t crc_bad, adc_faults, consecutive_bad;
-static uint32_t r_valid, last_cmd, cmd_result, last_aux, last_display, last_button;
+static uint32_t r_valid, last_cmd, cmd_result, last_aux, last_display;
 static int32_t r_milliohms;
 
 /* 记录会话（T2a）与监测管线（T6） */
@@ -490,7 +492,11 @@ void drms_application_init(void)
                           command_memory, sizeof(command_memory)) == TX_SUCCESS;
   drms_calibration_load(&calibration);
   latest.flags = DRMS_SAMPLE_FORMAT_ERROR;
-  last_button = HAL_GetTick() - 250U;
+  uint32_t button_now = HAL_GetTick();
+  drms_button_init(&measurement_button, button_now,
+                   HAL_GPIO_ReadPin(MEAS_BTN_GPIO_Port, MEAS_BTN_Pin) == GPIO_PIN_RESET);
+  drms_button_init(&power_button, button_now,
+                   HAL_GPIO_ReadPin(PWR_BTN_GPIO_Port, PWR_BTN_Pin) == GPIO_PIN_RESET);
   last_aux = HAL_GetTick() - 1000U;
   drms_power_init();
   /* T5：用户配置/R0 恢复 + 校准代次注入 */
@@ -524,40 +530,46 @@ void drms_application_poll(void)
 {
   drms_power_poll();
   uint32_t now = HAL_GetTick();
-  uint32_t buttons = __atomic_exchange_n(&button_events, 0U, __ATOMIC_ACQ_REL);
-  if (buttons && (uint32_t)(now - last_button) >= 250U)
+  DRMS_ButtonEvent power_event = drms_button_step(&power_button, now,
+      HAL_GPIO_ReadPin(PWR_BTN_GPIO_Port, PWR_BTN_Pin) == GPIO_PIN_RESET);
+  DRMS_ButtonEvent measurement_event = drms_button_step(&measurement_button, now,
+      HAL_GPIO_ReadPin(MEAS_BTN_GPIO_Port, MEAS_BTN_Pin) == GPIO_PIN_RESET);
+  if (power_event != DRMS_BUTTON_NONE)
   {
-    last_button = now;
-    if (buttons & 2U)
-      __atomic_store_n(&stop_requested, 1U, __ATOMIC_RELEASE); /* 电源键 = 停止采集 */
-    else if ((buttons & 1U) && !drms_shutdown_requested)
+    if (power_event == DRMS_BUTTON_SHORT)
+      __atomic_store_n(&stop_requested, 1U, __ATOMIC_RELEASE);
+  }
+  else if (!drms_shutdown_requested && measurement_event == DRMS_BUTTON_LONG)
+  {
+    DRMS_ControlRequest request = {
+      .source = DRMS_SOURCE_BUTTON, .operation = DRMS_OP_BASELINE_R0};
+    cmd_result = drms_control_submit(&request) == DRMS_ACCEPTED ? 100 : 1;
+    last_cmd = DRMS_OP_BASELINE_R0;
+  }
+  else if (!drms_shutdown_requested && measurement_event == DRMS_BUTTON_SHORT)
+  {
+    if (session_active || session_armed)
     {
-      /* 测量键：记录叠加在监测之上——记录中则结束记录，否则开始记录，
-       * 无采集时启动监测；监测不因记录结束而停止。 */
-      if (session_active || session_armed)
-      {
-        if (session_armed)
-          session_cancel_local(DRMS_CANCELLED);
-        else
-        {
-          drms_record_session_request_stop();
-          session_stopping = 1;
-        }
-        last_cmd = DRMS_CMD_END;
-      }
-      else if (drms_acq_running && !drms_acq_reference)
-      {
-        DRMS_ControlRequest request = {
-          .source = DRMS_SOURCE_BUTTON, .session = 0,
-          .request_id = HAL_GetTick(), .operation = DRMS_OP_RECORD};
-        cmd_result = drms_control_submit(&request) == DRMS_ACCEPTED ? 100 : 1;
-        last_cmd = DRMS_CMD_RECORD;
-      }
+      if (session_armed)
+        session_cancel_local(DRMS_CANCELLED);
       else
       {
-        last_cmd = DRMS_CMD_START;
-        cmd_result = begin(DRMS_APP_DEFAULT_RATE, 0);
+        drms_record_session_request_stop();
+        session_stopping = 1;
       }
+      last_cmd = DRMS_CMD_END;
+    }
+    else if (drms_acq_running && !drms_acq_reference)
+    {
+      DRMS_ControlRequest request = {
+        .source = DRMS_SOURCE_BUTTON, .operation = DRMS_OP_RECORD};
+      cmd_result = drms_control_submit(&request) == DRMS_ACCEPTED ? 100 : 1;
+      last_cmd = DRMS_CMD_RECORD;
+    }
+    else
+    {
+      last_cmd = DRMS_CMD_START;
+      cmd_result = begin(boot_rate, 0);
     }
   }
   if (__atomic_exchange_n(&stop_requested, 0U, __ATOMIC_ACQ_REL))
@@ -710,10 +722,6 @@ void HAL_GPIO_EXTI_Falling_Callback(uint16_t pin)
 {
   if (pin == ADS_DRDY_Pin)
     drms_acq_drdy();
-  else if (pin == MEAS_BTN_Pin)
-    (void)__atomic_fetch_or(&button_events, 1U, __ATOMIC_RELEASE);
-  else if (pin == PWR_BTN_Pin)
-    (void)__atomic_fetch_or(&button_events, 2U, __ATOMIC_RELEASE);
 }
 
 size_t drms_application_status(char *out, size_t capacity)

@@ -1,5 +1,6 @@
 # Application sources, maintained outside CubeMX-generated files.
 C_SOURCES += \
+App/interfaces/local_ui/drms_button.c \
 App/platform/stm32/drms_identity.c \
 App/interfaces/cdc/drms_cdc_frame.c \
 Core/Src/drms_usb.c \
