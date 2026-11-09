@@ -85,6 +85,16 @@ def build_body(version=1, cal_version=0, r0_valid=0, r0=0.0, intervals=(), param
     body += struct.pack('<I', crc32(bytes(body)))
     return bytes(body)
 
+def with_baseline_policy(body, count, duration, max_cv):
+    data = bytearray(body[:-4])
+    data += struct.pack('<HHIQd', 0xd701, 20, count, duration, max_cv)
+    struct.pack_into('<I', data, 8, len(data) + 4)
+    return bytes(data) + struct.pack('<I', crc32(data))
+
+class BaselinePolicy(ctypes.Structure):
+    _fields_ = [('min_count', ctypes.c_uint32), ('min_duration_us', ctypes.c_uint64),
+                ('max_cv', ctypes.c_double)]
+
 
 class UserConfigTest(unittest.TestCase):
     @classmethod
@@ -108,6 +118,7 @@ class UserConfigTest(unittest.TestCase):
         cls.lib.drms_user_config_run_version.restype = ctypes.c_uint64
         cls.lib.drms_user_config_persisted_version.restype = ctypes.c_uint64
         cls.lib.drms_user_config_r0_calibration_version.restype = ctypes.c_uint64
+        cls.lib.drms_user_config_get_baseline_policy.argtypes = [ctypes.POINTER(BaselinePolicy)]
 
     @classmethod
     def tearDownClass(cls):
@@ -127,6 +138,23 @@ class UserConfigTest(unittest.TestCase):
 
     def set_fail(self, step):
         self.lib.fake_set_fail(step)
+
+    def test_baseline_policy_validates_and_survives_save_and_reboot(self):
+        policy = BaselinePolicy()
+        self.assertEqual(self.lib.drms_user_config_get_baseline_policy(ctypes.byref(policy)), 0)
+        body = with_baseline_policy(build_body(), 400, 1000000, 0.01)
+        self.assertEqual(self.lib.drms_user_config_apply(body, len(body), 0), OK)
+        self.assertEqual(self.lib.drms_user_config_get_baseline_policy(ctypes.byref(policy)), 1)
+        self.assertEqual((policy.min_count, policy.min_duration_us, policy.max_cv), (400, 1000000, 0.01))
+        self.assertEqual(self.lib.drms_user_config_save(1), OK)
+        self.reboot()
+        self.assertEqual(self.lib.drms_user_config_get_baseline_policy(ctypes.byref(policy)), 1)
+        self.assertEqual((policy.min_count, policy.min_duration_us, policy.max_cv), (400, 1000000, 0.01))
+
+    def test_baseline_policy_rejects_invalid_values(self):
+        for count, duration, cv in [(0, 1, 0.1), (0, 0, 0.1), (10, 0, -1), (10, 0, float('nan'))]:
+            body = with_baseline_policy(build_body(), count, duration, cv)
+            self.assertEqual(self.lib.drms_user_config_apply(body, len(body), 0), INVALID)
 
     def reboot(self, generation=0):
         # 重启 = init + 设定当前校准代次 + load（依赖检查在 load 内执行）

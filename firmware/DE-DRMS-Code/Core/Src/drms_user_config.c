@@ -15,6 +15,7 @@ int drms_user_backend_read(unsigned int page, unsigned int offset,
 #define DRMS_USER_TLV_INTERVALS 1u
 #define DRMS_USER_TLV_PARAMS 2u
 #define DRMS_USER_TLV_ALIAS 3u
+#define DRMS_USER_TLV_BASELINE_POLICY 0xD701u
 
 static const uint8_t MAGIC_PREFIX[7] = {'D', 'R', 'M', 'S', 'U', 'C', '0'};
 static const uint8_t COMMIT_MAGIC[4] = {'U', 'C', 'M', 'T'};
@@ -195,6 +196,7 @@ static int parse_tlv(const uint8_t *body, uint32_t body_len, RunConfig *cfg)
   cfg->interval_count = 0;
   cfg->extra_length = 0;
   uint32_t offset = 40;
+  uint32_t baseline_seen = 0;
   while (offset + 4u <= body_len - 4u)
   {
     uint16_t type = get16(body + offset);
@@ -241,6 +243,16 @@ static int parse_tlv(const uint8_t *body, uint32_t body_len, RunConfig *cfg)
       if (len > 64 || !utf8_valid(value, len))
         return 0;
     }
+    else if (type == DRMS_USER_TLV_BASELINE_POLICY)
+    {
+      if (baseline_seen++ || len != 20u)
+        return 0;
+      uint32_t count = get32(value);
+      uint64_t duration = get64(value + 4);
+      double cv = get_f64(value + 12);
+      if (!finite(cv) || cv < 0.0 || (!count && (duration || cv != 0.0)))
+        return 0;
+    }
     if (type != DRMS_USER_TLV_INTERVALS && type != DRMS_USER_TLV_PARAMS)
     {
       uint32_t size = 4u + len;
@@ -252,6 +264,31 @@ static int parse_tlv(const uint8_t *body, uint32_t body_len, RunConfig *cfg)
     offset += 4u + len;
   }
   return offset == body_len - 4u;
+}
+
+uint32_t drms_user_config_get_baseline_policy(DRMS_BaselinePolicy *out)
+{
+  if (!out)
+    return 0;
+  memset(out, 0, sizeof(*out));
+  const RunConfig *cfg = have_staged ? &staged : &run;
+  uint32_t offset = 0;
+  while (offset + 4u <= cfg->extra_length)
+  {
+    const uint8_t *entry = cfg->extra + offset;
+    uint16_t len = get16(entry + 2);
+    if (offset + 4u + len > cfg->extra_length)
+      return 0;
+    if (get16(entry) == DRMS_USER_TLV_BASELINE_POLICY && len == 20u)
+    {
+      out->min_count = get32(entry + 4);
+      out->min_duration_us = get64(entry + 8);
+      out->max_cv = get_f64(entry + 16);
+      return out->min_count != 0;
+    }
+    offset += 4u + len;
+  }
+  return 0;
 }
 
 static uint32_t encode_body(const RunConfig *cfg, uint8_t *out, uint32_t capacity)

@@ -25,6 +25,7 @@
  *                     f64 lo; f64 hi; f64 h; u8 name_len; name[name_len]}
  *        type2 监测参数: u32 rate_hz; u64 tau_us; u64 warmup_us; u64 confirm_us; u64 stale_timeout_us
  *        type3 别名: UTF-8 ≤64B
+ *        type 0xD701 基线质量条件: u32 min_count; u64 min_duration_us; f64 max_cv
  *        未知 type：整段保留（保存时原样回写），不解释
  *   body_len-4: uint32 crc32（覆盖 [0, body_len-4)）
  * 页尾提交四字（页末 16B）: "UCMT" u32, config_version 低 32 位 u32, body_crc u32, 保留 u32 */
@@ -62,6 +63,13 @@ uint32_t drms_user_config_r0_valid(void);
 double drms_user_config_r0(void);
 uint64_t drms_user_config_r0_calibration_version(void);
 uint32_t drms_user_config_unsupported_schema(void); /* 未知 schema 恢复状态 */
+typedef struct {
+  uint32_t min_count;
+  uint64_t min_duration_us;
+  double max_cv;
+} DRMS_BaselinePolicy;
+/* Returns 0 when no policy is configured. A staged policy follows run_version. */
+uint32_t drms_user_config_get_baseline_policy(DRMS_BaselinePolicy *out);
 /* Copy supported persisted monitoring settings. Returns 0 if no complete,
  * locally supported set is available; caller may retain safe defaults. */
 uint32_t drms_user_config_get_monitor(DRMS_MonitorConfig *out);
