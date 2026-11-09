@@ -43,6 +43,10 @@ static int32_t r_milliohms;
 /* 记录会话（T2a）与监测管线（T6） */
 static _Alignas(8) uint8_t monitor_store[DRMS_APP_CONTEXT_BYTES];
 static DRMS_MonitorContext *const monitor = (DRMS_MonitorContext *)monitor_store;
+/* Written only by the measurement owner, copied under a short critical section. */
+static DRMS_MonitorOutput published_monitor;
+static uint8_t monitor_levels[DRMS_MONITOR_INTERVALS_MAX];
+static uint8_t monitor_level_count;
 static DRMS_Token session_token;
 static uint64_t session_record_id;
 static uint64_t next_record_id = 1;
@@ -461,6 +465,7 @@ void drms_application_init(void)
   drms_user_config_load();
   /* T6：监测管线配置（未配置区间表 → UNCONFIGURED，不冒充正常等级） */
   drms_monitor_init(monitor);
+  monitor_level_count = 0;
   {
     DRMS_MonitorConfig cfg;
     memset(&cfg, 0, sizeof(cfg));
@@ -480,9 +485,12 @@ void drms_application_init(void)
         cfg.intervals[i].h = h[i];
         cfg.intervals[i].id = ids[i];
         cfg.intervals[i].level = levels[i];
+        monitor_levels[i] = levels[i];
       }
     }
-    (void)drms_monitor_configure(monitor, &cfg);
+    if (drms_monitor_configure(monitor, &cfg) == DRMS_OK)
+      monitor_level_count = cfg.interval_count;
+    drms_monitor_tick(monitor, drms_acq_now_us(), &published_monitor);
   }
   /* T1：控制裁决接管业务请求投递 */
   drms_record_session_init();
@@ -623,28 +631,52 @@ void drms_application_poll(void)
   {
     DRMS_MonitorOutput fresh;
     drms_monitor_tick(monitor, drms_acq_now_us(), &fresh);
-    if (fresh.fresh && drms_excitation_ok(&latest))
+    if (!drms_acq_running)
+    {
+      fresh.fresh = false;
+      fresh.freshness_reason |= DRMS_FRESH_NO_SAMPLE;
+    }
+    uint32_t valid = 0;
+    int32_t resistance = r_milliohms;
+    if (drms_acq_running && fresh.fresh && drms_excitation_ok(&latest))
     {
       double ohms;
-      r_valid = drms_resistance(&latest, calibration.scale, &ohms) &&
-                ohms > -2147483. && ohms < 2147483.;
-      if (r_valid)
-        r_milliohms = (int32_t)(ohms * 1000.);
+      valid = drms_resistance(&latest, calibration.scale, &ohms) &&
+              ohms > -2147483. && ohms < 2147483.;
+      if (valid)
+        resistance = (int32_t)(ohms * 1000.);
     }
-    else
-      r_valid = 0;
+    uint32_t mask = __get_PRIMASK();
+    __disable_irq();
+    published_monitor = fresh;
+    r_valid = valid;
+    r_milliohms = resistance;
+    __set_PRIMASK(mask);
   }
-  if ((uint32_t)(now - last_display) >= 100U)
+  if ((uint32_t)(now - last_display) >= 10U)
   {
+    uint32_t lights = 0;
+    uint32_t phase = now % 2000U;
+    if (drms_acq_error || (drms_log_status && drms_log_records))
+      lights = (now / 250U) % 2U ? 0x0fU : 0U;
+    else if (drms_acq_running && !drms_acq_reference && published_monitor.fresh &&
+             published_monitor.state == DRMS_MONITOR_CONFIRMED &&
+             published_monitor.confirmed >= 0 &&
+             (uint16_t)published_monitor.confirmed < monitor_level_count &&
+             monitor_levels[published_monitor.confirmed] < 4U)
+      lights = 1U << monitor_levels[published_monitor.confirmed];
+    else if (published_monitor.fresh && published_monitor.state == DRMS_MONITOR_PENDING)
+      lights = now % 1000U < 100U ? 0x0fU : 0U;
+    else if (phase < 100U || (phase >= 200U && phase < 300U))
+      lights = 0x0fU;
     HAL_GPIO_WritePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin,
-      drms_acq_running && !drms_acq_reference && r_valid ? GPIO_PIN_RESET : GPIO_PIN_SET);
+                      (lights & 1U) ? GPIO_PIN_RESET : GPIO_PIN_SET);
     HAL_GPIO_WritePin(LED_YELLOW_GPIO_Port, LED_YELLOW_Pin,
-      drms_acq_reference && drms_acq_running ? GPIO_PIN_RESET : GPIO_PIN_SET);
+                      (lights & 2U) ? GPIO_PIN_RESET : GPIO_PIN_SET);
     HAL_GPIO_WritePin(LED_ORANGE_GPIO_Port, LED_ORANGE_Pin,
-      drms_log_state == 1 || drms_log_state == 3 || drms_log_dropped || drms_power_low_battery ||
-      (drms_acq_running && !drms_acq_reference && !drms_log_running) ? GPIO_PIN_RESET : GPIO_PIN_SET);
+                      (lights & 4U) ? GPIO_PIN_RESET : GPIO_PIN_SET);
     HAL_GPIO_WritePin(LED_RED_GPIO_Port, LED_RED_Pin,
-      drms_acq_error || (drms_log_status && drms_log_records) ? GPIO_PIN_RESET : GPIO_PIN_SET);
+                      (lights & 8U) ? GPIO_PIN_RESET : GPIO_PIN_SET);
     last_display = now;
   }
 }
@@ -665,8 +697,7 @@ size_t drms_application_status(char *out, size_t capacity)
     return 0;
   uint32_t mask = __get_PRIMASK();
   __disable_irq();
-  DRMS_MonitorOutput snapshot;
-  drms_monitor_tick(monitor, drms_acq_now_us(), &snapshot);
+  DRMS_MonitorOutput snapshot = published_monitor;
   uint32_t monitor_state = snapshot.state, monitor_fresh = snapshot.fresh;
   uint32_t values[] = {ready, drms_acq_running, drms_acq_reference, drms_acq_rate, r_valid,
     calibration.valid, cal_dirty, cal_active, cal_count, cal_result, drms_acq_error,

@@ -235,6 +235,22 @@ uint32_t HAL_GetUIDw2(void);
         self.assertGreater(self.value('command_count').value, 0)  # 开机监测已发过命令
         self.assertEqual(self.lib.pin(5), 1)  # 激励抑制
 
+    def test_status_reads_published_monitor_without_advancing_it(self):
+        self.frames(5, 280000, 4200000)
+        before = self.status()
+        self.assertEqual(before['fresh'], 1)
+        self.lib.advance_ms(30)
+        self.assertEqual(self.status()['fresh'], 1)
+        self.lib.drms_application_poll()
+        self.assertEqual(self.status()['fresh'], 0)
+
+    def test_no_baseline_does_not_show_normal_level(self):
+        self.lib.advance_ms(1100)
+        self.frames(1, 280000, 4200000)
+        self.assertEqual(self.status()['r_valid'], 1)
+        self.assertEqual(self.status()['monitor'], 0)
+        self.assertEqual([self.lib.pin(pin) for pin in (8, 9, 10, 11)], [1, 1, 1, 1])
+
     def test_nominal_resistance_and_record_mode_interlock(self):
         # T7/C3：开机已在监测；帧即时处理 → 新鲜；101ms 无 DRDY → 过期失效
         self.insert_card()
