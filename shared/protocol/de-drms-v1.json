@@ -1,0 +1,293 @@
+{
+  "protocol": "DE-DRMS",
+  "version": 1,
+  "control": {
+    "transport": [
+      "USB CDC ACM (DTR asserted)",
+      "USART1 115200 8N1"
+    ],
+    "encoding": "ASCII",
+    "terminator": "LF, optionally preceded by CR",
+    "maximum_command_bytes": 63,
+    "commands": {
+      "PING": "immediate OK PONG",
+      "STATUS": "immediate OK followed by key=value pairs",
+      "HELP": "immediate command list",
+      "START [rate]": "queue sample mode; default 4000 samples/s",
+      "STOP": "cancel queued controls, stop excitation, drain and close recording",
+      "REF": "queue reference mode at current rate",
+      "MEASURE": "queue sample mode at current rate",
+      "CAL [Rref_mohm]": "4096 valid reference samples; default 100000000 milliohms",
+      "SAVE": "persist calibrated factor only while acquisition and recording are stopped",
+      "RECORD": "open a new file while sample acquisition is running",
+      "END": "drain, close and flush recording while acquisition may continue",
+      "TIME YYYY-MM-DDTHH:MM:SS": "set RTC in UTC, years 2000 through 2099"
+    },
+    "rates": [
+      1000,
+      4000,
+      8000,
+      16000,
+      32000,
+      64000,
+      128000
+    ],
+    "queued_response": "OK queued means accepted, not completed; inspect STATUS",
+    "command_result": {
+      "0": "success",
+      "1": "invalid state",
+      "2": "acquisition fault",
+      "3": "busy",
+      "4": "calibration failed or aborted",
+      "5": "recording unavailable",
+      "6": "Flash save failed",
+      "7": "RTC set failed",
+      "100": "calibration pending"
+    },
+    "command_id": {
+      "1": "START",
+      "2": "STOP",
+      "3": "REF",
+      "4": "MEASURE",
+      "5": "CAL",
+      "6": "SAVE",
+      "7": "RECORD",
+      "8": "END",
+      "9": "TIME"
+    },
+    "status_units": {
+      "r_mohm": "milliohms; use only when r_valid=1",
+      "bat_mv": "millivolts; use only when bat_valid=1",
+      "utc_date": "YYYYMMDD numeric; use only when rtc_valid=1",
+      "utc_time": "HHMMSS numeric; use only when rtc_valid=1",
+      "mode": "0 sample, 1 reference",
+      "log_state": "0 idle, 1 opening/rolling over, 2 recording, 3 draining/closing",
+      "shutdown": "1 means stop/flush requested before Standby",
+      "power_status": "0 idle, 1 waiting for storage/release, 2 Standby returned/debug prevented entry",
+      "low_battery": "valid battery-only reading <=3650 mV"
+    },
+    "power_policy": {
+      "button_long_press_ms": 2000,
+      "release_debounce_ms": 50,
+      "low_battery_warning_mv": 3650,
+      "low_battery_shutdown_mv": 3500,
+      "consecutive_valid_readings": 5,
+      "reading_interval_ms": 1000,
+      "usb_present": "cancel shutdown",
+      "external_power_or_invalid_voltage": "no battery-triggered shutdown",
+      "wake": "PWR button PC5, MEAS button PA0, raw USB PC13; reset restart",
+      "measurement_button": "start 4000 SPS and attempt recording; next press stops and closes recording"
+    },
+    "adc_error": {
+      "0": "none",
+      "1": "READY failed",
+      "2": "configuration/acknowledgment failed",
+      "3": "SPI DMA error",
+      "4": "data timeout",
+      "5": "consecutive integrity errors",
+      "6": "raw acquisition queue full, acquisition stopped"
+    },
+    "sd_bus_default": {
+      "kernel_clock_hz": 48000000,
+      "runtime_clock_divider": 1,
+      "bus_clock_hz": 24000000,
+      "reason": "safe default speed without implicit CMD6 High Speed negotiation"
+    }
+  },
+  "file": {
+    "name": "DRMS0000.BIN through DRMS9999.BIN, never overwrite",
+    "header_bytes": 64,
+    "record_bytes": 16,
+    "footer_bytes": 64,
+    "integer_byte_order": "little",
+    "float_encoding": "IEEE754 binary64 little endian",
+    "header": {
+      "magic": {
+        "offset": 0,
+        "format": "4s",
+        "value": "DRMS"
+      },
+      "version": {
+        "offset": 4,
+        "format": "H"
+      },
+      "header_size": {
+        "offset": 6,
+        "format": "H"
+      },
+      "record_size": {
+        "offset": 8,
+        "format": "H"
+      },
+      "flags": {
+        "offset": 10,
+        "format": "H",
+        "bits": {
+          "0": "reference calibrated",
+          "1": "RTC valid"
+        }
+      },
+      "rate": {
+        "offset": 12,
+        "format": "I"
+      },
+      "request_ticks_ms": {
+        "offset": 16,
+        "format": "I"
+      },
+      "calibration_generation": {
+        "offset": 20,
+        "format": "I"
+      },
+      "scale_ohms": {
+        "offset": 24,
+        "format": "d",
+        "minimum": 100000,
+        "maximum": 200000
+      },
+      "reference_ohms": {
+        "offset": 32,
+        "format": "d",
+        "minimum": 90000,
+        "maximum": 110000
+      },
+      "year": {
+        "offset": 40,
+        "format": "H"
+      },
+      "month": {
+        "offset": 42,
+        "format": "B"
+      },
+      "day": {
+        "offset": 43,
+        "format": "B"
+      },
+      "hour": {
+        "offset": 44,
+        "format": "B"
+      },
+      "minute": {
+        "offset": 45,
+        "format": "B"
+      },
+      "second": {
+        "offset": 46,
+        "format": "B"
+      },
+      "nominal_rsense_ohms": {
+        "offset": 48,
+        "format": "I"
+      },
+      "device_id_hash": {
+        "offset": 52,
+        "format": "I"
+      },
+      "crc32": {
+        "offset": 60,
+        "format": "I",
+        "covers_bytes": [
+          0,
+          60
+        ]
+      }
+    },
+    "record": {
+      "ads_frame": {
+        "offset": 0,
+        "bytes": 12,
+        "byte_order": "big",
+        "description": "four 24-bit words: STAT_1 response, channel1, channel2, CRC16 in upper 16 bits"
+      },
+      "sequence": {
+        "offset": 12,
+        "format": "I",
+        "description": "DRDY edge counter modulo 2^32; gaps expose lost frames"
+      }
+    },
+    "footer": {
+      "magic": {
+        "offset": 0,
+        "format": "4s",
+        "value": "DEND"
+      },
+      "version": {
+        "offset": 4,
+        "format": "H"
+      },
+      "footer_size": {
+        "offset": 6,
+        "format": "H"
+      },
+      "records": {
+        "offset": 8,
+        "format": "I",
+        "description": "records in this file, modulo 2^32"
+      },
+      "log_dropped": {
+        "offset": 12,
+        "format": "I",
+        "description": "cumulative for this RECORD session"
+      },
+      "spi_overruns": {
+        "offset": 16,
+        "format": "I",
+        "description": "cumulative observed edge overruns for the current START"
+      },
+      "frame_queue_drops": {
+        "offset": 20,
+        "format": "I",
+        "description": "cumulative acquisition queue drops for the current START"
+      },
+      "stop_ticks_ms": {
+        "offset": 24,
+        "format": "I"
+      },
+      "crc32": {
+        "offset": 60,
+        "format": "I",
+        "covers_bytes": [
+          0,
+          60
+        ]
+      }
+    },
+    "crc32": {
+      "name": "CRC-32/ISO-HDLC",
+      "check_123456789": "CBF43926"
+    },
+    "adc_crc16": {
+      "name": "CRC-16/CCITT-FALSE",
+      "initial": "FFFF",
+      "polynomial": "1021",
+      "check_123456789": "29B1",
+      "covers_frame_bytes": [
+        0,
+        9
+      ]
+    },
+    "resistance": "scale_ohms * signed24(channel1) / signed24(channel2); invalid CRC/format/fault/saturation must not produce valid resistance",
+    "status_advisory": "F_ADCIN (bit4) alone is retained as advisory because AIN2N is wired to AVSS; other STAT_1 fault bits invalidate the measurement",
+    "timing": "elapsed time is relative to the first recorded sample, from sequence deltas/rate; header RTC is the RECORD request time, not an exact first-sample UTC timestamp",
+    "clean_end": "valid footer and record count match; missing footer means interrupted/unclean file, even if a prefix is recoverable",
+    "throughput_bytes_per_second": "16 * rate, plus header/footer; 2048000 at 128000 samples/s",
+    "excitation_guard": {
+      "sense_code_min": 3643701,
+      "sense_code_max": 4453411,
+      "voltage_plus_sense_code_max": 8484791,
+      "meaning": "first-board VSET +/-10% and 0.5 V compliance reserve; diagnostic guard, not a current accuracy guarantee"
+    },
+    "segments": {
+      "nominal_maximum_bytes": 1073741824,
+      "data_record_limit": 67108856,
+      "boundary": "after a batch; may exceed nominal by one batch, remains below FAT32 file limit",
+      "continuity": "queue stays enabled while closing/opening segments",
+      "metadata": "same RECORD request metadata across segments"
+    },
+    "decoder_exit_status": {
+      "0": "no reported software loss and clean end, or explicit diagnostic recovery requested",
+      "1": "reported CRC/fault/loss or incomplete end",
+      "2": "invalid format/metadata or I/O error"
+    }
+  }
+}

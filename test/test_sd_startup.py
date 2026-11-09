@@ -49,7 +49,7 @@ typedef struct { int PeriphClockSelection,IclkClockSelection,SdmmcClockSelection
 #define __HAL_RCC_GPIOC_CLK_ENABLE() ((void)0)
 #define __HAL_RCC_GPIOD_CLK_ENABLE() ((void)0)
 #define __HAL_RCC_SDMMC1_CLK_DISABLE() ((void)0)
-extern int card_absent,init_result,init_calls,deinit_calls,fatal_calls;
+extern int card_absent,init_result,init_calls,deinit_calls,fatal_calls,init_divider;
 int HAL_GPIO_ReadPin(int port,int pin);
 int HAL_SD_Init(SD_HandleTypeDef *h);
 int HAL_SD_DeInit(SD_HandleTypeDef *h);
@@ -63,9 +63,9 @@ void Error_Handler(void);
 '''
 MOCK = r'''
 #include "sdmmc.h"
-int card_absent,init_result,init_calls,deinit_calls,fatal_calls;
+int card_absent,init_result,init_calls,deinit_calls,fatal_calls,init_divider;
 int HAL_GPIO_ReadPin(int p,int n) { return card_absent; }
-int HAL_SD_Init(SD_HandleTypeDef *h) { ++init_calls; return init_result; }
+int HAL_SD_Init(SD_HandleTypeDef *h) { ++init_calls;init_divider=h->Init.ClockDiv; return init_result; }
 int HAL_SD_DeInit(SD_HandleTypeDef *h) { ++deinit_calls; return 0; }
 int HAL_RCCEx_PeriphCLKConfig(RCC_PeriphCLKInitTypeDef *p) { return 0; }
 void HAL_GPIO_Init(int p,GPIO_InitTypeDef *s) {}
@@ -85,7 +85,7 @@ class SDStartupTest(unittest.TestCase):
         (p / 'sdmmc.h').write_text(HEADER)
         (p / 'mock.c').write_text(MOCK)
         subprocess.run(['cc', '-shared', '-fPIC', '-Werror=implicit-function-declaration',
-                        '-I', str(p), str(ROOT / 'firmware/DE-DRM/Core/Src/sdmmc.c'),
+                        '-I', str(p), str(ROOT / 'firmware/DE-DRMS-Code/Core/Src/sdmmc.c'),
                         str(p / 'mock.c'), '-o', str(p / 'sd.so')], check=True)
         cls.lib = ctypes.CDLL(str(p / 'sd.so'))
         cls.lib.MX_SDMMC1_SD_Init.restype = None
@@ -98,8 +98,12 @@ class SDStartupTest(unittest.TestCase):
         return ctypes.c_int.in_dll(self.lib, name)
 
     def setUp(self):
-        for name in ('card_absent', 'init_result', 'init_calls', 'deinit_calls', 'fatal_calls'):
+        for name in ('card_absent', 'init_result', 'init_calls', 'deinit_calls', 'fatal_calls', 'init_divider'):
             self.value(name).value = 0
+
+    def test_default_bus_stays_under_25mhz_without_high_speed_negotiation(self):
+        self.lib.MX_SDMMC1_SD_Init()
+        self.assertEqual(self.value('init_divider').value, 1)  # CLK48 / (2 * 1) = 24 MHz
 
     def test_absent_card_never_calls_hal_or_reports_success(self):
         # Previous successful status must not leak into a later absent-card attempt.
