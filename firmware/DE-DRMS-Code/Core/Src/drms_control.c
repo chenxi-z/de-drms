@@ -10,6 +10,7 @@
 #define DRMS_CONTROL_LEASES 4
 #define DRMS_CONTROL_REQUESTS 8
 #define DRMS_CONTROL_COMPLETIONS 8
+#define DRMS_CONTROL_HISTORY 8
 
 typedef struct {
   uint64_t operation_id;
@@ -26,6 +27,8 @@ static DRMS_ControlDispatch dispatch_hook;
 static Lease leases[DRMS_CONTROL_LEASES];
 static DRMS_ControlRequest requests[DRMS_CONTROL_REQUESTS];
 static DRMS_ControlCompletion completions[DRMS_CONTROL_COMPLETIONS];
+static DRMS_ControlCompletion history[DRMS_CONTROL_HISTORY];
+static uint32_t history_head, history_count;
 static uint32_t request_head, request_count, request_tail;
 static uint32_t completion_head, completion_count;
 static uint32_t reserved_mask, quarantined_mask;
@@ -83,6 +86,13 @@ static void push_completion_locked(uint32_t source, uint32_t session, uint64_t r
   slot->result = result;
   slot->quiescent_mask = quiescent_mask;
   slot->stale = stale;
+  if (operation_id)
+  {
+    history[history_head] = *slot;
+    history_head = (history_head + 1U) % DRMS_CONTROL_HISTORY;
+    if (history_count < DRMS_CONTROL_HISTORY)
+      ++history_count;
+  }
   ++completion_count;
 }
 
@@ -93,6 +103,8 @@ void drms_control_init(DRMS_ControlDispatch dispatch)
   memset(leases, 0, sizeof(leases));
   memset(requests, 0, sizeof(requests));
   memset(completions, 0, sizeof(completions));
+  memset(history, 0, sizeof(history));
+  history_head = history_count = 0;
   request_head = request_count = request_tail = 0;
   completion_head = completion_count = 0;
   reserved_mask = quarantined_mask = 0;
@@ -103,6 +115,42 @@ void drms_control_init(DRMS_ControlDispatch dispatch)
   requests_accepted = requests_rejected = 0;
   completions_overflow = completions_consumed = 0;
   crit_exit(mask);
+}
+
+DRMS_Result drms_control_get_operation(uint64_t operation_id, DRMS_ControlCompletion *out)
+{
+  if (!operation_id || !out)
+    return DRMS_INVALID;
+  uint32_t mask = crit_enter();
+  for (uint32_t i = 0; i < history_count; ++i)
+  {
+    uint32_t index = (history_head + DRMS_CONTROL_HISTORY - 1U - i) % DRMS_CONTROL_HISTORY;
+    if (history[index].operation_id == operation_id)
+    {
+      *out = history[index];
+      crit_exit(mask);
+      return DRMS_OK;
+    }
+  }
+  for (uint32_t i = 0; i < DRMS_CONTROL_LEASES; ++i)
+  {
+    Lease *lease = &leases[i];
+    if (lease->active && !lease->reported && lease->operation_id == operation_id)
+    {
+      out->operation_id = operation_id;
+      out->source = lease->source;
+      out->session = lease->session;
+      out->request_id = lease->request_id;
+      out->result = DRMS_ACCEPTED;
+      out->quiescent_mask = 0;
+      out->stale = lease->generation != control_generation;
+      crit_exit(mask);
+      return DRMS_OK;
+    }
+  }
+  DRMS_Result result = operation_id < next_operation_id ? DRMS_STALE : DRMS_INVALID;
+  crit_exit(mask);
+  return result;
 }
 
 DRMS_Result drms_control_submit(const DRMS_ControlRequest *request)

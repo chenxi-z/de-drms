@@ -115,6 +115,7 @@ class ControlContractTest(unittest.TestCase):
         cls.lib.drms_control_submit.argtypes = [ctypes.POINTER(Request)]
         cls.lib.drms_control_collect.argtypes = [ctypes.POINTER(Completion), ctypes.c_uint32]
         cls.lib.drms_control_get_snapshot.argtypes = [ctypes.POINTER(Snapshot)]
+        cls.lib.drms_control_get_operation.argtypes = [ctypes.c_uint64, ctypes.POINTER(Completion)]
         cls.lib.test_install()
         # 头文件自包含：contract.h 只含标准 C 类型，必须能单独编译
         (p / 'selfcheck.c').write_text('#include "drms_architecture_contract.h"\n'
@@ -169,6 +170,30 @@ class ControlContractTest(unittest.TestCase):
         self.assertEqual(self.lib.drms_control_release(token, ACQ | RS | TF), OK)
         self.assertEqual(self.snapshot().reserved_mask, 0)
         self.assertEqual(self.collect(), [])
+
+    def test_operation_query_survives_completion_queue_consumption_and_eviction(self):
+        token = self.submit_and_poll(MSC_EXPORT, request_id=123)
+        result = Completion()
+        self.assertEqual(self.lib.drms_control_get_operation(token.operation_id, ctypes.byref(result)), OK)
+        self.assertEqual((result.result, result.request_id), (ACCEPTED, 123))
+        self.assertEqual(self.lib.drms_control_complete(token, IO_ERROR, TF), OK)
+        self.collect()
+        self.assertEqual(self.lib.drms_control_get_operation(token.operation_id, ctypes.byref(result)), OK)
+        self.assertEqual((result.result, result.request_id), (IO_ERROR, 123))
+        for i in range(8):
+            later = self.submit_and_poll(MSC_EXPORT, request_id=200 + i)
+            self.assertEqual(self.lib.drms_control_complete(later, OK, TF), OK)
+        self.assertEqual(self.lib.drms_control_get_operation(token.operation_id, ctypes.byref(result)), STALE)
+        self.assertEqual(self.lib.drms_control_get_operation(later.operation_id + 1, ctypes.byref(result)), INVALID)
+
+    def test_running_operation_is_retained_when_history_wraps(self):
+        running = self.submit_and_poll(CONFIG_APPLY, request_id=31)
+        for i in range(10):
+            later = self.submit_and_poll(MSC_EXPORT, request_id=40 + i)
+            self.assertEqual(self.lib.drms_control_complete(later, OK, TF), OK)
+        result = Completion()
+        self.assertEqual(self.lib.drms_control_get_operation(running.operation_id, ctypes.byref(result)), OK)
+        self.assertEqual((result.result, result.request_id), (ACCEPTED, 31))
 
     def test_reserve_is_exclusive_and_all_or_nothing(self):
         token = Token()

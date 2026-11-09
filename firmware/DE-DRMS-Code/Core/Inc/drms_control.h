@@ -85,6 +85,11 @@ DRMS_Result drms_control_resume(void);
  * 普通查询不得调用本函数。 */
 uint32_t drms_control_collect(DRMS_ControlCompletion *out, uint32_t max);
 
+/* Query any in-progress operation or the latest eight completed operations.
+ * Results do not consume the completion queue. STALE denotes an evicted ID;
+ * INVALID denotes an ID not allocated in this boot or a null destination. */
+DRMS_Result drms_control_get_operation(uint64_t operation_id, DRMS_ControlCompletion *out);
+
 /* 一致快照（任意上下文，只读）：短临界区复制，不消费完成结果。 */
 void drms_control_get_snapshot(DRMS_ControlSnapshot *out);
 
