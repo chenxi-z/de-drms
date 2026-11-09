@@ -64,7 +64,8 @@
       "log_state": "0 idle, 1 opening/rolling over, 2 recording, 3 draining/closing",
       "shutdown": "1 means stop/flush requested before Standby",
       "power_status": "0 idle, 1 waiting for storage/release, 2 Standby returned/debug prevented entry",
-      "low_battery": "valid battery-only reading <=3650 mV"
+      "low_battery": "valid battery-only reading <=3650 mV",
+      "config_state": "0 no saved monitoring configuration, 1 usable, 2 saved configuration incompatible"
     },
     "power_policy": {
       "button_long_press_ms": 2000,

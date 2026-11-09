@@ -62,6 +62,10 @@ uint32_t drms_user_config_r0_valid(void);
 double drms_user_config_r0(void);
 uint64_t drms_user_config_r0_calibration_version(void);
 uint32_t drms_user_config_unsupported_schema(void); /* 未知 schema 恢复状态 */
+/* Copy supported persisted monitoring settings. Returns 0 if no complete,
+ * locally supported set is available; caller may retain safe defaults. */
+uint32_t drms_user_config_get_monitor(DRMS_MonitorConfig *out);
+
 /* 运行配置快照（已校验）；返回 1 = 有已应用配置。 */
 uint32_t drms_user_config_get_intervals(uint16_t *count,
                                         double *lo, double *hi, double *h,

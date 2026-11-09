@@ -11,6 +11,7 @@ import unittest
 from test_acquisition import HEADER as ACQ_HEADER, MOCK as ACQ_MOCK
 from test_logging import HEADER as FX_HEADER, MOCK as FX_MOCK
 from test_calibration_journal import MOCK as CAL_MOCK
+from test_user_config import build_body
 
 ROOT = Path(__file__).resolve().parents[1]
 TX_HEADER = r'''
@@ -239,7 +240,7 @@ uint32_t HAL_GetUIDw2(void);
         self.frames(5, 280000, 4200000)
         before = self.status()
         self.assertEqual(before['fresh'], 1)
-        self.lib.advance_ms(30)
+        self.lib.advance_ms(40)
         self.assertEqual(self.status()['fresh'], 1)
         self.lib.drms_application_poll()
         self.assertEqual(self.status()['fresh'], 0)
@@ -250,6 +251,49 @@ uint32_t HAL_GetUIDw2(void);
         self.assertEqual(self.status()['r_valid'], 1)
         self.assertEqual(self.status()['monitor'], 0)
         self.assertEqual([self.lib.pin(pin) for pin in (8, 9, 10, 11)], [1, 1, 1, 1])
+
+    def test_reboot_restores_baseline_and_interval_mapping(self):
+        body = build_body(intervals=[(7, 2, True, 0.5, 1.0, 0.0, 'test')],
+                          params=(4000, 0, 0, 0, 32000))
+        self.lib.drms_user_config_apply.argtypes = [ctypes.c_char_p, ctypes.c_size_t, ctypes.c_uint64]
+        self.lib.drms_user_config_commit_baseline.argtypes = [ctypes.c_double, ctypes.c_uint64, ctypes.c_uint64]
+        self.assertEqual(self.lib.drms_user_config_apply(body, len(body), 0), 0)
+        self.assertEqual(self.lib.drms_user_config_commit_baseline(10000.0, 1, 0), 0)
+        self.lib.drms_acq_stop()
+        self.lib.drms_application_init()
+        self.lib.advance_ms(100)
+        self.frames(3, 280000, 4200000)
+        status = self.status()
+        self.assertEqual(status['monitor'], 5)
+        self.assertEqual(status['fresh'], 1)
+        self.assertEqual([self.lib.pin(pin) for pin in (8, 9, 10, 11)], [1, 1, 0, 1])
+
+    def test_restored_sample_rate_and_baseline_dependency(self):
+        body = build_body(intervals=[(7, 2, True, 0.5, 1.5, 0.0, 'test')],
+                          params=(8000, 0, 0, 0, 16000))
+        self.lib.drms_user_config_apply.argtypes = [ctypes.c_char_p, ctypes.c_size_t, ctypes.c_uint64]
+        self.lib.drms_user_config_commit_baseline.argtypes = [ctypes.c_double, ctypes.c_uint64, ctypes.c_uint64]
+        self.assertEqual(self.lib.drms_user_config_apply(body, len(body), 0), 0)
+        self.assertEqual(self.lib.drms_user_config_commit_baseline(10000.0, 1, 99), 0)
+        self.lib.drms_acq_stop()
+        self.lib.drms_application_init()
+        self.assertEqual(self.status()['rate'], 8000)
+        self.frames(3, 280000, 4200000)
+        self.assertNotEqual(self.status()['monitor'], 5)
+
+    def test_invalid_staleness_uses_safe_default_without_baseline(self):
+        body = build_body(intervals=[(7, 2, True, 0.5, 1.5, 0.0, 'test')],
+                          params=(8000, 0, 0, 0, 10000))
+        self.lib.drms_user_config_apply.argtypes = [ctypes.c_char_p, ctypes.c_size_t, ctypes.c_uint64]
+        self.lib.drms_user_config_commit_baseline.argtypes = [ctypes.c_double, ctypes.c_uint64, ctypes.c_uint64]
+        self.assertEqual(self.lib.drms_user_config_apply(body, len(body), 0), 0)
+        self.assertEqual(self.lib.drms_user_config_commit_baseline(10000.0, 1, 0), 0)
+        self.lib.drms_acq_stop()
+        self.lib.drms_application_init()
+        self.assertEqual(self.status()['rate'], 4000)
+        self.assertEqual(self.status()['config_state'], 2)
+        self.frames(3, 280000, 4200000)
+        self.assertNotEqual(self.status()['monitor'], 5)
 
     def test_nominal_resistance_and_record_mode_interlock(self):
         # T7/C3：开机已在监测；帧即时处理 → 新鲜；101ms 无 DRDY → 过期失效

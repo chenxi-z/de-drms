@@ -29,6 +29,7 @@ LF 结束，兼容 CRLF；破损、溢出行丢弃至下一分隔符。串口发
 `sd/sd_status/log/log_state/log_status/records/log_drop`；
 `bat_mv/bat_valid/rtc_valid/utc_date/utc_time`；`vbus/bq_pg/bq_chg/usb_io/usb_status`。
 `utc_date/utc_time` 为 YYYYMMDD/HHMMSS 数字，未设 RTC 时 `rtc_valid=0`；前导零可省略。
+`config_state=0` 无已保存监测配置、1 可用、2 已保存配置与本固件不兼容。
 `log_state=0` 空闲、1 正在开/换文件、2 正在记录、3 排空关闭。
 `adc_error=1` READY 失败、2 配置/应答失败、3 SPI DMA 错误、4 数据超时、5 连续帧完整性失败、
 6 采集队列满而主动停采。

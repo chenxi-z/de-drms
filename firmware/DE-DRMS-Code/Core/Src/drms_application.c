@@ -47,6 +47,10 @@ static DRMS_MonitorContext *const monitor = (DRMS_MonitorContext *)monitor_store
 static DRMS_MonitorOutput published_monitor;
 static uint8_t monitor_levels[DRMS_MONITOR_INTERVALS_MAX];
 static uint8_t monitor_level_count;
+static uint32_t boot_rate = DRMS_APP_DEFAULT_RATE;
+/* 0 = no saved configuration, 1 = usable, 2 = saved configuration incompatible. */
+static uint32_t config_state;
+static uint64_t monitor_config_version;
 static DRMS_Token session_token;
 static uint64_t session_record_id;
 static uint64_t next_record_id = 1;
@@ -246,7 +250,8 @@ static void pipeline_step_frame(const DRMS_RawFrame *frame, uint64_t ticket,
     DRMS_MonitorInput input = {
       .ohms = 0.0, .capture_us = nominal, .capture_lower_bound_us = lower,
       .sample_seq = sample_seq, .acquisition_generation = drms_acq_generation(),
-      .quality_flags = 0, .config_version = 1, .baseline_version = 1};
+      .quality_flags = 0, .config_version = monitor_config_version,
+      .baseline_version = monitor_config_version};
     DRMS_Sample sample;
     if (drms_decode_frame(frame->bytes, &sample))
     {
@@ -284,7 +289,8 @@ static void pipeline_step_frame(const DRMS_RawFrame *frame, uint64_t ticket,
       .capture_lower_bound_us = capture_lower_us,
       .sample_seq = frame->sequence,
       .acquisition_generation = drms_acq_generation(),
-      .quality_flags = 0, .config_version = 1, .baseline_version = 1};
+      .quality_flags = 0, .config_version = monitor_config_version,
+      .baseline_version = monitor_config_version};
     DRMS_Sample sample;
     if (drms_decode_frame(frame->bytes, &sample))
     {
@@ -363,6 +369,36 @@ static void stop_acquisition(void)
   r_valid = 0;
 }
 
+static void configure_monitor(uint32_t rate)
+{
+  DRMS_MonitorConfig cfg;
+  memset(&cfg, 0, sizeof(cfg));
+  if (!drms_user_config_get_monitor(&cfg))
+  {
+    cfg.rate_hz = rate;
+    cfg.stale_timeout_us = (128000000ULL + rate - 1U) / rate;
+    if (cfg.stale_timeout_us < 10000U)
+      cfg.stale_timeout_us = 10000U;
+  }
+  else if (cfg.rate_hz != rate)
+  {
+    /* The baseline belongs to the saved sampling configuration. */
+    cfg.rate_hz = rate;
+    cfg.baseline_valid = false;
+    cfg.stale_timeout_us = (128000000ULL + rate - 1U) / rate;
+    if (cfg.stale_timeout_us < 10000U)
+      cfg.stale_timeout_us = 10000U;
+  }
+  monitor_level_count = 0;
+  if (drms_monitor_configure(monitor, &cfg) == DRMS_OK)
+  {
+    monitor_level_count = cfg.interval_count;
+    for (unsigned int i = 0; i < cfg.interval_count; ++i)
+      monitor_levels[i] = cfg.intervals[i].level;
+  }
+  monitor_config_version = drms_user_config_run_version();
+}
+
 static uint32_t begin(uint32_t rate, uint32_t reference)
 {
   if (drms_log_state || cal_active)
@@ -373,6 +409,7 @@ static uint32_t begin(uint32_t rate, uint32_t reference)
   uint32_t ok = drms_acq_start(rate, reference) ? 0 : 2;
   if (!ok)
   {
+    configure_monitor(rate);
     consumed_raw = 0; /* the acquisition ring starts a new ticket generation */
     nominal_anchor.acquisition_generation = drms_acq_generation();
     nominal_anchor.rate_hz = rate;
@@ -463,41 +500,27 @@ void drms_application_init(void)
   drms_user_config_init();
   drms_user_config_set_calibration_generation(calibration.generation);
   drms_user_config_load();
-  /* T6：监测管线配置（未配置区间表 → UNCONFIGURED，不冒充正常等级） */
   drms_monitor_init(monitor);
-  monitor_level_count = 0;
+  DRMS_MonitorConfig saved;
+  if (drms_user_config_get_monitor(&saved))
   {
-    DRMS_MonitorConfig cfg;
-    memset(&cfg, 0, sizeof(cfg));
-    cfg.rate_hz = DRMS_APP_DEFAULT_RATE;
-    cfg.stale_timeout_us = 20000;
-    uint16_t count = 0;
-    double lo[16], hi[16], h[16];
-    uint16_t ids[16];
-    uint8_t levels[16];
-    if (drms_user_config_get_intervals(&count, lo, hi, h, ids, levels))
-    {
-      cfg.interval_count = (uint8_t)(count > 16 ? 16 : count);
-      for (unsigned int i = 0; i < cfg.interval_count; ++i)
-      {
-        cfg.intervals[i].lo = lo[i];
-        cfg.intervals[i].hi = hi[i];
-        cfg.intervals[i].h = h[i];
-        cfg.intervals[i].id = ids[i];
-        cfg.intervals[i].level = levels[i];
-        monitor_levels[i] = levels[i];
-      }
-    }
-    if (drms_monitor_configure(monitor, &cfg) == DRMS_OK)
-      monitor_level_count = cfg.interval_count;
-    drms_monitor_tick(monitor, drms_acq_now_us(), &published_monitor);
+    boot_rate = saved.rate_hz;
+    config_state = 1;
   }
+  else
+  {
+    boot_rate = DRMS_APP_DEFAULT_RATE;
+    config_state = (drms_user_config_persisted_version() ||
+                    drms_user_config_unsupported_schema()) ? 2U : 0U;
+  }
+  configure_monitor(boot_rate);
+  drms_monitor_tick(monitor, drms_acq_now_us(), &published_monitor);
   /* T1：控制裁决接管业务请求投递 */
   drms_record_session_init();
   drms_control_init(app_dispatch);
   /* T7：开机自动监测（显式记录仍需请求）；失败保持可调度与诊断 */
   if (!drms_acq_running)
-    (void)begin(DRMS_APP_DEFAULT_RATE, 0);
+    (void)begin(boot_rate, 0);
 }
 
 void drms_application_poll(void)
@@ -712,7 +735,7 @@ size_t drms_application_status(char *out, size_t capacity)
     HAL_GPIO_ReadPin(BQ_PG_GPIO_Port, BQ_PG_Pin) == GPIO_PIN_RESET,
     HAL_GPIO_ReadPin(BQ_CHG_GPIO_Port, BQ_CHG_Pin) == GPIO_PIN_RESET, drms_usb_can_io(),
     drms_shutdown_requested, drms_power_status, drms_power_low_battery,
-    monitor_state, monitor_fresh};
+    monitor_state, monitor_fresh, config_state};
   int32_t resistance = r_milliohms;
   __set_PRIMASK(mask);
   int n = snprintf(out, capacity,
@@ -721,7 +744,7 @@ size_t drms_application_status(char *out, size_t capacity)
     "log=%lu log_state=%lu log_status=%lu records=%lu log_drop=%lu bat_mv=%lu bat_valid=%lu last_cmd=%lu cmd_result=%lu "
     "flash_status=%lu uart_rx_drop=%lu uart_tx_drop=%lu usb_status=%lu cal_generation=%lu excitation_ok=%lu "
     "rtc_valid=%lu utc_date=%lu utc_time=%lu vbus=%lu bq_pg=%lu bq_chg=%lu usb_io=%lu "
-    "shutdown=%lu power_status=%lu low_battery=%lu monitor=%lu fresh=%lu\r\n",
+    "shutdown=%lu power_status=%lu low_battery=%lu monitor=%lu fresh=%lu config_state=%lu\r\n",
     (unsigned long)values[0],(unsigned long)values[1],(unsigned long)values[2],(unsigned long)values[3],
     (unsigned long)values[4],(long)resistance,(unsigned long)values[5],(unsigned long)values[6],
     (unsigned long)values[7],(unsigned long)values[8],(unsigned long)values[9],(unsigned long)values[10],
@@ -734,6 +757,6 @@ size_t drms_application_status(char *out, size_t capacity)
     (unsigned long)values[35],(unsigned long)values[36],(unsigned long)values[37],(unsigned long)values[38],
     (unsigned long)values[39],(unsigned long)values[40],(unsigned long)values[41],
     (unsigned long)values[42],(unsigned long)values[43],
-    (unsigned long)values[44]);
+    (unsigned long)values[44],(unsigned long)values[45]);
   return n < 0 ? 0 : ((size_t)n < capacity ? (size_t)n : capacity - 1);
 }

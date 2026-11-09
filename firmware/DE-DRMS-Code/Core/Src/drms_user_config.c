@@ -518,6 +518,37 @@ DRMS_Result drms_user_config_commit_baseline(double r0, uint64_t expected_versio
   return DRMS_OK;
 }
 
+uint32_t drms_user_config_get_monitor(DRMS_MonitorConfig *out)
+{
+  uint8_t clk2;
+  if (!out || !have_config || !drms_rate_register(run.rate_hz, &clk2))
+    return 0;
+  uint64_t minimum_stale = (128000000ULL + run.rate_hz - 1U) / run.rate_hz;
+  if (minimum_stale < 10000U)
+    minimum_stale = 10000U;
+  if (run.stale_timeout_us < minimum_stale)
+    return 0;
+  memset(out, 0, sizeof(*out));
+  out->rate_hz = run.rate_hz;
+  out->tau_us = run.tau_us;
+  out->warmup_us = run.warmup_us;
+  out->confirm_us = run.confirm_us;
+  out->stale_timeout_us = run.stale_timeout_us;
+  out->r0 = run.r0;
+  out->baseline_valid = run.r0_valid != 0;
+  out->interval_count = run.interval_count;
+  for (unsigned int i = 0; i < run.interval_count; ++i)
+  {
+    out->intervals[i].id = run.intervals[i].id;
+    out->intervals[i].level = run.intervals[i].level;
+    out->intervals[i].last_upper_closed = run.intervals[i].last_upper_closed != 0;
+    out->intervals[i].lo = run.intervals[i].lo;
+    out->intervals[i].hi = run.intervals[i].hi;
+    out->intervals[i].h = run.intervals[i].h;
+  }
+  return 1;
+}
+
 uint32_t drms_user_config_get_intervals(uint16_t *count, double *lo, double *hi,
                                         double *h, uint16_t *ids, uint8_t *levels)
 {
