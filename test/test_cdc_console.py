@@ -8,6 +8,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 HEADER = r'''
 #include <stddef.h>
+#include <stdint.h>
 typedef unsigned int UINT;
 typedef unsigned long ULONG;
 typedef unsigned char UCHAR;
@@ -33,6 +34,10 @@ UINT ux_device_class_cdc_acm_read(void *,UCHAR *,ULONG,ULONG *);
 UINT ux_device_class_cdc_acm_write(void *,UCHAR *,ULONG,ULONG *);
 void tx_thread_sleep(ULONG);
 UINT tx_thread_create(TX_THREAD *,char *,void (*)(ULONG),ULONG,VOID *,ULONG,UINT,UINT,ULONG,UINT);
+uint32_t HAL_GetTick(void);
+uint32_t HAL_GetUIDw0(void);
+uint32_t HAL_GetUIDw1(void);
+uint32_t HAL_GetUIDw2(void);
 '''
 MOCK = r'''
 #include "app_usbx_device.h"
@@ -41,15 +46,20 @@ MOCK = r'''
 #include <stdio.h>
 UX_SLAVE_CLASS_CDC_ACM cdc={1};
 char incoming[64],written[512];
-unsigned int read_status,read_calls,writes,can_io=1,disconnect_during_read,indefinite_io,abort_calls,revocations;
+unsigned int read_status,read_calls,writes,can_io=1,disconnect_during_read,indefinite_io,abort_calls,revocations,incoming_len,written_len;
+uint32_t HAL_GetTick(void) { return 0; }
+uint32_t HAL_GetUIDw0(void) { return 1; }
+uint32_t HAL_GetUIDw1(void) { return 2; }
+uint32_t HAL_GetUIDw2(void) { return 3; }
+int drms_entropy_boot_id(void *ctx,uint64_t *out) { *out=0x123456789abcdef0ULL; return 1; }
 UINT ux_device_class_cdc_acm_ioctl(void *a,UINT b,VOID *c) { if(c==(void *)UX_WAIT_FOREVER) ++indefinite_io;if(b==4) ++abort_calls;return 0; }
 UINT ux_device_class_cdc_acm_read(void *a,UCHAR *b,ULONG n,ULONG *actual) {
- ++read_calls; *actual=strlen(incoming);memcpy(b,incoming,*actual);incoming[0]=0;
+ ++read_calls; *actual=incoming_len;memcpy(b,incoming,*actual);incoming_len=0;
  if(disconnect_during_read) drms_cdc_deactivate();
  return read_status;
 }
 UINT ux_device_class_cdc_acm_write(void *a,UCHAR *b,ULONG n,ULONG *actual) {
- ++writes;memcpy(written,b,n);written[n]=0;*actual=n;return 0;
+ ++writes;memcpy(written,b,n);written[n]=0;written_len=n;*actual=n;return 0;
 }
 void tx_thread_sleep(ULONG a) {}
 UINT tx_thread_create(TX_THREAD *a,char *b,void (*c)(ULONG),ULONG d,VOID *e,ULONG f,UINT g,UINT h,ULONG i,UINT j) { return 0; }
@@ -69,11 +79,15 @@ class CDCConsoleTest(unittest.TestCase):
         cls.tmp = tempfile.TemporaryDirectory()
         p = Path(cls.tmp.name)
         (p / 'app_usbx_device.h').write_text(HEADER)
+        (p / 'main.h').write_text('#include <stdint.h>\nuint32_t HAL_GetTick(void);\nuint32_t HAL_GetUIDw0(void);\nuint32_t HAL_GetUIDw1(void);\nuint32_t HAL_GetUIDw2(void);\n')
         (p / 'mock.c').write_text(MOCK)
         src = ROOT / 'firmware/DE-DRMS-Code/Core'
         subprocess.run(['cc', '-shared', '-fPIC', '-Wall', '-Werror=implicit-function-declaration',
                         '-I', str(p), '-I', str(src / 'Inc'),
                         str(src / 'Src/drms_cdc.c'), str(src / 'Src/drms_console.c'),
+                        str(src.parent / 'App/interfaces/cdc/drms_cdc_v2.c'),
+                        str(src.parent / 'App/interfaces/cdc/drms_cdc_frame.c'),
+                        str(src / 'Src/drms_measurement.c'),
                         str(p / 'mock.c'), '-o', str(p / 'cdc.so')], check=True)
         cls.lib = ctypes.CDLL(str(p / 'cdc.so'))
 
@@ -86,7 +100,8 @@ class CDCConsoleTest(unittest.TestCase):
 
     def send(self, data):
         buf = (ctypes.c_char * 64).in_dll(self.lib, 'incoming')
-        buf.value = data
+        ctypes.memmove(buf, data, len(data))
+        self.value('incoming_len').value = len(data)
         self.lib.drms_cdc_poll()
 
     def setUp(self):
@@ -94,7 +109,75 @@ class CDCConsoleTest(unittest.TestCase):
             self.value(name).value = 0
         self.value('can_io').value = 1
         self.lib.set_dtr(1)
+        self.lib.drms_cdc_start()
         self.lib.activate()
+
+    def test_v2_hello_from_actual_cdc_stream(self):
+        wire = bytes.fromhex('040201010101010102010101010101010101010105d7970e6600')
+        self.send(wire[:8])
+        self.assertEqual(self.value('writes').value, 0)
+        self.send(wire[8:])
+        self.assertEqual(self.value('writes').value, 1)
+        size = self.value('written_len').value
+        reply = bytes((ctypes.c_ubyte * 512).in_dll(self.lib, 'written')[:size])
+        self.assertEqual(reply[-1], 0)
+        # Decode standard COBS and inspect fixed response header and CRC.
+        raw = bytearray(); i = 0
+        while i < len(reply) - 1:
+            code = reply[i]; i += 1
+            raw += reply[i:i + code - 1]; i += code - 1
+            if code != 255 and i < len(reply) - 1: raw.append(0)
+        import struct, zlib
+        self.assertEqual(struct.unpack_from('<BBHIQ', raw), (2, 2, 1, 1, 1))
+        self.assertEqual(struct.unpack_from('<I', raw, len(raw) - 4)[0], zlib.crc32(raw[:-4]))
+
+    def test_v2_session_survives_suspend_but_changes_after_disconnect(self):
+        hello = bytes.fromhex('040201010101010102010101010101010101010105d7970e6600')
+        def session_id():
+            size = self.value('written_len').value
+            encoded = bytes((ctypes.c_ubyte * 512).in_dll(self.lib, 'written')[:size])
+            raw = bytearray(); i = 0
+            while i < len(encoded) - 1:
+                code = encoded[i]; i += 1
+                raw += encoded[i:i + code - 1]; i += code - 1
+                if code != 255 and i < len(encoded) - 1: raw.append(0)
+            return int.from_bytes(raw[4:8], 'little')
+        self.send(hello)
+        self.assertEqual(session_id(), 1)
+        self.value('can_io').value = 0
+        self.lib.drms_cdc_poll()
+        self.value('can_io').value = 1
+        self.send(hello)
+        self.assertEqual(session_id(), 1)
+        self.lib.drms_cdc_deactivate()
+        self.lib.activate()
+        self.send(hello)
+        self.assertEqual(session_id(), 2)
+
+    def test_v2_unimplemented_command_gets_unsupported_reply(self):
+        import struct, zlib
+        self.send(bytes.fromhex('040201010101010102010101010101010101010105d7970e6600'))
+        raw = struct.pack('<BBHIQHH', 2, 1, 2, 1, 2, 0, 0)
+        raw += struct.pack('<I', zlib.crc32(raw))
+        encoded = bytearray(b'\x00'); start = 0; code = 1
+        for byte in raw:
+            if byte == 0:
+                encoded[start] = code; start = len(encoded); encoded.append(0); code = 1
+            else:
+                encoded.append(byte); code += 1
+                if code == 255:
+                    encoded[start] = code; start = len(encoded); encoded.append(0); code = 1
+        encoded[start] = code; encoded.append(0)
+        self.send(bytes(encoded))
+        size = self.value('written_len').value
+        wire = bytes((ctypes.c_ubyte * 512).in_dll(self.lib, 'written')[:size])
+        decoded = bytearray(); i = 0
+        while i < len(wire) - 1:
+            code = wire[i]; i += 1
+            decoded += wire[i:i + code - 1]; i += code - 1
+            if code != 255 and i < len(wire) - 1: decoded.append(0)
+        self.assertEqual(struct.unpack_from('<BBHIQ', decoded), (2, 2, 2, 1, 2))
+        self.assertEqual(struct.unpack_from('<HHH', decoded, 20), (0x8001, 2, 11))
 
     def test_short_and_empty_packets_preserve_line(self):
         self.send(b'PI')
