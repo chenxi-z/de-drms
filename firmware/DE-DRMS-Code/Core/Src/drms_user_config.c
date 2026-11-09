@@ -291,6 +291,11 @@ uint32_t drms_user_config_get_baseline_policy(DRMS_BaselinePolicy *out)
   return 0;
 }
 
+uint32_t drms_user_config_baseline_rate(void)
+{
+  return (have_staged ? &staged : &run)->rate_hz;
+}
+
 static uint32_t encode_body(const RunConfig *cfg, uint8_t *out, uint32_t capacity)
 {
   if (capacity < 84)

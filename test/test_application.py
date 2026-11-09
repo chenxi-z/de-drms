@@ -11,7 +11,7 @@ import unittest
 from test_acquisition import HEADER as ACQ_HEADER, MOCK as ACQ_MOCK
 from test_logging import HEADER as FX_HEADER, MOCK as FX_MOCK
 from test_calibration_journal import MOCK as CAL_MOCK
-from test_user_config import build_body
+from test_user_config import build_body, with_baseline_policy
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -68,7 +68,8 @@ UINT tx_queue_receive(TX_QUEUE *q,void *item,ULONG wait) {
 UINT tx_queue_flush(TX_QUEUE *q) { q->head=q->tail=q->count=0;return 0; }
 /* 用户区 Flash 后端替身：RAM 页（真后端直写 0x080F8000，主机不可执行） */
 static uint8_t user_pages[2][8192];
-int drms_user_backend_begin(void) { return 1; }
+int fail_user_write;
+int drms_user_backend_begin(void) { return !fail_user_write; }
 void drms_user_backend_end(void) {}
 int drms_user_backend_erase(unsigned int page) { memset(user_pages[page],0xFF,8192); return 1; }
 int drms_user_backend_program(unsigned int page, unsigned int offset, const uint8_t q[16]) {
@@ -250,6 +251,60 @@ uint32_t HAL_GetUIDw2(void);
         token = Token()
         self.assertEqual(self.lib.drms_control_reserve(4, ctypes.byref(token)), 1)
         self.lib.drms_control_complete(token, 0, 4)
+
+    def test_baseline_build_without_card_persists_and_resumes_monitor(self):
+        body = with_baseline_policy(build_body(params=(4000, 0, 0, 0, 32000)), 4, 750, 0.01)
+        self.lib.drms_user_config_apply.argtypes = [ctypes.c_char_p, ctypes.c_size_t, ctypes.c_uint64]
+        self.assertEqual(self.lib.drms_user_config_apply(body, len(body), 0), 0)
+        request = ControlRequest(source=1, request_id=100, operation=5)
+        self.assertEqual(self.lib.drms_control_submit(ctypes.byref(request)), 1)
+        self.lib.drms_application_poll()
+        self.frames(4, 280000, 4200000)
+        self.lib.drms_user_config_r0.restype = ctypes.c_double
+        self.assertAlmostEqual(self.lib.drms_user_config_r0(), 10000.0, places=2)
+        self.assertEqual(self.lib.drms_user_config_r0_valid(), 1)
+        self.assertEqual(self.value('drms_acq_running').value, 1)
+        self.assertEqual(self.value('drms_log_state').value, 0)
+
+    def test_baseline_rejects_bad_sample_without_replacing_old_value(self):
+        body = with_baseline_policy(build_body(r0_valid=1, r0=12345.0,
+            params=(4000, 0, 0, 0, 32000)), 3, 500, 0.01)
+        self.lib.drms_user_config_apply.argtypes = [ctypes.c_char_p, ctypes.c_size_t, ctypes.c_uint64]
+        self.assertEqual(self.lib.drms_user_config_apply(body, len(body), 0), 0)
+        self.assertEqual(self.lib.drms_user_config_save(1), 0)
+        request = ControlRequest(source=1, request_id=101, operation=5)
+        self.assertEqual(self.lib.drms_control_submit(ctypes.byref(request)), 1)
+        self.lib.drms_application_poll()
+        self.frames(1, 280000, 4200000)
+        self.frames(1, 280000, 0)
+        self.lib.drms_user_config_r0.restype = ctypes.c_double
+        self.assertEqual(self.lib.drms_user_config_r0(), 12345.0)
+        self.assertEqual(self.value('drms_acq_running').value, 1)
+
+    def test_baseline_write_failure_retains_old_value_and_resumes(self):
+        body = with_baseline_policy(build_body(r0_valid=1, r0=12345.0,
+            params=(4000, 0, 0, 0, 32000)), 3, 500, 0.01)
+        self.lib.drms_user_config_apply.argtypes = [ctypes.c_char_p, ctypes.c_size_t, ctypes.c_uint64]
+        self.assertEqual(self.lib.drms_user_config_apply(body, len(body), 0), 0)
+        self.assertEqual(self.lib.drms_user_config_save(1), 0)
+        ctypes.c_int.in_dll(self.lib, 'fail_user_write').value = 1
+        request = ControlRequest(source=1, request_id=102, operation=5)
+        self.assertEqual(self.lib.drms_control_submit(ctypes.byref(request)), 1)
+        self.lib.drms_application_poll()
+        self.frames(3, 280000, 4200000)
+        self.lib.drms_user_config_r0.restype = ctypes.c_double
+        self.assertEqual(self.lib.drms_user_config_r0(), 12345.0)
+        self.assertEqual(self.value('drms_acq_running').value, 1)
+
+    def test_baseline_rejects_staged_rate_different_from_sampling(self):
+        body = with_baseline_policy(build_body(params=(8000, 0, 0, 0, 16000)), 3, 250, 0.01)
+        self.lib.drms_user_config_apply.argtypes = [ctypes.c_char_p, ctypes.c_size_t, ctypes.c_uint64]
+        self.assertEqual(self.lib.drms_user_config_apply(body, len(body), 0), 0)
+        request = ControlRequest(source=1, request_id=103, operation=5)
+        self.assertEqual(self.lib.drms_control_submit(ctypes.byref(request)), 1)
+        self.lib.drms_application_poll()
+        self.frames(4, 280000, 4200000)
+        self.assertEqual(self.lib.drms_user_config_r0_valid(), 0)
 
     def command(self, line):
         self.assertEqual(self.lib.drms_console_dispatch(line.encode()), 1)

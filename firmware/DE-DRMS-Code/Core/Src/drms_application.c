@@ -7,6 +7,7 @@
 #include "drms_measurement.h"
 #include "drms_calibration.h"
 #include "drms_user_config.h"
+#include "drms_baseline.h"
 #include "drms_msc.h"
 #include "drms_capture_time.h"
 #include "drms_logging.h"
@@ -67,6 +68,12 @@ static DRMS_TimeAnchor nominal_anchor;  /* T7 过渡：以 wall-clock 为锚（�
 static DRMS_End session_end;
 static DRMS_Token msc_token;
 static uint32_t msc_active, msc_reported;
+static DRMS_BaselineContext baseline;
+static DRMS_Token baseline_token;
+static uint64_t baseline_version, baseline_ticket;
+static uint32_t baseline_active, baseline_rate, baseline_started, baseline_timeout_ms;
+static uint32_t baseline_overruns, baseline_drops, baseline_first_seq, baseline_previous_seq;
+static DRMS_Result baseline_failure;
 
 int drms_console_dispatch(const char *line)
 {
@@ -152,8 +159,34 @@ static DRMS_Result app_dispatch(const DRMS_Token *token, const DRMS_ControlReque
       }
       return result;
     }
-    case DRMS_OP_CONFIG_APPLY:
     case DRMS_OP_BASELINE_R0:
+    {
+      DRMS_BaselinePolicy policy;
+      if (!drms_acq_running || drms_acq_reference || cal_active ||
+          !drms_user_config_get_baseline_policy(&policy) ||
+          drms_user_config_baseline_rate() != drms_acq_rate)
+        return DRMS_INVALID;
+      if (policy.min_duration_us > 3600000000ULL)
+        return DRMS_INVALID;
+      uint64_t count_ms = ((uint64_t)policy.min_count * 1000u + drms_acq_rate - 1u) / drms_acq_rate;
+      uint64_t duration_ms = (policy.min_duration_us + 999u) / 1000u;
+      uint64_t expected_ms = count_ms > duration_ms ? count_ms : duration_ms;
+      if (expected_ms > 3600000u)
+        return DRMS_INVALID;
+      drms_baseline_configure(&baseline, policy.min_count, policy.min_duration_us, policy.max_cv);
+      baseline_token = *token;
+      baseline_version = drms_user_config_run_version();
+      baseline_ticket = drms_acq_raw_ticket_next();
+      baseline_rate = drms_acq_rate;
+      baseline_started = HAL_GetTick();
+      baseline_timeout_ms = (uint32_t)expected_ms + 30000u;
+      baseline_overruns = drms_acq_overruns;
+      baseline_drops = drms_acq_queue_drops;
+      baseline_failure = DRMS_OK;
+      baseline_active = 1;
+      return DRMS_ACCEPTED;
+    }
+    case DRMS_OP_CONFIG_APPLY:
     case DRMS_OP_CONFIG_SAVE:
     case DRMS_OP_FILE_DOWNLOAD:
     case DRMS_OP_CALIBRATE:
@@ -354,6 +387,24 @@ static void drain_frames(void)
   while (limit-- && drms_acq_pop_timed(&frame, &capture_lower_us))
   {
     pipeline_step_frame(&frame, consumed_raw, capture_lower_us);
+    if (baseline_active && consumed_raw >= baseline_ticket && baseline_failure == DRMS_OK)
+    {
+      DRMS_Sample sample;
+      double ohms;
+      if (!drms_decode_frame(frame.bytes, &sample) || !drms_excitation_ok(&sample) ||
+          !drms_resistance(&sample, calibration.scale, &ohms) || ohms <= 0.0 ||
+          (baseline.count && frame.sequence != baseline_previous_seq + 1u))
+        baseline_failure = DRMS_INCOMPLETE;
+      else
+      {
+        if (!baseline.count)
+          baseline_first_seq = frame.sequence;
+        uint64_t elapsed = ((uint64_t)(uint32_t)(frame.sequence - baseline_first_seq) * 1000000u) / baseline_rate;
+        uint64_t delta = baseline.count ? elapsed - baseline.duration_us : 0;
+        drms_baseline_feed(&baseline, ohms, delta);
+        baseline_previous_seq = frame.sequence;
+      }
+    }
     consumed_raw += 1;
     int valid = drms_decode_frame(frame.bytes, &latest);
     (void)valid;
@@ -396,6 +447,15 @@ static void drain_frames(void)
 
 static void stop_acquisition(void)
 {
+  if (baseline_active)
+  {
+    baseline_active = 0;
+    drms_acq_stop();
+    uint32_t quiet = drms_acq_is_quiescent();
+    (void)drms_control_complete(baseline_token, DRMS_CANCELLED,
+        DRMS_RES_TF_ACCESS | DRMS_RES_FLASH_MAINTENANCE |
+        (quiet ? DRMS_RES_ACQUISITION_CONFIG : 0));
+  }
   drms_acq_stop();
   if (cal_active)
     cal_result = 4;
@@ -456,11 +516,52 @@ static uint32_t begin(uint32_t rate, uint32_t reference)
   return ok;
 }
 
+static void baseline_service(uint32_t now)
+{
+  if (!baseline_active)
+    return;
+  if (!drms_acq_running || drms_acq_rate != baseline_rate || drms_acq_reference ||
+      drms_acq_overruns != baseline_overruns || drms_acq_queue_drops != baseline_drops)
+    baseline_failure = DRMS_INCOMPLETE;
+  if ((uint32_t)(now - baseline_started) >= baseline_timeout_ms)
+    baseline_failure = DRMS_TIMEOUT;
+  double mean, deviation;
+  int candidate = drms_baseline_candidate(&baseline, &mean, &deviation);
+  if (baseline_failure == DRMS_OK && candidate != 1)
+    return;
+  DRMS_Result result = baseline_failure;
+  uint32_t quiet_mask = DRMS_RES_ACQUISITION_CONFIG | DRMS_RES_TF_ACCESS |
+                        DRMS_RES_FLASH_MAINTENANCE;
+  baseline_active = 0;
+  if (!drms_acq_running && !drms_acq_is_quiescent())
+  {
+    result = DRMS_QUARANTINED;
+    quiet_mask &= ~DRMS_RES_ACQUISITION_CONFIG;
+  }
+  if (result == DRMS_OK)
+  {
+    drms_acq_stop();
+    if (!drms_acq_is_quiescent())
+    {
+      result = DRMS_QUARANTINED;
+      quiet_mask &= ~DRMS_RES_ACQUISITION_CONFIG;
+    }
+    else
+    {
+      result = drms_user_config_commit_baseline(mean, baseline_version, calibration.generation);
+      if (begin(baseline_rate, 0) != 0 && result == DRMS_OK)
+        result = DRMS_IO_ERROR;
+    }
+  }
+  (void)drms_control_complete(baseline_token, result, quiet_mask);
+  cmd_result = result == DRMS_OK ? 0 : 1;
+}
+
 static void execute(const DRMS_Command *command)
 {
   last_cmd = command->id;
   cmd_result = 0;
-  if (cal_active)
+  if (cal_active || baseline_active)
   {
     cmd_result = 3;
     return;
@@ -560,6 +661,7 @@ void drms_application_init(void)
   drms_record_session_init();
   drms_control_init(app_dispatch);
   msc_active = msc_reported = 0;
+  baseline_active = 0;
   /* T7：开机自动监测（显式记录仍需请求）；失败保持可调度与诊断 */
   if (!drms_acq_running)
     (void)begin(boot_rate, 0);
@@ -648,6 +750,7 @@ void drms_application_poll(void)
   session_service(now);
   if (!drms_record_session_barrier())
     drain_frames();
+  baseline_service(now);
   if (session_active)
   {
     /* END 已发布（会话收尾）：等存储把记录环排空并关闭文件后 ack，

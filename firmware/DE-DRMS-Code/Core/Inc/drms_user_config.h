@@ -70,6 +70,8 @@ typedef struct {
 } DRMS_BaselinePolicy;
 /* Returns 0 when no policy is configured. A staged policy follows run_version. */
 uint32_t drms_user_config_get_baseline_policy(DRMS_BaselinePolicy *out);
+/* Sampling rate of the snapshot that baseline commit would persist. */
+uint32_t drms_user_config_baseline_rate(void);
 /* Copy supported persisted monitoring settings. Returns 0 if no complete,
  * locally supported set is available; caller may retain safe defaults. */
 uint32_t drms_user_config_get_monitor(DRMS_MonitorConfig *out);
