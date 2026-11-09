@@ -91,7 +91,7 @@ static void session_cancel_local(DRMS_Result reason)
       (void)drms_control_report(session_token, reason);
     drms_acq_boundary_cancel(session_token);
     drms_record_session_cancel(session_token, reason);
-    drms_log_stop();
+    drms_log_stop_incomplete();
     session_armed = 0;
     session_active = 1; /* retain ownership until the storage close is confirmed */
     session_stopping = 0;
@@ -192,31 +192,28 @@ static void session_service(uint32_t now_ms)
     }
     else
     {
-      (void)drms_log_stop();
-      session_armed = 0;
+      session_cancel_local(DRMS_IO_ERROR);
       cmd_result = 5;
     }
     (void)now_ms;
   }
   if (session_stopping)
   {
-    /* 先发起一致末边界 E 请求，再在静止时刻归结（屏障持续，消费者不 pop） */
-    DRMS_Result erq = drms_acq_boundary_request(session_token);
-    if (erq != DRMS_ACCEPTED)
-    {
-      /* BUSY=已有在途请求（继续等）；INVALID=采集已停 → 无法取得 E，按
-       * INCOMPLETE 收尾，不猜测末边界（C1）。 */
-      if (!drms_acq_running)
-      {
-        drms_record_session_cancel(session_token, DRMS_INCOMPLETE);
-        (void)drms_log_stop();
-        session_stopping = 0;
-      }
-      return;
-    }
-    drms_acq_boundary_service();
+    /* Consume a completed E before issuing another request. A DMA callback
+     * can publish E between polls while newer DRDY events continue arriving. */
     DRMS_CaptureBoundary e;
     DRMS_Result eg = drms_acq_boundary_get(session_token, &e);
+    if (eg != DRMS_OK)
+    {
+      DRMS_Result erq = drms_acq_boundary_request(session_token);
+      if (erq == DRMS_INVALID)
+      {
+        session_cancel_local(DRMS_INCOMPLETE);
+        return;
+      }
+      drms_acq_boundary_service();
+      eg = drms_acq_boundary_get(session_token, &e);
+    }
     if (eg == DRMS_OK)
     {
       (void)drms_record_stop_at(session_token, e);
@@ -363,9 +360,9 @@ static void stop_acquisition(void)
   if (cal_active)
     cal_result = 4;
   cal_active = 0;
+  session_cancel_local(DRMS_CANCELLED);
   drain_frames();
   drms_log_stop();
-  session_cancel_local(DRMS_CANCELLED);
   r_valid = 0;
 }
 
@@ -609,7 +606,12 @@ void drms_application_poll(void)
       session_end = end;
       /* END 已发布：请求存储停止追加并排空到 ring_end 后关文件（C1） */
       if (drms_log_running)
-        drms_log_stop();
+      {
+        if (end.reason != DRMS_OK && end.reason != DRMS_EMPTY)
+          drms_log_stop_incomplete();
+        else
+          drms_log_stop();
+      }
       if (!drms_log_running && drms_log_state == 0)
       {
         DRMS_Result storage_result = drms_log_status ? DRMS_IO_ERROR : DRMS_OK;

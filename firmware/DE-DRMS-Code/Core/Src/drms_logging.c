@@ -17,6 +17,7 @@ static DRMS_FIFO queue;
 static uint8_t staging[32768] __attribute__((aligned(32)));
 static DRMS_LogMetadata metadata;
 static uint32_t action, file_open, pending_records, filename_index, last_flush, segment_records;
+static uint32_t incomplete;
 static uint64_t log_ticket_next;
 volatile uint32_t drms_log_running, drms_log_state, drms_log_status;
 volatile uint32_t drms_log_records, drms_log_dropped;
@@ -28,6 +29,7 @@ void drms_log_init(void)
   drms_log_running = drms_log_state = action = file_open = 0;
   drms_log_records = drms_log_dropped = pending_records = 0;
   log_ticket_next = 0;
+  incomplete = 0;
 }
 
 uint64_t drms_log_ticket_next(void)
@@ -49,7 +51,19 @@ int drms_log_start(const DRMS_LogMetadata *request)
 void drms_log_stop(void)
 {
   if (drms_log_state)
-    __atomic_store_n(&action, 2U, __ATOMIC_RELEASE);
+  {
+    uint32_t pending = __atomic_load_n(&action, __ATOMIC_ACQUIRE);
+    while (pending != 3U &&
+           !__atomic_compare_exchange_n(&action, &pending, 2U, 0,
+                                        __ATOMIC_RELEASE, __ATOMIC_ACQUIRE))
+      ;
+  }
+}
+
+void drms_log_stop_incomplete(void)
+{
+  if (drms_log_state)
+    __atomic_store_n(&action, 3U, __ATOMIC_RELEASE);
 }
 
 int drms_log_enqueue(const DRMS_RawFrame *frame)
@@ -110,6 +124,7 @@ static int open_file(unsigned int continuation)
   file_open = 1;
   if (!continuation)
   {
+    incomplete = 0;
     (void)drms_fifo_init(&queue, records, 32768, sizeof(records[0]));
     pending_records = drms_log_records = drms_log_dropped = 0;
     log_ticket_next = 0;
@@ -142,8 +157,10 @@ void drms_log_poll(void)
     if (!open_file(0))
       return;
   }
-  else if (request == 2)
+  else if (request == 2 || request == 3)
   {
+    if (request == 3)
+      incomplete = 1;
     drms_log_running = 0;
     drms_log_state = 3;
     if (!file_open)
@@ -191,9 +208,13 @@ void drms_log_poll(void)
        latency, and any full-queue loss is counted rather than silently skipped. */
     if (rollover)
       drms_log_state = 1;
-    drms_log_pack_footer(staging, segment_records, drms_log_dropped,
-                         drms_acq_overruns, drms_acq_queue_drops, HAL_GetTick());
-    UINT status = fx_file_write(&file, staging, 64);
+    UINT status = FX_SUCCESS;
+    if (!incomplete)
+    {
+      drms_log_pack_footer(staging, segment_records, drms_log_dropped,
+                           drms_acq_overruns, drms_acq_queue_drops, HAL_GetTick());
+      status = fx_file_write(&file, staging, 64);
+    }
     if (status == FX_SUCCESS)
       status = fx_file_close(&file);
     if (status == FX_SUCCESS)

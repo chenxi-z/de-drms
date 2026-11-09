@@ -14,7 +14,7 @@
       "STATUS": "immediate OK followed by key=value pairs",
       "HELP": "immediate command list",
       "START [rate]": "queue sample mode; default 4000 samples/s",
-      "STOP": "cancel queued controls, stop excitation, drain and close recording",
+      "STOP": "cancel queued controls, stop excitation, drain and close recording; interrupted recording has no clean footer",
       "REF": "queue reference mode at current rate",
       "MEASURE": "queue sample mode at current rate",
       "CAL [Rref_mohm]": "4096 valid reference samples; default 100000000 milliohms",

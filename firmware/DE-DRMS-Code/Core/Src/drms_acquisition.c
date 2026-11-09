@@ -66,10 +66,10 @@ DRMS_Result drms_acq_boundary_request(DRMS_Token token)
   if (!drms_acq_running)
     return DRMS_INVALID;
   mask = crit_enter();
-  if (boundary_pending.armed)
+  if (boundary_pending.armed || boundary_reply.valid)
   {
     crit_exit(mask);
-    return DRMS_BUSY;
+    return DRMS_BUSY; /* preserve an unanswered boundary until it is consumed */
   }
   boundary_pending.token = token;
   boundary_pending.armed = 1;

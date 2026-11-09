@@ -158,6 +158,45 @@ class ArchitectureIntegrationTest(unittest.TestCase):
         self.lib.drms_application_poll()
         self.assertEqual(self.status()['r_valid'], 0)
 
+    def test_delayed_stop_keeps_first_captured_end_boundary(self):
+        self.card(True)
+        self.lib.drms_storage_poll()
+        self.assertEqual(self.lib.drms_console_dispatch(b'RECORD'), 1)
+        for _ in range(3):
+            self.lib.drms_application_poll()
+            self.lib.drms_log_poll()
+        self.lib.drms_acq_drdy()  # first frame is still in DMA
+        self.assertEqual(self.lib.drms_console_dispatch(b'END'), 1)
+        self.lib.drms_application_poll()
+        self.lib.complete_frame(2800000, 4200000)  # freezes E immediately
+        self.lib.drms_acq_drdy()  # second frame arrives after E
+        self.lib.complete_frame(2800000, 4200000)
+        for _ in range(4):
+            self.lib.drms_application_poll()
+            self.lib.drms_log_poll()
+        self.assertEqual(self.value('drms_log_records').value, 1)
+        self.assertEqual(self.value('drms_log_state').value, 0)
+
+    def test_emergency_stop_does_not_write_success_footer(self):
+        self.card(True)
+        self.lib.drms_storage_poll()
+        self.assertEqual(self.lib.drms_console_dispatch(b'RECORD'), 1)
+        for _ in range(3):
+            self.lib.drms_application_poll()
+            self.lib.drms_log_poll()
+        self.lib.drms_acq_drdy()
+        self.lib.complete_frame(2800000, 4200000)
+        self.lib.drms_application_poll()
+        self.lib.drms_log_poll()
+        self.assertEqual(self.lib.drms_console_dispatch(b'STOP'), 1)
+        for _ in range(4):
+            self.lib.drms_application_poll()
+            self.lib.drms_log_poll()
+        self.assertEqual(self.value('drms_log_state').value, 0)
+        self.assertEqual(self.value('written_bytes').value, 80)
+        data = bytes((ctypes.c_ubyte * 1048576).in_dll(self.lib, 'file_bytes'))[:80]
+        self.assertNotIn(b'DEND', data)
+
     def test_monitor_state_is_unconfigured_without_client_table(self):
         # 未配置区间表/基线：monitor 报 INVALID(无基线)；无表时为 UNCONFIGURED。
         # 两种都绝不冒充正常等级（CONFIRMED）。

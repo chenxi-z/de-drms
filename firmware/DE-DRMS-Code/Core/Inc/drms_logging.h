@@ -14,6 +14,8 @@ typedef struct {
 void drms_log_init(void);
 int drms_log_start(const DRMS_LogMetadata *metadata);
 void drms_log_stop(void);
+/* Drain and close without a clean footer when record completeness is unknown. */
+void drms_log_stop_incomplete(void);
 /* 返回 1=已入环；0=未运行或记录环满（模块内计全局诊断 drms_log_dropped，
  * 处理端另按返回值计入本次会话 log_dropped 并触发 C1 停止追加规则）。 */
 int drms_log_enqueue(const DRMS_RawFrame *frame);

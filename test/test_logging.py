@@ -127,6 +127,18 @@ class LoggingTest(unittest.TestCase):
         self.assertEqual((self.value('closes').value, self.value('flushes').value), (1, 1))
         self.assertEqual(self.value('drms_log_state').value, 0)
 
+    def test_incomplete_stop_never_writes_clean_footer(self):
+        self.start()
+        self.lib.drms_log_enqueue(ctypes.byref(Raw(sequence=123)))
+        self.lib.drms_log_stop_incomplete()
+        self.lib.drms_log_stop()  # a later ordinary stop cannot clear the failure
+        self.lib.drms_log_poll()
+        data = bytes((ctypes.c_ubyte * 1048576).in_dll(self.lib, 'file_bytes'))[:self.value('written_bytes').value]
+        self.assertEqual(len(data), 80)
+        self.assertEqual(data[:4], b'DRMS')
+        self.assertEqual(self.value('closes').value, 1)
+        self.assertEqual(self.value('drms_log_state').value, 0)
+
     def test_io_failure_degrades_storage_and_counts_unwritten_records(self):
         self.start()
         self.value('fail_at').value = 2

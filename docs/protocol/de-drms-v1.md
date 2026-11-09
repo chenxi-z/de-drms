@@ -65,7 +65,7 @@ STAT_1 单独的 `F_ADCIN` 保留为诊断：图上 AIN2N 接 AVSS 会触发低�
 log_dropped 是本次 RECORD 会话累计值，SPI/采集队列丢帧是该次 START 累计值。
 记录结构本身约 2.048 MB/s@128 kSPS；该采样档和写卡吞吐量仍须实测。
 
-正常 STOP/END 的最后步骤是写有效尾、关闭文件和 flush。尾校验和计数匹配才叫正常结束；
+正常 END 的最后步骤是写有效尾、关闭文件和 flush。安全 STOP 中断正在进行的记录时关闭并 flush 已写数据，文件保持缺尾以标记不完整。尾校验和计数匹配才叫正常结束；
 缺尾/截断只能恢复前缀，突然断电仍可能损坏 FAT 或卡内部缓存。
 解析示例：`python3 tools/de_drms_log.py input.BIN --csv output.csv`，
 stderr 输出完整性、有效样本和丢帧统计；正常关闭与计数匹配才有 `clean_end=true`，
