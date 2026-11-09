@@ -5,6 +5,7 @@ commit_baseline 事务与版本语义、每步掉电注入、同值 NO_CHANGE、
 保护、校准代次变化使旧 R0 失效。
 """
 import ctypes
+import re
 from pathlib import Path
 import struct
 import subprocess
@@ -132,6 +133,47 @@ class UserConfigTest(unittest.TestCase):
         self.lib.drms_user_config_init()
         self.lib.drms_user_config_set_calibration_generation(generation)
         self.lib.drms_user_config_load()
+
+    def test_save_and_baseline_preserve_alias_and_unknown_fields(self):
+        base = bytearray(build_body())[:-4]
+        extras = struct.pack('<HH', 3, 5) + b'meter'
+        extras += struct.pack('<HH', 1234, 4) + b'\x00\x01\xfe\xff'
+        base += extras
+        struct.pack_into('<I', base, 8, len(base) + 4)
+        body = bytes(base) + struct.pack('<I', crc32(base))
+        self.assertEqual(self.lib.drms_user_config_apply(body, len(body), 0), OK)
+        self.assertEqual(self.lib.drms_user_config_save(1), OK)
+        page = self.page(0)
+        self.assertIn(extras, page[:struct.unpack_from('<I', page, 8)[0] - 4])
+        self.assertEqual(self.lib.drms_user_config_commit_baseline(10000.0, 1, 0), OK)
+        page = self.page(1)
+        self.assertIn(extras, page[:struct.unpack_from('<I', page, 8)[0] - 4])
+
+    def test_export_running_snapshot_matches_committed_bytes(self):
+        body = build_body(intervals=[(7, 1, True, 0.5, 1.5, 0.0, 'test')],
+                          params=(4000, 1000, 200000, 50000, 32000))
+        self.assertEqual(self.lib.drms_user_config_apply(body, len(body), 0), OK)
+        self.assertEqual(self.lib.drms_user_config_commit_baseline(10000.0, 1, 0), OK)
+        output = ctypes.create_string_buffer(4096)
+        self.lib.drms_user_config_export.argtypes = [ctypes.c_void_p, ctypes.c_uint32]
+        self.lib.drms_user_config_export.restype = ctypes.c_uint32
+        size = self.lib.drms_user_config_export(output, len(output))
+        self.assertGreater(size, 0)
+        self.assertEqual(output.raw[:size], self.page(0)[:size])
+        self.assertEqual(self.lib.drms_user_config_export(output, 16), 0)
+
+    def test_flash_transaction_stack_fits_application_thread(self):
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / 'config.o'
+            source = ROOT / 'firmware/DE-DRMS-Code/Core'
+            subprocess.run(['cc', '-O0', '-fstack-usage', '-I', str(source / 'Inc'),
+                            '-c', str(source / 'Src/drms_user_config.c'), '-o', str(output)], check=True)
+            usage = output.with_suffix('.su').read_text()
+            for name in ('validate_encoded', 'drms_user_config_load',
+                         'drms_user_config_save', 'drms_user_config_commit_baseline'):
+                match = re.search(r'\b' + name + r'\s+(\d+)\s+', usage)
+                self.assertIsNotNone(match, name)
+                self.assertLess(int(match.group(1)), 512, name)
 
     def test_golden_vector_encoding_is_stable(self):
         # 经 commit_baseline 生成一页并核对编码结构（黄金字节向量）

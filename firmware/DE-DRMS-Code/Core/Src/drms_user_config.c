@@ -15,7 +15,6 @@ int drms_user_backend_read(unsigned int page, unsigned int offset,
 #define DRMS_USER_TLV_INTERVALS 1u
 #define DRMS_USER_TLV_PARAMS 2u
 #define DRMS_USER_TLV_ALIAS 3u
-#define DRMS_USER_UNKNOWN_MAX 4u
 
 static const uint8_t MAGIC_PREFIX[7] = {'D', 'R', 'M', 'S', 'U', 'C', '0'};
 static const uint8_t COMMIT_MAGIC[4] = {'U', 'C', 'M', 'T'};
@@ -38,10 +37,15 @@ typedef struct {
   double r0;
   uint8_t interval_count;
   IntervalEntry intervals[DRMS_USER_INTERVALS_MAX];
+  uint16_t extra_length;
+  uint8_t extra[DRMS_USER_BODY_MAX]; /* retained alias and unrecognized TLVs */
 } RunConfig;
 
 static RunConfig run;
 static RunConfig staged;
+/* Transactions execute only in the serialized configuration owner context. */
+static RunConfig transaction_workspace;
+static uint8_t transaction_body[DRMS_USER_BODY_MAX];
 static uint32_t have_staged;
 static uint64_t run_version, persisted_version;
 static uint32_t dirty, unsupported_schema, have_config;
@@ -189,6 +193,7 @@ static int validate_intervals(const uint8_t *value, uint32_t length)
 static int parse_tlv(const uint8_t *body, uint32_t body_len, RunConfig *cfg)
 {
   cfg->interval_count = 0;
+  cfg->extra_length = 0;
   uint32_t offset = 40;
   while (offset + 4u <= body_len - 4u)
   {
@@ -236,8 +241,14 @@ static int parse_tlv(const uint8_t *body, uint32_t body_len, RunConfig *cfg)
       if (len > 64 || !utf8_valid(value, len))
         return 0;
     }
-    /* 未知 type：整体校验通过但按长度跳过（不做保留回写；真正的
-       前向兼容边界是 schema 版本字节，见 load 的恢复状态）。 */
+    if (type != DRMS_USER_TLV_INTERVALS && type != DRMS_USER_TLV_PARAMS)
+    {
+      uint32_t size = 4u + len;
+      if (size > sizeof(cfg->extra) - cfg->extra_length)
+        return 0;
+      memcpy(cfg->extra + cfg->extra_length, body + offset, size);
+      cfg->extra_length += (uint16_t)size;
+    }
     offset += 4u + len;
   }
   return offset == body_len - 4u;
@@ -296,11 +307,22 @@ static uint32_t encode_body(const RunConfig *cfg, uint8_t *out, uint32_t capacit
     put64(out + offset + 32, cfg->stale_timeout_us);
     offset += 40;
   }
+  if ((uint32_t)cfg->extra_length > capacity - offset - 4u)
+    return 0;
+  memcpy(out + offset, cfg->extra, cfg->extra_length);
+  offset += cfg->extra_length;
   if (offset + 4u > capacity)
     return 0;
   put32(out + 8, offset + 4u); /* 回填真实总长，CRC 覆盖含长度字段的完整头 */
   put32(out + offset, drms_crc32(out, offset));
   return offset + 4;
+}
+
+uint32_t drms_user_config_export(uint8_t *out, uint32_t capacity)
+{
+  if (!out || !have_config || unsupported_schema)
+    return 0;
+  return encode_body(&run, out, capacity);
 }
 
 static int validate_encoded(const uint8_t *encoded, size_t length, RunConfig *out)
@@ -314,17 +336,17 @@ static int validate_encoded(const uint8_t *encoded, size_t length, RunConfig *ou
     return 0;
   if (get32(encoded + length - 4) != drms_crc32(encoded, length - 4))
     return 0;
-  RunConfig cfg;
-  memset(&cfg, 0, sizeof(cfg));
-  cfg.config_version = get64(encoded + 12);
-  cfg.calibration_version = get64(encoded + 20);
-  cfg.r0_valid = encoded[28] & 1u;
-  cfg.r0 = get_f64(encoded + 32);
-  if (cfg.r0_valid && (!finite(cfg.r0) || cfg.r0 <= 0.0))
+  RunConfig *cfg = &transaction_workspace;
+  memset(cfg, 0, sizeof(*cfg));
+  cfg->config_version = get64(encoded + 12);
+  cfg->calibration_version = get64(encoded + 20);
+  cfg->r0_valid = encoded[28] & 1u;
+  cfg->r0 = get_f64(encoded + 32);
+  if (cfg->r0_valid && (!finite(cfg->r0) || cfg->r0 <= 0.0))
     return 0;
-  if (!parse_tlv(encoded, (uint32_t)length, &cfg))
+  if (!parse_tlv(encoded, (uint32_t)length, cfg))
     return 0;
-  *out = cfg;
+  *out = *cfg;
   return 1;
 }
 
@@ -391,6 +413,9 @@ static int page_probe(unsigned int page, uint64_t *version, uint32_t *body_len)
     return 0;
   if (get32(crc_bytes) != get32(commit + 8))
     return 0;
+  if (!drms_user_backend_read(page, 0, transaction_body, len) ||
+      drms_crc32(transaction_body, len - 4u) != get32(crc_bytes))
+    return 0;
   *version = get64(head + 12);
   *body_len = len;
   return 1;
@@ -423,7 +448,7 @@ void drms_user_config_load(void)
   active_page = (int32_t)best;
   persisted_version = version;
   run_version = version;
-  uint8_t body[DRMS_USER_BODY_MAX];
+  uint8_t *body = transaction_body;
   if (!drms_user_backend_read(best, 0, body, len))
     return;
   if (body[7] != SCHEMA_VERSION)
@@ -432,10 +457,8 @@ void drms_user_config_load(void)
     unsupported_schema = 1;
     return;
   }
-  RunConfig cfg;
-  if (!validate_encoded(body, len, &cfg))
+  if (!validate_encoded(body, len, &run))
     return; /* 提交有效但内容损坏：出厂默认，页保持供诊断 */
-  run = cfg;
   have_config = 1;
   dirty = 0;
   if (run.r0_valid && run.calibration_version != calibration_generation_now)
@@ -451,10 +474,8 @@ DRMS_Result drms_user_config_apply(const uint8_t *encoded, size_t length,
     return DRMS_UNSUPPORTED; /* 未知 schema：普通路径不得覆盖 */
   if (expected_version != run_version)
     return DRMS_STALE;
-  RunConfig cfg;
-  if (!validate_encoded(encoded, length, &cfg))
+  if (!validate_encoded(encoded, length, &staged))
     return DRMS_INVALID;
-  staged = cfg;
   have_staged = 1;
   ++run_version;
   dirty = 1;
@@ -469,16 +490,17 @@ DRMS_Result drms_user_config_save(uint64_t expected_version)
     return DRMS_STALE;
   if (!dirty)
     return DRMS_NO_CHANGE;
-  RunConfig out = have_staged ? staged : run;
-  out.config_version = run_version;
-  uint8_t body[DRMS_USER_BODY_MAX];
-  uint32_t body_len = encode_body(&out, body, sizeof(body));
+  RunConfig *out = &transaction_workspace;
+  *out = have_staged ? staged : run;
+  out->config_version = run_version;
+  uint8_t *body = transaction_body;
+  uint32_t body_len = encode_body(out, body, sizeof(transaction_body));
   if (!body_len)
     return DRMS_INVALID;
   unsigned int page = active_page == 0 ? 1u : 0u;
   if (!page_commit(page, body, body_len))
     return DRMS_IO_ERROR; /* 旧页未动；未保存标志保留 */
-  run = out;
+  run = *out;
   have_staged = 0;
   persisted_version = run_version;
   dirty = 0;
@@ -496,21 +518,22 @@ DRMS_Result drms_user_config_commit_baseline(double r0, uint64_t expected_versio
     return DRMS_INVALID;
   if (expected_version != run_version)
     return DRMS_STALE;
-  RunConfig out = have_staged ? staged : run;
-  out.r0 = r0;
-  out.r0_valid = 1;
-  out.calibration_version = calibration_version;
-  out.config_version = run_version + 1u; /* 配置与 R0 一起提交、一起发布 */
-  uint8_t body[DRMS_USER_BODY_MAX];
-  uint32_t body_len = encode_body(&out, body, sizeof(body));
+  RunConfig *out = &transaction_workspace;
+  *out = have_staged ? staged : run;
+  out->r0 = r0;
+  out->r0_valid = 1;
+  out->calibration_version = calibration_version;
+  out->config_version = run_version + 1u; /* 配置与 R0 一起提交、一起发布 */
+  uint8_t *body = transaction_body;
+  uint32_t body_len = encode_body(out, body, sizeof(transaction_body));
   if (!body_len)
     return DRMS_INVALID;
   unsigned int page = active_page == 0 ? 1u : 0u;
   if (!page_commit(page, body, body_len))
     return DRMS_IO_ERROR; /* 失败保留旧 R0 与未保存状态 */
-  run = out;
+  run = *out;
   have_staged = 0;
-  run_version = out.config_version;
+  run_version = out->config_version;
   persisted_version = run_version;
   dirty = 0;
   active_page = (int32_t)page;

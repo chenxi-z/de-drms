@@ -65,6 +65,9 @@ uint32_t drms_user_config_unsupported_schema(void); /* 未知 schema 恢复状�
 /* Copy supported persisted monitoring settings. Returns 0 if no complete,
  * locally supported set is available; caller may retain safe defaults. */
 uint32_t drms_user_config_get_monitor(DRMS_MonitorConfig *out);
+/* Configuration owner copies the committed running snapshot into caller storage.
+ * Returns encoded length or zero if no compatible configuration or insufficient space. */
+uint32_t drms_user_config_export(uint8_t *out, uint32_t capacity);
 
 /* 运行配置快照（已校验）；返回 1 = 有已应用配置。 */
 uint32_t drms_user_config_get_intervals(uint16_t *count,

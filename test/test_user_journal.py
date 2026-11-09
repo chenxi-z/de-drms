@@ -61,6 +61,17 @@ class UserJournalTest(t.UserConfigTest):
         # 编程调用数 = ceil(44/16) body + 1 commit = 4
         self.assertEqual(self.program_count(), 4)
 
+    def test_corrupt_newest_body_recovers_older_valid_page(self):
+        self.assertEqual(self.lib.drms_user_config_commit_baseline(100000.0, 0, 1), t.OK)
+        self.assertEqual(self.lib.drms_user_config_apply(t.build_body(2), len(t.build_body(2)), 1), t.OK)
+        self.assertEqual(self.lib.drms_user_config_save(2), t.OK)
+        newer = self.page_ptr(1)
+        byte = ctypes.c_ubyte.from_address(newer + 35)
+        byte.value ^= 1
+        self.reboot(generation=1)
+        self.assertEqual(self.lib.drms_user_config_persisted_version(), 1)
+        self.assertEqual(self.lib.drms_user_config_r0(), 100000.0)
+
     def test_boot_prefers_newest_valid_page(self):
         # 两页都有有效提交：取 config_version 大者
         self.lib.drms_user_config_commit_baseline(100000.0, 0, 1)   # 页 A v1
