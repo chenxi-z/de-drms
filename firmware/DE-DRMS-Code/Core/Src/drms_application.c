@@ -45,7 +45,9 @@ static _Alignas(8) uint8_t monitor_store[DRMS_APP_CONTEXT_BYTES];
 static DRMS_MonitorContext *const monitor = (DRMS_MonitorContext *)monitor_store;
 static DRMS_Token session_token;
 static uint64_t session_record_id;
+static uint64_t next_record_id = 1;
 static uint32_t session_armed;   /* prepare 已完成，等文件就绪+边界 B */
+static uint32_t session_cancelled;
 static uint32_t session_stopping;/* request_stop 已发，等 E */
 static uint32_t session_active;  /* classify/记录窗口生效中 */
 static uint64_t consumed_raw;    /* 消费端 raw_ticket 水位 */
@@ -75,10 +77,17 @@ int drms_console_dispatch(const char *line)
 
 static void session_cancel_local(DRMS_Result reason)
 {
-  if (session_armed || session_active)
+  if ((session_armed || session_active) && !session_cancelled)
   {
+    if (session_armed)
+      (void)drms_control_report(session_token, reason);
+    drms_acq_boundary_cancel(session_token);
     drms_record_session_cancel(session_token, reason);
-    session_armed = session_active = session_stopping = 0;
+    drms_log_stop();
+    session_armed = 0;
+    session_active = 1; /* retain ownership until the storage close is confirmed */
+    session_stopping = 0;
+    session_cancelled = 1;
   }
 }
 
@@ -103,14 +112,21 @@ static DRMS_Result app_dispatch(const DRMS_Token *token, const DRMS_ControlReque
         .scale = calibration.scale, .reference_ohms = calibration.reference_ohms,
         .year = time.year, .month = time.month, .day = time.day, .hour = time.hour,
         .minute = time.minute, .second = time.second, .time_valid = time.valid};
-      if (!drms_log_start(&metadata))
-        return DRMS_IO_ERROR;
-      session_record_id = request->request_id ? request->request_id : HAL_GetTick();
+      if (!next_record_id)
+        return DRMS_INVALID;
+      session_record_id = next_record_id++;
       session_token = *token;
       DRMS_Result rc = drms_record_prepare(*token, session_record_id);
       if (rc != DRMS_ACCEPTED)
+        return rc;
+      if (!drms_log_start(&metadata))
+      {
+        drms_record_session_cancel(*token, DRMS_IO_ERROR);
+        (void)drms_record_end_ack(*token, DRMS_IO_ERROR);
         return DRMS_IO_ERROR;
+      }
       session_armed = 1;
+      session_cancelled = 0;
       return DRMS_ACCEPTED; /* 文件就绪+边界 B 在 poll 中归结 */
     }
     case DRMS_OP_CONFIG_APPLY:
@@ -163,6 +179,7 @@ static void session_service(uint32_t now_ms)
       have_begin = 1;
       session_armed = 0;
       session_active = 1;
+      (void)drms_control_report(session_token, DRMS_OK);
       cmd_result = 0;
     }
     else
@@ -350,6 +367,7 @@ static uint32_t begin(uint32_t rate, uint32_t reference)
   uint32_t ok = drms_acq_start(rate, reference) ? 0 : 2;
   if (!ok)
   {
+    consumed_raw = 0; /* the acquisition ring starts a new ticket generation */
     nominal_anchor.acquisition_generation = drms_acq_generation();
     nominal_anchor.rate_hz = rate;
     nominal_anchor.sample_seq0 = drms_acq_sample_seq_next();
@@ -405,8 +423,13 @@ static void execute(const DRMS_Command *command)
     case DRMS_CMD_END:
       if (session_active || session_armed)
       {
-        drms_record_session_request_stop();
-        session_stopping = 1;
+        if (session_armed)
+          session_cancel_local(DRMS_CANCELLED);
+        else
+        {
+          drms_record_session_request_stop();
+          session_stopping = 1;
+        }
         cmd_result = 100;
       }
       else
@@ -460,6 +483,7 @@ void drms_application_init(void)
     (void)drms_monitor_configure(monitor, &cfg);
   }
   /* T1：控制裁决接管业务请求投递 */
+  drms_record_session_init();
   drms_control_init(app_dispatch);
   /* T7：开机自动监测（显式记录仍需请求）；失败保持可调度与诊断 */
   if (!drms_acq_running)
@@ -482,8 +506,13 @@ void drms_application_poll(void)
        * 无采集时启动监测；监测不因记录结束而停止。 */
       if (session_active || session_armed)
       {
-        drms_record_session_request_stop();
-        session_stopping = 1;
+        if (session_armed)
+          session_cancel_local(DRMS_CANCELLED);
+        else
+        {
+          drms_record_session_request_stop();
+          session_stopping = 1;
+        }
         last_cmd = DRMS_CMD_END;
       }
       else if (drms_acq_running && !drms_acq_reference)
@@ -525,8 +554,18 @@ void drms_application_poll(void)
         cmd_result = 1;
     }
   }
+  drms_record_session_poll(now, drms_acq_queue_used(), 4096);
+  if (session_armed || session_active)
+  {
+    DRMS_End pending;
+    if (drms_record_end_get(&pending) == DRMS_OK &&
+        (pending.reason == DRMS_TIMEOUT ||
+         (pending.reason == DRMS_INCOMPLETE && (session_armed || session_stopping))))
+      session_cancel_local(pending.reason);
+  }
   session_service(now);
-  drain_frames();
+  if (!drms_record_session_barrier())
+    drain_frames();
   if (session_active)
   {
     /* END 已发布（会话收尾）：等存储把记录环排空并关闭文件后 ack，
@@ -540,9 +579,16 @@ void drms_application_poll(void)
         drms_log_stop();
       if (!drms_log_running && drms_log_state == 0)
       {
-        (void)drms_record_end_ack(end.token, DRMS_OK);
+        DRMS_Result storage_result = drms_log_status ? DRMS_IO_ERROR : DRMS_OK;
+        (void)drms_record_end_ack(end.token, storage_result);
+        if (storage_result != DRMS_OK)
+          cmd_result = 5;
+        (void)drms_control_release(end.token,
+                                   DRMS_RES_ACQUISITION_CONFIG |
+                                   DRMS_RES_RECORD_SESSION | DRMS_RES_TF_ACCESS);
         session_active = 0;
         session_stopping = 0;
+        session_cancelled = 0;
         have_begin = 0;
       }
     }

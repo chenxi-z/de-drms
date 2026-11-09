@@ -61,6 +61,21 @@ DRMS_Result drms_acq_boundary_request(DRMS_Token token)
   return DRMS_ACCEPTED;
 }
 
+uint32_t drms_acq_queue_used(void)
+{
+  return drms_fifo_count(&queue);
+}
+
+void drms_acq_boundary_cancel(DRMS_Token token)
+{
+  uint32_t mask = crit_enter();
+  if (boundary_pending.armed && token_match(boundary_pending.token, token))
+    boundary_pending.armed = 0;
+  if (boundary_reply.valid && token_match(boundary_reply.token, token))
+    boundary_reply.valid = 0;
+  crit_exit(mask);
+}
+
 void drms_acq_boundary_service(void)
 {
   uint32_t mask = crit_enter();
