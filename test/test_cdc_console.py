@@ -42,6 +42,7 @@ uint32_t HAL_GetUIDw2(void);
 MOCK = r'''
 #include "app_usbx_device.h"
 #include "drms_cdc.h"
+#include "drms_control.h"
 #include <string.h>
 #include <stdio.h>
 UX_SLAVE_CLASS_CDC_ACM cdc={1};
@@ -52,6 +53,16 @@ uint32_t HAL_GetUIDw0(void) { return 1; }
 uint32_t HAL_GetUIDw1(void) { return 2; }
 uint32_t HAL_GetUIDw2(void) { return 3; }
 int drms_entropy_boot_id(void *ctx,uint64_t *out) { *out=0x123456789abcdef0ULL; return 1; }
+static DRMS_Token test_token;
+static DRMS_Result test_dispatch(const DRMS_Token *token, const DRMS_ControlRequest *request) {
+ (void)request;test_token=*token;return DRMS_ACCEPTED;
+}
+void install_control(void) { drms_control_init(test_dispatch); }
+void complete_operation(void) {
+ DRMS_ControlRequest request={.source=DRMS_SOURCE_CDC,.request_id=123,.operation=DRMS_OP_MSC_EXPORT};
+ drms_control_submit(&request);drms_control_poll(1);
+ drms_control_complete(test_token,DRMS_OK,DRMS_RES_TF_ACCESS);
+}
 UINT ux_device_class_cdc_acm_ioctl(void *a,UINT b,VOID *c) { if(c==(void *)UX_WAIT_FOREVER) ++indefinite_io;if(b==4) ++abort_calls;return 0; }
 UINT ux_device_class_cdc_acm_read(void *a,UCHAR *b,ULONG n,ULONG *actual) {
  ++read_calls; *actual=incoming_len;memcpy(b,incoming,*actual);incoming_len=0;
@@ -79,7 +90,7 @@ class CDCConsoleTest(unittest.TestCase):
         cls.tmp = tempfile.TemporaryDirectory()
         p = Path(cls.tmp.name)
         (p / 'app_usbx_device.h').write_text(HEADER)
-        (p / 'main.h').write_text('#include <stdint.h>\nuint32_t HAL_GetTick(void);\nuint32_t HAL_GetUIDw0(void);\nuint32_t HAL_GetUIDw1(void);\nuint32_t HAL_GetUIDw2(void);\n')
+        (p / 'main.h').write_text('#include <stdint.h>\n#define __get_PRIMASK() 0U\n#define __disable_irq() ((void)0)\n#define __set_PRIMASK(x) ((void)(x))\nuint32_t HAL_GetTick(void);\nuint32_t HAL_GetUIDw0(void);\nuint32_t HAL_GetUIDw1(void);\nuint32_t HAL_GetUIDw2(void);\n')
         (p / 'mock.c').write_text(MOCK)
         src = ROOT / 'firmware/DE-DRMS-Code/Core'
         subprocess.run(['cc', '-shared', '-fPIC', '-Wall', '-Werror=implicit-function-declaration',
@@ -88,6 +99,7 @@ class CDCConsoleTest(unittest.TestCase):
                         str(src.parent / 'App/interfaces/cdc/drms_cdc_v2.c'),
                         str(src.parent / 'App/interfaces/cdc/drms_cdc_frame.c'),
                         str(src / 'Src/drms_measurement.c'),
+                        str(src / 'Src/drms_control.c'),
                         str(p / 'mock.c'), '-o', str(p / 'cdc.so')], check=True)
         cls.lib = ctypes.CDLL(str(p / 'cdc.so'))
 
@@ -109,6 +121,7 @@ class CDCConsoleTest(unittest.TestCase):
             self.value(name).value = 0
         self.value('can_io').value = 1
         self.lib.set_dtr(1)
+        self.lib.install_control()
         self.lib.drms_cdc_start()
         self.lib.activate()
 
@@ -178,6 +191,28 @@ class CDCConsoleTest(unittest.TestCase):
             if code != 255 and i < len(wire) - 1: decoded.append(0)
         self.assertEqual(struct.unpack_from('<BBHIQ', decoded), (2, 2, 2, 1, 2))
         self.assertEqual(struct.unpack_from('<HHH', decoded, 20), (0x8001, 2, 11))
+
+    def test_v2_get_operation_returns_retained_result(self):
+        import struct
+        self.lib.complete_operation()
+        self.send(bytes.fromhex('040201010101010102010101010101010101010105d7970e6600'))
+        self.send(bytes.fromhex('04020103020101010202010101010101020c0101040b800802010101010101010550a62bcd00'))
+        size = self.value('written_len').value
+        wire = bytes((ctypes.c_ubyte * 512).in_dll(self.lib, 'written')[:size])
+        decoded = bytearray(); i = 0
+        while i < len(wire) - 1:
+            code = wire[i]; i += 1
+            decoded += wire[i:i + code - 1]; i += code - 1
+            if code != 255 and i < len(wire) - 1: decoded.append(0)
+        self.assertEqual(struct.unpack_from('<BBHIQ', decoded), (2, 2, 3, 1, 2))
+        fields = {}; pos = 20
+        while pos < len(decoded) - 4:
+            tag, size = struct.unpack_from('<HH', decoded, pos); pos += 4
+            fields[tag & 0x7fff] = decoded[pos:pos+size]; pos += size
+        self.assertEqual(int.from_bytes(fields[1], 'little'), 0)
+        self.assertEqual(int.from_bytes(fields[11], 'little'), 1)
+        self.assertEqual(fields[45], b'\x02')
+        self.assertEqual(fields[44], b'\x02')
 
     def test_short_and_empty_packets_preserve_line(self):
         self.send(b'PI')
