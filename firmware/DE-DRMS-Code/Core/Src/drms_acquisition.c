@@ -10,7 +10,7 @@ static DRMS_RawFrame frames[4096];
 static DRMS_FIFO queue;
 static uint8_t dma_rx[12] __attribute__((aligned(4)));
 static uint8_t dma_tx[12] __attribute__((aligned(4)));
-static volatile uint32_t busy, last_completion;
+static volatile uint32_t busy, last_completion, abort_unconfirmed;
 static uint32_t inflight_sequence;
 static uint64_t inflight_capture_us, consumed_ticket;
 static uint32_t clock_last_tick;
@@ -190,8 +190,16 @@ void drms_acq_stop(void)
     ++unknown_loss_epoch; /* 停止后观察到的 DRDY 无法计数：连续性不可证明 */
   drms_acq_running = 0;
   HAL_GPIO_WritePin(CURR_DIS_GPIO_Port, CURR_DIS_Pin, GPIO_PIN_SET);
-  (void)HAL_SPI_Abort(&hspi1);
-  busy = 0;
+  if (busy && !abort_unconfirmed)
+  {
+    if (HAL_SPI_Abort(&hspi1) == HAL_OK)
+      busy = 0;
+    else
+    {
+      abort_unconfirmed = 1;
+      drms_acq_error = 3;
+    }
+  }
   cs(1);
   HAL_GPIO_WritePin(ADS_RESET_GPIO_Port, ADS_RESET_Pin, GPIO_PIN_RESET);
   HAL_GPIO_WritePin(ANA_EN_GPIO_Port, ANA_EN_Pin, GPIO_PIN_RESET);
@@ -215,6 +223,8 @@ int drms_acq_start(uint32_t rate, unsigned int reference)
     return 0;
   }
   drms_acq_stop();
+  if (abort_unconfirmed)
+    return 0;
   drms_acq_error = 0;
   drms_acq_edges = drms_acq_overruns = drms_acq_queue_drops = 0;
   /* 新采集代次：流计数清零，边界请求/回复一并作废（旧代次边界不得交付）。 */
@@ -407,29 +417,40 @@ void drms_acq_poll(void)
 
 /* ---------------- 资源生命周期后端（T3/R4） ---------------- */
 
+uint32_t drms_acq_is_quiescent(void)
+{
+  uint32_t mask = crit_enter();
+  uint32_t quiet = !busy && !drms_acq_running && !abort_unconfirmed;
+  crit_exit(mask);
+  return quiet;
+}
+
 static DRMS_Result acq_backend_abort(void)
 {
-  if (!drms_acq_running && !busy)
-    return DRMS_ACCEPTED; /* 已静止：无在途 DMA，回调不会再使用旧缓冲 */
-  /* 安全动作优先：先抑制激励，再有界中止传输（HAL_Abort 同步返回）。 */
-  HAL_GPIO_WritePin(CURR_DIS_GPIO_Port, CURR_DIS_Pin, GPIO_PIN_SET);
-  if (drms_acq_running)
-    ++unknown_loss_epoch; /* 中止后观察到的 DRDY 无法计数 */
-  drms_acq_running = 0;
-  HAL_StatusTypeDef status = HAL_SPI_Abort(&hspi1);
-  busy = 0;
-  cs(1);
-  return (status == HAL_OK) ? DRMS_ACCEPTED : DRMS_IO_ERROR;
+  if (abort_unconfirmed)
+    return DRMS_IO_ERROR;
+  drms_acq_stop();
+  return drms_acq_is_quiescent() ? DRMS_ACCEPTED : DRMS_IO_ERROR;
 }
 
 static DRMS_Result acq_backend_probe(void)
 {
-  return (!busy && !drms_acq_running) ? DRMS_ACCEPTED : DRMS_BUSY;
+  return drms_acq_is_quiescent() ? DRMS_ACCEPTED : DRMS_BUSY;
 }
 
 static DRMS_Result acq_backend_recover(void)
 {
-  /* 清除错误闩锁；重新建立采集走 acq_start（新代次、计数清零）。 */
+  if (abort_unconfirmed)
+  {
+    if (HAL_SPI_Abort(&hspi1) != HAL_OK)
+      return DRMS_IO_ERROR;
+    uint32_t mask = crit_enter();
+    busy = 0;
+    abort_unconfirmed = 0;
+    crit_exit(mask);
+  }
+  if (!drms_acq_is_quiescent())
+    return DRMS_BUSY;
   drms_acq_error = 0;
   return DRMS_ACCEPTED;
 }

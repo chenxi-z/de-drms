@@ -2,6 +2,7 @@
 #include "drms_calibration_backend.h"
 #include "drms_acquisition.h"
 #include "drms_logging.h"
+#include "drms_msc.h"
 #include "main.h"
 
 #define CAL_BASE (0x08000000U + 1008U * 1024U)
@@ -76,7 +77,8 @@ int drms_cal_backend_read(unsigned int slot, uint8_t record[64])
 
 int drms_cal_backend_begin(void)
 {
-  if (!supported() || drms_acq_running || drms_log_state)
+  if (!supported() || !drms_acq_is_quiescent() || drms_log_state ||
+      drms_msc_blocks_recording())
   {
     drms_calibration_flash_status = 1;
     return 0;

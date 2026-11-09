@@ -297,6 +297,35 @@ class AcquisitionBackendTest(unittest.TestCase):
         self.assertEqual(self.u32('drms_acq_edges').value, 1)  # DRDY 已占号
         self.assertEqual(self.u32('drms_acq_error').value, 0)
 
+    def test_failed_abort_stays_quarantined_even_after_late_callback(self):
+        be = self.backend()
+        abort = ctypes.CFUNCTYPE(ctypes.c_int)(be[0])
+        probe = ctypes.CFUNCTYPE(ctypes.c_int)(be[1])
+        recover = ctypes.CFUNCTYPE(ctypes.c_int)(be[2])
+        self.lib.drms_acq_drdy()
+        self.lib.abort_ok_result.value = 1
+        self.assertEqual(abort(), IO_ERROR)
+        self.lib.complete_frame(280000, 4200000)
+        self.assertEqual(probe(), BUSY)
+        self.assertEqual(self.lib.drms_acq_start(4000, 0), 0)
+        self.assertEqual(recover(), IO_ERROR)
+        self.lib.abort_ok_result.value = 0
+        self.assertEqual(recover(), ACCEPTED)
+        self.assertEqual(probe(), ACCEPTED)
+        self.assertEqual(self.lib.drms_acq_start(4000, 0), 1)
+
+    def test_direct_stop_latches_failed_abort(self):
+        be = self.backend()
+        probe = ctypes.CFUNCTYPE(ctypes.c_int)(be[1])
+        recover = ctypes.CFUNCTYPE(ctypes.c_int)(be[2])
+        self.lib.drms_acq_drdy()
+        self.lib.abort_ok_result.value = 1
+        self.lib.drms_acq_stop()
+        self.assertEqual(probe(), BUSY)
+        self.assertEqual(self.lib.drms_acq_start(4000, 0), 0)
+        self.lib.abort_ok_result.value = 0
+        self.assertEqual(recover(), ACCEPTED)
+
     def test_recover_clears_error_for_next_start(self):
         be = self.backend()
         abort = ctypes.CFUNCTYPE(ctypes.c_int)(be[0])

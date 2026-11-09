@@ -12,6 +12,7 @@ typedef struct {
 /* Supervisor owns start/stop/pop/poll. EXTI/SPI callbacks only enqueue frames. */
 int drms_acq_start(uint32_t rate, unsigned int reference);
 void drms_acq_stop(void);
+uint32_t drms_acq_is_quiescent(void);
 void drms_acq_poll(void);
 void drms_acq_drdy(void);
 int drms_acq_pop(DRMS_RawFrame *frame);

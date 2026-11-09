@@ -1,4 +1,7 @@
 #include "drms_user_config.h"
+#include "drms_acquisition.h"
+#include "drms_logging.h"
+#include "drms_msc.h"
 #include "main.h"
 #include <string.h>
 
@@ -12,6 +15,10 @@ static uint32_t cache_enabled;
 
 int drms_user_backend_begin(void)
 {
+  if (FLASH_SIZE != 1024U * 1024U || !(FLASH->OPTR & FLASH_OPTR_DUALBANK) ||
+      (FLASH->OPTR & FLASH_OPTR_SWAP_BANK) || !drms_acq_is_quiescent() ||
+      drms_log_state || drms_msc_blocks_recording())
+    return 0;
   cache_enabled = HAL_ICACHE_IsEnabled();
   if (cache_enabled && HAL_ICACHE_Disable() != HAL_OK)
     return 0;
