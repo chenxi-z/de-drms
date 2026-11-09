@@ -133,6 +133,9 @@ class LogReaderV2:
         self.error = None
         self.header = self.end = None
         self.data_chunks = self.records = 0
+        self.crc_errors = self.format_errors = self.adc_faults = 0
+        self.sequence_gaps = self.sequence_disorder = 0
+        self.previous_sequence = None
         self.dup_end = trailing = False
         head = stream.read(4)
         stream.seek(0)
@@ -186,7 +189,20 @@ class LogReaderV2:
                     self.error = 'invalid DATA chunk'
                     return
                 self.data_chunks += 1
-                self.records += len(body) // 16
+                for offset in range(0, len(body), 16):
+                    frame = body[offset:offset + 12]
+                    sequence = struct.unpack_from('<I', body, offset + 12)[0]
+                    self.crc_errors += binascii.crc_hqx(frame[:9], 0xffff) != int.from_bytes(frame[9:11], 'big')
+                    self.format_errors += not (frame[0] == 0x22 and not (frame[1] & 0x80) and frame[2] == 0 and frame[11] == 0)
+                    self.adc_faults += bool(frame[1] & 0x6f)
+                    if self.previous_sequence is not None:
+                        delta = (sequence - self.previous_sequence) & 0xffffffff
+                        if not delta or delta >= 0x80000000:
+                            self.sequence_disorder += 1
+                        else:
+                            self.sequence_gaps += delta - 1
+                    self.previous_sequence = sequence
+                    self.records += 1
             elif ctype == self.CHUNK_END:
                 if self.header is None:
                     self.error = 'END before HEADER'
@@ -194,6 +210,10 @@ class LogReaderV2:
                 self.end = self._parse_end(body)
                 if self.end is None:
                     self.error = 'invalid END chunk'
+                    return
+                if (self.end['record_id'] != self.header['record_id'] or
+                        self.end['acquisition_generation'] != self.header['anchor']['generation']):
+                    self.error = 'HEADER/END identity mismatch'
                     return
                 seen_end = True
             else:
@@ -235,6 +255,51 @@ class LogReaderV2:
                 'quality_bad': quality_bad, 'unknown_loss': bool(unknown),
                 'storage_error': bool(storage_error), 'reason': reason}
 
+    def __iter__(self):
+        if self.header is None:
+            return
+        self.stream.seek(0)
+        previous = None
+        extended = None
+        anchor = self.header['anchor']
+        while True:
+            chunk = self._chunk()
+            if chunk is None:
+                return
+            ctype, payload = chunk
+            if len(payload) < 4 or struct.unpack_from('<I', payload, len(payload) - 4)[0] != zlib.crc32(payload[:-4]):
+                return
+            if ctype == self.CHUNK_END:
+                return
+            if ctype != self.CHUNK_DATA:
+                continue
+            body = payload[:-4]
+            if not body or len(body) % 16:
+                return
+            for offset in range(0, len(body), 16):
+                frame = body[offset:offset + 12]
+                sequence = struct.unpack_from('<I', body, offset + 12)[0]
+                if previous is None:
+                    first = self.end['first_index'] if self.end else anchor['sample_seq0']
+                    delta = (sequence - (first & 0xffffffff)) & 0xffffffff
+                    extended = first + delta if delta < 0x80000000 else None
+                elif extended is not None:
+                    delta = (sequence - previous) & 0xffffffff
+                    extended = extended + delta if 0 < delta < 0x80000000 else None
+                previous = sequence
+                elapsed = None
+                if extended is not None and anchor['generation'] and extended >= anchor['sample_seq0']:
+                    elapsed = (extended - anchor['sample_seq0']) / self.header['rate']
+                yield {
+                    'sequence': sequence,
+                    'sample_index': extended,
+                    'elapsed_s': elapsed,
+                    'voltage_code': int.from_bytes(frame[3:6], 'big', signed=True),
+                    'sense_code': int.from_bytes(frame[6:9], 'big', signed=True),
+                    'status_hex': f'{int.from_bytes(frame[:2], "big"):04X}',
+                    'crc_ok': int(binascii.crc_hqx(frame[:9], 0xffff) == int.from_bytes(frame[9:11], 'big')),
+                }
+
     def complete(self):
         return self.error is None and self.end is not None
 
@@ -243,8 +308,12 @@ class LogReaderV2:
         incomplete = not self.complete() or not end.get('end_known') or \
             end.get('unknown_loss') or end.get('storage_error') or \
             end.get('reason') not in (0, 12) or end.get('capture_lost') or \
-            end.get('log_dropped') or end.get('quality_bad')
+            end.get('log_dropped') or end.get('quality_bad') or self.crc_errors or \
+            self.format_errors or self.adc_faults or self.sequence_gaps or self.sequence_disorder
         return {'complete': self.complete(), 'error': self.error,
+                'crc_errors': self.crc_errors, 'format_errors': self.format_errors,
+                'adc_faults': self.adc_faults, 'sequence_gaps': self.sequence_gaps,
+                'sequence_disorder': self.sequence_disorder,
                 'records': self.records, 'data_chunks': self.data_chunks,
                 'header': self.header, 'end': self.end,
                 'no_reported_loss': bool(self.complete() and not incomplete)}
@@ -275,9 +344,11 @@ def main():
                 writer.writerow(row)
             summary = reader.summary()
             # Raw magic is bytes; keep the machine-readable summary valid JSON.
-            if summary['footer']:
+            if summary.get('footer'):
                 summary['footer'] = {key: value.decode('ascii') if isinstance(value, bytes) else value
                                      for key, value in summary['footer'].items()}
+            if summary.get('header') and isinstance(summary['header'].get('config'), bytes):
+                summary['header'] = dict(summary['header'], config=summary['header']['config'].hex())
             print(json.dumps(summary, ensure_ascii=False), file=sys.stderr)
             return 0 if summary['no_reported_loss'] or args.allow_incomplete else 1
     except (OSError, ValueError) as error:

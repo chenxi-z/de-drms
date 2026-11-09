@@ -5,6 +5,8 @@
 重复 END、END 后数据、超长块、v1 只读兼容、未知末边界保护。
 """
 import ctypes
+import binascii
+import re
 from pathlib import Path
 import struct
 import subprocess
@@ -45,6 +47,16 @@ def hand_header(rate=4000, uid=(0x11223344, 0x55667788, 0x99AABBCC), record_id=7
 
 def hand_data(sequences):
     frames = b''.join(bytes(12) + struct.pack('<I', s) for s in sequences)
+    return chunk(2, frames + struct.pack('<I', crc32(frames)))
+
+
+def hand_valid_data(sequences):
+    frame = bytearray(12)
+    frame[0] = 0x22
+    frame[3:6] = (280000).to_bytes(3, 'big')
+    frame[6:9] = (4200000).to_bytes(3, 'big')
+    frame[9:11] = binascii.crc_hqx(frame[:9], 0xffff).to_bytes(2, 'big')
+    frames = b''.join(frame + struct.pack('<I', sequence) for sequence in sequences)
     return chunk(2, frames + struct.pack('<I', crc32(frames)))
 
 
@@ -140,6 +152,46 @@ class V2CodecTest(unittest.TestCase):
         except ValueError:
             return Refused()  # 识别失败 = 非法文件，同样不报告成功
 
+    def test_encoder_stack_fits_storage_thread(self):
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / 'codec.o'
+            source = ROOT / 'firmware/DE-DRMS-Code/Core'
+            subprocess.run(['cc', '-O0', '-fstack-usage', '-I', str(source / 'Inc'),
+                            '-c', str(source / 'Src/drms_log_codec.c'), '-o', str(output)], check=True)
+            usage = output.with_suffix('.su').read_text()
+            for name in ('drms_log_v2_pack_header', 'drms_log_v2_pack_data', 'drms_log_v2_pack_end'):
+                match = re.search(r'\b' + name + r'\s+(\d+)\s+', usage)
+                self.assertIsNotNone(match, name)
+                self.assertLess(int(match.group(1)), 512, name)
+
+    def test_maximum_data_block_and_insufficient_capacity(self):
+        frames = (Raw * 256)()
+        for i in range(256):
+            frames[i].sequence = i
+        output = ctypes.create_string_buffer(4104)
+        self.assertEqual(self.lib.drms_log_v2_pack_data(output, 4103, frames, 256), 0)
+        length = self.lib.drms_log_v2_pack_data(output, 4104, frames, 256)
+        self.assertEqual(length, 4104)
+        self.assertEqual(output.raw, hand_data(range(256)))
+
+    def test_decoder_rejects_header_end_identity_mismatch(self):
+        for end in (hand_end(record_id=8), hand_end(gen=4)):
+            reader = self.decode(hand_header() + end)
+            self.assertFalse(reader.complete())
+
+    def test_cli_streams_v2_data_to_csv(self):
+        with tempfile.TemporaryDirectory() as directory:
+            log = Path(directory) / 'record.bin'
+            csv_path = Path(directory) / 'record.csv'
+            log.write_bytes(self.c_file())
+            result = subprocess.run(['python3', str(ROOT / 'tools/de_drms_log.py'), str(log),
+                                     '--csv', str(csv_path), '--allow-incomplete'],
+                                    capture_output=True, text=True)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            rows = csv_path.read_text().splitlines()
+            self.assertEqual(len(rows), 4)
+            self.assertIn('sequence', rows[0])
+
     def test_golden_file_hand_encoded_matches_c_encoder(self):
         """黄金文件：独立手工编码与 C 编码器逐字节一致，且双端可解码。"""
         golden = hand_header() + hand_data((100, 101, 102)) + hand_end()
@@ -172,13 +224,20 @@ class V2CodecTest(unittest.TestCase):
         hbuf = ctypes.create_string_buffer(8192)
         n = self.lib.drms_log_v2_pack_header(hbuf, 8192, ctypes.byref(meta))
         self.assertGreater(n, 0)
-        reader = self.decode(hbuf.raw[:n] + hand_data((5,)) + hand_end(
+        reader = self.decode(hbuf.raw[:n] + hand_valid_data((5,)) + hand_end(
             gen=1, record_id=9, ring_end=1, lost=0, first=0, end_excl=1, last=0,
             capture=0, quality=0, reason=0))
         self.assertTrue(reader.complete())
         self.assertEqual(reader.header['config'], config)
         self.assertEqual(reader.end['reason'], 0)
         self.assertTrue(reader.summary()['no_reported_loss'])
+
+    def test_corrupt_adc_frame_is_not_reported_lossless(self):
+        reader = self.decode(hand_header() + hand_data((100,)) + hand_end(
+            first=100, end_excl=101, last=100, capture=0, quality=0,
+            reason=0, ring_end=1))
+        self.assertTrue(reader.complete())
+        self.assertFalse(reader.summary()['no_reported_loss'])
 
     def test_empty_record_is_valid(self):
         reader = self.decode(hand_header() + hand_end(
@@ -229,6 +288,21 @@ class V2CodecTest(unittest.TestCase):
             bad = chunk(2, b'\x00' * 5 + struct.pack('<I', crc32(b'\x00' * 5)))
             reader = self.decode(hand_header() + bad + hand_end())
             self.assertFalse(reader.complete())
+
+    def test_unknown_end_keeps_begin_generation(self):
+        end = End()
+        end.record_id = 7
+        end.first.generation = 3
+        end.first.index = 100
+        end.end_known = False
+        end.unknown_loss = True
+        end.reason = 9
+        buf = ctypes.create_string_buffer(256)
+        length = self.lib.drms_log_v2_pack_end(buf, 256, ctypes.byref(end))
+        self.assertEqual(struct.unpack_from('<I', buf.raw, 4)[0], 3)
+        reader = self.decode(hand_header() + buf.raw[:length])
+        self.assertTrue(reader.complete())
+        self.assertFalse(reader.summary()['no_reported_loss'])
 
     def test_unknown_end_boundary_cannot_carry_pseudo_exact_end(self):
         with self.subTest('C encoder refuses'):

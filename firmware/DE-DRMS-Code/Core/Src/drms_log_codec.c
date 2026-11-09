@@ -97,17 +97,18 @@ static uint16_t v2_finish_payload(uint8_t *payload, uint16_t used)
 
 uint32_t drms_log_v2_pack_header(uint8_t *out, uint32_t capacity, const DRMS_LogV2Meta *meta)
 {
-  uint8_t payload[64 + 4096];
-  uint16_t config_len;
   if (!out || !meta || !meta->rate_hz || meta->config_len > 4096u ||
       (meta->config && !meta->config_len) || (!meta->config && meta->config_len))
     return 0;
-  config_len = meta->config_len;
-  if ((uint32_t)58 + config_len + 4u > sizeof(payload))
+  uint32_t total = 4u + 58u + meta->config_len + 4u;
+  if (capacity < total)
     return 0;
-  memset(payload, 0, 58 + config_len);
-  put16(payload, 2); /* format_version */
-  put16(payload + 2, 16); /* record_size */
+  uint8_t *payload = out + 4;
+  put16(out, DRMS_LOG_V2_CHUNK_HEADER);
+  put16(out + 2, (uint16_t)(total - 4u));
+  memset(payload, 0, 58u);
+  put16(payload, 2);
+  put16(payload + 2, 16);
   put32(payload + 4, meta->flags);
   put32(payload + 8, meta->rate_hz);
   put32(payload + 12, meta->uid_w0);
@@ -118,26 +119,32 @@ uint32_t drms_log_v2_pack_header(uint8_t *out, uint32_t capacity, const DRMS_Log
   put32(payload + 36, meta->anchor.rate_hz);
   put64(payload + 40, meta->anchor.sample_seq0);
   put64(payload + 48, meta->anchor.mono_us0);
-  put16(payload + 56, config_len);
-  if (config_len)
-    memcpy(payload + 58, meta->config, config_len);
-  uint16_t used = v2_finish_payload(payload, (uint16_t)(58 + config_len));
-  return pack_chunk(out, capacity, DRMS_LOG_V2_CHUNK_HEADER, payload, used);
+  put16(payload + 56, meta->config_len);
+  if (meta->config_len)
+    memcpy(payload + 58, meta->config, meta->config_len);
+  put32(payload + 58u + meta->config_len,
+        drms_crc32(payload, 58u + meta->config_len));
+  return total;
 }
 
 uint32_t drms_log_v2_pack_data(uint8_t *out, uint32_t capacity,
                                const DRMS_RawFrame *frames, uint32_t count)
 {
-  uint8_t payload[16 * 256];
   if (!out || !frames || !count || count > 256u)
     return 0;
+  uint32_t payload_length = count * 16u;
+  uint32_t total = 4u + payload_length + 4u;
+  if (capacity < total)
+    return 0;
+  put16(out, DRMS_LOG_V2_CHUNK_DATA);
+  put16(out + 2, (uint16_t)(payload_length + 4u));
   for (uint32_t i = 0; i < count; ++i)
   {
-    memcpy(payload + i * 16u, frames[i].bytes, 12);
-    put32(payload + i * 16u + 12, frames[i].sequence);
+    memcpy(out + 4u + i * 16u, frames[i].bytes, 12);
+    put32(out + 4u + i * 16u + 12u, frames[i].sequence);
   }
-  uint16_t used = v2_finish_payload(payload, (uint16_t)(count * 16u));
-  return pack_chunk(out, capacity, DRMS_LOG_V2_CHUNK_DATA, payload, used);
+  put32(out + 4u + payload_length, drms_crc32(out + 4u, payload_length));
+  return total;
 }
 
 uint32_t drms_log_v2_pack_end(uint8_t *out, uint32_t capacity, const DRMS_End *end)
@@ -148,7 +155,7 @@ uint32_t drms_log_v2_pack_end(uint8_t *out, uint32_t capacity, const DRMS_End *e
   if (!end->end_known && end->end_exclusive.index != 0)
     return 0; /* 未知末边界不写伪精确值 */
   memset(payload, 0, sizeof(payload));
-  put32(payload, end->end_exclusive.generation);
+  put32(payload, end->end_known ? end->end_exclusive.generation : end->first.generation);
   put64(payload + 4, end->record_id);
   put64(payload + 12, end->ring_end);
   put64(payload + 20, end->lost_count);

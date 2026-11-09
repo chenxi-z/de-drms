@@ -57,7 +57,7 @@ v1（`shared/protocol/de-drms-v1.json`）只读兼容；v2 写入不改动 v1 �
 ## DATA（type=2，0..n 个，HEADER 之后 END 之前）
 
 ```
-载荷 = N × 16B 原始帧记录，N ≥ 1；length = 16N（非 16 倍数 = 解析错误）
+载荷 = N × 16B 原始帧记录 + 4B CRC，N ≥ 1；length = 16N + 4（去掉 CRC 后非 16 倍数 = 解析错误）
 帧记录 = 12B 原始 ADC 字节 + uint32 sequence（帧内低 32 位序号，与 v1 相同）
 ```
 
@@ -96,7 +96,7 @@ v1（`shared/protocol/de-drms-v1.json`）只读兼容；v2 写入不改动 v1 �
 | 任意块剩余字节不足（截断） | 不完整文件（不得报告成功） |
 | 块 CRC 不符 | 非法文件（该块起不可信） |
 | 未知 chunk type | 非法文件 |
-| DATA 长度非 16 倍数 | 非法文件 |
+| DATA 扣除 CRC 后长度非 16 倍数 | 非法文件 |
 | END 缺失（EOF） | 不完整文件 |
 | 重复 END | 非法文件 |
 | END 之后仍有字节 | 非法文件 |
