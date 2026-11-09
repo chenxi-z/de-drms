@@ -1,6 +1,6 @@
 # 正式 CDC v2 固件接口（设计候选版）
 
-[机器定义](../../shared/protocol/de-drms-cdc-v2.json)列出字段号、类型、请求/成功回复字段、枚举和四条线上向量。本文规定编码与生命周期。版本 2 区别于现有 ASCII v1；当前固件的 CDC 入口支持 v2 HELLO 和 GET_OPERATION，其他 v2 命令尚未实现并返回 UNSUPPORTED，ASCII v1 调试入口暂时保留。以下其余内容是目标规格，不能视作已实现能力；真实 USB 和硬件随机源仍须板测。
+[机器定义](../../shared/protocol/de-drms-cdc-v2.json)列出字段号、类型、请求/成功回复字段、枚举和四条线上向量。本文规定编码与生命周期。版本 2 区别于现有 ASCII v1；当前固件的 CDC 入口支持 v2 HELLO、GET_STATUS 和 GET_OPERATION，其他 v2 命令尚未实现并返回 UNSUPPORTED，ASCII v1 调试入口暂时保留。以下其余内容是目标规格，不能视作已实现能力；真实 USB 和硬件随机源仍须板测。
 
 ## 编码
 

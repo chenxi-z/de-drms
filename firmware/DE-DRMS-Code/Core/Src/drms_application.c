@@ -48,7 +48,9 @@ static _Alignas(8) uint8_t monitor_store[DRMS_APP_CONTEXT_BYTES];
 static DRMS_MonitorContext *const monitor = (DRMS_MonitorContext *)monitor_store;
 /* Written only by the measurement owner, copied under a short critical section. */
 static DRMS_MonitorOutput published_monitor;
+static DRMS_ApplicationSnapshot published_status;
 static uint8_t monitor_levels[DRMS_MONITOR_INTERVALS_MAX];
+static uint16_t monitor_interval_ids[DRMS_MONITOR_INTERVALS_MAX];
 static uint8_t monitor_level_count;
 static uint32_t boot_rate = DRMS_APP_DEFAULT_RATE;
 /* 0 = no saved configuration, 1 = usable, 2 = saved configuration incompatible. */
@@ -491,7 +493,10 @@ static void configure_monitor(uint32_t rate)
   {
     monitor_level_count = cfg.interval_count;
     for (unsigned int i = 0; i < cfg.interval_count; ++i)
+    {
       monitor_levels[i] = cfg.intervals[i].level;
+      monitor_interval_ids[i] = cfg.intervals[i].id;
+    }
   }
   monitor_config_version = drms_user_config_run_version();
 }
@@ -626,6 +631,7 @@ static void execute(const DRMS_Command *command)
 
 void drms_application_init(void)
 {
+  memset(&published_status, 0, sizeof(published_status));
   _Static_assert(sizeof(DRMS_Command) % sizeof(ULONG) == 0, "Queue word alignment");
   ready = tx_queue_create(&commands, "instrument commands", sizeof(DRMS_Command) / sizeof(ULONG),
                           command_memory, sizeof(command_memory)) == TX_SUCCESS;
@@ -859,6 +865,72 @@ void drms_application_poll(void)
                       (lights & 8U) ? GPIO_PIN_RESET : GPIO_PIN_SET);
     last_display = now;
   }
+  {
+    DRMS_ApplicationSnapshot next;
+    memset(&next, 0, sizeof(next));
+    uint32_t mask = __get_PRIMASK();
+    __disable_irq();
+    DRMS_Owner owner;
+    DRMS_Health health;
+    drms_storage_snapshot(&owner, &health);
+    next.revision = published_status.revision + 1u;
+    next.mono_us = drms_acq_now_us();
+    next.running_version = monitor_config_version;
+    next.saved_version = drms_user_config_persisted_version();
+    next.baseline_version = drms_user_config_r0_valid() ? monitor_config_version : 0;
+    next.calibration_version = calibration.valid ? calibration.generation : 0;
+    next.sample_index = published_monitor.sample_seq;
+    int32_t measured_milliohms = r_milliohms;
+    next.ratio = published_monitor.ratio;
+    next.rate = drms_acq_rate;
+    next.generation = drms_acq_generation();
+    next.media_generation = drms_storage_media_generation();
+    next.acquisition = drms_acq_error ? 5u : !drms_acq_running ? 0u :
+                       drms_acq_reference ? 4u : 3u;
+    next.recording = session_armed ? 1u : session_stopping ? 3u : session_active ? 2u : 0u;
+    next.medium = (uint8_t)health;
+    next.owner = (uint8_t)owner;
+    next.maintenance = baseline_active ? 1u : cal_active ? 2u : 0u;
+    next.fresh = published_monitor.fresh ? 1u : 0u;
+    next.classification = (uint8_t)published_monitor.state;
+    next.rtc_valid = clock_snapshot.valid ? 1u : 0u;
+    next.ohms_valid = r_valid ? 1u : 0u;
+    next.ratio_valid = next.fresh && published_monitor.state >= DRMS_MONITOR_UNMAPPED;
+    if (next.fresh && published_monitor.state == DRMS_MONITOR_CONFIRMED &&
+        published_monitor.confirmed >= 0 && (uint16_t)published_monitor.confirmed < monitor_level_count)
+    {
+      next.level_valid = 1;
+      next.level = monitor_levels[published_monitor.confirmed];
+      next.interval = monitor_interval_ids[published_monitor.confirmed];
+    }
+    if (!next.fresh) next.quality |= 1u << 0;
+    if (published_monitor.reason & DRMS_REASON_QUALITY_BAD) next.quality |= 1u << 1;
+    if (!drms_excitation_ok(&latest)) next.quality |= 1u << 2;
+    if (published_monitor.reason & DRMS_REASON_SAMPLE_GAP) next.quality |= 1u << 3;
+    if (published_monitor.reason & DRMS_REASON_NO_BASELINE) next.quality |= 1u << 4;
+    if (published_monitor.reason & DRMS_REASON_UNCONFIGURED) next.quality |= 1u << 5;
+    if (drms_acq_error) next.fault |= 1u << 0;
+    if (health == DRMS_HEALTH_FAULT) next.fault |= 1u << 1;
+    if (published_monitor.freshness_reason & DRMS_FRESH_TIMEBASE_FAULT) next.fault |= 1u << 3;
+    if (drms_usb_status) next.fault |= 1u << 4;
+    if (owner == DRMS_OWNER_QUARANTINED) next.fault |= 1u << 5;
+    __set_PRIMASK(mask);
+    next.ohms = (double)measured_milliohms / 1000.0;
+    mask = __get_PRIMASK();
+    __disable_irq();
+    published_status = next;
+    __set_PRIMASK(mask);
+  }
+}
+
+uint32_t drms_application_snapshot(DRMS_ApplicationSnapshot *out)
+{
+  if (!out) return 0;
+  uint32_t mask = __get_PRIMASK();
+  __disable_irq();
+  *out = published_status;
+  __set_PRIMASK(mask);
+  return out->revision != 0;
 }
 
 void HAL_GPIO_EXTI_Falling_Callback(uint16_t pin)

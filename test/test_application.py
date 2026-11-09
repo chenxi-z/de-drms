@@ -23,6 +23,19 @@ class ControlRequest(ctypes.Structure):
 
 class Token(ctypes.Structure):
     _fields_ = [('operation_id', ctypes.c_uint64), ('generation', ctypes.c_uint32)]
+
+class StatusSnapshot(ctypes.Structure):
+    _fields_ = [('revision', ctypes.c_uint64), ('mono_us', ctypes.c_uint64),
+                ('running_version', ctypes.c_uint64), ('saved_version', ctypes.c_uint64),
+                ('baseline_version', ctypes.c_uint64), ('calibration_version', ctypes.c_uint64),
+                ('sample_index', ctypes.c_uint64), ('ohms', ctypes.c_double), ('ratio', ctypes.c_double),
+                ('rate', ctypes.c_uint32), ('generation', ctypes.c_uint32),
+                ('media_generation', ctypes.c_uint32), ('quality', ctypes.c_uint32), ('fault', ctypes.c_uint32),
+                ('acquisition', ctypes.c_uint8), ('recording', ctypes.c_uint8), ('medium', ctypes.c_uint8),
+                ('owner', ctypes.c_uint8), ('maintenance', ctypes.c_uint8), ('fresh', ctypes.c_uint8),
+                ('classification', ctypes.c_uint8), ('rtc_valid', ctypes.c_uint8),
+                ('ohms_valid', ctypes.c_uint8), ('ratio_valid', ctypes.c_uint8),
+                ('level_valid', ctypes.c_uint8), ('level', ctypes.c_uint8), ('interval', ctypes.c_uint16)]
 TX_HEADER = r'''
 #ifndef TEST_TX_H
 #define TEST_TX_H
@@ -342,6 +355,22 @@ uint32_t HAL_GetUIDw2(void);
         self.lib.drms_application_poll()
         self.assertEqual(self.status()['fresh'], 0)
 
+    def test_structured_status_is_published_once_per_poll_and_marks_stale(self):
+        snap = StatusSnapshot()
+        self.lib.drms_application_poll()
+        self.assertEqual(self.lib.drms_application_snapshot(ctypes.byref(snap)), 1)
+        self.assertEqual((snap.acquisition, snap.recording, snap.medium, snap.owner), (3, 0, 0, 0))
+        first = snap.revision
+        self.frames(3, 280000, 4200000)
+        self.assertEqual(self.lib.drms_application_snapshot(ctypes.byref(snap)), 1)
+        self.assertGreater(snap.revision, first)
+        self.assertEqual((snap.fresh, snap.ohms_valid), (1, 1))
+        self.assertAlmostEqual(snap.ohms, 10000.0, places=2)
+        self.lib.advance_ms(101)
+        self.lib.drms_application_poll()
+        self.lib.drms_application_snapshot(ctypes.byref(snap))
+        self.assertEqual((snap.fresh, snap.ohms_valid), (0, 0))
+
     def test_no_baseline_does_not_show_normal_level(self):
         self.lib.advance_ms(1100)
         self.frames(1, 280000, 4200000)
@@ -364,6 +393,9 @@ uint32_t HAL_GetUIDw2(void);
         self.assertEqual(status['monitor'], 5)
         self.assertEqual(status['fresh'], 1)
         self.assertEqual([self.lib.pin(pin) for pin in (8, 9, 10, 11)], [1, 1, 0, 1])
+        snap = StatusSnapshot()
+        self.assertEqual(self.lib.drms_application_snapshot(ctypes.byref(snap)), 1)
+        self.assertEqual((snap.level_valid, snap.level, snap.interval), (1, 2, 7))
 
     def test_restored_sample_rate_and_baseline_dependency(self):
         body = build_body(intervals=[(7, 2, True, 0.5, 1.5, 0.0, 'test')],

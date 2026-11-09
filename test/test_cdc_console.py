@@ -43,6 +43,7 @@ MOCK = r'''
 #include "app_usbx_device.h"
 #include "drms_cdc.h"
 #include "drms_control.h"
+#include "drms_application.h"
 #include <string.h>
 #include <stdio.h>
 UX_SLAVE_CLASS_CDC_ACM cdc={1};
@@ -62,6 +63,11 @@ void complete_operation(void) {
  DRMS_ControlRequest request={.source=DRMS_SOURCE_CDC,.request_id=123,.operation=DRMS_OP_MSC_EXPORT};
  drms_control_submit(&request);drms_control_poll(1);
  drms_control_complete(test_token,DRMS_OK,DRMS_RES_TF_ACCESS);
+}
+uint32_t drms_application_snapshot(DRMS_ApplicationSnapshot *out) {
+ memset(out,0,sizeof(*out));out->revision=8;out->mono_us=123000;out->acquisition=3;
+ out->rate=4000;out->fresh=1;out->classification=2;out->ohms_valid=1;out->ohms=10000;
+ return 1;
 }
 UINT ux_device_class_cdc_acm_ioctl(void *a,UINT b,VOID *c) { if(c==(void *)UX_WAIT_FOREVER) ++indefinite_io;if(b==4) ++abort_calls;return 0; }
 UINT ux_device_class_cdc_acm_read(void *a,UCHAR *b,ULONG n,ULONG *actual) {
@@ -170,7 +176,7 @@ class CDCConsoleTest(unittest.TestCase):
     def test_v2_unimplemented_command_gets_unsupported_reply(self):
         import struct, zlib
         self.send(bytes.fromhex('040201010101010102010101010101010101010105d7970e6600'))
-        raw = struct.pack('<BBHIQHH', 2, 1, 2, 1, 2, 0, 0)
+        raw = struct.pack('<BBHIQHH', 2, 1, 102, 1, 2, 0, 0)
         raw += struct.pack('<I', zlib.crc32(raw))
         encoded = bytearray(b'\x00'); start = 0; code = 1
         for byte in raw:
@@ -189,7 +195,7 @@ class CDCConsoleTest(unittest.TestCase):
             code = wire[i]; i += 1
             decoded += wire[i:i + code - 1]; i += code - 1
             if code != 255 and i < len(wire) - 1: decoded.append(0)
-        self.assertEqual(struct.unpack_from('<BBHIQ', decoded), (2, 2, 2, 1, 2))
+        self.assertEqual(struct.unpack_from('<BBHIQ', decoded), (2, 2, 102, 1, 2))
         self.assertEqual(struct.unpack_from('<HHH', decoded, 20), (0x8001, 2, 11))
 
     def test_v2_get_operation_returns_retained_result(self):
@@ -213,6 +219,37 @@ class CDCConsoleTest(unittest.TestCase):
         self.assertEqual(int.from_bytes(fields[11], 'little'), 1)
         self.assertEqual(fields[45], b'\x02')
         self.assertEqual(fields[44], b'\x02')
+
+    def test_v2_status_contains_consistent_snapshot(self):
+        import struct, zlib
+        self.send(bytes.fromhex('040201010101010102010101010101010101010105d7970e6600'))
+        raw = struct.pack('<BBHIQHH', 2, 1, 2, 1, 2, 0, 0)
+        raw += struct.pack('<I', zlib.crc32(raw))
+        wire = bytearray(b'\x00'); start = 0; code = 1
+        for byte in raw:
+            if byte == 0:
+                wire[start] = code; start = len(wire); wire.append(0); code = 1
+            else:
+                wire.append(byte); code += 1
+        wire[start] = code; wire.append(0)
+        self.send(bytes(wire))
+        size = self.value('written_len').value
+        encoded = bytes((ctypes.c_ubyte * 512).in_dll(self.lib, 'written')[:size])
+        decoded = bytearray(); i = 0
+        while i < len(encoded)-1:
+            code = encoded[i]; i += 1
+            decoded += encoded[i:i+code-1]; i += code-1
+            if code != 255 and i < len(encoded)-1: decoded.append(0)
+        fields = {}; pos = 20
+        while pos < len(decoded)-4:
+            tag, size = struct.unpack_from('<HH', decoded, pos); pos += 4
+            fields[tag & 0x7fff] = decoded[pos:pos+size]; pos += size
+        self.assertEqual(int.from_bytes(fields[1], 'little'), 0)
+        self.assertEqual(int.from_bytes(fields[9], 'little'), 8)
+        self.assertEqual(fields[16], b'\x03')
+        self.assertEqual(int.from_bytes(fields[30], 'little'), 4000)
+        self.assertEqual(struct.unpack('<d', fields[23])[0], 10000.0)
+        self.assertIn(85, fields)
 
     def test_short_and_empty_packets_preserve_line(self):
         self.send(b'PI')

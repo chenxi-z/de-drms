@@ -1,6 +1,7 @@
 #include "drms_cdc_v2.h"
 #include "drms_measurement.h"
 #include "drms_control.h"
+#include "drms_application.h"
 #include <string.h>
 
 static uint16_t get16(const uint8_t *p) { return (uint16_t)(p[0] | ((uint16_t)p[1] << 8)); }
@@ -28,6 +29,8 @@ static void received(void *user, const uint8_t *request, size_t length)
   uint16_t result = 0;
   DRMS_ControlCompletion operation;
   uint32_t have_operation = 0;
+  DRMS_ApplicationSnapshot snapshot;
+  uint32_t have_snapshot = 0;
   if (opcode == 1u)
   {
     if (get16(request + 18) ||
@@ -47,6 +50,15 @@ static void received(void *user, const uint8_t *request, size_t length)
       ctx->last_request = id;
       if (get16(request + 18))
         result = 3u;
+      else if (opcode == 2u)
+      {
+        if (drms_cdc_fields_validate(request + 20, payload_len, NULL, 0, NULL))
+          result = 3u;
+        else if (!drms_application_snapshot(&snapshot))
+          result = 2u;
+        else
+          have_snapshot = 1;
+      }
       else if (opcode == 3u)
       {
         static const DRMS_CDCFieldRule rules[] = {{11, 8, 8, 0, 1}};
@@ -79,10 +91,40 @@ static void received(void *user, const uint8_t *request, size_t length)
     for (unsigned i = 0; i < 3; ++i) put32(temp + i * 4, ctx->uid[i]);
     tlv(out, &pos, 3, temp, 12);
     put64(temp, ctx->session.boot); tlv(out, &pos, 4, temp, 8);
-    put16(temp, 1); put16(temp + 2, 3); tlv(out, &pos, 5, temp, 4);
+    put16(temp, 1); put16(temp + 2, 2); put16(temp + 4, 3); tlv(out, &pos, 5, temp, 6);
     put16(temp, 1024); tlv(out, &pos, 6, temp, 2);
     put32(temp, 4000); tlv(out, &pos, 7, temp, 4);
     tlv(out, &pos, 8, temp, 0); /* no recording capability is exposed yet */
+  }
+  else if (have_snapshot)
+  {
+#define T8(tag, value) do { temp[0] = (uint8_t)(value); tlv(out, &pos, tag, temp, 1); } while (0)
+#define T32(tag, value) do { put32(temp, value); tlv(out, &pos, tag, temp, 4); } while (0)
+#define T64(tag, value) do { put64(temp, value); tlv(out, &pos, tag, temp, 8); } while (0)
+    T64(9, snapshot.revision); T64(10, snapshot.mono_us);
+    T8(16, snapshot.acquisition); T8(17, snapshot.recording); T8(18, snapshot.medium);
+    T8(19, snapshot.owner); T8(20, snapshot.maintenance); T32(21, snapshot.generation);
+    T32(30, snapshot.rate); T8(25, snapshot.fresh); T8(26, snapshot.classification);
+    T32(29, snapshot.quality); T64(31, snapshot.running_version); T64(32, snapshot.saved_version);
+    T64(33, snapshot.baseline_version); T64(34, snapshot.calibration_version);
+    T32(35, snapshot.fault); T8(42, snapshot.rtc_valid); T32(85, snapshot.media_generation);
+    if (snapshot.fresh) T64(22, snapshot.sample_index);
+    if (snapshot.ohms_valid)
+    {
+      uint64_t bits; memcpy(&bits, &snapshot.ohms, sizeof(bits)); T64(23, bits);
+    }
+    if (snapshot.ratio_valid)
+    {
+      uint64_t bits; memcpy(&bits, &snapshot.ratio, sizeof(bits)); T64(24, bits);
+    }
+    if (snapshot.level_valid)
+    {
+      T8(27, snapshot.level);
+      put16(temp, snapshot.interval); tlv(out, &pos, 28, temp, 2);
+    }
+#undef T8
+#undef T32
+#undef T64
   }
   else if (have_operation)
   {
