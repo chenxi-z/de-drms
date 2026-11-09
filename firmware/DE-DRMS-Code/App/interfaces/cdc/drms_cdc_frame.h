@@ -24,4 +24,18 @@ void drms_cdc_frame_feed(DRMS_CDCFrame *ctx, uint8_t byte, uint32_t now_ms,
                          DRMS_CDCFrameHandler handler, void *user);
 /* The raw input includes the already-computed CRC. The result includes delimiter. */
 size_t drms_cdc_frame_encode(const uint8_t *raw, size_t length, uint8_t *out, size_t capacity);
+
+typedef struct {
+  uint16_t id, min_len, max_len;
+  uint8_t kind; /* 0 bytes, 1 bool, 2 little-endian finite IEEE754 binary64 */
+  uint8_t required;
+} DRMS_CDCFieldRule;
+typedef struct {
+  const uint8_t *value; /* valid only while the input payload remains alive */
+  uint16_t length;
+} DRMS_CDCFieldView;
+/* Validates one message's flat TLV payload. Returns zero only on success.
+ * views is indexed by rule; an absent optional field has a null value. */
+int drms_cdc_fields_validate(const uint8_t *payload, size_t length,
+    const DRMS_CDCFieldRule *rules, size_t rule_count, DRMS_CDCFieldView *views);
 #endif

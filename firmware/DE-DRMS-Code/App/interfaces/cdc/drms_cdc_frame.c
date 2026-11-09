@@ -142,3 +142,66 @@ size_t drms_cdc_frame_encode(const uint8_t *raw, size_t length, uint8_t *out, si
   out[output++] = 0;
   return output;
 }
+
+static int known_field(uint16_t id)
+{
+  return (id >= 1u && id <= 12u) || (id >= 16u && id <= 45u) ||
+         (id >= 48u && id <= 64u) || (id >= 72u && id <= 85u);
+}
+
+int drms_cdc_fields_validate(const uint8_t *payload, size_t length,
+    const DRMS_CDCFieldRule *rules, size_t rule_count, DRMS_CDCFieldView *views)
+{
+  DRMS_CDCFieldView found[64] = {{0}};
+  uint64_t seen = 0;
+  size_t offset = 0, fields = 0;
+  if ((!payload && length) || rule_count > 64u || (rule_count && (!rules || !views)) || length > 1024u)
+    return 1;
+  for (size_t i = 0; i < rule_count; ++i)
+  {
+    if (!rules[i].id || rules[i].id > 0x7fffu || rules[i].min_len > rules[i].max_len ||
+        rules[i].kind > 2u || rules[i].required > 1u)
+      return 1;
+    for (size_t j = 0; j < i; ++j)
+      if (rules[j].id == rules[i].id)
+        return 1;
+  }
+  while (offset < length)
+  {
+    if (++fields > 64u || length - offset < 4u)
+      return 1;
+    uint16_t tag = get16(payload + offset), id = tag & 0x7fffu;
+    uint16_t size = get16(payload + offset + 2u);
+    offset += 4u;
+    if (!id || size > length - offset)
+      return 1;
+    size_t index = 0;
+    while (index < rule_count && rules[index].id != id)
+      ++index;
+    if (index == rule_count)
+    {
+      if ((tag & 0x8000u) || known_field(id))
+        return 1;
+    }
+    else
+    {
+      const DRMS_CDCFieldRule *rule = &rules[index];
+      if ((seen & (UINT64_C(1) << index)) || size < rule->min_len || size > rule->max_len ||
+          (rule->required && !(tag & 0x8000u)))
+        return 1;
+      if ((rule->kind == 1u && (size != 1u || payload[offset] > 1u)) ||
+          (rule->kind == 2u && (size != 8u || (get32(payload + offset + 4u) & 0x7ff00000u) == 0x7ff00000u)))
+        return 1;
+      seen |= UINT64_C(1) << index;
+      found[index].value = payload + offset;
+      found[index].length = size;
+    }
+    offset += size;
+  }
+  for (size_t i = 0; i < rule_count; ++i)
+    if (rules[i].required && !(seen & (UINT64_C(1) << i)))
+      return 1;
+  if (rule_count)
+    memcpy(views, found, rule_count * sizeof(*views));
+  return 0;
+}
