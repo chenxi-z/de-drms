@@ -249,7 +249,7 @@ class AcquisitionBackendTest(unittest.TestCase):
         src = ROOT / 'firmware/DE-DRMS-Code/Core'
         subprocess.run(['cc', '-shared', '-fPIC', '-Wall', '-Werror=implicit-function-declaration',
                         '-I', str(p), '-I', str(src / 'Inc'),
-                        *[str(src / f'Src/drms_{name}.c') for name in ('acquisition', 'measurement', 'fifo')],
+                        *[str(src / f'Src/drms_{name}.c') for name in ('acquisition', 'measurement', 'fifo', 'capture_time')],
                         str(p / 'mock.c'), '-o', str(p / 'acq.so')], check=True)
         cls.lib = ctypes.CDLL(str(p / 'acq.so'))
         cls.lib.drms_acq_start.restype = ctypes.c_int

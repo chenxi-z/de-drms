@@ -15,6 +15,8 @@ void drms_acq_stop(void);
 void drms_acq_poll(void);
 void drms_acq_drdy(void);
 int drms_acq_pop(DRMS_RawFrame *frame);
+int drms_acq_pop_timed(DRMS_RawFrame *frame, uint64_t *capture_lower_us);
+uint64_t drms_acq_now_us(void);
 extern volatile uint32_t drms_acq_running, drms_acq_rate, drms_acq_reference;
 extern volatile uint32_t drms_acq_edges, drms_acq_overruns, drms_acq_queue_drops;
 extern volatile uint32_t drms_acq_last_push_ms;

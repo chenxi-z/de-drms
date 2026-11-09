@@ -224,7 +224,8 @@ static uint64_t nominal_us_of(uint64_t sample_seq)
   return drms_capture_time_nominal_us(&nominal_anchor, sample_seq);
 }
 
-static void pipeline_step_frame(const DRMS_RawFrame *frame, uint64_t ticket)
+static void pipeline_step_frame(const DRMS_RawFrame *frame, uint64_t ticket,
+                                uint64_t capture_lower_us)
 {
   DRMS_RecordVerdict verdict = session_active
                                    ? drms_record_session_classify(ticket)
@@ -237,7 +238,7 @@ static void pipeline_step_frame(const DRMS_RawFrame *frame, uint64_t ticket)
     if (have_begin)
       sample_seq = begin_boundary.sample_next + (int32_t)(frame->sequence - (uint32_t)begin_boundary.sample_next);
     uint64_t nominal = nominal_us_of(sample_seq);
-    uint64_t lower = (uint64_t)drms_acq_last_push_ms * 1000u; /* 过渡：入环时刻下界 */
+    uint64_t lower = capture_lower_us;
     DRMS_MonitorInput input = {
       .ohms = 0.0, .capture_us = nominal, .capture_lower_bound_us = lower,
       .sample_seq = sample_seq, .acquisition_generation = drms_acq_generation(),
@@ -276,7 +277,7 @@ static void pipeline_step_frame(const DRMS_RawFrame *frame, uint64_t ticket)
     /* 监测帧（非记录窗口）：同样驱动监测管线 */
     DRMS_MonitorInput input = {
       .ohms = 0.0, .capture_us = nominal_us_of(frame->sequence),
-      .capture_lower_bound_us = (uint64_t)drms_acq_last_push_ms * 1000u,
+      .capture_lower_bound_us = capture_lower_us,
       .sample_seq = frame->sequence,
       .acquisition_generation = drms_acq_generation(),
       .quality_flags = 0, .config_version = 1, .baseline_version = 1};
@@ -302,9 +303,10 @@ static void drain_frames(void)
 {
   DRMS_RawFrame frame;
   unsigned int limit = 4096;
-  while (limit-- && drms_acq_pop(&frame))
+  uint64_t capture_lower_us;
+  while (limit-- && drms_acq_pop_timed(&frame, &capture_lower_us))
   {
-    pipeline_step_frame(&frame, consumed_raw);
+    pipeline_step_frame(&frame, consumed_raw, capture_lower_us);
     consumed_raw += 1;
     int valid = drms_decode_frame(frame.bytes, &latest);
     (void)valid;
@@ -620,7 +622,7 @@ void drms_application_poll(void)
   /* 监测新鲜度：每 10ms tick（C3：无独立 DRDY 也必须过期失效） */
   {
     DRMS_MonitorOutput fresh;
-    drms_monitor_tick(monitor, (uint64_t)HAL_GetTick() * 1000u, &fresh);
+    drms_monitor_tick(monitor, drms_acq_now_us(), &fresh);
     if (fresh.fresh && drms_excitation_ok(&latest))
     {
       double ohms;
@@ -664,7 +666,7 @@ size_t drms_application_status(char *out, size_t capacity)
   uint32_t mask = __get_PRIMASK();
   __disable_irq();
   DRMS_MonitorOutput snapshot;
-  drms_monitor_tick(monitor, (uint64_t)HAL_GetTick() * 1000u, &snapshot);
+  drms_monitor_tick(monitor, drms_acq_now_us(), &snapshot);
   uint32_t monitor_state = snapshot.state, monitor_fresh = snapshot.fresh;
   uint32_t values[] = {ready, drms_acq_running, drms_acq_reference, drms_acq_rate, r_valid,
     calibration.valid, cal_dirty, cal_active, cal_count, cal_result, drms_acq_error,

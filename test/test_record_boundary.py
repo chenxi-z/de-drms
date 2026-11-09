@@ -197,7 +197,7 @@ class BoundaryTest(unittest.TestCase):
         subprocess.run(['cc', '-shared', '-fPIC', '-Wall', '-Werror=implicit-function-declaration',
                         '-I', str(p), '-I', str(src / 'Inc'),
                         *[str(src / f'Src/drms_{name}.c') for name in
-                          ('acquisition', 'record_session', 'logging', 'log_codec', 'fifo', 'measurement')],
+                          ('acquisition', 'record_session', 'logging', 'log_codec', 'fifo', 'measurement', 'capture_time')],
                         str(p / 'mock.c'), '-o', str(p / 'boundary.so')], check=True)
         cls.lib = ctypes.CDLL(str(p / 'boundary.so'))
         lib = cls.lib

@@ -1,6 +1,7 @@
 #include "drms_acquisition.h"
 #include "drms_measurement.h"
 #include "drms_fifo.h"
+#include "drms_capture_time.h"
 #include "main.h"
 #include "spi.h"
 #include <string.h>
@@ -11,6 +12,9 @@ static uint8_t dma_rx[12] __attribute__((aligned(4)));
 static uint8_t dma_tx[12] __attribute__((aligned(4)));
 static volatile uint32_t busy, last_completion;
 static uint32_t inflight_sequence;
+static uint64_t inflight_capture_us, consumed_ticket;
+static uint32_t clock_last_tick;
+static uint64_t clock_epoch_ms;
 static unsigned int frame_size, powered;
 volatile uint32_t drms_acq_running, drms_acq_rate, drms_acq_reference;
 volatile uint32_t drms_acq_last_push_ms; /* 最近帧入环时刻（过渡用；T8 换 DRDY 实测） */
@@ -32,6 +36,18 @@ static uint32_t crit_enter(void)
 }
 
 static void crit_exit(uint32_t mask) { __set_PRIMASK(mask); }
+
+uint64_t drms_acq_now_us(void)
+{
+  uint32_t mask = crit_enter();
+  uint32_t tick = HAL_GetTick();
+  if (tick < clock_last_tick)
+    clock_epoch_ms += (1ULL << 32);
+  clock_last_tick = tick;
+  uint64_t now = (clock_epoch_ms + tick) * 1000u;
+  crit_exit(mask);
+  return now;
+}
 
 static uint32_t token_match(DRMS_Token a, DRMS_Token b)
 {
@@ -203,6 +219,8 @@ int drms_acq_start(uint32_t rate, unsigned int reference)
   drms_acq_edges = drms_acq_overruns = drms_acq_queue_drops = 0;
   /* 新采集代次：流计数清零，边界请求/回复一并作废（旧代次边界不得交付）。 */
   sample_seq_next = raw_ticket_next = capture_lost_total = unknown_loss_epoch = 0;
+  consumed_ticket = 0;
+  drms_capture_time_reset();
   ++acquisition_generation;
   boundary_pending.armed = 0;
   boundary_reply.valid = 0;
@@ -288,6 +306,7 @@ void drms_acq_drdy(void)
   }
   busy = 1;
   inflight_sequence = sequence;
+  inflight_capture_us = drms_acq_now_us();
   cs(0);
   if (HAL_SPI_TransmitReceive_DMA(&hspi1, dma_tx, dma_rx, sizeof(dma_rx)) != HAL_OK)
   {
@@ -308,7 +327,12 @@ void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *spi)
     DRMS_RawFrame frame;
     memcpy(frame.bytes, dma_rx, sizeof(frame.bytes));
     frame.sequence = inflight_sequence;
-    if (!drms_fifo_push(&queue, &frame))
+    DRMS_Result time_status = DRMS_OK;
+    if (raw_ticket_next % DRMS_CAPTURE_BLOCK_TICKS == 0 &&
+        drms_fifo_count(&queue) < 4096)
+      time_status = drms_capture_time_publish(raw_ticket_next, consumed_ticket,
+                                              acquisition_generation, inflight_capture_us);
+    if (time_status != DRMS_OK || !drms_fifo_push(&queue, &frame))
     {
       ++drms_acq_queue_drops;
       ++capture_lost_total; /* 入环失败属于捕获损失，同一采样只计一次 */
@@ -341,9 +365,36 @@ void HAL_SPI_ErrorCallback(SPI_HandleTypeDef *spi)
   /* Supervisor completes the HAL abort and analog shutdown in thread context. */
 }
 
+int drms_acq_pop_timed(DRMS_RawFrame *frame, uint64_t *capture_lower_us)
+{
+  if (!frame || !capture_lower_us || !queue.capacity)
+    return 0;
+  uint32_t mask = crit_enter();
+  if (!drms_fifo_count(&queue))
+  {
+    crit_exit(mask);
+    return 0;
+  }
+  if (drms_capture_time_lookup(consumed_ticket, acquisition_generation,
+                               capture_lower_us) != DRMS_OK)
+  {
+    drms_acq_error = 6;
+    drms_acq_running = 0;
+    HAL_GPIO_WritePin(CURR_DIS_GPIO_Port, CURR_DIS_Pin, GPIO_PIN_SET);
+    crit_exit(mask);
+    return 0;
+  }
+  int popped = drms_fifo_pop(&queue, frame);
+  if (popped)
+    ++consumed_ticket;
+  crit_exit(mask);
+  return popped;
+}
+
 int drms_acq_pop(DRMS_RawFrame *frame)
 {
-  return queue.capacity ? drms_fifo_pop(&queue, frame) : 0;
+  uint64_t capture_lower_us;
+  return drms_acq_pop_timed(frame, &capture_lower_us);
 }
 
 void drms_acq_poll(void)

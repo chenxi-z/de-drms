@@ -67,6 +67,7 @@ void HAL_GPIO_WritePin(int port,int pin,int state) {
 uint32_t HAL_GetTick(void) { return ticks; }
 void HAL_Delay(uint32_t ms) { ticks+=ms; }
 void advance_ms(uint32_t ms) { ticks+=ms; }
+void set_ticks(uint32_t value) { ticks=value; }
 int HAL_SPI_TransmitReceive(SPI_HandleTypeDef *s,uint8_t *tx,uint8_t *rx,uint16_t n,uint32_t timeout) {
  if(n!=(fixed?12:3)) ++wrong_frame;
  if(fixed && drms_crc16(tx,9)!=((tx[9]<<8)|tx[10])) ++wrong_frame;
@@ -116,7 +117,7 @@ class AcquisitionTest(unittest.TestCase):
         src = ROOT / 'firmware/DE-DRMS-Code/Core'
         subprocess.run(['cc', '-shared', '-fPIC', '-Wall', '-Werror=implicit-function-declaration',
                         '-I', str(p), '-I', str(src / 'Inc'),
-                        *[str(src / f'Src/drms_{name}.c') for name in ('acquisition', 'measurement', 'fifo')],
+                        *[str(src / f'Src/drms_{name}.c') for name in ('acquisition', 'measurement', 'fifo', 'capture_time')],
                         str(p / 'mock.c'), '-o', str(p / 'acq.so')], check=True)
         cls.lib = ctypes.CDLL(str(p / 'acq.so'))
 
@@ -132,6 +133,32 @@ class AcquisitionTest(unittest.TestCase):
         self.lib.set_spi_size(7)
         for name in ('forbidden', 'wrong_frame', 'command_count', 'bad_ready', 'bad_crc', 'dma_error', 'dma_starts'):
             self.value(name).value = 0
+
+    def test_timed_pop_uses_capture_time_of_queued_block(self):
+        self.assertEqual(self.lib.drms_acq_start(4000, 0), 1)
+        self.lib.drms_acq_now_us.restype = ctypes.c_uint64
+        captured = self.lib.drms_acq_now_us()
+        self.lib.drms_acq_drdy()
+        self.lib.complete_frame(2800000, 4200000)
+        self.lib.advance_ms(100)
+        self.lib.drms_acq_drdy()
+        self.lib.complete_frame(2800000, 4200000)
+        frame = Raw()
+        lower = ctypes.c_uint64()
+        self.lib.drms_acq_pop_timed.argtypes = [ctypes.POINTER(Raw), ctypes.POINTER(ctypes.c_uint64)]
+        self.assertEqual(self.lib.drms_acq_pop_timed(ctypes.byref(frame), ctypes.byref(lower)), 1)
+        self.assertEqual(lower.value, captured)
+        self.assertGreaterEqual(self.lib.drms_acq_now_us() - lower.value, 100000)
+        self.assertEqual(self.lib.drms_acq_pop_timed(ctypes.byref(frame), ctypes.byref(lower)), 1)
+        self.assertEqual(lower.value, captured)
+
+    def test_acquisition_clock_extends_tick_wrap(self):
+        self.lib.drms_acq_now_us.restype = ctypes.c_uint64
+        self.lib.set_ticks(0xfffffff0)
+        before = self.lib.drms_acq_now_us()
+        self.lib.advance_ms(32)
+        after = self.lib.drms_acq_now_us()
+        self.assertEqual(after - before, 32000)
 
     def test_initialization_uses_internal_ref_without_charge_pump_and_checks_acks(self):
         self.assertEqual(self.lib.drms_acq_start(4000, 0), 1)

@@ -149,6 +149,15 @@ class ArchitectureIntegrationTest(unittest.TestCase):
             self.lib.drms_log_poll()
         self.assertEqual(self.value('drms_log_running').value, 1)
 
+    def test_backlog_does_not_make_old_measurement_fresh(self):
+        self.lib.drms_acq_drdy()
+        self.lib.complete_frame(2800000, 4200000)
+        self.lib.advance_ms(100)
+        self.lib.drms_acq_drdy()
+        self.lib.complete_frame(2800000, 4200000)
+        self.lib.drms_application_poll()
+        self.assertEqual(self.status()['r_valid'], 0)
+
     def test_monitor_state_is_unconfigured_without_client_table(self):
         # 未配置区间表/基线：monitor 报 INVALID(无基线)；无表时为 UNCONFIGURED。
         # 两种都绝不冒充正常等级（CONFIRMED）。
