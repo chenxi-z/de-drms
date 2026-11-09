@@ -181,11 +181,16 @@ class ArchitectureIntegrationTest(unittest.TestCase):
             found = re.search(r'\.bss\.' + name + r'\s+0x[0-9a-f]+\s+(0x[0-9a-f]+)', m)
             self.assertEqual(int(found.group(1), 16), want, name)
 
+    def test_measurement_algorithms_live_outside_generated_core(self):
+        directory = ROOT / 'firmware/DE-DRMS-Code/App/application/measurement'
+        for name in ('monitor', 'filter', 'classifier', 'baseline'):
+            self.assertTrue((directory / f'drms_{name}.c').is_file(), name)
+
     def test_algorithm_modules_stay_free_of_hal_and_rtos(self):
         allowed = {'drms_architecture_contract.h', 'drms_filter.h', 'drms_classifier.h',
                    'drms_baseline.h', 'stdint.h', 'stddef.h', 'string.h', 'math.h'}
         for name in ('monitor', 'filter', 'classifier', 'baseline'):
-            text = (ROOT / f'firmware/DE-DRMS-Code/Core/Src/drms_{name}.c').read_text()
+            text = (ROOT / f'firmware/DE-DRMS-Code/App/application/measurement/drms_{name}.c').read_text()
             includes = set(re.findall(r'#include\s+"([^"]+)"', text))
             self.assertLessEqual(includes, allowed, name)
             lowered = text.lower()

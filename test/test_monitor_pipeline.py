@@ -71,7 +71,7 @@ class PipelineTest(unittest.TestCase):
         src = ROOT / 'firmware/DE-DRMS-Code/Core'
         subprocess.run(['cc', '-shared', '-fPIC', '-Wall', '-Werror=implicit-function-declaration',
                         '-I', str(p), '-I', str(src / 'Inc'),
-                        *[str(src / f'Src/drms_{name}.c') for name in
+                        *[str(src.parent / f'App/application/measurement/drms_{name}.c') for name in
                           ('monitor', 'filter', 'classifier', 'baseline')],
                         '-o', str(p / 'mon.so')], check=True)
         cls.lib = ctypes.CDLL(str(p / 'mon.so'))

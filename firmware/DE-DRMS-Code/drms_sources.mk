@@ -9,10 +9,10 @@ Core/Src/drms_capture_time.c \
 Core/Src/drms_resource_lifecycle.c \
 Core/Src/drms_user_config.c \
 Core/Src/drms_user_backend.c \
-Core/Src/drms_monitor.c \
-Core/Src/drms_filter.c \
-Core/Src/drms_classifier.c \
-Core/Src/drms_baseline.c \
+App/application/measurement/drms_monitor.c \
+App/application/measurement/drms_filter.c \
+App/application/measurement/drms_classifier.c \
+App/application/measurement/drms_baseline.c \
 Core/Src/drms_console.c \
 Core/Src/drms_runtime.c \
 Core/Src/drms_cdc.c \

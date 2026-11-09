@@ -179,7 +179,7 @@ uint32_t HAL_GetUIDw2(void);
                  'user_config', 'msc', 'storage')
         subprocess.run(['cc', '-shared', '-fPIC', '-Wall', '-Werror=implicit-function-declaration',
                         '-I', str(p), '-I', str(src / 'Inc'),
-                        *[str(src / f'Src/drms_{name}.c') for name in names],
+                        *[str((src.parent / 'App/application/measurement' if name in ('monitor', 'filter', 'classifier', 'baseline') else src / 'Src') / f'drms_{name}.c') for name in names],
                         str(p / 'mock.c'), '-lm', '-o', str(p / 'app.so')], check=True)
         cls.instance = 0
 
