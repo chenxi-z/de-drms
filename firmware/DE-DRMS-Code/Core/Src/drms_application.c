@@ -65,6 +65,8 @@ static DRMS_CaptureBoundary begin_boundary;
 static uint32_t have_begin;
 static DRMS_TimeAnchor nominal_anchor;  /* T7 过渡：以 wall-clock 为锚（板测换 DRDY 实测，见 T8） */
 static DRMS_End session_end;
+static DRMS_Token msc_token;
+static uint32_t msc_active, msc_reported;
 
 int drms_console_dispatch(const char *line)
 {
@@ -139,16 +141,52 @@ static DRMS_Result app_dispatch(const DRMS_Token *token, const DRMS_ControlReque
       session_cancelled = 0;
       return DRMS_ACCEPTED; /* 文件就绪+边界 B 在 poll 中归结 */
     }
+    case DRMS_OP_MSC_EXPORT:
+    {
+      DRMS_Result result = drms_msc_request_export();
+      if (result == DRMS_ACCEPTED)
+      {
+        msc_token = *token;
+        msc_active = 1;
+        msc_reported = 0;
+      }
+      return result;
+    }
     case DRMS_OP_CONFIG_APPLY:
     case DRMS_OP_BASELINE_R0:
     case DRMS_OP_CONFIG_SAVE:
-    case DRMS_OP_MSC_EXPORT:
     case DRMS_OP_FILE_DOWNLOAD:
     case DRMS_OP_CALIBRATE:
     case DRMS_OP_UPDATE:
       return DRMS_UNSUPPORTED; /* 非本阶段交付操作：明确拒绝而非静默 */
     default:
       return DRMS_INVALID;
+  }
+}
+
+/* Hold TF_ACCESS across the entire exported lifetime, not just handoff. */
+static void msc_service_control(void)
+{
+  if (!msc_active)
+    return;
+  DRMS_Owner owner = drms_msc_owner();
+  if (owner == DRMS_OWNER_EXPORTED && !msc_reported)
+  {
+    if (drms_control_report(msc_token, DRMS_OK) == DRMS_OK)
+      msc_reported = 1;
+  }
+  else if (owner == DRMS_OWNER_LOCAL)
+  {
+    if (msc_reported)
+      (void)drms_control_release(msc_token, DRMS_RES_TF_ACCESS);
+    else
+    {
+      DRMS_Result result = drms_msc_last_error();
+      (void)drms_control_complete(msc_token,
+          result == DRMS_OK ? DRMS_CANCELLED : result, DRMS_RES_TF_ACCESS);
+    }
+    msc_active = 0;
+    msc_reported = 0;
   }
 }
 
@@ -521,6 +559,7 @@ void drms_application_init(void)
   /* T1：控制裁决接管业务请求投递 */
   drms_record_session_init();
   drms_control_init(app_dispatch);
+  msc_active = msc_reported = 0;
   /* T7：开机自动监测（显式记录仍需请求）；失败保持可调度与诊断 */
   if (!drms_acq_running)
     (void)begin(boot_rate, 0);
@@ -588,6 +627,7 @@ void drms_application_poll(void)
       execute(&command);
     /* 控制裁决：队列请求 → reserve → dispatch；完成槽由本上下文消费 */
     drms_control_poll(4);
+    msc_service_control();
     DRMS_ControlCompletion completions[4];
     uint32_t n = drms_control_collect(completions, 4);
     for (uint32_t i = 0; i < n; ++i)

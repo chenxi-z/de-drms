@@ -233,6 +233,16 @@ class StorageOwnershipTest(unittest.TestCase):
         self.lib.drms_msc_service()
         self.assertNotEqual(self.owner(), 2)
         self.assertEqual(self.lib.drms_msc_media_ready(), 0)
+        self.assertEqual(self.lib.drms_msc_last_error(), 6)
+
+    def test_card_removal_while_exported_revokes_ownership(self):
+        self.export()
+        ctypes.c_int.in_dll(self.lib, 'card_absent').value = 1
+        self.lib.drms_msc_service()
+        self.assertEqual(self.owner(), 0)
+        self.assertEqual(self.lib.drms_msc_media_ready(), 0)
+        self.assertEqual(self.lib.drms_msc_last_error(), 6)
+        self.assertEqual(self.u32('drms_storage_mounted').value, 0)
 
     def test_disconnect_during_raw_initialization_does_not_publish_export(self):
         self.mount()

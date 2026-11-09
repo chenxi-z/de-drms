@@ -110,6 +110,7 @@ DRMS_Result drms_msc_request_export(void)
     return DRMS_BUSY;
   }
   owner_state = (uint32_t)DRMS_OWNER_EXPORTING;
+  last_error = DRMS_OK;
   request_export = 1;
   crit_exit(mask);
   return DRMS_ACCEPTED;
@@ -168,7 +169,6 @@ static void finish_export_request(void)
     last_error = DRMS_IO_ERROR; /* 容量查询失败不开放磁盘 */
     return;
   }
-  owner_state = (uint32_t)DRMS_OWNER_EXPORTING;
   UINT status = fx_media_flush(&sdio_disk);
   if (status == FX_SUCCESS)
     status = fx_media_close(&sdio_disk);
@@ -222,8 +222,6 @@ static void finish_release(void)
   drms_storage_poll(); /* 重新挂载 FileX；失败保持不可记录并报告 */
   if (drms_storage_status != FX_SUCCESS)
     last_error = DRMS_IO_ERROR;
-  else
-    last_error = DRMS_OK;
 }
 
 static void service_read_mailbox(void)
@@ -263,6 +261,8 @@ static void service_read_mailbox(void)
 
 void drms_msc_service(void)
 {
+  if (owner_state == DRMS_OWNER_EXPORTED && !drms_storage_card_present())
+    drms_msc_cancel(); /* 拔卡立即撤销导出，并由本线程收敛原始访问 */
   /* 取消已在 drms_msc_cancel 内把所有权原子转为 RELEASING；
    * 这里不再依据全局取消纪元判定，否则新一次导出会被旧纪元反复打回。 */
   if (request_export && owner_state == DRMS_OWNER_EXPORTING)

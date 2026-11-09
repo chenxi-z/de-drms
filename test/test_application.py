@@ -14,6 +14,15 @@ from test_calibration_journal import MOCK as CAL_MOCK
 from test_user_config import build_body
 
 ROOT = Path(__file__).resolve().parents[1]
+
+class ControlRequest(ctypes.Structure):
+    _fields_ = [('source', ctypes.c_uint32), ('session', ctypes.c_uint32),
+                ('request_id', ctypes.c_uint64), ('operation', ctypes.c_int),
+                ('value', ctypes.c_uint32), ('number', ctypes.c_double),
+                ('payload', ctypes.c_void_p), ('payload_length', ctypes.c_uint32)]
+
+class Token(ctypes.Structure):
+    _fields_ = [('operation_id', ctypes.c_uint64), ('generation', ctypes.c_uint32)]
 TX_HEADER = r'''
 #ifndef TEST_TX_H
 #define TEST_TX_H
@@ -169,7 +178,7 @@ uint32_t HAL_GetUIDw2(void);
         fx += 'UINT fx_media_close(FX_MEDIA *m) { ++fx_closes; return 0; }\n'
         fx += 'UINT fx_media_abort(FX_MEDIA *m) { ++fx_abort_calls; return 0; }\n'
         fx += 'UINT fx_media_open(FX_MEDIA *m, const char *n, void (*f)(FX_MEDIA *), void *d, void *b, unsigned long z) { m->fx_media_total_sectors = 64; return 0; }\n'
-        fx += 'void fx_stm32_sd_driver(FX_MEDIA *m) { if (m->fx_media_driver_request==9) ++sd_uninits; }\n'
+        fx += 'void fx_stm32_sd_driver(FX_MEDIA *m) { if (m->fx_media_driver_request==9) ++sd_uninits; if (m->fx_media_driver_request==4) m->fx_media_driver_status=0; }\n'
         # storage.c 已真编译：剥离 mock 中的介质状态定义（保留计数器）
         fx = fx.replace('volatile unsigned int drms_storage_mounted=1,drms_storage_status;\n',
                         'extern volatile unsigned int drms_storage_mounted,drms_storage_status;\n')
@@ -213,6 +222,34 @@ uint32_t HAL_GetUIDw2(void);
         ctypes.c_int.in_dll(self.lib, 'sd_card_present').value = 1
         self.lib.drms_storage_poll()
         self.assertEqual(self.value('drms_storage_mounted').value, 1)
+
+    def test_msc_export_retains_tf_lease_until_release(self):
+        self.insert_card()
+        request = ControlRequest(source=3, request_id=42, operation=2)
+        self.assertEqual(self.lib.drms_control_submit(ctypes.byref(request)), 1)
+        self.lib.drms_application_poll()
+        self.assertEqual(self.lib.drms_msc_owner(), 1)
+        self.lib.drms_msc_service()
+        self.lib.drms_application_poll()
+        self.assertEqual(self.lib.drms_msc_owner(), 2)
+        token = Token()
+        self.assertEqual(self.lib.drms_control_reserve(4, ctypes.byref(token)), 2)
+        self.assertEqual(self.lib.drms_msc_request_release(), 1)
+        self.lib.drms_msc_service()
+        self.lib.drms_application_poll()
+        self.assertEqual(self.lib.drms_control_reserve(4, ctypes.byref(token)), 1)
+        self.lib.drms_control_complete(token, 0, 4)
+
+    def test_msc_export_failure_releases_tf_lease(self):
+        request = ControlRequest(source=3, request_id=43, operation=2)
+        self.assertEqual(self.lib.drms_control_submit(ctypes.byref(request)), 1)
+        self.lib.drms_application_poll()
+        self.lib.drms_msc_service()
+        self.lib.drms_application_poll()
+        self.assertEqual(self.lib.drms_msc_last_error(), 6)
+        token = Token()
+        self.assertEqual(self.lib.drms_control_reserve(4, ctypes.byref(token)), 1)
+        self.lib.drms_control_complete(token, 0, 4)
 
     def command(self, line):
         self.assertEqual(self.lib.drms_console_dispatch(line.encode()), 1)
