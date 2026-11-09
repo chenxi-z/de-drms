@@ -10,11 +10,29 @@ extern uint32_t fx_sd_media_memory[128];
 volatile unsigned int drms_storage_mounted;
 volatile unsigned int drms_storage_status = FX_IO_ERROR;
 static uint32_t capacity_cache; /* 导出容量缓存（挂载成功时刷新） */
+static uint32_t media_generation, last_presence, presence_known;
 
 void drms_storage_init(void)
 {
   drms_storage_mounted = 0;
   drms_storage_status = FX_IO_ERROR;
+  capacity_cache = media_generation = last_presence = presence_known = 0;
+}
+
+void drms_storage_observe(void)
+{
+  uint32_t present = drms_storage_card_present();
+  if ((!presence_known && present) || (presence_known && present != last_presence))
+    __atomic_add_fetch(&media_generation, 1u, __ATOMIC_RELEASE);
+  presence_known = 1;
+  last_presence = present;
+  if (!present)
+    capacity_cache = 0;
+}
+
+uint32_t drms_storage_media_generation(void)
+{
+  return __atomic_load_n(&media_generation, __ATOMIC_ACQUIRE);
 }
 
 static void release_driver(void)
@@ -64,6 +82,7 @@ int drms_storage_prepare_shutdown(void)
 
 void drms_storage_poll(void)
 {
+  drms_storage_observe();
   if (drms_msc_owner() != DRMS_OWNER_LOCAL)
     return;
   if (HAL_GPIO_ReadPin(SD_CD_GPIO_Port, SD_CD_Pin) != GPIO_PIN_RESET)
@@ -85,6 +104,7 @@ void drms_storage_poll(void)
       drms_storage_mounted = 1;
       /* 导出容量以当前卡为准；换卡/重挂载后刷新，不得沿用旧容量。 */
       capacity_cache = (uint32_t)sdio_disk.fx_media_total_sectors;
+      __atomic_add_fetch(&media_generation, 1u, __ATOMIC_RELEASE);
     }
     else
       release_driver();

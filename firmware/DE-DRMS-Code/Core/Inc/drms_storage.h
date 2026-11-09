@@ -5,6 +5,9 @@
 /* FileX thread exclusively owns the medium and its lifecycle. */
 void drms_storage_init(void);
 void drms_storage_poll(void);
+/* Storage worker: sample the card-detect input even while exported/backing off. */
+void drms_storage_observe(void);
+uint32_t drms_storage_media_generation(void);
 /* FileX owner only: abort dirty media, release the HAL driver, allow remount. */
 void drms_storage_invalidate(void);
 int drms_storage_prepare_shutdown(void);

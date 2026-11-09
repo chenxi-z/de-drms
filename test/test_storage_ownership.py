@@ -244,6 +244,25 @@ class StorageOwnershipTest(unittest.TestCase):
         self.assertEqual(self.lib.drms_msc_last_error(), 6)
         self.assertEqual(self.u32('drms_storage_mounted').value, 0)
 
+    def test_media_generation_changes_and_removed_capacity_is_forgotten(self):
+        self.mount()
+        first = self.lib.drms_storage_media_generation()
+        self.assertGreater(first, 0)
+        self.assertEqual(self.lib.drms_msc_request_export(), 1)
+        self.lib.drms_msc_service()
+        ctypes.c_int.in_dll(self.lib, 'card_absent').value = 1
+        self.lib.drms_storage_poll()
+        removed = self.lib.drms_storage_media_generation()
+        self.assertGreater(removed, first)
+        self.lib.drms_msc_service()
+        self.lib.drms_storage_poll()
+        self.assertEqual(self.lib.drms_storage_capacity_sectors(), 0)
+        ctypes.c_int.in_dll(self.lib, 'open_result').value = 1
+        ctypes.c_int.in_dll(self.lib, 'card_absent').value = 0
+        self.lib.drms_storage_poll()
+        self.assertGreater(self.lib.drms_storage_media_generation(), removed)
+        self.assertEqual(self.health(), 2)  # replacement failed identification: FAULT
+
     def test_disconnect_during_raw_initialization_does_not_publish_export(self):
         self.mount()
         ctypes.c_int.in_dll(self.lib, 'cancel_on_raw_init').value = 1

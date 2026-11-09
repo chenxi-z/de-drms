@@ -145,6 +145,7 @@ UINT MX_FileX_Init(VOID *memory_ptr)
   for (;;)
   {
     ULONG now = tx_time_get();
+    drms_storage_observe();
     if (drms_shutdown_requested)
       drms_msc_cancel();
     drms_msc_service();

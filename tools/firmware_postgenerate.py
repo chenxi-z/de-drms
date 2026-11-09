@@ -163,7 +163,7 @@ HOOKS = {
     'AZURE_RTOS/App/app_azure_rtos_config.h': ('#define UX_APP_MEM_POOL_SIZE (40U * 1024U)',
         '#define FX_APP_MEM_POOL_SIZE (8U * 1024U)', '#define TX_APP_MEM_POOL_SIZE (8U * 1024U)'),
     'FileX/App/app_filex.c': ('drms_log_init();', 'drms_log_poll();', 'drms_storage_prepare_shutdown();', 'drms_msc_init();', 'drms_msc_set_wait_hook(',
-        'drms_msc_service();', '#define FX_APP_THREAD_STACK_SIZE (4U * 1024U)'),
+        'drms_msc_service();', 'drms_storage_observe();', '#define FX_APP_THREAD_STACK_SIZE (4U * 1024U)'),
     'FileX/Target/fx_stm32_sd_driver_glue.c': ('if (hsd1.Instance != SDMMC1)',
         '__HAL_RCC_SDMMC1_FORCE_RESET();', 'ret = (sd_init_status == HAL_OK) ? 0 : 1;')
 }
