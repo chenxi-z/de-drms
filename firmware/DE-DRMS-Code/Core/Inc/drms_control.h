@@ -17,6 +17,7 @@ typedef struct {
   DRMS_Result result;
   uint32_t quiescent_mask;
   uint32_t stale;
+  uint32_t phase; /* 0 queued, 1 dispatched, 2 finished */
 } DRMS_ControlCompletion;
 
 /* 只读快照（短临界区复制）。last_completion 仅在 completion_count>0 时有效，
@@ -46,9 +47,11 @@ typedef DRMS_Result (*DRMS_ControlDispatch)(const DRMS_Token *token,
 void drms_control_init(DRMS_ControlDispatch dispatch);
 
 /* 复制请求入有界队列。同步返回：ACCEPTED=已入队、BUSY=队列满、
- * INVALID=请求非法、CANCELLED=停止中拒绝。不返回 token：内部 operation_id
- * 由 reserve 分配，最终结果经带 request 关联的完成记录交付。 */
+ * INVALID=请求非法、CANCELLED=停止中拒绝。 */
 DRMS_Result drms_control_submit(const DRMS_ControlRequest *request);
+/* As above, but returns the boot-scoped operation ID upon queue admission.
+ * That ID remains queryable while queued, dispatched, or recently completed. */
+DRMS_Result drms_control_submit_identified(const DRMS_ControlRequest *request, uint64_t *operation_id);
 
 /* 控制任务：本轮至多处理 max_requests 条队列请求。每条依次
  * reserve(op_resources) → 失败写完成记录；成功则 dispatch → 拒绝即回滚。 */

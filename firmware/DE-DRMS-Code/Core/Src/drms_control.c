@@ -25,7 +25,8 @@ typedef struct {
 
 static DRMS_ControlDispatch dispatch_hook;
 static Lease leases[DRMS_CONTROL_LEASES];
-static DRMS_ControlRequest requests[DRMS_CONTROL_REQUESTS];
+typedef struct { DRMS_ControlRequest request; uint64_t operation_id; } QueuedRequest;
+static QueuedRequest requests[DRMS_CONTROL_REQUESTS];
 static DRMS_ControlCompletion completions[DRMS_CONTROL_COMPLETIONS];
 static DRMS_ControlCompletion history[DRMS_CONTROL_HISTORY];
 static uint32_t history_head, history_count;
@@ -86,6 +87,7 @@ static void push_completion_locked(uint32_t source, uint32_t session, uint64_t r
   slot->result = result;
   slot->quiescent_mask = quiescent_mask;
   slot->stale = stale;
+  slot->phase = 2;
   if (operation_id)
   {
     history[history_head] = *slot;
@@ -144,6 +146,22 @@ DRMS_Result drms_control_get_operation(uint64_t operation_id, DRMS_ControlComple
       out->result = DRMS_ACCEPTED;
       out->quiescent_mask = 0;
       out->stale = lease->generation != control_generation;
+      out->phase = 1;
+      crit_exit(mask);
+      return DRMS_OK;
+    }
+  }
+  for (uint32_t i = 0; i < request_count; ++i)
+  {
+    const QueuedRequest *queued = &requests[(request_tail + i) % DRMS_CONTROL_REQUESTS];
+    if (queued->operation_id == operation_id)
+    {
+      memset(out, 0, sizeof(*out));
+      out->operation_id = operation_id;
+      out->source = queued->request.source;
+      out->session = queued->request.session;
+      out->request_id = queued->request.request_id;
+      out->result = DRMS_ACCEPTED;
       crit_exit(mask);
       return DRMS_OK;
     }
@@ -155,8 +173,14 @@ DRMS_Result drms_control_get_operation(uint64_t operation_id, DRMS_ControlComple
 
 DRMS_Result drms_control_submit(const DRMS_ControlRequest *request)
 {
+  return drms_control_submit_identified(request, NULL);
+}
+
+DRMS_Result drms_control_submit_identified(const DRMS_ControlRequest *request, uint64_t *operation_id)
+{
   uint32_t mask;
-  DRMS_ControlRequest *slot;
+  QueuedRequest *slot;
+  if (operation_id) *operation_id = 0;
   if (!request || request->operation <= DRMS_OP_NONE || request->operation > DRMS_OP_UPDATE)
     return DRMS_INVALID;
   mask = crit_enter();
@@ -166,14 +190,16 @@ DRMS_Result drms_control_submit(const DRMS_ControlRequest *request)
     ++requests_rejected;
     return DRMS_CANCELLED;
   }
-  if (request_count == DRMS_CONTROL_REQUESTS)
+  if (request_count == DRMS_CONTROL_REQUESTS || !next_operation_id)
   {
     crit_exit(mask);
     ++requests_rejected;
     return DRMS_BUSY;
   }
   slot = &requests[request_head];
-  *slot = *request;
+  slot->request = *request;
+  slot->operation_id = next_operation_id++;
+  if (operation_id) *operation_id = slot->operation_id;
   request_head = (request_head + 1U) % DRMS_CONTROL_REQUESTS;
   ++request_count;
   ++requests_accepted;
@@ -181,7 +207,7 @@ DRMS_Result drms_control_submit(const DRMS_ControlRequest *request)
   return DRMS_ACCEPTED;
 }
 
-DRMS_Result drms_control_reserve(uint32_t resources, DRMS_Token *out)
+static DRMS_Result reserve_assigned(uint32_t resources, DRMS_Token *out, uint64_t assigned_id)
 {
   uint32_t mask, granted, i;
   Lease *lease = NULL;
@@ -221,23 +247,33 @@ DRMS_Result drms_control_reserve(uint32_t resources, DRMS_Token *out)
     crit_exit(mask);
     return DRMS_BUSY;
   }
+  if (!assigned_id && !next_operation_id)
+  {
+    crit_exit(mask);
+    return DRMS_BUSY;
+  }
   granted = resources;
-  lease->operation_id = next_operation_id++;
+  lease->operation_id = assigned_id ? assigned_id : next_operation_id++;
   lease->generation = control_generation;
   lease->resources = granted;
   lease->active = 1;
+  lease->reported = 0;
   lease->source = DRMS_SOURCE_NONE;
   lease->session = 0;
   lease->request_id = 0;
   reserved_mask |= granted;
   if (out)
   {
-    lease->reported = 0;
     out->operation_id = lease->operation_id;
     out->generation = lease->generation;
   }
   crit_exit(mask);
   return DRMS_ACCEPTED;
+}
+
+DRMS_Result drms_control_reserve(uint32_t resources, DRMS_Token *out)
+{
+  return reserve_assigned(resources, out, 0);
 }
 
 DRMS_Result drms_control_report(DRMS_Token token, DRMS_Result result)
@@ -330,9 +366,10 @@ void drms_control_stop(void)
   /* 已排队请求全部取消；拥塞由完成环溢出计数承担。 */
   while (request_count)
   {
-    DRMS_ControlRequest *request = &requests[request_tail];
+    QueuedRequest *queued = &requests[request_tail];
+    DRMS_ControlRequest *request = &queued->request;
     push_completion_locked(request->source, request->session, request->request_id,
-                           0, DRMS_CANCELLED, 0, 0);
+                           queued->operation_id, DRMS_CANCELLED, 0, 0);
     request_tail = (request_tail + 1U) % DRMS_CONTROL_REQUESTS;
     --request_count;
   }
@@ -378,16 +415,15 @@ void drms_control_poll(uint32_t max_requests)
       crit_exit(mask);
       return;
     }
-    request = requests[request_tail];
+    QueuedRequest queued = requests[request_tail];
+    request = queued.request;
+    result = reserve_assigned(drms_control_resources_for(request.operation), &token, queued.operation_id);
     request_tail = (request_tail + 1U) % DRMS_CONTROL_REQUESTS;
     --request_count;
-    crit_exit(mask);
-    result = drms_control_reserve(drms_control_resources_for(request.operation), &token);
     if (result != DRMS_ACCEPTED)
     {
-      mask = crit_enter();
       push_completion_locked(request.source, request.session, request.request_id,
-                             0, result, 0, 0);
+                             queued.operation_id, result, 0, 0);
       crit_exit(mask);
       continue;
     }
@@ -404,6 +440,7 @@ void drms_control_poll(uint32_t max_requests)
         break;
       }
     }
+    crit_exit(mask);
     if (!dispatch_hook)
     {
       (void)drms_control_complete(token, DRMS_UNSUPPORTED, leased);

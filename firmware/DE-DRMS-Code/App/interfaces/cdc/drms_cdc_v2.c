@@ -129,7 +129,7 @@ static void received(void *user, const uint8_t *request, size_t length)
   else if (have_operation)
   {
     put64(temp, operation.operation_id); tlv(out, &pos, 11, temp, 8);
-    temp[0] = operation.result == DRMS_ACCEPTED ? 1u : 2u;
+    temp[0] = (uint8_t)operation.phase;
     tlv(out, &pos, 45, temp, 1);
     temp[0] = operation.source == DRMS_SOURCE_BUTTON ? 1u :
               operation.source == DRMS_SOURCE_CDC ? 2u :

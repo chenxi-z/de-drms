@@ -82,7 +82,7 @@ class Completion(ctypes.Structure):
     _fields_ = [('operation_id', ctypes.c_uint64), ('source', ctypes.c_uint32),
                 ('session', ctypes.c_uint32), ('request_id', ctypes.c_uint64),
                 ('result', ctypes.c_int), ('quiescent_mask', ctypes.c_uint32),
-                ('stale', ctypes.c_uint32)]
+                ('stale', ctypes.c_uint32), ('phase', ctypes.c_uint32)]
 
 
 class Snapshot(ctypes.Structure):
@@ -194,6 +194,43 @@ class ControlContractTest(unittest.TestCase):
         result = Completion()
         self.assertEqual(self.lib.drms_control_get_operation(running.operation_id, ctypes.byref(result)), OK)
         self.assertEqual((result.result, result.request_id), (ACCEPTED, 31))
+
+    def test_admitted_request_id_survives_queue_dispatch_and_completion(self):
+        self.lib.drms_control_submit_identified.argtypes = [ctypes.POINTER(Request), ctypes.POINTER(ctypes.c_uint64)]
+        req = Request(source=3, session=4, request_id=55, operation=MSC_EXPORT)
+        operation = ctypes.c_uint64()
+        self.assertEqual(self.lib.drms_control_submit_identified(ctypes.byref(req), ctypes.byref(operation)), ACCEPTED)
+        self.assertNotEqual(operation.value, 0)
+        state = Completion()
+        self.assertEqual(self.lib.drms_control_get_operation(operation.value, ctypes.byref(state)), OK)
+        self.assertEqual((state.result, state.request_id), (ACCEPTED, 55))
+        self.assertEqual(state.phase, 0)
+        self.lib.drms_control_poll(1)
+        token = self.token_of(MSC_EXPORT)
+        self.assertEqual(token.operation_id, operation.value)
+        self.assertEqual(self.lib.drms_control_get_operation(operation.value, ctypes.byref(state)), OK)
+        self.assertEqual(state.phase, 1)
+        self.assertEqual(self.lib.drms_control_complete(token, OK, TF), OK)
+        self.assertEqual(self.lib.drms_control_get_operation(operation.value, ctypes.byref(state)), OK)
+        self.assertEqual(state.result, OK)
+        self.assertEqual(state.phase, 2)
+
+    def test_queued_conflict_and_stop_retain_identified_results(self):
+        self.lib.drms_control_submit_identified.argtypes = [ctypes.POINTER(Request), ctypes.POINTER(ctypes.c_uint64)]
+        active = self.submit_and_poll(MSC_EXPORT)
+        req = Request(source=3, session=1, request_id=56, operation=MSC_EXPORT)
+        conflict = ctypes.c_uint64()
+        self.assertEqual(self.lib.drms_control_submit_identified(ctypes.byref(req), ctypes.byref(conflict)), ACCEPTED)
+        self.lib.drms_control_poll(1)
+        state = Completion()
+        self.assertEqual(self.lib.drms_control_get_operation(conflict.value, ctypes.byref(state)), OK)
+        self.assertEqual(state.result, BUSY)
+        queued = ctypes.c_uint64()
+        self.assertEqual(self.lib.drms_control_submit_identified(ctypes.byref(req), ctypes.byref(queued)), ACCEPTED)
+        self.lib.drms_control_stop()
+        self.assertEqual(self.lib.drms_control_get_operation(queued.value, ctypes.byref(state)), OK)
+        self.assertEqual(state.result, CANCELLED)
+        self.lib.drms_control_complete(active, CANCELLED, TF)
 
     def test_reserve_is_exclusive_and_all_or_nothing(self):
         token = Token()
