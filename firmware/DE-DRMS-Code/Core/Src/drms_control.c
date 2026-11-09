@@ -16,6 +16,7 @@ typedef struct {
   uint32_t generation;
   uint32_t resources;
   uint32_t active;
+  uint32_t reported;
   uint32_t source;
   uint32_t session;
   uint64_t request_id;
@@ -183,11 +184,59 @@ DRMS_Result drms_control_reserve(uint32_t resources, DRMS_Token *out)
   reserved_mask |= granted;
   if (out)
   {
+    lease->reported = 0;
     out->operation_id = lease->operation_id;
     out->generation = lease->generation;
   }
   crit_exit(mask);
   return DRMS_ACCEPTED;
+}
+
+DRMS_Result drms_control_report(DRMS_Token token, DRMS_Result result)
+{
+  uint32_t mask = crit_enter();
+  for (uint32_t i = 0; i < DRMS_CONTROL_LEASES; ++i)
+  {
+    Lease *lease = &leases[i];
+    if (lease->active && lease->operation_id == token.operation_id &&
+        lease->generation == token.generation)
+    {
+      if (lease->reported || lease->generation != control_generation)
+      {
+        DRMS_Result status = lease->reported ? DRMS_INVALID : DRMS_STALE;
+        crit_exit(mask);
+        return status;
+      }
+      push_completion_locked(lease->source, lease->session, lease->request_id,
+                             lease->operation_id, result, 0, 0);
+      lease->reported = 1;
+      crit_exit(mask);
+      return DRMS_OK;
+    }
+  }
+  crit_exit(mask);
+  return DRMS_INVALID;
+}
+
+DRMS_Result drms_control_release(DRMS_Token token, uint32_t quiescent_mask)
+{
+  uint32_t mask = crit_enter();
+  for (uint32_t i = 0; i < DRMS_CONTROL_LEASES; ++i)
+  {
+    Lease *lease = &leases[i];
+    if (lease->active && lease->operation_id == token.operation_id &&
+        lease->generation == token.generation && lease->reported)
+    {
+      uint32_t stale = lease->generation != control_generation;
+      reserved_mask &= ~(lease->resources & quiescent_mask);
+      quarantined_mask |= lease->resources & ~quiescent_mask;
+      lease->active = 0;
+      crit_exit(mask);
+      return stale ? DRMS_STALE : DRMS_OK;
+    }
+  }
+  crit_exit(mask);
+  return DRMS_INVALID;
 }
 
 DRMS_Result drms_control_complete(DRMS_Token token, DRMS_Result result,

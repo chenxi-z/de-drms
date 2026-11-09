@@ -158,6 +158,18 @@ class ControlContractTest(unittest.TestCase):
         self.lib.drms_control_poll(8)
         return self.token_of(operation)
 
+    def test_report_start_keeps_lease_until_release(self):
+        token = self.submit_and_poll(RECORD, request_id=42)
+        self.lib.drms_control_report.argtypes = [Token, ctypes.c_int]
+        self.assertEqual(self.lib.drms_control_report(token, OK), OK)
+        self.assertEqual(self.collect()[0].result, OK)
+        self.assertEqual(self.snapshot().reserved_mask, ACQ | RS | TF)
+        self.assertEqual(self.lib.drms_control_reserve(TF, ctypes.byref(Token())), BUSY)
+        self.assertEqual(self.lib.drms_control_report(token, OK), INVALID)
+        self.assertEqual(self.lib.drms_control_release(token, ACQ | RS | TF), OK)
+        self.assertEqual(self.snapshot().reserved_mask, 0)
+        self.assertEqual(self.collect(), [])
+
     def test_reserve_is_exclusive_and_all_or_nothing(self):
         token = Token()
         self.assertEqual(self.lib.drms_control_reserve(RS | TF, ctypes.byref(token)), ACCEPTED)

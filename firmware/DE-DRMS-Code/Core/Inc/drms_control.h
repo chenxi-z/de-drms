@@ -59,6 +59,12 @@ void drms_control_poll(uint32_t max_requests);
  * 仅控制任务调用。 */
 DRMS_Result drms_control_reserve(uint32_t resources, DRMS_Token *out);
 
+/* 先发布操作结果，资源仍保持占用。只允许控制任务调用。 */
+DRMS_Result drms_control_report(DRMS_Token token, DRMS_Result result);
+
+/* 已报告结果的租约按已确认静止的资源释放，其余隔离。 */
+DRMS_Result drms_control_release(DRMS_Token token, uint32_t quiescent_mask);
+
 /* 按 token 释放租约：quiescent_mask 覆盖的资源归还，未覆盖的转入隔离
  * （保持占用、阻断新所有者，恢复路径见 T3）。写完成记录（含请求关联与
  * quiescent_mask）。代次不匹配返回 STALE 并仅做清理；无此租约返回 INVALID。
