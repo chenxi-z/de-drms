@@ -42,36 +42,6 @@ Core/Src/adc.c \
 Core/Src/sdmmc.c \
 Core/Src/spi.c \
 Core/Src/app_threadx.c \
-Core/Src/drms_usb.c \
-Core/Src/drms_storage.c \
-Core/Src/drms_msc.c \
-Core/Src/drms_control.c \
-Core/Src/drms_record_session.c \
-Core/Src/drms_capture_time.c \
-Core/Src/drms_resource_lifecycle.c \
-Core/Src/drms_user_config.c \
-Core/Src/drms_user_backend.c \
-Core/Src/drms_monitor.c \
-Core/Src/drms_filter.c \
-Core/Src/drms_classifier.c \
-Core/Src/drms_baseline.c \
-Core/Src/drms_console.c \
-Core/Src/drms_runtime.c \
-Core/Src/drms_cdc.c \
-Core/Src/drms_measurement.c \
-Core/Src/drms_fifo.c \
-Core/Src/drms_acquisition.c \
-Core/Src/drms_calibration_codec.c \
-Core/Src/drms_calibration_journal.c \
-Core/Src/drms_calibration_flash.c \
-Core/Src/drms_log_codec.c \
-Core/Src/drms_logging.c \
-Core/Src/drms_time_codec.c \
-Core/Src/drms_aux.c \
-Core/Src/drms_command.c \
-Core/Src/drms_application.c \
-Core/Src/drms_power.c \
-Core/Src/drms_power_stm32.c \
 Core/Src/usart.c \
 Core/Src/usb_otg.c \
 Core/Src/stm32u5xx_it.c \
@@ -652,6 +622,9 @@ Middlewares/ST/usbx/common/usbx_device_classes/src/ux_device_class_storage_unini
 Middlewares/ST/usbx/common/usbx_device_classes/src/ux_device_class_storage_verify.c \
 Middlewares/ST/usbx/common/usbx_device_classes/src/ux_device_class_storage_write.c
 
+# Application sources are maintained separately from CubeMX output.
+include drms_sources.mk
+
 # ASM sources
 ASM_SOURCES =  \
 startup_stm32u575xx.s
@@ -797,6 +770,10 @@ all: $(BUILD_DIR)/$(TARGET).elf $(BUILD_DIR)/$(TARGET).hex $(BUILD_DIR)/$(TARGET
 # build the application
 #######################################
 # list of objects
+# CubeMX flattens object names; fail rather than silently picking one source.
+ifneq ($(words $(notdir $(C_SOURCES))),$(words $(sort $(notdir $(C_SOURCES)))))
+$(error Duplicate C source basenames in build list)
+endif
 OBJECTS = $(addprefix $(BUILD_DIR)/,$(notdir $(C_SOURCES:.c=.o)))
 vpath %.c $(sort $(dir $(C_SOURCES)))
 # list of ASM program objects
@@ -805,7 +782,7 @@ vpath %.s $(sort $(dir $(ASM_SOURCES)))
 OBJECTS += $(addprefix $(BUILD_DIR)/,$(notdir $(ASMM_SOURCES:.S=.o)))
 vpath %.S $(sort $(dir $(ASMM_SOURCES)))
 
-$(BUILD_DIR)/%.o: %.c Makefile | $(BUILD_DIR) 
+$(BUILD_DIR)/%.o: %.c Makefile drms_sources.mk | $(BUILD_DIR)
 	$(CC) -c $(CFLAGS) -Wa,-a,-ad,-alms=$(BUILD_DIR)/$(notdir $(<:.c=.lst)) $< -o $@
 
 $(BUILD_DIR)/%.o: %.s Makefile | $(BUILD_DIR)
@@ -813,7 +790,7 @@ $(BUILD_DIR)/%.o: %.s Makefile | $(BUILD_DIR)
 $(BUILD_DIR)/%.o: %.S Makefile | $(BUILD_DIR)
 	$(AS) -c $(CFLAGS) $< -o $@
 
-$(BUILD_DIR)/$(TARGET).elf: $(OBJECTS) Makefile
+$(BUILD_DIR)/$(TARGET).elf: $(OBJECTS) Makefile drms_sources.mk
 	$(CC) $(OBJECTS) $(LDFLAGS) -o $@
 	$(SZ) $@
 

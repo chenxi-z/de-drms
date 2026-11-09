@@ -9,8 +9,32 @@ from pathlib import Path
 import re
 
 DEFAULT = Path(__file__).resolve().parents[1] / 'firmware/DE-DRMS-Code'
-SOURCES = ('drms_usb', 'drms_storage', 'drms_msc', 'drms_control', 'drms_record_session', 'drms_capture_time', 'drms_resource_lifecycle', 'drms_user_config', 'drms_user_backend', 'drms_monitor', 'drms_filter', 'drms_classifier', 'drms_baseline', 'drms_console', 'drms_runtime', 'drms_cdc', 'drms_measurement', 'drms_fifo', 'drms_acquisition',
-           'drms_calibration_codec', 'drms_calibration_journal', 'drms_calibration_flash', 'drms_log_codec', 'drms_logging', 'drms_time_codec', 'drms_aux', 'drms_command', 'drms_application', 'drms_power', 'drms_power_stm32')
+MANIFEST = 'drms_sources.mk'
+
+
+def application_sources(project):
+    lines = [line.strip() for line in (project / MANIFEST).read_text().splitlines()
+             if line.strip() and not line.lstrip().startswith('#')]
+    if len(lines) < 2 or lines[0] != 'C_SOURCES += \\':
+        raise ValueError('invalid application source manifest')
+    sources = []
+    for index, line in enumerate(lines[1:]):
+        continuation = line.endswith('\\')
+        if continuation != (index < len(lines) - 2):
+            raise ValueError('invalid application source manifest continuation')
+        source = line[:-1].strip() if continuation else line
+        if not re.fullmatch(r'[A-Za-z0-9_./-]+\.c', source):
+            raise ValueError('invalid application source manifest entry')
+        sources.append(source)
+    if len(sources) != len(set(sources)):
+        raise ValueError('duplicate application source')
+    names = [Path(source).name for source in sources]
+    if len(names) != len(set(names)):
+        raise ValueError('duplicate application source basenames')
+    if any(Path(source).is_absolute() or '..' in Path(source).parts for source in sources):
+        raise ValueError('application source outside project')
+    return sources
+
 
 
 def replace_known(text, old, new, name):
@@ -72,13 +96,30 @@ def repaired(relative, text):
         new = old.replace('    }\n}\n', '    }\n    UX_RESTORE\n}\n')
         return replace_known(text, old, new, relative)
     if relative == 'Makefile':
-        anchor = 'Core/Src/app_threadx.c \\\n'
-        missing = [name for name in SOURCES
-                   if not re.search(r'^Core/Src/' + name + r'\.c\s*\\?$', text, re.M)]
-        if missing:
+        include = 'include drms_sources.mk\n'
+        anchor = '# ASM sources\n'
+        # Earlier generated projects may still contain legacy inline sources.
+        text = re.sub(r'^Core/Src/drms_[A-Za-z0-9_]+\.c\s*\\\n', '', text, flags=re.M)
+        if include not in text:
             if anchor not in text:
                 raise ValueError('unknown Makefile source list')
-            text = text.replace(anchor, anchor + ''.join(f'Core/Src/{name}.c \\\n' for name in missing), 1)
+            text = text.replace(anchor, include + '\n' + anchor, 1)
+        guard = ('ifneq ($(words $(notdir $(C_SOURCES))),'
+                 '$(words $(sort $(notdir $(C_SOURCES)))))\n'
+                 '$(error Duplicate C source basenames in build list)\nendif\n')
+        if guard not in text:
+            anchor = 'OBJECTS = $(addprefix $(BUILD_DIR)/,$(notdir $(C_SOURCES:.c=.o)))'
+            if anchor not in text:
+                raise ValueError('unknown Makefile object list')
+            text = text.replace(anchor, guard + anchor, 1)
+        text = replace_known(text,
+            '$(BUILD_DIR)/%.o: %.c Makefile | $(BUILD_DIR)',
+            '$(BUILD_DIR)/%.o: %.c Makefile drms_sources.mk | $(BUILD_DIR)',
+            'Makefile C object prerequisites')
+        text = replace_known(text,
+            '$(BUILD_DIR)/$(TARGET).elf: $(OBJECTS) Makefile\n',
+            '$(BUILD_DIR)/$(TARGET).elf: $(OBJECTS) Makefile drms_sources.mk\n',
+            'Makefile linker prerequisites')
         return text
     if relative.endswith('fx_stm32_sd_driver.c'):
         text = replace_known(text,
@@ -133,9 +174,9 @@ def verify_user_code(project):
             raise ValueError(f'{relative}: required USER code lost; restore from your saved source')
     if 'MX_SDMMC1_SD_Init();' in (project / 'Core/Src/main.c').read_text():
         raise ValueError('SD initialization returned to main; keep its Generate Function Call disabled')
-    for name in SOURCES:
-        if not (project / f'Core/Src/{name}.c').is_file():
-            raise ValueError(f'missing application source: {name}.c')
+    for source in application_sources(project):
+        if not (project / source).is_file():
+            raise ValueError(f'missing application source: {source}')
 
 
 def main():

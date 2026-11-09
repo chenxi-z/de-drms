@@ -19,8 +19,8 @@ class PostgenerateTest(unittest.TestCase):
         self.tmp = tempfile.TemporaryDirectory()
         self.project = Path(self.tmp.name)
         source = ROOT / 'firmware/DE-DRMS-Code'
-        files = set(PG.FILES) | set(PG.HOOKS) | {'DE-DRMS-Code.ioc', 'Core/Src/main.c'}
-        files |= {f'Core/Src/{name}.c' for name in PG.SOURCES}
+        files = set(PG.FILES) | set(PG.HOOKS) | {'DE-DRMS-Code.ioc', 'Core/Src/main.c', 'drms_sources.mk'}
+        files |= set(PG.application_sources(source))
         for relative in files:
             target = self.project / relative
             target.parent.mkdir(parents=True, exist_ok=True)
@@ -39,7 +39,13 @@ class PostgenerateTest(unittest.TestCase):
 
     def simulate_regeneration(self):
         self.edit('STM32U575xx_FLASH.ld', lambda text: re.sub(r'^.*CALDATA.*\n', '', text.replace('LENGTH = 1008K', 'LENGTH = 2048K'), flags=re.M))
-        self.edit('Makefile', lambda text: re.sub(r'^Core/Src/drms_[^\n]+\n', '', text, flags=re.M))
+        def generated_makefile(text):
+            text = text.replace('include drms_sources.mk\n', '')
+            text = re.sub(r'ifneq \(\$\(words \$\(notdir \$\(C_SOURCES\)\)\),.*?^endif\n',
+                          '', text, count=1, flags=re.M | re.S)
+            return text.replace('%.c Makefile drms_sources.mk |', '%.c Makefile |').replace(
+                '$(OBJECTS) Makefile drms_sources.mk\n', '$(OBJECTS) Makefile\n')
+        self.edit('Makefile', generated_makefile)
         self.edit('Core/Src/sdmmc.c', lambda text: re.sub(
             r'  /\* CubeMX regeneration guard:.*?\n  }\n',
             '  if (HAL_SD_Init(&hsd1) != HAL_OK)\n  {\n    Error_Handler();\n  }\n', text, count=1, flags=re.S))
@@ -87,6 +93,25 @@ class PostgenerateTest(unittest.TestCase):
             restored = (self.project / relative).read_bytes()
             self.assertEqual(re.findall(pattern, original.decode(), flags=re.S),
                              re.findall(pattern, restored.decode(), flags=re.S))
+
+    def test_makefile_uses_single_source_manifest(self):
+        makefile = (self.project / 'Makefile').read_text()
+        self.assertIn('include drms_sources.mk', makefile)
+        manifest = (self.project / 'drms_sources.mk').read_text()
+        self.assertIn('Core/Src/drms_application.c', manifest)
+        self.assertIsNone(re.search(r'^Core/Src/drms_application\.c', makefile, re.M))
+
+    def test_duplicate_application_source_name_is_rejected(self):
+        self.edit('drms_sources.mk', lambda text: text.rstrip() + ' \\\nApp/other/drms_application.c\n')
+        result = self.run_script(apply=True)
+        self.assertEqual(result.returncode, 2)
+        self.assertIn('duplicate application source basenames', result.stdout)
+
+    def test_unknown_manifest_source_is_rejected(self):
+        self.edit('drms_sources.mk', lambda text: text.rstrip() + ' \\\nApp/missing.c\n')
+        result = self.run_script(apply=True)
+        self.assertEqual(result.returncode, 2)
+        self.assertIn('missing application source', result.stdout)
 
     def test_lost_user_hook_blocks_all_edits(self):
         self.simulate_regeneration()
