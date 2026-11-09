@@ -1,6 +1,8 @@
 # 固件工作模式与 CDC 通信规则（固件设计评审版）
 
-本稿用于审阅设备对操作者和未来客户端的行为承诺。当前没有上位机。现有固件的 ASCII CDC 入口见 [drms_cdc.c](../../firmware/DE-DRMS-Code/Core/Src/drms_cdc.c)。正式 CDC 采用二进制协议，USART1 用于独立调试。CDC 正式版直接启用二进制帧，不在运行时猜测 ASCII 或二进制；迁移现有固件诊断脚本时应显式选择接口。
+主要读者为固件开发者、固件评审和接续工作的 agent。负责人从[设备行为与验收](../spec/device-behavior.md)开始，客户端开发从[上位机接入指南](../protocol/host-integration.md)开始。
+
+本稿规定固件如何实现设备行为。当前没有上位机。现有固件的 ASCII CDC 入口见 [drms_cdc.c](../../firmware/DE-DRMS-Code/Core/Src/drms_cdc.c)。正式 CDC 采用二进制协议，USART1 用于独立调试。CDC 正式版直接启用二进制帧，不在运行时猜测 ASCII 或二进制；迁移现有固件诊断脚本时应显式选择接口。
 
 本文只规定固件行为。资源集合、记录样本边界与持久化事务沿用[固件架构的 R1–R8、C1–C6](2026-11-05-firmware-architecture.md)，介质交接沿用 [MSC 设计](2026-11-05-msc-design.md)。表中的动作名用于讨论，不分配线上命令号。
 
