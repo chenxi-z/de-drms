@@ -10,11 +10,11 @@ MOCK = r'''
 #include "drms_file_service.h"
 #include <string.h>
 uint32_t calls_open,calls_read,calls_close,calls_list,disconnect_in_open,disconnect_in_read;
-uint32_t close_result;
+uint32_t close_result, read_result;
 DRMS_Result drms_file_backend_open(uint32_t id,uint32_t s,uint32_t g,uint64_t *size) {
  (void)id;(void)g;++calls_open;*size=8;if(disconnect_in_open) drms_file_service_disconnect(s);return DRMS_OK; }
 DRMS_Result drms_file_backend_read(uint32_t s,uint32_t g,uint64_t o,uint16_t n,uint8_t *p,uint16_t *actual,uint8_t *eof) {
- (void)g;(void)o;++calls_read;memset(p,'A',n);*actual=n;*eof=1;if(disconnect_in_read) drms_file_service_disconnect(s);return DRMS_OK; }
+ (void)g;(void)o;++calls_read;memset(p,'A',n);*actual=n;*eof=1;if(disconnect_in_read) drms_file_service_disconnect(s);return (DRMS_Result)read_result; }
 DRMS_Result drms_file_backend_close(uint32_t s,uint32_t g) { (void)s;(void)g;++calls_close;return (DRMS_Result)close_result; }
 DRMS_Result drms_file_backend_list_step(uint32_t cursor,uint32_t g,uint32_t *id,uint64_t *size,uint32_t *next) {
  (void)g;++calls_list;*next=cursor+1;if(cursor<3)return DRMS_ACCEPTED;*id=cursor;*size=8;return DRMS_OK; }
@@ -41,7 +41,7 @@ class FileServiceTest(unittest.TestCase):
     def val(self,name): return ctypes.c_uint32.in_dll(self.lib,name)
     def setUp(self):
         self.lib.drms_file_service_init()
-        for name in ('calls_open','calls_read','calls_close','calls_list','disconnect_in_open','disconnect_in_read','close_result'): self.val(name).value=0
+        for name in ('calls_open','calls_read','calls_close','calls_list','disconnect_in_open','disconnect_in_read','close_result','read_result'): self.val(name).value=0
     def submit(self, kind, **kwargs):
         req=Request(kind=kind,session=4,generation=7,**kwargs); ticket=ctypes.c_uint64()
         return self.lib.drms_file_service_submit(ctypes.byref(req),ctypes.byref(ticket)),ticket.value
@@ -103,3 +103,10 @@ class FileServiceTest(unittest.TestCase):
         self.lib.drms_file_service_poll()
         self.assertEqual(self.val('calls_close').value,1)
         self.assertEqual(self.lib.drms_file_service_quiescent(),1)
+    def test_read_failure_remains_observable_after_reply_is_taken(self):
+        _,ticket=self.submit(2,file_id=42); self.lib.drms_file_service_poll(); self.take(ticket)
+        self.val('read_result').value=6
+        _,ticket=self.submit(3,offset=0,count=1)
+        self.lib.drms_file_service_poll(); self.assertEqual(self.take(ticket)[1].result,6)
+        self.assertEqual(self.lib.drms_file_service_quiescent(),1)
+        self.assertEqual(self.lib.drms_file_service_last_result(),6)

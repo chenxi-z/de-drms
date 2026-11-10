@@ -69,6 +69,7 @@ UINT tx_queue_flush(TX_QUEUE *);
 APP_MOCK = r'''
 #include "tx_api.h"
 #include "drms_time.h"
+#include "drms_cdc_v2.h"
 #include <string.h>
 volatile unsigned int drms_usb_status,drms_uart_rx_dropped,drms_uart_tx_dropped;
 volatile uint32_t drms_battery_mv=3700,drms_battery_valid=1;
@@ -82,8 +83,9 @@ int HAL_GPIO_ReadPin(int p,int n) {
 uint64_t drms_boot_identity_get(void) { return 0x123456789abcdef0ULL; }
 DRMS_Result drms_file_backend_open(uint32_t id,uint32_t s,uint32_t g,uint64_t *size) {
  (void)id;(void)s;(void)g; *size=123; return DRMS_OK; }
+uint32_t file_read_result;
 DRMS_Result drms_file_backend_read(uint32_t s,uint32_t g,uint64_t o,uint16_t n,uint8_t *p,uint16_t *actual,uint8_t *eof) {
- (void)s;(void)g;(void)o;memset(p,'A',n);*actual=n;*eof=1;return DRMS_OK; }
+ (void)s;(void)g;memset(p,'A',n);*actual=n;*eof=(o+n>=123);return (DRMS_Result)file_read_result; }
 uint32_t file_close_result;
 DRMS_Result drms_file_backend_close(uint32_t s,uint32_t g) { (void)s;(void)g;return (DRMS_Result)file_close_result; }
 DRMS_Result drms_file_backend_list_step(uint32_t c,uint32_t g,uint32_t *id,uint64_t *size,uint32_t *next) {
@@ -125,6 +127,18 @@ int HAL_FLASH_Lock(void) { return 0; }
 int HAL_FLASHEx_Erase(void *e, uint32_t *err) { *err = 0xFFFFFFFFu; return 0; }
 int HAL_FLASH_Program(int type, uint32_t addr, uint32_t data) { return 0; }
 void __HAL_FLASH_CLEAR_FLAG(uint32_t f) {}
+static DRMS_CDCV2 test_cdc;
+uint8_t test_cdc_wire[1054];
+uint32_t test_cdc_length;
+static int test_entropy(void *c,uint64_t *v) { (void)c; *v=123; return 1; }
+static void test_cdc_send(void *c,const uint8_t *data,size_t length,uint32_t priority) {
+ (void)c;(void)priority;memcpy(test_cdc_wire,data,length);test_cdc_length=(uint32_t)length; }
+static int test_cdc_room(void *c,uint32_t priority) { (void)c;(void)priority;return 1; }
+void test_cdc_init(void) {
+ uint32_t uid[3]={1,2,3};test_cdc_length=0;
+ drms_cdc_v2_init(&test_cdc,test_entropy,0,uid,test_cdc_send,test_cdc_room,0); }
+void test_cdc_feed(const uint8_t *data,uint32_t length) {
+ test_cdc_length=0;for(uint32_t i=0;i<length;++i) drms_cdc_v2_feed(&test_cdc,data[i],0); }
 '''
 
 
@@ -233,11 +247,12 @@ uint32_t HAL_GetUIDw2(void);
                  'control', 'record_session', 'monitor', 'filter', 'classifier', 'baseline', 'capture_time',
                  'user_config', 'config_snapshot', 'file_service', 'msc', 'storage')
         command = ['cc', '-shared', '-fPIC', '-Wall', '-Werror=implicit-function-declaration',
-                        '-I', str(p), '-I', str(src / 'Inc'),
+                        '-I', str(p), '-I', str(src / 'Inc'), '-I', str(src.parent / 'App/interfaces/cdc'),
                         *[str((src.parent / 'App/application/measurement' if name in ('monitor', 'filter', 'classifier', 'baseline') else src / 'Src') / f'drms_{name}.c') for name in names],
                         str(src.parent / 'App/interfaces/local_ui/drms_button.c'),
                         str(src.parent / 'App/interfaces/cdc/drms_config_wire.c'),
                         str(src.parent / 'App/interfaces/cdc/drms_cdc_frame.c'),
+                        str(src.parent / 'App/interfaces/cdc/drms_cdc_v2.c'),
                         str(p / 'mock.c'), '-lm']
         subprocess.run(command + ['-o', str(p / 'app.so')], check=True)
         subprocess.run(command + ['-DDRMS_LOG_SEGMENT_RECORDS=2', '-o', str(p / 'app-segments.so')], check=True)
@@ -345,6 +360,71 @@ uint32_t HAL_GetUIDw2(void);
         self.assertEqual(self.lib.drms_control_reserve(4,ctypes.byref(Token())),2)
         self.lib.drms_file_service_poll(); self.lib.drms_application_poll()
         self.assertEqual(self.lib.drms_control_reserve(4,ctypes.byref(Token())),1)
+
+    def test_download_read_failure_is_not_reported_as_success(self):
+        from test_file_service import Request, Reply
+        self.insert_card()
+        generation = self.lib.drms_storage_media_generation()
+        request = ControlRequest(source=3, session=4, operation=3, value=42, expected_version=generation)
+        self.assertEqual(self.lib.drms_control_submit(ctypes.byref(request)),1)
+        self.lib.drms_application_poll(); self.lib.drms_file_service_poll(); self.lib.drms_application_poll()
+        ctypes.c_uint32.in_dll(self.lib,'file_read_result').value=6
+        item=Request(kind=3,session=4,generation=generation,count=1)
+        ticket=ctypes.c_uint64()
+        self.lib.drms_file_service_submit.argtypes=[ctypes.POINTER(Request),ctypes.POINTER(ctypes.c_uint64)]
+        self.lib.drms_file_service_take.argtypes=[ctypes.c_uint64,ctypes.POINTER(Reply)]
+        self.assertEqual(self.lib.drms_file_service_submit(ctypes.byref(item),ctypes.byref(ticket)),1)
+        self.lib.drms_file_service_poll()
+        reply=Reply(); self.assertEqual(self.lib.drms_file_service_take(ticket.value,ctypes.byref(reply)),0)
+        self.assertEqual(reply.result,6)
+        self.lib.drms_application_poll()
+        view=FileView()
+        self.assertEqual(self.lib.drms_application_file_snapshot(ctypes.byref(view)),1)
+        self.assertEqual((view.phase,view.result),(2,6))
+
+    def test_cdc_download_open_read_close_through_control_and_worker(self):
+        import zlib
+        self.insert_card()
+        generation=self.lib.drms_storage_media_generation()
+        self.lib.test_cdc_init()
+        self.lib.test_cdc_feed.argtypes=[ctypes.c_void_p,ctypes.c_uint32]
+        def exchange(op, number, payload=b'', session=1):
+            raw=struct.pack('<BBHIQHH',2,1,op,session,number,len(payload),0)+payload
+            raw+=struct.pack('<I',zlib.crc32(raw)); wire=bytearray(b'\0');start=0;code=1
+            for byte in raw:
+                if byte==0 or code==255:
+                    wire[start]=code;start=len(wire);wire.append(0);code=1
+                    if byte==0: continue
+                wire.append(byte);code+=1
+            wire[start]=code;wire.append(0)
+            source=ctypes.create_string_buffer(bytes(wire));self.lib.test_cdc_feed(source,len(wire))
+            n=self.value('test_cdc_length').value
+            encoded=bytes((ctypes.c_ubyte*1054).in_dll(self.lib,'test_cdc_wire')[:n]); decoded=bytearray();i=0
+            while i<len(encoded)-1:
+                count=encoded[i];i+=1;decoded+=encoded[i:i+count-1];i+=count-1
+                if count!=255 and i<len(encoded)-1:decoded.append(0)
+            fields={};i=20
+            while i<len(decoded)-4:
+                tag,length=struct.unpack_from('<HH',decoded,i);i+=4
+                fields[tag&0x7fff]=decoded[i:i+length];i+=length
+            return fields
+        def integer(fields,tag): return int.from_bytes(fields[tag],'little')
+        exchange(1,1,session=0)
+        payload=struct.pack('<HHIHHI',0x8038,4,42,0x8055,4,generation)
+        opened=exchange(50,2,payload)
+        self.assertEqual(integer(opened,1),1); operation=integer(opened,11)
+        self.lib.drms_application_poll(); self.lib.drms_file_service_poll(); self.lib.drms_application_poll()
+        query=exchange(3,3,struct.pack('<HHQ',0x800b,8,operation))
+        self.assertEqual((integer(query,45),integer(query,57)),(1,123))
+        read=struct.pack('<HHQHHQHHH',0x800b,8,operation,0x8034,8,2,0x8035,2,3)
+        self.assertEqual(integer(exchange(51,4,read),1),2)
+        self.lib.drms_file_service_poll()
+        result=exchange(51,5,read)
+        self.assertEqual((integer(result,1),result[54]),(0,b'AAA'))
+        close=exchange(52,6,struct.pack('<HHQ',0x800b,8,operation))
+        self.assertEqual(integer(close,1),1)
+        self.lib.drms_file_service_poll(); self.lib.drms_application_poll()
+        lease=Token();self.assertEqual(self.lib.drms_control_reserve(4,ctypes.byref(lease)),1)
 
     def test_disconnect_before_download_dispatch_cannot_open_or_leak_lease(self):
         self.insert_card()

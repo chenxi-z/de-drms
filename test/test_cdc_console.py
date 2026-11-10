@@ -47,6 +47,7 @@ MOCK = r'''
 #include "drms_cdc.h"
 #include "drms_control.h"
 #include "drms_application.h"
+#include "drms_file_service.h"
 #include <string.h>
 #include <stdio.h>
 UX_SLAVE_CLASS_CDC_ACM cdc={1};
@@ -62,6 +63,7 @@ uint64_t observed_version;
 uint32_t observed_file_id, disconnected_session;
 uint32_t file_close_calls;
 uint32_t file_view_enabled;
+uint32_t file_read_ready,file_read_submits;
 uint8_t observed_payload[1024];
 uint32_t observed_length;
 static DRMS_Result test_dispatch(const DRMS_Token *token, const DRMS_ControlRequest *request) {
@@ -97,6 +99,16 @@ uint32_t drms_application_file_snapshot(DRMS_ApplicationFile *out) {
 DRMS_Result drms_application_file_close(uint32_t session, uint64_t op) {
  if (session!=1 || op!=55) return DRMS_STALE;
  ++file_close_calls; return DRMS_ACCEPTED;
+}
+DRMS_Result drms_file_service_submit(const DRMS_FileRequest *request, uint64_t *ticket) {
+ if(request->kind!=DRMS_FILE_READ || request->session!=1 || request->generation!=9) return DRMS_INVALID;
+ ++file_read_submits; *ticket=77; return DRMS_ACCEPTED;
+}
+DRMS_Result drms_file_service_take(uint64_t ticket, DRMS_FileReply *out) {
+ if(ticket!=77) return DRMS_STALE;
+ if(!file_read_ready) return DRMS_ACCEPTED;
+ memset(out,0,sizeof(*out));out->ticket=77;out->result=DRMS_OK;out->offset=2;out->length=3;out->eof=0;
+ memcpy(out->data,"abc",3); return DRMS_OK;
 }
 UINT ux_device_class_cdc_acm_ioctl(void *a,UINT b,VOID *c) { if(c==(void *)UX_WAIT_FOREVER) ++indefinite_io;if(b==4) ++abort_calls;return 0; }
 UINT ux_device_class_cdc_acm_read(void *a,UCHAR *b,ULONG n,ULONG *actual) {
@@ -558,6 +570,37 @@ class CDCConsoleTest(unittest.TestCase):
         wire[start]=code;wire.append(0)
         self.send(bytes(wire)); self.send(bytes(wire))
         self.assertEqual(self.value('file_close_calls').value,1)
+
+    def test_v2_file_read_is_nonblocking_and_retry_returns_data(self):
+        import struct, zlib
+        self.value('file_view_enabled').value=1
+        self.value('file_read_ready').value=0; self.value('file_read_submits').value=0
+        self.send(bytes.fromhex('040201010101010102010101010101010101010105d7970e6600'))
+        payload=struct.pack('<HHQHHQHHH',0x800b,8,1,0x8034,8,2,0x8035,2,3)
+        def send_read(number):
+            raw=struct.pack('<BBHIQHH',2,1,51,1,number,len(payload),0)+payload
+            raw+=struct.pack('<I',zlib.crc32(raw)); wire=bytearray(b'\0');start=0;code=1
+            for byte in raw:
+                if byte==0: wire[start]=code;start=len(wire);wire.append(0);code=1
+                else: wire.append(byte);code+=1
+            wire[start]=code;wire.append(0);self.send(bytes(wire))
+            n=self.value('written_len').value
+            encoded=bytes((ctypes.c_ubyte*1056).in_dll(self.lib,'written')[:n]); decoded=bytearray();i=0
+            while i<len(encoded)-1:
+                count=encoded[i];i+=1;decoded+=encoded[i:i+count-1];i+=count-1
+                if count!=255 and i<len(encoded)-1:decoded.append(0)
+            fields={};i=20
+            while i<len(decoded)-4:
+                tag,length=struct.unpack_from('<HH',decoded,i);i+=4
+                fields[tag&0x7fff]=decoded[i:i+length];i+=length
+            return fields
+        self.assertEqual(int.from_bytes(send_read(2)[1],'little'),2)
+        self.assertEqual(int.from_bytes(send_read(3)[1],'little'),2)
+        self.assertEqual(self.value('file_read_submits').value,1)
+        self.value('file_read_ready').value=1
+        fields=send_read(4)
+        self.assertEqual((int.from_bytes(fields[1],'little'),fields[54],fields[55][0]),(0,b'abc',0))
+        self.value('file_view_enabled').value=0
 
     def test_v2_apply_owns_nested_payload_through_disconnect(self):
         import struct, zlib

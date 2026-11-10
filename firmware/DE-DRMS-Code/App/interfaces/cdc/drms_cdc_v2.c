@@ -53,6 +53,7 @@ static void received(void *user, const uint8_t *request, size_t length)
   uint32_t have_snapshot = 0;
   DRMS_ApplicationRecord record;
   uint32_t have_record = 0;
+  uint32_t have_file_data = 0;
   DRMS_ConfigView config_view;
   uint32_t have_config = 0;
   uint64_t accepted_operation = 0;
@@ -141,6 +142,56 @@ static void received(void *user, const uint8_t *request, size_t length)
           if (query == DRMS_OK) { result = (uint16_t)record.result; have_record = 1; }
         }
       }
+      else if (opcode == 51u)
+      {
+        static const DRMS_CDCFieldRule rules[] = {{11,8,8,0,1},{52,8,8,0,1},{53,2,2,0,1}};
+        DRMS_CDCFieldView fields[3];
+        if (drms_cdc_fields_validate(request+20,payload_len,rules,3,fields)) result=DRMS_INVALID;
+        else
+        {
+          uint64_t handle=get64(fields[0].value), offset=get64(fields[1].value);
+          uint16_t count=get16(fields[2].value);
+          DRMS_ApplicationFile view;
+          if (!handle || !count || count>768u) result=DRMS_INVALID;
+          else if (!drms_application_file_snapshot(&view) || view.phase!=1u ||
+                   view.session!=session || view.operation!=handle) result=DRMS_STALE;
+          else if (offset>view.size) result=DRMS_INVALID;
+          else if (ctx->file_read_ticket && (ctx->file_read_operation!=handle ||
+                   ctx->file_read_offset!=offset || ctx->file_read_count!=count)) result=DRMS_BUSY;
+          else if (!ctx->file_read_ticket)
+          {
+            DRMS_FileRequest item={.kind=DRMS_FILE_READ,.session=session,.generation=view.generation,
+                                   .offset=offset,.count=count};
+            uint64_t ticket=0;
+            DRMS_Result status=drms_file_service_submit(&item,&ticket);
+            if (status==DRMS_ACCEPTED)
+            {
+              ctx->file_read_ticket=ticket; ctx->file_read_operation=handle;
+              ctx->file_read_offset=offset; ctx->file_read_count=count; result=DRMS_BUSY;
+            }
+            else result=(uint16_t)status;
+          }
+          else
+          {
+            DRMS_Result status=drms_file_service_take(ctx->file_read_ticket,&ctx->file_read_reply);
+            if (status==DRMS_ACCEPTED) result=DRMS_BUSY;
+            else
+            {
+              ctx->file_read_ticket=0;
+              result=status==DRMS_OK ? (uint16_t)ctx->file_read_reply.result : (uint16_t)status;
+              if (result==DRMS_OK)
+              {
+                uint64_t remain = view.size - offset;
+                uint16_t expected = remain < count ? (uint16_t)remain : count;
+                if (ctx->file_read_reply.offset!=offset || ctx->file_read_reply.length!=expected ||
+                    ctx->file_read_reply.eof!=(uint8_t)(offset+expected==view.size))
+                  result=DRMS_IO_ERROR;
+                else have_file_data=1;
+              }
+            }
+          }
+        }
+      }
       else if (opcode == 52u)
       {
         static const DRMS_CDCFieldRule rules[] = {{11, 8, 8, 0, 1}};
@@ -154,7 +205,15 @@ static void received(void *user, const uint8_t *request, size_t length)
           else
           {
             uint64_t handle = get64(fields[0].value);
-            result = (uint16_t)drms_application_file_close(session, handle);
+            if (ctx->file_read_ticket && ctx->file_read_operation != handle)
+              result=DRMS_STALE;
+            else if (ctx->file_read_ticket)
+            {
+              DRMS_Result pending=drms_file_service_take(ctx->file_read_ticket,&ctx->file_read_reply);
+              if (pending==DRMS_ACCEPTED) result=DRMS_BUSY;
+              else { ctx->file_read_ticket=0; result=pending==DRMS_OK ? (uint16_t)ctx->file_read_reply.result : (uint16_t)pending; }
+            }
+            if (result==DRMS_OK) result = (uint16_t)drms_application_file_close(session, handle);
             if (result == DRMS_ACCEPTED)
             {
               accepted_operation = handle;
@@ -251,7 +310,7 @@ static void received(void *user, const uint8_t *request, size_t length)
     put64(temp, ctx->session.boot); tlv(out, &pos, 4, temp, 8);
     put16(temp, 1); put16(temp + 2, 2); put16(temp + 4, 3); put16(temp + 6, 4);
     put16(temp + 8, 18); put16(temp + 10, 19); put16(temp + 12, 32); put16(temp + 14, 33);
-    put16(temp + 16, 34); put16(temp + 18, 35); put16(temp + 20, 48); put16(temp + 22, 49); put16(temp + 24, 50); put16(temp + 26, 52); tlv(out, &pos, 5, temp, 28);
+    put16(temp + 16, 34); put16(temp + 18, 35); put16(temp + 20, 48); put16(temp + 22, 49); put16(temp + 24, 50); put16(temp + 26, 51); put16(temp + 28, 52); tlv(out, &pos, 5, temp, 30);
     put16(temp, 1024); tlv(out, &pos, 6, temp, 2);
     put32(temp, 4000); tlv(out, &pos, 7, temp, 4);
     tlv(out, &pos, 8, temp, 0); /* no recording capability is exposed yet */
@@ -275,6 +334,13 @@ static void received(void *user, const uint8_t *request, size_t length)
     put64(temp, record.capture_lost); tlv(out, &pos, 38, temp, 8);
     put64(temp, record.log_dropped); tlv(out, &pos, 39, temp, 8);
     temp[0] = record.unknown_loss; tlv(out, &pos, 40, temp, 1);
+  }
+  else if (have_file_data)
+  {
+    put64(temp, ctx->file_read_operation); tlv(out, &pos, 11, temp, 8);
+    put64(temp, ctx->file_read_offset); tlv(out, &pos, 52, temp, 8);
+    tlv(out, &pos, 54, ctx->file_read_reply.data, ctx->file_read_reply.length);
+    temp[0]=ctx->file_read_reply.eof; tlv(out, &pos, 55, temp, 1);
   }
   else if (have_snapshot)
   {
@@ -348,6 +414,7 @@ void drms_cdc_v2_init(DRMS_CDCV2 *ctx, DRMS_CDCEntropy entropy, void *entropy_co
 void drms_cdc_v2_disconnect(DRMS_CDCV2 *ctx)
 {
   if (ctx->session.session) drms_application_file_disconnect(ctx->session.session);
+  ctx->file_read_ticket=0;
   drms_cdc_session_disconnect(&ctx->session);
   drms_cdc_frame_init(&ctx->frame);
   ctx->last_request = 0;

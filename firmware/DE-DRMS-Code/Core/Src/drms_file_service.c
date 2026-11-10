@@ -6,6 +6,7 @@
 /* 0 empty, 1 queued, 2 executing, 3 done, 4 reply copy in progress. */
 static uint32_t state, revoked, quarantined, owner_session, owner_generation;
 static uint64_t next_ticket;
+static DRMS_Result last_result;
 static DRMS_FileRequest input;
 static DRMS_FileReply reply;
 static uint32_t lock(void) { uint32_t mask=__get_PRIMASK(); __disable_irq(); return mask; }
@@ -14,7 +15,7 @@ static void unlock(uint32_t mask) { __set_PRIMASK(mask); }
 void drms_file_service_init(void)
 {
   uint32_t m=lock(); state=revoked=quarantined=owner_session=owner_generation=0;
-  next_ticket=1; memset(&input,0,sizeof(input)); memset(&reply,0,sizeof(reply)); unlock(m);
+  next_ticket=1; last_result=DRMS_OK; memset(&input,0,sizeof(input)); memset(&reply,0,sizeof(reply)); unlock(m);
 }
 DRMS_Result drms_file_service_submit(const DRMS_FileRequest *r, uint64_t *ticket)
 {
@@ -63,6 +64,10 @@ uint32_t drms_file_service_quarantined(void)
 {
   uint32_t m=lock(); uint32_t result=quarantined; unlock(m); return result;
 }
+DRMS_Result drms_file_service_last_result(void)
+{
+  uint32_t m=lock(); DRMS_Result result=last_result; unlock(m); return result;
+}
 DRMS_Result drms_file_service_after_media_abort(void)
 {
   uint32_t m=lock();
@@ -82,8 +87,8 @@ void drms_file_service_poll(void)
     DRMS_Result result=session ? drms_file_backend_close(session,generation) : DRMS_OK;
     m=lock();
     if (result == DRMS_BUSY) { state=0; unlock(m); return; }
-    if (result != DRMS_OK) quarantined=1;
-    else { owner_session=owner_generation=0; revoked=0; }
+    if (result != DRMS_OK) { quarantined=1; last_result=DRMS_QUARANTINED; }
+    else { owner_session=owner_generation=0; revoked=0; last_result=DRMS_CANCELLED; }
     state=0; unlock(m); return;
   }
   if (state != 1) { unlock(m); return; }
@@ -102,9 +107,9 @@ void drms_file_service_poll(void)
       result=drms_file_backend_close(r.session,r.generation); break;
   }
   m=lock();
-  if (r.kind == DRMS_FILE_OPEN && result == DRMS_OK) { owner_session=r.session; owner_generation=r.generation; }
-  if (r.kind == DRMS_FILE_CLOSE && result == DRMS_OK) owner_session=owner_generation=0;
-  if (r.kind == DRMS_FILE_READ && result == DRMS_IO_ERROR) owner_session=owner_generation=0;
+  if (r.kind == DRMS_FILE_OPEN && result == DRMS_OK) { owner_session=r.session; owner_generation=r.generation; last_result=DRMS_OK; }
+  if (r.kind == DRMS_FILE_CLOSE && result == DRMS_OK) { owner_session=owner_generation=0; last_result=DRMS_OK; }
+  if (r.kind == DRMS_FILE_READ && result == DRMS_IO_ERROR) { owner_session=owner_generation=0; last_result=DRMS_IO_ERROR; }
   if (result == DRMS_QUARANTINED || (owner_session && result == DRMS_STALE)) quarantined=1;
   if (revoked) { state=0; unlock(m); drms_file_service_poll(); return; }
   if (r.kind == DRMS_FILE_LIST && result == DRMS_ACCEPTED) { input.cursor=reply.next_cursor; state=1; unlock(m); return; }

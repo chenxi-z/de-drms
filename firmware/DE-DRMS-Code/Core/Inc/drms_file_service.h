@@ -31,6 +31,8 @@ void drms_file_service_cancel_all(void);
 void drms_file_service_poll(void);
 uint32_t drms_file_service_quiescent(void);
 uint32_t drms_file_service_quarantined(void);
+/* Terminal close, read failure or cancellation result; reset by next open. */
+DRMS_Result drms_file_service_last_result(void);
 /* Storage owner only, after FileX abort and backend invalidation are complete. */
 DRMS_Result drms_file_service_after_media_abort(void);
 #endif

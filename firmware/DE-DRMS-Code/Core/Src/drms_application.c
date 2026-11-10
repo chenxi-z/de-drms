@@ -629,8 +629,9 @@ static void file_service_control(void)
   }
   if (drms_file_service_quiescent())
   {
-    view.phase = 2; view.result = DRMS_OK; file_publish(&view);
-    (void)drms_control_complete(file_token, DRMS_OK, DRMS_RES_TF_ACCESS);
+    DRMS_Result result = drms_file_service_last_result();
+    view.phase = 2; view.result = result; file_publish(&view);
+    (void)drms_control_complete(file_token, result, DRMS_RES_TF_ACCESS);
     file_active = 0;
   }
 }
