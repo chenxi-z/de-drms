@@ -34,7 +34,7 @@ v1（`shared/protocol/de-drms-v1.json`）只读兼容；v2 写入不改动 v1 �
 载荷偏移  长度  字段
 0         2     uint16 format_version = 2
 2         2     uint16 record_size = 16（冻结；不扩大 16B 帧）
-4         4     uint32 flags        bit0 = NOMINAL 时间质量（文件时间为名义时间轴）
+4         4     uint32 flags        bit0 = NOMINAL 时间质量；bit1 = config 仅含记录元数据、没有用户配置
 8         4     uint32 rate_hz      采样率（Hz，>0）
 12        4     uint32 uid_w0       96-bit 出厂 UID（HAL_GetUIDw0/1/2 顺序）
 16        4     uint32 uid_w1
@@ -50,6 +50,7 @@ v1（`shared/protocol/de-drms-v1.json`）只读兼容；v2 写入不改动 v1 �
 ```
 
 - `config_len` 上限 4096；无配置快照时为 0（空记录/纯数据文件合法）。
+- 新写记录在 schema1 快照中附加记录专用 TLV `0xD703`（小端，长度 28）：`valid:u32, generation:u32, calibration_rate:u32, scale_ohms:f64, reference_ohms:f64`。系数是开始记录时的实际运行值；`valid=0` 表示名义系数而非已校准。该 TLV 只写记录文件，不写回用户配置。没有用户配置时使用仅含该 TLV 的 schema1 快照并置 flags bit1；旧文件可缺少本 TLV，读取时不得虚构系数或电阻。保留原 chunk、HEADER 和 schema1 结构，旧读取器仍可按原规则读取原始帧。
 - 锚点为该记录会话所属采集代次的名义时间轴；`flags bit0=1` 表示时间为 NOMINAL——
   正常 ADC/MCU 频差不构成错误，仅作诊断；缺锚点（generation=0）时主机不得把
   样本序号映射为时间（拒绝伪正常时间解码）。

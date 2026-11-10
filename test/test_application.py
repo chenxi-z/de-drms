@@ -791,6 +791,77 @@ uint32_t HAL_GetUIDw2(void);
             self.lib.drms_log_poll()
         self.assertEqual((self.status()['running'],self.status()['log_state']), (1,0))
 
+    def test_recording_writes_v2_header_data_and_final_boundary(self):
+        import zlib
+        self.insert_card()
+        self.press_measure()
+        self.lib.drms_log_poll()
+        self.lib.drms_application_poll()
+        for _ in range(3):
+            self.lib.advance_ms(100)
+            self.frames(2, 280000, 4200000)
+        self.press_measure()
+        for _ in range(5):
+            self.lib.drms_application_poll()
+            self.lib.drms_log_poll()
+        length = self.value('written_bytes').value
+        data = bytes((ctypes.c_ubyte * 1048576).in_dll(self.lib, 'file_bytes')[:length])
+        chunks = []
+        offset = 0
+        while offset < len(data):
+            kind, size = struct.unpack_from('<HH', data, offset)
+            value = data[offset+4:offset+4+size]
+            self.assertEqual(zlib.crc32(value[:-4]), struct.unpack_from('<I', value, len(value)-4)[0])
+            chunks.append((kind, value))
+            offset += size+4
+        self.assertEqual([kind for kind, _ in chunks], [1, 2, 3])
+        self.assertEqual(struct.unpack_from('<III', chunks[0][1], 12), (1, 2, 3))
+        self.assertEqual(struct.unpack_from('<Q', chunks[0][1], 24)[0],
+                         struct.unpack_from('<Q', chunks[2][1], 4)[0])
+        config_length = struct.unpack_from('<H', chunks[0][1], 56)[0]
+        config = chunks[0][1][58:58+config_length]
+        self.assertEqual(zlib.crc32(config[:-4]), struct.unpack_from('<I', config, len(config)-4)[0])
+        offset = 40
+        metadata = None
+        while offset < len(config)-4:
+            kind, size = struct.unpack_from('<HH', config, offset)
+            offset += 4
+            if kind == 0xd703:
+                metadata = struct.unpack_from('<IIIdd', config, offset)
+            offset += size
+        self.assertEqual(metadata, (0, 0, 4000, 150000.0, 100000.0))
+        import io
+        from tools.de_drms_log import LogReaderV2
+        decoded = LogReaderV2(io.BytesIO(data))
+        self.assertEqual(decoded.header['calibration']['scale_ohms'], 150000.0)
+        self.assertAlmostEqual(next(iter(decoded))['ohms'], 10000.0)
+        self.assertEqual(chunks[2][1][52], 1)
+        self.assertEqual(struct.unpack_from('<I', chunks[2][1], 79)[0], 0)
+
+    def test_configured_duration_stops_recording_after_ready_without_stopping_measurement(self):
+        payload = settings().replace(tlv(73, struct.pack('<I', 30000)), tlv(73, struct.pack('<I', 200)))
+        source = ctypes.create_string_buffer(payload)
+        request = ControlRequest(source=3, operation=4, payload=ctypes.addressof(source), payload_length=len(payload))
+        self.assertEqual(self.lib.drms_control_submit(ctypes.byref(request)), 1)
+        self.lib.drms_application_poll()
+        self.insert_card()
+        self.press_measure()
+        self.lib.drms_log_poll()
+        self.lib.drms_application_poll()  # B confirmed; duration starts now
+        for _ in range(3):
+            self.lib.advance_ms(50)
+            self.frames(1, 280000, 4200000)
+            self.lib.drms_application_poll()
+            self.lib.drms_log_poll()
+        self.assertEqual(self.value('drms_log_running').value, 1)
+        self.lib.advance_ms(50)
+        self.frames(1, 280000, 4200000)
+        for _ in range(5):
+            self.lib.drms_application_poll()
+            self.lib.drms_log_poll()
+        self.assertEqual(self.value('drms_log_state').value, 0)
+        self.assertEqual(self.value('drms_acq_running').value, 1)
+
     def test_calibration_with_collapsed_current_times_out_as_calibration_failure(self):
         self.command('REF')
         self.command('CAL')

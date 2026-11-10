@@ -12,6 +12,7 @@
 #include "drms_msc.h"
 #include "drms_capture_time.h"
 #include "drms_logging.h"
+#include "drms_log_codec.h"
 #include "drms_storage.h"
 #include "drms_time.h"
 #include "drms_usb.h"
@@ -63,6 +64,8 @@ static uint64_t session_record_id;
 static uint64_t next_record_id = 1;
 static uint32_t session_armed;   /* prepare 已完成，等文件就绪+边界 B */
 static uint32_t session_cancelled;
+static uint32_t session_duration_ms;
+static uint64_t session_started_us;
 static uint32_t session_stopping;/* request_stop 已发，等 E */
 static uint32_t session_active;  /* classify/记录窗口生效中 */
 static uint64_t consumed_raw;    /* 消费端 raw_ticket 水位 */
@@ -88,6 +91,51 @@ static uint32_t config_view_current;
 static uint32_t begin(uint32_t rate, uint32_t reference);
 static void configure_monitor(uint32_t rate);
 
+static void config_put32(uint8_t *p, uint32_t n)
+{
+  for (unsigned i = 0; i < 4; ++i) p[i] = (uint8_t)(n >> (8u * i));
+}
+static void config_put_double(uint8_t *p, double value)
+{
+  uint64_t bits;
+  memcpy(&bits, &value, sizeof(bits));
+  for (unsigned i = 0; i < 8; ++i) p[i] = (uint8_t)(bits >> (8u * i));
+}
+
+/* A schema1 unknown TLV carries record-only calibration without changing the
+ * user's saved configuration or the frozen v2 chunk layout. */
+static uint32_t record_config_with_calibration(uint32_t length)
+{
+  if (!length)
+  {
+    memset(config_candidate, 0, 40);
+    memcpy(config_candidate, "DRMSUC01", 8);
+    length = 44;
+  }
+  if (length < 44u || length > sizeof(config_candidate) - 32u) return 0;
+  uint32_t offset = 40;
+  while (offset < length - 4u)
+  {
+    if (length - 4u - offset < 4u) return 0;
+    uint16_t type = (uint16_t)(config_candidate[offset] | ((uint16_t)config_candidate[offset+1] << 8));
+    uint16_t size = (uint16_t)(config_candidate[offset+2] | ((uint16_t)config_candidate[offset+3] << 8));
+    offset += 4u;
+    if (size > length - 4u - offset || type == 0xd703u) return 0;
+    offset += size;
+  }
+  if (offset != length - 4u) return 0;
+  config_candidate[offset++] = 0x03; config_candidate[offset++] = 0xd7;
+  config_candidate[offset++] = 28; config_candidate[offset++] = 0;
+  config_put32(config_candidate+offset, calibration.valid); offset += 4;
+  config_put32(config_candidate+offset, calibration.generation); offset += 4;
+  config_put32(config_candidate+offset, calibration.rate); offset += 4;
+  config_put_double(config_candidate+offset, calibration.scale); offset += 8;
+  config_put_double(config_candidate+offset, calibration.reference_ohms); offset += 8;
+  config_put32(config_candidate+8, offset + 4u);
+  config_put32(config_candidate+offset, drms_crc32(config_candidate, offset));
+  return offset + 4u;
+}
+
 /* The application thread is the sole configuration writer and publisher. */
 static void publish_config_view(void)
 {
@@ -110,7 +158,7 @@ static void publish_config_view(void)
   config_view_running = running; config_view_saved = saved; config_view_current = 1;
 }
 
-static uint32_t config_wire_rate(const uint8_t *payload, size_t length)
+static uint32_t config_wire_u32(const uint8_t *payload, size_t length, uint16_t wanted)
 {
   size_t offset = 0;
   while (length - offset >= 4u)
@@ -119,7 +167,7 @@ static uint32_t config_wire_rate(const uint8_t *payload, size_t length)
     uint16_t size = (uint16_t)(payload[offset + 2] | ((uint16_t)payload[offset + 3] << 8));
     offset += 4u;
     if (size > length - offset) return 0;
-    if ((tag & 0x7fffu) == 72u && size == 4u)
+    if ((tag & 0x7fffu) == wanted && size == 4u)
       return (uint32_t)payload[offset] | ((uint32_t)payload[offset+1] << 8) |
              ((uint32_t)payload[offset+2] << 16) | ((uint32_t)payload[offset+3] << 24);
     offset += size;
@@ -196,15 +244,6 @@ static DRMS_Result app_dispatch(const DRMS_Token *token, const DRMS_ControlReque
         return DRMS_INVALID;
       if (drms_msc_blocks_recording())
         return DRMS_BUSY;
-      DRMS_Time time;
-      drms_time_get(&time);
-      DRMS_LogMetadata metadata = {
-        .rate = drms_acq_rate, .calibrated = calibration.valid,
-        .calibration_generation = calibration.generation, .start_ticks = HAL_GetTick(),
-        .serial = HAL_GetUIDw0() ^ HAL_GetUIDw1() ^ HAL_GetUIDw2(),
-        .scale = calibration.scale, .reference_ohms = calibration.reference_ohms,
-        .year = time.year, .month = time.month, .day = time.day, .hour = time.hour,
-        .minute = time.minute, .second = time.second, .time_valid = time.valid};
       if (!next_record_id)
         return DRMS_INVALID;
       session_record_id = next_record_id++;
@@ -212,7 +251,18 @@ static DRMS_Result app_dispatch(const DRMS_Token *token, const DRMS_ControlReque
       DRMS_Result rc = drms_record_prepare(*token, session_record_id);
       if (rc != DRMS_ACCEPTED)
         return rc;
-      if (!drms_log_start(&metadata))
+      uint32_t wire_length = drms_user_config_get_wire(config_candidate, sizeof(config_candidate));
+      session_duration_ms = wire_length ? config_wire_u32(config_candidate, wire_length, 73u) : 0;
+      session_started_us = 0;
+      uint32_t config_length = drms_user_config_export(config_candidate, sizeof(config_candidate));
+      uint32_t metadata_only = !config_length;
+      config_length = record_config_with_calibration(config_length);
+      DRMS_LogV2Meta metadata = {
+        .flags = 1u | (metadata_only ? 2u : 0u), .rate_hz = drms_acq_rate,
+        .uid_w0 = HAL_GetUIDw0(), .uid_w1 = HAL_GetUIDw1(), .uid_w2 = HAL_GetUIDw2(),
+        .record_id = session_record_id, .anchor = nominal_anchor,
+        .config = config_length ? config_candidate : NULL, .config_len = (uint16_t)config_length};
+      if (!config_length || !drms_log_start_v2(&metadata))
       {
         drms_record_session_cancel(*token, DRMS_IO_ERROR);
         (void)drms_record_end_ack(*token, DRMS_IO_ERROR);
@@ -315,7 +365,7 @@ static DRMS_Result app_dispatch(const DRMS_Token *token, const DRMS_ControlReque
       if (!size) return DRMS_INVALID;
       DRMS_Result result = drms_user_config_preflight(config_candidate, size, request->expected_version);
       if (result != DRMS_OK) return result;
-      uint32_t rate = config_wire_rate(request->payload, request->payload_length);
+      uint32_t rate = config_wire_u32(request->payload, request->payload_length, 72u);
       uint32_t was_running = drms_acq_running;
       uint32_t old_rate = was_running ? drms_acq_rate : boot_rate;
       if (was_running) drms_acq_stop();
@@ -445,6 +495,7 @@ static void session_service(uint32_t now_ms)
       have_begin = 1;
       session_armed = 0;
       session_active = 1;
+      session_started_us = drms_acq_now_us();
       (void)drms_control_report(session_token, DRMS_OK);
       cmd_result = 0;
     }
@@ -805,6 +856,7 @@ static void execute(const DRMS_Command *command)
         {
           drms_record_session_request_stop();
           session_stopping = 1;
+          session_duration_ms = 0;
         }
         cmd_result = 100;
       }
@@ -897,6 +949,7 @@ void drms_application_poll(void)
       {
         drms_record_session_request_stop();
         session_stopping = 1;
+        session_duration_ms = 0;
       }
       last_cmd = DRMS_CMD_END;
     }
@@ -958,6 +1011,13 @@ void drms_application_poll(void)
       session_cancel_local(pending.reason);
   }
   session_service(now);
+  if (session_active && !session_cancelled && !session_stopping && session_duration_ms &&
+      drms_acq_now_us() - session_started_us >= (uint64_t)session_duration_ms * 1000u)
+  {
+    drms_record_session_request_stop();
+    session_stopping = 1;
+    session_duration_ms = 0; /* Issue a single stop request. */
+  }
   if (!drms_record_session_barrier())
     drain_frames();
   baseline_service(now);
@@ -972,10 +1032,8 @@ void drms_application_poll(void)
       /* END 已发布：请求存储停止追加并排空到 ring_end 后关文件（C1） */
       if (drms_log_running)
       {
-        if (end.reason != DRMS_OK && end.reason != DRMS_EMPTY)
+        if (session_cancelled || !drms_log_finish_v2(&end))
           drms_log_stop_incomplete();
-        else
-          drms_log_stop();
       }
       if (!drms_log_running && drms_log_state == 0)
       {

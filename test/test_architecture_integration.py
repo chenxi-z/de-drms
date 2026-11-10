@@ -1,6 +1,7 @@
 """架构集成测试（T7）：开机监测、无卡/坏卡、记录叠加、停止不停止监测、
 RAM 预算与缓冲尺寸、模块边界（算法无 HAL/RTOS）。"""
 import ctypes
+import struct
 import re
 from pathlib import Path
 import subprocess
@@ -193,9 +194,16 @@ class ArchitectureIntegrationTest(unittest.TestCase):
             self.lib.drms_application_poll()
             self.lib.drms_log_poll()
         self.assertEqual(self.value('drms_log_state').value, 0)
-        self.assertEqual(self.value('written_bytes').value, 80)
-        data = bytes((ctypes.c_ubyte * 1048576).in_dll(self.lib, 'file_bytes'))[:80]
-        self.assertNotIn(b'DEND', data)
+        size = self.value('written_bytes').value
+        data = bytes((ctypes.c_ubyte * 1048576).in_dll(self.lib, 'file_bytes')[:size])
+        chunks = []
+        offset = 0
+        while offset < len(data):
+            kind, length = struct.unpack_from('<HH', data, offset)
+            chunks.append(kind)
+            offset += 4 + length
+        self.assertEqual(offset, len(data))
+        self.assertEqual(chunks, [1, 2])  # missing END explicitly means incomplete
 
     def test_monitor_state_is_unconfigured_without_client_table(self):
         # 未配置区间表/基线：monitor 报 INVALID(无基线)；无表时为 UNCONFIGURED。

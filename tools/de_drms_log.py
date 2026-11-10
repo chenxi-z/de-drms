@@ -236,11 +236,32 @@ class LogReaderV2:
                            struct.unpack_from('<I', config, len(config) - 4)[0] !=
                            zlib.crc32(config[:len(config) - 4])):
             return None
+        calibration = None
+        if config[:8] == b'DRMSUC01':
+            if struct.unpack_from('<I', config, 8)[0] != len(config):
+                return None
+            offset = 40
+            while offset < len(config) - 4:
+                if offset + 4 > len(config) - 4:
+                    return None
+                kind, size = struct.unpack_from('<HH', config, offset)
+                offset += 4
+                if offset + size > len(config) - 4:
+                    return None
+                if kind == 0xd703:
+                    if calibration is not None or size != 28:
+                        return None
+                    valid, generation, cal_rate, scale, reference = struct.unpack_from('<IIIdd', config, offset)
+                    if valid > 1 or not math.isfinite(scale) or scale <= 0 or not math.isfinite(reference) or reference <= 0:
+                        return None
+                    calibration = {'valid': bool(valid), 'generation': generation, 'rate': cal_rate,
+                                   'scale_ohms': scale, 'reference_ohms': reference}
+                offset += size
         return {'version': version, 'record_size': record_size, 'flags': flags, 'rate': rate,
                 'uid': (w0, w1, w2), 'record_id': record_id,
                 'anchor': {'generation': gen, 'rate_hz': arate,
                            'sample_seq0': seq0, 'mono_us0': mono0},
-                'config': config}
+                'config': config, 'calibration': calibration}
 
     def _parse_end(self, body):
         if len(body) != 83:
@@ -293,14 +314,26 @@ class LogReaderV2:
                 elapsed = None
                 if extended is not None and anchor['generation'] and extended >= anchor['sample_seq0']:
                     elapsed = (extended - anchor['sample_seq0']) / self.header['rate']
+                voltage = int.from_bytes(frame[3:6], 'big', signed=True)
+                sense = int.from_bytes(frame[6:9], 'big', signed=True)
+                crc_ok = binascii.crc_hqx(frame[:9], 0xffff) == int.from_bytes(frame[9:11], 'big')
+                format_ok = frame[0] == 0x22 and not (frame[1] & 0x80) and frame[2] == 0 and frame[11] == 0
+                guard = FILE_SPEC['excitation_guard']
+                valid = (crc_ok and format_ok and not (frame[1] & 0x6f) and
+                         -4096 <= voltage < 8388606 and 4096 < sense < 8388606 and
+                         guard['sense_code_min'] <= sense <= guard['sense_code_max'] and
+                         voltage + sense <= guard['voltage_plus_sense_code_max'])
+                calibration = self.header['calibration']
                 yield {
                     'sequence': sequence,
                     'sample_index': extended,
                     'elapsed_s': elapsed,
-                    'voltage_code': int.from_bytes(frame[3:6], 'big', signed=True),
-                    'sense_code': int.from_bytes(frame[6:9], 'big', signed=True),
+                    'voltage_code': voltage,
+                    'sense_code': sense,
                     'status_hex': f'{int.from_bytes(frame[:2], "big"):04X}',
-                    'crc_ok': int(binascii.crc_hqx(frame[:9], 0xffff) == int.from_bytes(frame[9:11], 'big')),
+                    'crc_ok': int(crc_ok),
+                    'ohms': calibration['scale_ohms'] * voltage / sense if valid and calibration else None,
+                    'calibrated': int(calibration['valid']) if calibration else None,
                 }
 
     def complete(self):
