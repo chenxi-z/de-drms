@@ -469,6 +469,38 @@ uint32_t HAL_GetUIDw2(void);
         self.command('START')
         self.assertEqual(self.value('drms_acq_running').value, 1)
 
+    def test_remote_resume_restarts_only_monitoring_after_stop(self):
+        self.command('STOP')
+        request = ControlRequest(source=3, request_id=94, operation=10)
+        operation = ctypes.c_uint64()
+        self.lib.drms_control_submit_identified.argtypes = [ctypes.POINTER(ControlRequest), ctypes.POINTER(ctypes.c_uint64)]
+        self.assertEqual(self.lib.drms_control_submit_identified(ctypes.byref(request), ctypes.byref(operation)), 1)
+        self.lib.drms_application_poll()
+        from test_control_contract import Completion
+        result = Completion()
+        self.lib.drms_control_get_operation.argtypes = [ctypes.c_uint64, ctypes.POINTER(Completion)]
+        self.assertEqual(self.lib.drms_control_get_operation(operation.value, ctypes.byref(result)), 0)
+        self.assertEqual((result.result, result.phase), (0, 2))
+        self.assertEqual(self.value('drms_acq_running').value, 1)
+        self.assertEqual(self.value('drms_log_state').value, 0)
+
+    def test_remote_resume_does_not_bypass_incomplete_record_cleanup(self):
+        self.insert_card()
+        self.command('RECORD')
+        self.lib.drms_log_poll(); self.lib.drms_application_poll(); self.lib.drms_log_poll()
+        self.command('STOP')
+        request = ControlRequest(source=3, request_id=95, operation=10)
+        ident = ctypes.c_uint64()
+        self.lib.drms_control_submit_identified.argtypes = [ctypes.POINTER(ControlRequest), ctypes.POINTER(ctypes.c_uint64)]
+        self.assertEqual(self.lib.drms_control_submit_identified(ctypes.byref(request), ctypes.byref(ident)), 1)
+        self.lib.drms_application_poll()
+        from test_control_contract import Completion
+        result = Completion()
+        self.lib.drms_control_get_operation.argtypes = [ctypes.c_uint64, ctypes.POINTER(Completion)]
+        self.assertEqual(self.lib.drms_control_get_operation(ident.value, ctypes.byref(result)), 0)
+        self.assertEqual(result.result, 2)
+        self.assertEqual(self.value('drms_acq_running').value, 0)
+
     def test_stop_record_waits_for_storage_cleanup_before_restart(self):
         self.insert_card()
         self.command('RECORD')

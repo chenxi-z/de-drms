@@ -122,6 +122,28 @@ static DRMS_Result app_dispatch(const DRMS_Token *token, const DRMS_ControlReque
   last_cmd = (uint32_t)request->operation;
   switch (request->operation)
   {
+    case DRMS_OP_RESUME_MONITOR:
+    {
+      if (drms_shutdown_requested)
+        return DRMS_CANCELLED;
+      if (session_active || session_armed || drms_log_state || cal_active || baseline_active)
+        return DRMS_BUSY;
+      if (drms_acq_running)
+        return drms_acq_reference ? DRMS_BUSY : DRMS_NO_CHANGE;
+      DRMS_ControlSnapshot control;
+      drms_control_get_snapshot(&control);
+      if ((control.quarantined_mask & DRMS_RES_ACQUISITION_CONFIG) || !drms_acq_is_quiescent())
+        return DRMS_QUARANTINED;
+      DRMS_Result resumed = drms_control_resume_for(*token);
+      if (resumed != DRMS_OK)
+        return resumed;
+      if (begin(boot_rate, 0) != 0)
+      {
+        drms_control_stop();
+        return DRMS_IO_ERROR;
+      }
+      return DRMS_OK;
+    }
     case DRMS_OP_RECORD:
     {
       if (!drms_acq_running || drms_acq_reference || cal_active)

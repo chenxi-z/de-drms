@@ -240,10 +240,10 @@ DRMS_Result drms_control_submit_identified(const DRMS_ControlRequest *request, u
   uint32_t mask;
   QueuedRequest *slot;
   if (operation_id) *operation_id = 0;
-  if (!request || request->operation <= DRMS_OP_NONE || request->operation > DRMS_OP_MSC_RELEASE)
+  if (!request || request->operation <= DRMS_OP_NONE || request->operation > DRMS_OP_RESUME_MONITOR)
     return DRMS_INVALID;
   mask = crit_enter();
-  if (stopping)
+  if (stopping && request->operation != DRMS_OP_RESUME_MONITOR)
   {
     crit_exit(mask);
     ++requests_rejected;
@@ -266,7 +266,8 @@ DRMS_Result drms_control_submit_identified(const DRMS_ControlRequest *request, u
   return DRMS_ACCEPTED;
 }
 
-static DRMS_Result reserve_assigned(uint32_t resources, DRMS_Token *out, uint64_t assigned_id, uint32_t allow_empty)
+static DRMS_Result reserve_assigned(uint32_t resources, DRMS_Token *out, uint64_t assigned_id,
+                                    uint32_t allow_empty, uint32_t allow_stopping)
 {
   uint32_t mask, granted, i;
   Lease *lease = NULL;
@@ -282,7 +283,7 @@ static DRMS_Result reserve_assigned(uint32_t resources, DRMS_Token *out, uint64_
   if (!resources && !allow_empty)
     return DRMS_INVALID;
   mask = crit_enter();
-  if (stopping)
+  if (stopping && !allow_stopping)
   {
     crit_exit(mask);
     return DRMS_CANCELLED;
@@ -332,7 +333,7 @@ static DRMS_Result reserve_assigned(uint32_t resources, DRMS_Token *out, uint64_
 
 DRMS_Result drms_control_reserve(uint32_t resources, DRMS_Token *out)
 {
-  return reserve_assigned(resources, out, 0, 0);
+  return reserve_assigned(resources, out, 0, 0, 0);
 }
 
 DRMS_Result drms_control_report(DRMS_Token token, DRMS_Result result)
@@ -461,6 +462,33 @@ DRMS_Result drms_control_resume(void)
   return DRMS_OK;
 }
 
+DRMS_Result drms_control_resume_for(DRMS_Token token)
+{
+  uint32_t mask = crit_enter();
+  uint32_t found = 0;
+  for (uint32_t i = 0; i < DRMS_CONTROL_LEASES; ++i)
+  {
+    Lease *lease = &leases[i];
+    if (!lease->active) continue;
+    if (lease->operation_id == token.operation_id && lease->generation == token.generation && !lease->resources)
+      found = 1;
+    else
+    {
+      crit_exit(mask);
+      return DRMS_BUSY;
+    }
+  }
+  if (!found || request_count)
+  {
+    crit_exit(mask);
+    return found ? DRMS_BUSY : DRMS_INVALID;
+  }
+  stopping = 0;
+  ++snapshot_sequence;
+  crit_exit(mask);
+  return DRMS_OK;
+}
+
 void drms_control_poll(uint32_t max_requests)
 {
   while (max_requests--)
@@ -469,7 +497,7 @@ void drms_control_poll(uint32_t max_requests)
     DRMS_Token token;
     DRMS_Result result;
     uint32_t mask = crit_enter();
-    if (!request_count || stopping)
+    if (!request_count || (stopping && requests[request_tail].request.operation != DRMS_OP_RESUME_MONITOR))
     {
       crit_exit(mask);
       return;
@@ -477,7 +505,8 @@ void drms_control_poll(uint32_t max_requests)
     QueuedRequest queued = requests[request_tail];
     request = queued.request;
     result = reserve_assigned(drms_control_resources_for(request.operation), &token, queued.operation_id,
-                              request.operation == DRMS_OP_MSC_RELEASE);
+                              request.operation == DRMS_OP_MSC_RELEASE || request.operation == DRMS_OP_RESUME_MONITOR,
+                              request.operation == DRMS_OP_RESUME_MONITOR);
     request_tail = (request_tail + 1U) % DRMS_CONTROL_REQUESTS;
     --request_count;
     if (result != DRMS_ACCEPTED)

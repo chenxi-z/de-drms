@@ -87,6 +87,8 @@ void drms_control_stop(void);
 /* 解除 STOPPING：要求无活动租约（隔离资源允许保留）。成功返回 OK，否则
  * BUSY。不自动重启任何业务。仅控制任务调用。 */
 DRMS_Result drms_control_resume(void);
+/* Resume initiated by a zero-resource control operation, excluding its own lease. */
+DRMS_Result drms_control_resume_for(DRMS_Token token);
 
 /* 控制任务：从完成环排空至多 max 条完成记录（ oldest first ），返回条数。
  * 普通查询不得调用本函数。 */

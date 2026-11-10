@@ -123,7 +123,7 @@ static void received(void *user, const uint8_t *request, size_t length)
           }
         }
       }
-      else if (opcode == 18u || opcode == 34u || opcode == 35u || opcode == 48u || opcode == 49u)
+      else if (opcode == 18u || opcode == 19u || opcode == 34u || opcode == 35u || opcode == 48u || opcode == 49u)
       {
         static const DRMS_CDCFieldRule version_rule[] = {{48, 8, 8, 0, 1}};
         DRMS_CDCFieldView version_field[1];
@@ -142,6 +142,7 @@ static void received(void *user, const uint8_t *request, size_t length)
             DRMS_ControlRequest submission = {
               .source = DRMS_SOURCE_CDC, .session = session, .request_id = id,
               .operation = opcode == 18u ? DRMS_OP_NONE :
+                           opcode == 19u ? DRMS_OP_RESUME_MONITOR :
                            opcode == 34u ? DRMS_OP_CONFIG_SAVE :
                            opcode == 35u ? DRMS_OP_BASELINE_R0 :
                            opcode == 48u ? DRMS_OP_MSC_EXPORT : DRMS_OP_MSC_RELEASE};
@@ -176,8 +177,8 @@ static void received(void *user, const uint8_t *request, size_t length)
     tlv(out, &pos, 3, temp, 12);
     put64(temp, ctx->session.boot); tlv(out, &pos, 4, temp, 8);
     put16(temp, 1); put16(temp + 2, 2); put16(temp + 4, 3);
-    put16(temp + 6, 18); put16(temp + 8, 34); put16(temp + 10, 35);
-    put16(temp + 12, 48); put16(temp + 14, 49); tlv(out, &pos, 5, temp, 16);
+    put16(temp + 6, 18); put16(temp + 8, 19); put16(temp + 10, 34); put16(temp + 12, 35);
+    put16(temp + 14, 48); put16(temp + 16, 49); tlv(out, &pos, 5, temp, 18);
     put16(temp, 1024); tlv(out, &pos, 6, temp, 2);
     put32(temp, 4000); tlv(out, &pos, 7, temp, 4);
     tlv(out, &pos, 8, temp, 0); /* no recording capability is exposed yet */

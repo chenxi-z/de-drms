@@ -411,6 +411,22 @@ class CDCConsoleTest(unittest.TestCase):
             self.send(bytes(wire))
             self.assertEqual(self.lib.control_queued(), number - 1)
 
+    def test_v2_resume_admitted_while_control_is_stopped(self):
+        import struct, zlib
+        self.send(bytes.fromhex('040201010101010102010101010101010101010105d7970e6600'))
+        self.lib.drms_control_stop()
+        raw = struct.pack('<BBHIQHH', 2, 1, 19, 1, 2, 0, 0)
+        raw += struct.pack('<I', zlib.crc32(raw))
+        wire = bytearray(b'\x00'); start = 0; code = 1
+        for byte in raw:
+            if byte == 0:
+                wire[start] = code; start = len(wire); wire.append(0); code = 1
+            else:
+                wire.append(byte); code += 1
+        wire[start] = code; wire.append(0)
+        self.send(bytes(wire))
+        self.assertEqual(self.lib.control_queued(), 1)
+
     def test_v2_save_passes_full_expected_version_to_control(self):
         import struct, zlib
         self.send(bytes.fromhex('040201010101010102010101010101010101010105d7970e6600'))
