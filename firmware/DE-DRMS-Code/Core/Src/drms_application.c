@@ -14,6 +14,7 @@
 #include "drms_logging.h"
 #include "drms_log_codec.h"
 #include "drms_storage.h"
+#include "drms_file_service.h"
 #include "drms_time.h"
 #include "drms_usb.h"
 #include "drms_boot_identity.h"
@@ -82,6 +83,11 @@ static DRMS_Token msc_token;
 static uint32_t msc_active, msc_reported;
 static DRMS_Token msc_release_token;
 static uint32_t msc_release_active;
+static DRMS_Token file_token;
+static uint64_t file_open_ticket;
+static uint32_t file_active, file_opened;
+static DRMS_FileReply file_open_reply;
+static DRMS_ApplicationFile published_file;
 static DRMS_BaselineContext baseline;
 static DRMS_Token baseline_token;
 static uint64_t baseline_version, baseline_ticket;
@@ -95,6 +101,21 @@ static uint64_t config_view_running, config_view_saved;
 static uint32_t config_view_current;
 static uint32_t begin(uint32_t rate, uint32_t reference);
 static void configure_monitor(uint32_t rate);
+
+static void file_publish(const DRMS_ApplicationFile *view)
+{
+  uint32_t mask = __get_PRIMASK(); __disable_irq();
+  published_file = *view;
+  __set_PRIMASK(mask);
+}
+uint32_t drms_application_file_snapshot(DRMS_ApplicationFile *out)
+{
+  if (!out) return 0;
+  uint32_t mask = __get_PRIMASK(); __disable_irq();
+  *out = published_file;
+  __set_PRIMASK(mask);
+  return out->operation != 0;
+}
 
 static void record_publish(const DRMS_ApplicationRecord *view)
 {
@@ -469,6 +490,19 @@ static DRMS_Result app_dispatch(const DRMS_Token *token, const DRMS_ControlReque
       return DRMS_OK;
     }
     case DRMS_OP_FILE_DOWNLOAD:
+    {
+      if (!request->session || request->expected_version > UINT32_MAX || file_active)
+        return DRMS_INVALID;
+      DRMS_FileRequest file = {.kind = DRMS_FILE_OPEN, .session = request->session,
+        .generation = (uint32_t)request->expected_version, .file_id = request->value};
+      DRMS_Result result = drms_file_service_submit(&file, &file_open_ticket);
+      if (result != DRMS_ACCEPTED) return result;
+      file_token = *token; file_active = 1; file_opened = 0;
+      DRMS_ApplicationFile view = {.operation = token->operation_id, .session = request->session,
+        .generation = file.generation, .phase = 0, .result = DRMS_ACCEPTED};
+      file_publish(&view);
+      return DRMS_ACCEPTED;
+    }
     case DRMS_OP_CALIBRATE:
     case DRMS_OP_UPDATE:
       return DRMS_UNSUPPORTED; /* 非本阶段交付操作：明确拒绝而非静默 */
@@ -508,6 +542,46 @@ static void msc_service_control(void)
     }
     msc_active = 0;
     msc_reported = 0;
+  }
+}
+
+/* Transfer retains its TF lease through the whole open/read/close lifetime. */
+static void file_service_control(void)
+{
+  if (!file_active) return;
+  DRMS_ApplicationFile view;
+  if (!drms_application_file_snapshot(&view)) return;
+  if (drms_file_service_quarantined())
+  {
+    view.phase = 2; view.result = DRMS_QUARANTINED;
+    file_publish(&view);
+    (void)drms_control_complete(file_token, DRMS_QUARANTINED, 0);
+    file_active = 0;
+    return;
+  }
+  if (!file_opened)
+  {
+    DRMS_Result state = drms_file_service_take(file_open_ticket, &file_open_reply);
+    if (state == DRMS_ACCEPTED) return;
+    if (state == DRMS_OK && file_open_reply.result == DRMS_OK)
+    {
+      view.size = file_open_reply.size; view.phase = 1; view.result = DRMS_OK;
+      file_opened = 1;
+      file_publish(&view);
+      return;
+    }
+    if (!drms_file_service_quiescent()) return;
+    DRMS_Result result = state == DRMS_OK ? file_open_reply.result : DRMS_CANCELLED;
+    view.phase = 2; view.result = result; file_publish(&view);
+    (void)drms_control_complete(file_token, result, DRMS_RES_TF_ACCESS);
+    file_active = 0;
+    return;
+  }
+  if (drms_file_service_quiescent())
+  {
+    view.phase = 2; view.result = DRMS_OK; file_publish(&view);
+    (void)drms_control_complete(file_token, DRMS_OK, DRMS_RES_TF_ACCESS);
+    file_active = 0;
   }
 }
 
@@ -929,6 +1003,8 @@ static void execute(const DRMS_Command *command)
 void drms_application_init(void)
 {
   memset(&published_record, 0, sizeof(published_record));
+  memset(&published_file, 0, sizeof(published_file));
+  file_active = file_opened = 0;
   memset(record_history, 0, sizeof(record_history));
   record_history_next = record_history_count = 0;
   drms_config_snapshot_init();
@@ -1039,6 +1115,7 @@ void drms_application_poll(void)
       (void)tx_queue_flush(&commands);
     stop_acquisition();
     drms_msc_cancel();
+    drms_file_service_cancel_all();
     drms_control_stop(); /* cancel admitted-but-not-yet-dispatched operations */
     last_cmd = DRMS_CMD_STOP;
     cmd_result = 0;
@@ -1060,6 +1137,7 @@ void drms_application_poll(void)
     }
   }
   drms_record_session_poll(now, drms_acq_queue_used(), 4096);
+  file_service_control();
   if (session_armed || session_active)
   {
     DRMS_End pending;
@@ -1122,7 +1200,7 @@ void drms_application_poll(void)
   if (priority_stop_active)
   {
     if (drms_acq_is_quiescent() && !session_active && !session_armed &&
-        !drms_log_state && !msc_active && !msc_release_active &&
+        !drms_log_state && !msc_active && !msc_release_active && !file_active &&
         drms_msc_owner() == DRMS_OWNER_LOCAL)
     {
       DRMS_Result result = priority_stop_had_record && drms_log_status ? DRMS_IO_ERROR : DRMS_OK;

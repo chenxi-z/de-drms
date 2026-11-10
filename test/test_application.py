@@ -34,6 +34,11 @@ class RecordView(ctypes.Structure):
                 ('phase', ctypes.c_uint8), ('clean_end', ctypes.c_uint8),
                 ('unknown_loss', ctypes.c_uint8)]
 
+class FileView(ctypes.Structure):
+    _fields_ = [('operation', ctypes.c_uint64), ('size', ctypes.c_uint64),
+                ('session', ctypes.c_uint32), ('generation', ctypes.c_uint32),
+                ('phase', ctypes.c_uint32), ('result', ctypes.c_uint32)]
+
 class StatusSnapshot(ctypes.Structure):
     _fields_ = [('revision', ctypes.c_uint64), ('mono_us', ctypes.c_uint64),
                 ('running_version', ctypes.c_uint64), ('saved_version', ctypes.c_uint64),
@@ -75,6 +80,14 @@ int HAL_GPIO_ReadPin(int p,int n) {
   return n==18 ? (sd_card_present ? 0 : 1) : n==13 ? !measure_down : n==14 ? !power_down : 1;
 }
 uint64_t drms_boot_identity_get(void) { return 0x123456789abcdef0ULL; }
+DRMS_Result drms_file_backend_open(uint32_t id,uint32_t s,uint32_t g,uint64_t *size) {
+ (void)id;(void)s;(void)g; *size=123; return DRMS_OK; }
+DRMS_Result drms_file_backend_read(uint32_t s,uint32_t g,uint64_t o,uint16_t n,uint8_t *p,uint16_t *actual,uint8_t *eof) {
+ (void)s;(void)g;(void)o;memset(p,'A',n);*actual=n;*eof=1;return DRMS_OK; }
+uint32_t file_close_result;
+DRMS_Result drms_file_backend_close(uint32_t s,uint32_t g) { (void)s;(void)g;return (DRMS_Result)file_close_result; }
+DRMS_Result drms_file_backend_list_step(uint32_t c,uint32_t g,uint32_t *id,uint64_t *size,uint32_t *next) {
+ (void)g;*id=c;*size=123;*next=c+1;return DRMS_OK; }
 int drms_power_backend_enter(void) { return 0; }
 void drms_time_get(DRMS_Time *t) { *t=clock_value; }
 int drms_time_set(const char *text) { return drms_time_parse(text,&clock_value); }
@@ -218,7 +231,7 @@ uint32_t HAL_GetUIDw2(void);
         names = ('application', 'command', 'acquisition', 'measurement', 'fifo', 'logging',
                  'log_codec', 'calibration_codec', 'calibration_journal', 'time_codec', 'power',
                  'control', 'record_session', 'monitor', 'filter', 'classifier', 'baseline', 'capture_time',
-                 'user_config', 'config_snapshot', 'msc', 'storage')
+                 'user_config', 'config_snapshot', 'file_service', 'msc', 'storage')
         command = ['cc', '-shared', '-fPIC', '-Wall', '-Werror=implicit-function-declaration',
                         '-I', str(p), '-I', str(src / 'Inc'),
                         *[str((src.parent / 'App/application/measurement' if name in ('monitor', 'filter', 'classifier', 'baseline') else src / 'Src') / f'drms_{name}.c') for name in names],
@@ -245,6 +258,7 @@ uint32_t HAL_GetUIDw2(void);
         self.lib.drms_application_status.restype = ctypes.c_size_t
         self.lib.reset_flash()
         self.lib.drms_log_init()
+        self.lib.drms_file_service_init()
         self.lib.drms_application_init()
 
     def value(self, name):
@@ -276,6 +290,46 @@ uint32_t HAL_GetUIDw2(void);
         self.lib.drms_application_poll()
         self.assertEqual(self.lib.drms_control_reserve(4, ctypes.byref(token)), 1)
         self.lib.drms_control_complete(token, 0, 4)
+
+    def test_download_open_retains_tf_lease_until_disconnect_cleanup(self):
+        self.insert_card()
+        generation = self.lib.drms_storage_media_generation()
+        request = ControlRequest(source=3, session=4, request_id=42, operation=3,
+                                 value=42, expected_version=generation)
+        op = ctypes.c_uint64()
+        self.lib.drms_control_submit_identified.argtypes = [ctypes.POINTER(ControlRequest), ctypes.POINTER(ctypes.c_uint64)]
+        self.assertEqual(self.lib.drms_control_submit_identified(ctypes.byref(request), ctypes.byref(op)), 1)
+        self.lib.drms_application_poll()
+        held = Token()
+        self.assertEqual(self.lib.drms_control_reserve(4, ctypes.byref(held)), 2)
+        self.lib.drms_file_service_poll()
+        self.lib.drms_application_poll()
+        view = FileView()
+        self.lib.drms_application_file_snapshot.argtypes = [ctypes.POINTER(FileView)]
+        self.assertEqual(self.lib.drms_application_file_snapshot(ctypes.byref(view)), 1)
+        self.assertEqual((view.operation,view.size,view.session,view.generation,view.phase,view.result),
+                         (op.value,123,4,generation,1,0))
+        self.lib.drms_file_service_disconnect(4)
+        self.assertEqual(self.lib.drms_control_reserve(4, ctypes.byref(held)), 2)
+        self.lib.drms_file_service_poll()
+        self.lib.drms_application_poll()
+        self.assertEqual(self.lib.drms_control_reserve(4, ctypes.byref(held)), 1)
+        self.lib.drms_control_complete(held, 0, 4)
+
+    def test_download_failed_cleanup_quarantines_tf_resource(self):
+        from test_control_contract import Snapshot
+        self.insert_card()
+        generation = self.lib.drms_storage_media_generation()
+        request = ControlRequest(source=3, session=4, operation=3, value=42, expected_version=generation)
+        self.assertEqual(self.lib.drms_control_submit(ctypes.byref(request)), 1)
+        self.lib.drms_application_poll(); self.lib.drms_file_service_poll(); self.lib.drms_application_poll()
+        ctypes.c_uint32.in_dll(self.lib, 'file_close_result').value = 10
+        self.lib.drms_file_service_disconnect(4)
+        self.lib.drms_file_service_poll(); self.lib.drms_application_poll()
+        snapshot = Snapshot()
+        self.lib.drms_control_get_snapshot(ctypes.byref(snapshot))
+        self.assertEqual(snapshot.quarantined_mask & 4, 4)
+        self.assertEqual(self.lib.drms_control_reserve(4, ctypes.byref(Token())), 2)
 
     def test_msc_release_reports_remount_failure(self):
         self.insert_card()

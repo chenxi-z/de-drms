@@ -25,6 +25,11 @@ typedef struct {
 } DRMS_ApplicationRecord;
 /* Current/latest plus four older completed records; id=0 selects latest. */
 DRMS_Result drms_application_record_snapshot(uint64_t id, DRMS_ApplicationRecord *out);
+typedef struct {
+  uint64_t operation, size;
+  uint32_t session, generation, phase, result; /* 0 opening, 1 active, 2 closed */
+} DRMS_ApplicationFile;
+uint32_t drms_application_file_snapshot(DRMS_ApplicationFile *out);
 void drms_application_init(void);
 void drms_application_poll(void);
 size_t drms_application_status(char *out, size_t capacity);
