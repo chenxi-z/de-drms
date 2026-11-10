@@ -96,3 +96,10 @@ class FileServiceTest(unittest.TestCase):
             req=Request(kind=3,session=session,generation=generation,count=1)
             self.assertEqual(self.lib.drms_file_service_submit(ctypes.byref(req),ctypes.byref(ticket_out)),4)
         self.assertEqual(self.val('calls_read').value,0)
+    def test_shutdown_cancels_open_handle_before_quiescence(self):
+        _,ticket=self.submit(2,file_id=42); self.lib.drms_file_service_poll(); self.take(ticket)
+        self.lib.drms_file_service_cancel_all()
+        self.assertEqual(self.lib.drms_file_service_quiescent(),0)
+        self.lib.drms_file_service_poll()
+        self.assertEqual(self.val('calls_close').value,1)
+        self.assertEqual(self.lib.drms_file_service_quiescent(),1)

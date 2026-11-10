@@ -49,6 +49,12 @@ void drms_file_service_disconnect(uint32_t session)
   if ((state && input.session == session) || owner_session == session) revoked=1;
   unlock(m);
 }
+void drms_file_service_cancel_all(void)
+{
+  uint32_t m=lock();
+  if (state || owner_session) revoked=1;
+  unlock(m);
+}
 uint32_t drms_file_service_quiescent(void)
 {
   uint32_t m=lock(); uint32_t result=!state && !revoked && !owner_session && !quarantined; unlock(m); return result;

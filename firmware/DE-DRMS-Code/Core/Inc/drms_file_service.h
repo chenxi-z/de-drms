@@ -25,6 +25,8 @@ DRMS_Result drms_file_service_submit(const DRMS_FileRequest *request, uint64_t *
 DRMS_Result drms_file_service_take(uint64_t ticket, DRMS_FileReply *out);
 /* Any thread: revoke session; actual close happens in storage poll. */
 void drms_file_service_disconnect(uint32_t session);
+/* Shutdown path: revoke the one current request/handle, if any. */
+void drms_file_service_cancel_all(void);
 /* Storage owner only; at most one FileX action or one directory probe per call. */
 void drms_file_service_poll(void);
 uint32_t drms_file_service_quiescent(void);

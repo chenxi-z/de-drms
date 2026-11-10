@@ -27,6 +27,8 @@
 #include "drms_logging.h"
 #include "drms_power.h"
 #include "drms_msc.h"
+#include "drms_file_backend.h"
+#include "drms_file_service.h"
 
 /* USER CODE END Includes */
 
@@ -139,6 +141,8 @@ UINT MX_FileX_Init(VOID *memory_ptr)
   TX_PARAMETER_NOT_USED(thread_input);
   drms_storage_init();
   drms_log_init();
+  drms_file_backend_init();
+  drms_file_service_init();
   drms_msc_init();
   drms_msc_set_wait_hook(drms_msc_wait);
   ULONG last_attempt = tx_time_get() - TX_TIMER_TICKS_PER_SECOND;
@@ -147,8 +151,12 @@ UINT MX_FileX_Init(VOID *memory_ptr)
     ULONG now = tx_time_get();
     drms_storage_observe();
     if (drms_shutdown_requested)
+    {
       drms_msc_cancel();
+      drms_file_service_cancel_all();
+    }
     drms_msc_service();
+    drms_file_service_poll();
     if (drms_shutdown_requested)
     {
       if (drms_storage_mounted)
@@ -157,7 +165,8 @@ UINT MX_FileX_Init(VOID *memory_ptr)
         if (drms_storage_mounted)
           drms_log_poll();
       }
-      (void)drms_storage_prepare_shutdown();
+      if (drms_file_service_quiescent())
+        (void)drms_storage_prepare_shutdown();
       tx_thread_sleep(1);
       continue;
     }
