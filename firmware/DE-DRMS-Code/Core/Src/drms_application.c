@@ -75,6 +75,7 @@ static uint32_t session_end_active;
 static uint64_t session_record_id;
 static uint32_t session_armed;   /* prepare 已完成，等文件就绪+边界 B */
 static uint32_t session_cancelled;
+static DRMS_Result session_cancel_reason;
 static uint32_t session_footer_requested;
 static uint32_t session_duration_ms;
 static uint64_t session_started_us;
@@ -331,6 +332,9 @@ static void session_cancel_local(DRMS_Result reason)
 {
   if ((session_armed || session_active) && !session_cancelled)
   {
+    /* A finished and closed file cannot be retroactively cancelled. */
+    if (session_active && session_footer_requested && !drms_log_state)
+      return;
     if (session_armed)
       (void)drms_control_report(session_token, reason);
     drms_acq_boundary_cancel(session_token);
@@ -340,6 +344,8 @@ static void session_cancel_local(DRMS_Result reason)
     session_active = 1; /* retain ownership until the storage close is confirmed */
     session_stopping = 0;
     session_cancelled = 1;
+    session_cancel_reason = reason;
+    session_footer_requested = 0;
   }
 }
 
@@ -415,6 +421,7 @@ static DRMS_Result app_dispatch(const DRMS_Token *token, const DRMS_ControlReque
       }
       session_armed = 1;
       session_cancelled = 0;
+      session_cancel_reason = DRMS_OK;
       session_footer_requested = 0;
       DRMS_ApplicationRecord view = {.record = session_record_id, .phase = 0, .result = DRMS_ACCEPTED};
       record_publish(&view);
@@ -1440,7 +1447,7 @@ void drms_application_poll(void)
         DRMS_Result storage_result = drms_log_status ? DRMS_IO_ERROR : DRMS_OK;
         DRMS_ApplicationRecord view = {
           .record = end.record_id, .phase = 2,
-          .result = storage_result != DRMS_OK ? storage_result :
+          .result = storage_result != DRMS_OK ? storage_result : session_cancelled ? session_cancel_reason :
                     (!session_footer_requested && (end.reason == DRMS_OK || end.reason == DRMS_EMPTY) ? DRMS_INCOMPLETE : end.reason),
           .clean_end = session_footer_requested && storage_result == DRMS_OK,
           .capture_lost = end.capture_lost, .log_dropped = end.log_dropped,

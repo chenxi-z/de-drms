@@ -1485,6 +1485,53 @@ uint32_t HAL_GetUIDw2(void);
         finished = self.cdc_exchange(4, 5, record_field)
         self.assertEqual((int.from_bytes(finished[1], 'little'), finished[45][0], finished[41][0]), (6, 2, 0))
 
+    def test_cdc_safe_stop_during_record_end_completes_both_operations(self):
+        self.insert_card()
+        self.lib.test_cdc_init()
+        self.lib.test_cdc_feed.argtypes = [ctypes.c_void_p, ctypes.c_uint32]
+        self.cdc_exchange(1, 1, session=0)
+        begin = self.cdc_exchange(16, 2, struct.pack('<HHI', 0x8032, 4, 0))
+        record = int.from_bytes(begin[12], 'little')
+        record_field = struct.pack('<HHQ', 0x800c, 8, record)
+        self.lib.drms_application_poll(); self.lib.drms_log_poll(); self.lib.drms_application_poll()
+        self.frames(2, 280000, 4200000)
+        end = self.cdc_exchange(17, 3, record_field)
+        end_operation = int.from_bytes(end[11], 'little')
+        self.lib.drms_application_poll()  # end dispatched, storage not yet closed
+        stop = self.cdc_exchange(18, 4)
+        stop_operation = int.from_bytes(stop[11], 'little')
+        for _ in range(8): self.lib.drms_application_poll(); self.lib.drms_log_poll()
+        self.lib.drms_application_poll()
+        end_status = self.cdc_exchange(3, 5, struct.pack('<HHQ', 0x800b, 8, end_operation))
+        stop_status = self.cdc_exchange(3, 6, struct.pack('<HHQ', 0x800b, 8, stop_operation))
+        self.assertEqual((end_status[45][0], int.from_bytes(end_status[1], 'little')), (2, 8))
+        self.assertEqual((stop_status[45][0], int.from_bytes(stop_status[1], 'little')), (2, 0))
+        finished = self.cdc_exchange(4, 7, record_field)
+        self.assertEqual((int.from_bytes(finished[1], 'little'), finished[41][0], finished[40][0]), (8, 0, 1))
+        self.assertEqual(self.value('drms_acq_running').value, 0)
+        self.assertEqual(self.value('drms_log_state').value, 0)
+
+    def test_stop_after_file_close_does_not_retroactively_cancel_record(self):
+        from test_control_contract import Completion
+        self.insert_card(); self.command('RECORD')
+        self.lib.drms_log_poll(); self.lib.drms_application_poll()
+        self.frames(2, 280000, 4200000)
+        request = ControlRequest(source=3, session=1, operation=13, expected_version=1)
+        operation = ctypes.c_uint64()
+        self.assertEqual(self.lib.drms_control_submit_identified(ctypes.byref(request), ctypes.byref(operation)), 1)
+        self.lib.drms_application_poll()
+        self.lib.drms_log_poll()  # storage finishes before the next application poll
+        self.assertEqual(self.value('drms_log_state').value, 0)
+        self.command('STOP')
+        result = Completion()
+        self.lib.drms_control_get_operation.argtypes = [ctypes.c_uint64, ctypes.POINTER(Completion)]
+        self.assertEqual(self.lib.drms_control_get_operation(operation.value, ctypes.byref(result)), 0)
+        self.assertEqual((result.phase, result.result), (2, 0))
+        self.lib.drms_application_record_snapshot.argtypes = [ctypes.c_uint64, ctypes.POINTER(RecordView)]
+        view = RecordView()
+        self.assertEqual(self.lib.drms_application_record_snapshot(1, ctypes.byref(view)), 0)
+        self.assertEqual((view.phase, view.result, view.clean_end), (2, 0, 1))
+
 
 if __name__ == '__main__':
     unittest.main()
