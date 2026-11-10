@@ -1301,6 +1301,47 @@ uint32_t HAL_GetUIDw2(void);
         self.assertEqual(self.value('programs').value, 0)
         self.assertEqual((self.value('drms_acq_running').value, self.value('drms_acq_reference').value), (1, 0))
 
+    def test_cdc_calibration_through_wire_and_operation_query(self):
+        import zlib
+        self.lib.test_cdc_init()
+        self.lib.test_cdc_feed.argtypes = [ctypes.c_void_p, ctypes.c_uint32]
+
+        def exchange(opcode, request_id, payload=b'', session=1):
+            raw = struct.pack('<BBHIQHH', 2, 1, opcode, session, request_id, len(payload), 0) + payload
+            raw += struct.pack('<I', zlib.crc32(raw))
+            wire = bytearray(b'\0'); start = 0; code = 1
+            for byte in raw:
+                if byte == 0 or code == 255:
+                    wire[start] = code; start = len(wire); wire.append(0); code = 1
+                    if byte == 0: continue
+                wire.append(byte); code += 1
+            wire[start] = code; wire.append(0)
+            source = ctypes.create_string_buffer(bytes(wire))
+            self.lib.test_cdc_feed(source, len(wire))
+            length = self.value('test_cdc_length').value
+            encoded = bytes((ctypes.c_ubyte * 1054).in_dll(self.lib, 'test_cdc_wire')[:length])
+            decoded = bytearray(); i = 0
+            while i < len(encoded) - 1:
+                size = encoded[i]; i += 1; decoded += encoded[i:i + size - 1]; i += size - 1
+                if size != 255 and i < len(encoded) - 1: decoded.append(0)
+            fields = {}; i = 20
+            while i < len(decoded) - 4:
+                tag, size = struct.unpack_from('<HH', decoded, i); i += 4
+                fields[tag & 0x7fff] = decoded[i:i + size]; i += size
+            return fields
+
+        hello = exchange(1, 1, session=0)
+        self.assertIn(36, struct.unpack('<' + 'H' * (len(hello[5]) // 2), hello[5]))
+        accepted = exchange(36, 2)
+        self.assertEqual(int.from_bytes(accepted[1], 'little'), 1)
+        self.assertEqual(exchange(36, 2), accepted)
+        operation = int.from_bytes(accepted[11], 'little')
+        self.lib.drms_application_poll()
+        self.frames(4096, 2800000, 4200000)
+        query = exchange(3, 3, struct.pack('<HHQ', 0x800b, 8, operation))
+        self.assertEqual((int.from_bytes(query[1], 'little'), query[45][0], query[44][0]), (0, 2, 2))
+        self.assertEqual(self.value('programs').value, 4)
+
 
 if __name__ == '__main__':
     unittest.main()
