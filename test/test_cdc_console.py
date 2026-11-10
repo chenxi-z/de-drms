@@ -29,11 +29,14 @@ typedef struct { int unused; } TX_THREAD;
 #define TX_PARAMETER_NOT_USED(x) ((void)(x))
 #define TX_NO_TIME_SLICE 0
 #define TX_AUTO_START 1
+#define TX_SUCCESS 0
 UINT ux_device_class_cdc_acm_ioctl(void *,UINT,VOID *);
 UINT ux_device_class_cdc_acm_read(void *,UCHAR *,ULONG,ULONG *);
 UINT ux_device_class_cdc_acm_write(void *,UCHAR *,ULONG,ULONG *);
 void tx_thread_sleep(ULONG);
 UINT tx_thread_create(TX_THREAD *,char *,void (*)(ULONG),ULONG,VOID *,ULONG,UINT,UINT,ULONG,UINT);
+UINT tx_thread_terminate(TX_THREAD *);
+UINT tx_thread_delete(TX_THREAD *);
 uint32_t HAL_GetTick(void);
 uint32_t HAL_GetUIDw0(void);
 uint32_t HAL_GetUIDw1(void);
@@ -48,7 +51,7 @@ MOCK = r'''
 #include <stdio.h>
 UX_SLAVE_CLASS_CDC_ACM cdc={1};
 char incoming[64],written[512];
-unsigned int read_status,read_calls,writes,can_io=1,disconnect_during_read,indefinite_io,abort_calls,revocations,incoming_len,written_len;
+unsigned int read_status,read_calls,writes,can_io=1,disconnect_during_read,indefinite_io,abort_calls,revocations,incoming_len,written_len,write_short;
 uint32_t HAL_GetTick(void) { return 0; }
 uint32_t HAL_GetUIDw0(void) { return 1; }
 uint32_t HAL_GetUIDw1(void) { return 2; }
@@ -79,10 +82,12 @@ UINT ux_device_class_cdc_acm_read(void *a,UCHAR *b,ULONG n,ULONG *actual) {
  return read_status;
 }
 UINT ux_device_class_cdc_acm_write(void *a,UCHAR *b,ULONG n,ULONG *actual) {
- ++writes;memcpy(written,b,n);written[n]=0;written_len=n;*actual=n;return 0;
+ ++writes;memcpy(written,b,n);written[n]=0;written_len=n;*actual=write_short ? n-1 : n;return 0;
 }
 void tx_thread_sleep(ULONG a) {}
 UINT tx_thread_create(TX_THREAD *a,char *b,void (*c)(ULONG),ULONG d,VOID *e,ULONG f,UINT g,UINT h,ULONG i,UINT j) { return 0; }
+UINT tx_thread_terminate(TX_THREAD *a) { return 0; }
+UINT tx_thread_delete(TX_THREAD *a) { return 0; }
 unsigned int drms_usb_can_io(void) { return can_io; }
 unsigned int drms_usb_state_change(unsigned long n) { if(!n) ++revocations;return 0; }
 void change_parameters(void) { drms_cdc_parameter_change(&cdc); }
@@ -119,14 +124,16 @@ class CDCConsoleTest(unittest.TestCase):
     def value(self, name):
         return ctypes.c_uint.in_dll(self.lib, name)
 
-    def send(self, data):
+    def send(self, data, drain=True):
         buf = (ctypes.c_char * 64).in_dll(self.lib, 'incoming')
         ctypes.memmove(buf, data, len(data))
         self.value('incoming_len').value = len(data)
         self.lib.drms_cdc_poll()
+        if drain:
+            self.lib.drms_cdc_tx_poll()
 
     def setUp(self):
-        for name in ('read_status', 'read_calls', 'writes', 'disconnect_during_read', 'indefinite_io', 'abort_calls', 'revocations'):
+        for name in ('read_status', 'read_calls', 'writes', 'disconnect_during_read', 'indefinite_io', 'abort_calls', 'revocations', 'write_short'):
             self.value(name).value = 0
         self.value('can_io').value = 1
         self.lib.set_dtr(1)
@@ -152,6 +159,56 @@ class CDCConsoleTest(unittest.TestCase):
         import struct, zlib
         self.assertEqual(struct.unpack_from('<BBHIQ', raw), (2, 2, 1, 1, 1))
         self.assertEqual(struct.unpack_from('<I', raw, len(raw) - 4)[0], zlib.crc32(raw[:-4]))
+
+    def test_receiver_does_not_write_until_sender_runs_and_drops_stale_reply(self):
+        self.send(b'PING\n', drain=False)
+        self.assertEqual(self.value('writes').value, 0)
+        self.assertEqual(self.value('read_calls').value, 1)
+        self.send(b'PING\n', drain=False)
+        self.assertEqual(self.value('read_calls').value, 2)
+        self.lib.drms_cdc_tx_poll()
+        self.assertEqual(self.value('writes').value, 1)
+        self.lib.drms_cdc_deactivate()
+        self.lib.activate()
+        self.lib.drms_cdc_tx_poll()  # previous connection's second reply is stale
+        self.assertEqual(self.value('writes').value, 1)
+
+    def test_full_reply_queue_rejects_request_before_admission(self):
+        import struct, zlib
+        self.send(bytes.fromhex('040201010101010102010101010101010101010105d7970e6600'))
+        for _ in range(4):
+            self.send(b'PING\n', drain=False)
+        raw = struct.pack('<BBHIQHH', 2, 1, 35, 1, 2, 0, 0)
+        raw += struct.pack('<I', zlib.crc32(raw))
+        wire = bytearray(b'\x00'); start = 0; code = 1
+        for byte in raw:
+            if not byte:
+                wire[start] = code; start = len(wire); wire.append(0); code = 1
+            else:
+                wire.append(byte); code += 1
+        wire[start] = code; wire.append(0)
+        self.send(bytes(wire), drain=False)
+        self.assertEqual(self.lib.control_queued(), 0)
+        self.assertEqual(self.value('drms_cdc_tx_dropped').value, 1)
+        self.lib.drms_cdc_tx_poll()
+        self.send(bytes(wire), drain=False)
+        self.assertEqual(self.lib.control_queued(), 1)
+
+    def test_v2_read_error_discards_until_next_delimiter(self):
+        hello = bytes.fromhex('040201010101010102010101010101010101010105d7970e6600')
+        self.send(hello[:6])
+        self.value('read_status').value = 1
+        self.send(b'')
+        self.value('read_status').value = 0
+        self.send(hello[6:])
+        self.assertEqual(self.value('writes').value, 0)
+        self.send(hello)
+        self.assertEqual(self.value('writes').value, 1)
+
+    def test_short_usb_write_is_counted(self):
+        self.value('write_short').value = 1
+        self.send(b'PING\n')
+        self.assertEqual(self.value('drms_cdc_tx_errors').value, 1)
 
     def test_v2_session_survives_suspend_but_changes_after_disconnect(self):
         hello = bytes.fromhex('040201010101010102010101010101010101010105d7970e6600')

@@ -11,8 +11,68 @@ static UX_SLAVE_CLASS_CDC_ACM *volatile instance;
 static volatile ULONG generation;
 static TX_THREAD thread;
 static ULONG stack[768];
+static TX_THREAD tx_thread;
+static ULONG tx_stack[512];
+#define CDC_TX_SLOTS 4u
+#define CDC_TX_MAX 1054u
+typedef struct { ULONG generation; ULONG length; UCHAR bytes[CDC_TX_MAX]; } CDC_TxSlot;
+static CDC_TxSlot tx_slots[CDC_TX_SLOTS];
+static uint32_t tx_head, tx_tail, tx_count;
+volatile unsigned int drms_cdc_tx_dropped, drms_cdc_tx_errors;
 static DRMS_CDCV2 v2;
 static ULONG processing_generation;
+
+static uint32_t tx_has_room(void)
+{
+  return __atomic_load_n(&tx_count, __ATOMIC_ACQUIRE) < CDC_TX_SLOTS;
+}
+
+/* Single producer (RX worker): copy outside the IRQ critical section. The
+ * sender cannot touch the slot until count publishes it; in-flight slots stay
+ * counted until USBX returns, so neither copy can overwrite an active send. */
+static int tx_enqueue(const uint8_t *data, size_t size, ULONG session)
+{
+  if (!data || !size || size > CDC_TX_MAX || !tx_has_room())
+    return 0;
+  CDC_TxSlot *slot = &tx_slots[tx_head];
+  memcpy(slot->bytes, data, size);
+  slot->length = (ULONG)size;
+  slot->generation = session;
+  uint32_t mask = __get_PRIMASK();
+  __disable_irq();
+  if (session != generation || !instance || tx_count >= CDC_TX_SLOTS)
+  {
+    __set_PRIMASK(mask);
+    return 0;
+  }
+  tx_head = (tx_head + 1u) % CDC_TX_SLOTS;
+  __atomic_add_fetch(&tx_count, 1u, __ATOMIC_RELEASE);
+  __set_PRIMASK(mask);
+  return 1;
+}
+
+void drms_cdc_tx_poll(void)
+{
+  if (!__atomic_load_n(&tx_count, __ATOMIC_ACQUIRE))
+    return;
+  CDC_TxSlot *slot = &tx_slots[tx_tail];
+  UX_SLAVE_CLASS_CDC_ACM *cdc = instance;
+  ULONG session = generation;
+  if (slot->generation == session && cdc && cdc->ux_slave_class_cdc_acm_data_dtr_state)
+  {
+    if (!drms_usb_can_io())
+      return; /* suspension retains a queued reply */
+    ULONG written = 0;
+    UINT status = ux_device_class_cdc_acm_write(cdc, slot->bytes, slot->length, &written);
+    if (status != UX_SUCCESS || written != slot->length)
+      __atomic_add_fetch(&drms_cdc_tx_errors, 1u, __ATOMIC_RELAXED);
+  }
+  uint32_t mask = __get_PRIMASK();
+  __disable_irq();
+  tx_tail = (tx_tail + 1u) % CDC_TX_SLOTS;
+  __atomic_sub_fetch(&tx_count, 1u, __ATOMIC_RELEASE);
+  __set_PRIMASK(mask);
+}
 
 static void send_v2(void *context, const uint8_t *data, size_t size)
 {
@@ -20,8 +80,7 @@ static void send_v2(void *context, const uint8_t *data, size_t size)
   UX_SLAVE_CLASS_CDC_ACM *cdc = instance;
   if (cdc && generation == processing_generation && cdc->ux_slave_class_cdc_acm_data_dtr_state && drms_usb_can_io())
   {
-    ULONG written;
-    (void)ux_device_class_cdc_acm_write(cdc, (UCHAR *)data, (ULONG)size, &written);
+    (void)tx_enqueue(data, size, processing_generation);
   }
 }
 
@@ -65,7 +124,7 @@ void drms_cdc_poll(void)
   static UCHAR input_bytes[64];
   static char response[1024];
   static ULONG previous;
-  static unsigned int mode; /* 0 boundary, 1 ASCII line, 2 COBS frame */
+  static unsigned int mode; /* 0 boundary, 1 ASCII, 2 COBS, 3 discard COBS */
   UX_SLAVE_CLASS_CDC_ACM *cdc = instance;
   ULONG session = generation, actual = 0;
   if (previous != session)
@@ -89,13 +148,24 @@ void drms_cdc_poll(void)
     return;
   if (status != UX_SUCCESS)
   {
-    console.discard = 1;
+    if (mode == 2u || mode == 3u)
+    {
+      drms_cdc_frame_init(&v2.frame);
+      mode = 3u;
+    }
+    else
+      console.discard = 1;
     return;
   }
   /* A short packet may contain only part of a line. Preserve it until LF. */
   for (ULONG i = 0; i < actual; ++i)
   {
     UCHAR byte = input_bytes[i];
+    if (mode == 3u)
+    {
+      if (!byte) mode = 0;
+      continue;
+    }
     if (!mode)
     {
       if (!byte) continue;
@@ -103,18 +173,42 @@ void drms_cdc_poll(void)
     }
     if (mode == 2u)
     {
+      if (!byte && !tx_has_room())
+      {
+        /* No reply slot: drop before dispatch, allowing the host to retry. */
+        drms_cdc_frame_init(&v2.frame);
+        __atomic_add_fetch(&drms_cdc_tx_dropped, 1u, __ATOMIC_RELAXED);
+        mode = 0;
+        continue;
+      }
       processing_generation = session;
       drms_cdc_v2_feed(&v2, byte, HAL_GetTick());
       if (!byte) mode = 0;
+      continue;
+    }
+    if (byte == '\n' && !tx_has_room())
+    {
+      memset(&console, 0, sizeof(console));
+      __atomic_add_fetch(&drms_cdc_tx_dropped, 1u, __ATOMIC_RELAXED);
+      mode = 0;
       continue;
     }
     size_t length = drms_console_feed(&console, byte, response, sizeof(response));
     if (byte == '\n') mode = 0;
     if (length && session == generation && drms_usb_can_io())
     {
-      ULONG written;
-      (void)ux_device_class_cdc_acm_write(cdc, (UCHAR *)response, (ULONG)length, &written);
+      (void)tx_enqueue((const uint8_t *)response, length, session);
     }
+  }
+}
+
+static void tx_entry(ULONG input)
+{
+  TX_PARAMETER_NOT_USED(input);
+  for (;;)
+  {
+    drms_cdc_tx_poll();
+    tx_thread_sleep(1);
   }
 }
 
@@ -131,7 +225,19 @@ static void entry(ULONG input)
 unsigned int drms_cdc_start(void)
 {
   uint32_t uid[3] = {HAL_GetUIDw0(), HAL_GetUIDw1(), HAL_GetUIDw2()};
+  tx_head = tx_tail = tx_count = 0;
+  drms_cdc_tx_dropped = drms_cdc_tx_errors = 0;
   drms_cdc_v2_init(&v2, drms_entropy_boot_id, NULL, uid, send_v2, NULL);
-  return tx_thread_create(&thread, "CDC diagnostics", entry, 0, stack, sizeof(stack),
-                          11, 11, TX_NO_TIME_SLICE, TX_AUTO_START);
+  UINT status = tx_thread_create(&tx_thread, "CDC sender", tx_entry, 0, tx_stack, sizeof(tx_stack),
+                                 12, 12, TX_NO_TIME_SLICE, TX_AUTO_START);
+  if (status != TX_SUCCESS)
+    return status;
+  status = tx_thread_create(&thread, "CDC receiver", entry, 0, stack, sizeof(stack),
+                            11, 11, TX_NO_TIME_SLICE, TX_AUTO_START);
+  if (status != TX_SUCCESS)
+  {
+    (void)tx_thread_terminate(&tx_thread);
+    (void)tx_thread_delete(&tx_thread);
+  }
+  return status;
 }
