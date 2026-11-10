@@ -30,9 +30,11 @@ DRMS_Token op_tokens[16];
 int dispatch_calls;
 uint8_t received_payload[1024];
 uint32_t received_length;
+uint64_t received_record;
 static DRMS_Result test_dispatch(const DRMS_Token *token, const DRMS_ControlRequest *request)
 {
   ++dispatch_calls;
+  if (request->operation == DRMS_OP_RECORD) received_record = request->record_id;
   if (request->operation == DRMS_OP_CONFIG_APPLY && request->payload && request->payload_length <= sizeof(received_payload))
   {
     received_length = request->payload_length;
@@ -85,7 +87,7 @@ class Request(ctypes.Structure):
                 ('request_id', ctypes.c_uint64), ('operation', ctypes.c_int),
                 ('value', ctypes.c_uint32), ('number', ctypes.c_double),
                 ('payload', ctypes.c_void_p), ('payload_length', ctypes.c_uint32),
-                ('expected_version', ctypes.c_uint64)]
+                ('expected_version', ctypes.c_uint64), ('record_id', ctypes.c_uint64)]
 
 
 class Completion(ctypes.Structure):
@@ -180,6 +182,18 @@ class ControlContractTest(unittest.TestCase):
         self.assertEqual(self.lib.drms_control_release(token, ACQ | RS | TF), OK)
         self.assertEqual(self.snapshot().reserved_mask, 0)
         self.assertEqual(self.collect(), [])
+
+    def test_record_ids_are_assigned_on_admission_for_all_sources(self):
+        self.lib.drms_control_submit_record.argtypes = [ctypes.POINTER(Request), ctypes.POINTER(ctypes.c_uint64), ctypes.POINTER(ctypes.c_uint64)]
+        operation = ctypes.c_uint64(); record = ctypes.c_uint64()
+        local = Request(source=1, operation=RECORD)
+        self.assertEqual(self.lib.drms_control_submit_record(ctypes.byref(local), ctypes.byref(operation), ctypes.byref(record)), ACCEPTED)
+        self.assertEqual((operation.value, record.value), (1, 1))
+        self.lib.drms_control_poll(1)
+        self.assertEqual(ctypes.c_uint64.in_dll(self.lib, 'received_record').value, record.value)
+        remote = Request(source=3, session=1, operation=RECORD)
+        self.assertEqual(self.lib.drms_control_submit_record(ctypes.byref(remote), ctypes.byref(operation), ctypes.byref(record)), ACCEPTED)
+        self.assertEqual((operation.value, record.value), (2, 2))
 
     def test_config_payload_is_owned_until_dispatch_and_pool_is_bounded(self):
         original = ctypes.create_string_buffer(b'first')

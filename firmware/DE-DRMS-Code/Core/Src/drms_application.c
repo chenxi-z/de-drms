@@ -71,7 +71,6 @@ static uint32_t config_state;
 static uint64_t monitor_config_version;
 static DRMS_Token session_token;
 static uint64_t session_record_id;
-static uint64_t next_record_id = 1;
 static uint32_t session_armed;   /* prepare 已完成，等文件就绪+边界 B */
 static uint32_t session_cancelled;
 static uint32_t session_footer_requested;
@@ -370,9 +369,9 @@ static DRMS_Result app_dispatch(const DRMS_Token *token, const DRMS_ControlReque
         return DRMS_INVALID;
       if (drms_msc_blocks_recording())
         return DRMS_BUSY;
-      if (!next_record_id)
+      if (!request->record_id)
         return DRMS_INVALID;
-      session_record_id = next_record_id++;
+      session_record_id = request->record_id;
       session_token = *token;
       DRMS_Result rc = drms_record_prepare(*token, session_record_id);
       if (rc != DRMS_ACCEPTED)

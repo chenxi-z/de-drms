@@ -55,6 +55,8 @@ DRMS_Result drms_control_submit(const DRMS_ControlRequest *request);
 /* As above, but returns the boot-scoped operation ID upon queue admission.
  * That ID remains queryable while queued, dispatched, or recently completed. */
 DRMS_Result drms_control_submit_identified(const DRMS_ControlRequest *request, uint64_t *operation_id);
+/* Atomically returns both boot-scoped identifiers when a RECORD is admitted. */
+DRMS_Result drms_control_submit_record(const DRMS_ControlRequest *request, uint64_t *operation_id, uint64_t *record_id);
 /* Dedicated stop latch; independent of normal queue and resource leases. */
 DRMS_Result drms_control_safe_stop_submit(const DRMS_ControlRequest *request, uint64_t *operation_id);
 uint32_t drms_control_safe_stop_take(void); /* control owner only */

@@ -79,6 +79,7 @@ typedef struct {
   const void *payload;   /* 固定池描述符指针；可为 NULL */
   uint32_t payload_length;
   uint64_t expected_version; /* 配置写入版本；CDC RECORD 时为时长覆盖存在标志（0/1） */
+  uint64_t record_id; /* 由控制裁决器在 RECORD 入队时分配，调用者不得指定 */
 } DRMS_ControlRequest;
 
 /* ------------------------------------------------------------------ */

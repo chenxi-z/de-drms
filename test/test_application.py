@@ -23,7 +23,7 @@ class ControlRequest(ctypes.Structure):
                 ('request_id', ctypes.c_uint64), ('operation', ctypes.c_int),
                 ('value', ctypes.c_uint32), ('number', ctypes.c_double),
                 ('payload', ctypes.c_void_p), ('payload_length', ctypes.c_uint32),
-                ('expected_version', ctypes.c_uint64)]
+                ('expected_version', ctypes.c_uint64), ('record_id', ctypes.c_uint64)]
 
 class Token(ctypes.Structure):
     _fields_ = [('operation_id', ctypes.c_uint64), ('generation', ctypes.c_uint32)]

@@ -40,6 +40,7 @@ static uint32_t completion_head, completion_count;
 static uint32_t reserved_mask, quarantined_mask;
 static uint32_t stopping, control_generation, snapshot_sequence;
 static uint64_t next_operation_id;
+static uint64_t next_record_id;
 static uint64_t requests_accepted, requests_rejected;
 static uint64_t completions_overflow, completions_consumed;
 static QueuedRequest safe_stop;
@@ -125,6 +126,7 @@ void drms_control_init(DRMS_ControlDispatch dispatch)
   control_generation = 1;
   snapshot_sequence = 0;
   next_operation_id = 1;
+  next_record_id = 1;
   requests_accepted = requests_rejected = 0;
   completions_overflow = completions_consumed = 0;
   crit_exit(mask);
@@ -242,13 +244,14 @@ DRMS_Result drms_control_safe_stop_finish(DRMS_Result result)
   return DRMS_OK;
 }
 
-DRMS_Result drms_control_submit_identified(const DRMS_ControlRequest *request, uint64_t *operation_id)
+static DRMS_Result submit_identified(const DRMS_ControlRequest *request, uint64_t *operation_id, uint64_t *record_id)
 {
   uint32_t mask;
   uint32_t owns_payload = 0;
   uint32_t payload_generation = 0;
   QueuedRequest *slot;
   if (operation_id) *operation_id = 0;
+  if (record_id) *record_id = 0;
   if (!request || request->operation <= DRMS_OP_NONE || request->operation > DRMS_OP_SET_UTC)
     return DRMS_INVALID;
   if (request->operation == DRMS_OP_CONFIG_APPLY && request->payload_length)
@@ -282,7 +285,8 @@ DRMS_Result drms_control_submit_identified(const DRMS_ControlRequest *request, u
     ++requests_rejected;
     return DRMS_CANCELLED;
   }
-  if (request_count == DRMS_CONTROL_REQUESTS || !next_operation_id)
+  if (request_count == DRMS_CONTROL_REQUESTS || !next_operation_id ||
+      (request->operation == DRMS_OP_RECORD && !next_record_id))
   {
     if (owns_payload) config_payload_in_use = 0;
     crit_exit(mask);
@@ -291,6 +295,8 @@ DRMS_Result drms_control_submit_identified(const DRMS_ControlRequest *request, u
   }
   slot = &requests[request_head];
   slot->request = *request;
+  slot->request.record_id = request->operation == DRMS_OP_RECORD ? next_record_id++ : 0;
+  if (record_id) *record_id = slot->request.record_id;
   if (owns_payload) slot->request.payload = config_payload;
   slot->operation_id = next_operation_id++;
   if (operation_id) *operation_id = slot->operation_id;
@@ -299,6 +305,18 @@ DRMS_Result drms_control_submit_identified(const DRMS_ControlRequest *request, u
   ++requests_accepted;
   crit_exit(mask);
   return DRMS_ACCEPTED;
+}
+
+DRMS_Result drms_control_submit_identified(const DRMS_ControlRequest *request, uint64_t *operation_id)
+{
+  return submit_identified(request, operation_id, NULL);
+}
+
+DRMS_Result drms_control_submit_record(const DRMS_ControlRequest *request, uint64_t *operation_id, uint64_t *record_id)
+{
+  if (!request || request->operation != DRMS_OP_RECORD || !operation_id || !record_id)
+    return DRMS_INVALID;
+  return submit_identified(request, operation_id, record_id);
 }
 
 static DRMS_Result reserve_assigned(uint32_t resources, DRMS_Token *out, uint64_t assigned_id,
