@@ -17,9 +17,25 @@ static void tlv(uint8_t *raw, size_t *pos, uint16_t tag, const uint8_t *data, ui
   memcpy(raw + *pos, data, size); *pos += size;
 }
 
+static DRMS_CDCMutation *mutation_slot(DRMS_CDCV2 *ctx)
+{
+  DRMS_CDCMutation *oldest = NULL;
+  for (unsigned i = 0; i < 4; ++i)
+  {
+    DRMS_CDCMutation *slot = &ctx->mutations[i];
+    if (!slot->request_id)
+      return slot;
+    DRMS_ControlCompletion state;
+    if (drms_control_get_operation(slot->operation_id, &state) == DRMS_OK && state.phase != 2u)
+      continue; /* never evict an admitted operation that is still running */
+    if (!oldest || slot->age < oldest->age)
+      oldest = slot;
+  }
+  return oldest;
+}
+
 static void received(void *user, const uint8_t *request, size_t length)
 {
-  (void)length;
   DRMS_CDCV2 *ctx = user;
   if (request[1] != 1u || !ctx->session.healthy)
     return;
@@ -31,6 +47,7 @@ static void received(void *user, const uint8_t *request, size_t length)
   uint32_t have_operation = 0;
   DRMS_ApplicationSnapshot snapshot;
   uint32_t have_snapshot = 0;
+  uint64_t accepted_operation = 0;
   if (opcode == 1u)
   {
     if (get16(request + 18) ||
@@ -44,7 +61,24 @@ static void received(void *user, const uint8_t *request, size_t length)
     if (!ctx->session.session || session != ctx->session.session || id < 2u)
       return;
     if (id <= ctx->last_request)
-      result = 4; /* stale: this minimal read-only implementation caches no requests */
+    {
+      result = 4;
+      for (unsigned i = 0; i < 4; ++i)
+      {
+        DRMS_CDCMutation *slot = &ctx->mutations[i];
+        if (slot->request_id == id)
+        {
+          if (slot->length == length && !memcmp(slot->bytes, request, length))
+          {
+            result = DRMS_ACCEPTED;
+            accepted_operation = slot->operation_id;
+          }
+          else
+            result = DRMS_INVALID;
+          break;
+        }
+      }
+    }
     else
     {
       ctx->last_request = id;
@@ -77,6 +111,32 @@ static void received(void *user, const uint8_t *request, size_t length)
           }
         }
       }
+      else if (opcode == 35u)
+      {
+        if (drms_cdc_fields_validate(request + 20, payload_len, NULL, 0, NULL))
+          result = DRMS_INVALID;
+        else
+        {
+          DRMS_CDCMutation *slot = mutation_slot(ctx);
+          if (!slot)
+            result = DRMS_BUSY;
+          else
+          {
+            DRMS_ControlRequest submission = {
+              .source = DRMS_SOURCE_CDC, .session = session, .request_id = id,
+              .operation = DRMS_OP_BASELINE_R0};
+            result = (uint16_t)drms_control_submit_identified(&submission, &accepted_operation);
+            if (result == DRMS_ACCEPTED)
+            {
+              slot->request_id = id;
+              slot->operation_id = accepted_operation;
+              slot->age = ++ctx->mutation_age;
+              slot->length = (uint16_t)length;
+              memcpy(slot->bytes, request, length);
+            }
+          }
+        }
+      }
       else result = 11u; /* UNSUPPORTED */
     }
   }
@@ -91,10 +151,15 @@ static void received(void *user, const uint8_t *request, size_t length)
     for (unsigned i = 0; i < 3; ++i) put32(temp + i * 4, ctx->uid[i]);
     tlv(out, &pos, 3, temp, 12);
     put64(temp, ctx->session.boot); tlv(out, &pos, 4, temp, 8);
-    put16(temp, 1); put16(temp + 2, 2); put16(temp + 4, 3); tlv(out, &pos, 5, temp, 6);
+    put16(temp, 1); put16(temp + 2, 2); put16(temp + 4, 3);
+    put16(temp + 6, 35); tlv(out, &pos, 5, temp, 8);
     put16(temp, 1024); tlv(out, &pos, 6, temp, 2);
     put32(temp, 4000); tlv(out, &pos, 7, temp, 4);
     tlv(out, &pos, 8, temp, 0); /* no recording capability is exposed yet */
+  }
+  else if (accepted_operation)
+  {
+    put64(temp, accepted_operation); tlv(out, &pos, 11, temp, 8);
   }
   else if (have_snapshot)
   {
@@ -156,6 +221,8 @@ void drms_cdc_v2_disconnect(DRMS_CDCV2 *ctx)
   drms_cdc_session_disconnect(&ctx->session);
   drms_cdc_frame_init(&ctx->frame);
   ctx->last_request = 0;
+  memset(ctx->mutations, 0, sizeof(ctx->mutations));
+  ctx->mutation_age = 0;
 }
 
 void drms_cdc_v2_feed(DRMS_CDCV2 *ctx, uint8_t byte, uint32_t now)

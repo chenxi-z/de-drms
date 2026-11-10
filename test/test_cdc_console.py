@@ -64,6 +64,7 @@ void complete_operation(void) {
  drms_control_submit(&request);drms_control_poll(1);
  drms_control_complete(test_token,DRMS_OK,DRMS_RES_TF_ACCESS);
 }
+uint32_t control_queued(void) { DRMS_ControlSnapshot s; drms_control_get_snapshot(&s); return s.requests_queued; }
 uint32_t drms_application_snapshot(DRMS_ApplicationSnapshot *out) {
  memset(out,0,sizeof(*out));out->revision=8;out->mono_us=123000;out->acquisition=3;
  out->rate=4000;out->fresh=1;out->classification=2;out->ohms_valid=1;out->ohms=10000;
@@ -250,6 +251,54 @@ class CDCConsoleTest(unittest.TestCase):
         self.assertEqual(int.from_bytes(fields[30], 'little'), 4000)
         self.assertEqual(struct.unpack('<d', fields[23])[0], 10000.0)
         self.assertIn(85, fields)
+
+    def test_v2_mutating_retries_do_not_enqueue_twice(self):
+        import struct, zlib
+        def frame(op, number, flags=0):
+            raw = struct.pack('<BBHIQHH', 2, 1, op, 1, number, 0, flags)
+            raw += struct.pack('<I', zlib.crc32(raw))
+            encoded = bytearray(b'\x00'); start = 0; code = 1
+            for byte in raw:
+                if not byte:
+                    encoded[start] = code; start = len(encoded); encoded.append(0); code = 1
+                else:
+                    encoded.append(byte); code += 1
+            encoded[start] = code; encoded.append(0)
+            return bytes(encoded)
+        def fields():
+            size = self.value('written_len').value
+            wire = bytes((ctypes.c_ubyte * 512).in_dll(self.lib, 'written')[:size])
+            raw = bytearray(); i = 0
+            while i < len(wire)-1:
+                code = wire[i]; i += 1; raw += wire[i:i+code-1]; i += code-1
+                if code != 255 and i < len(wire)-1: raw.append(0)
+            result = {}; pos = 20
+            while pos < len(raw)-4:
+                tag, length = struct.unpack_from('<HH', raw, pos); pos += 4
+                result[tag & 0x7fff] = raw[pos:pos+length]; pos += length
+            return result
+        self.send(bytes.fromhex('040201010101010102010101010101010101010105d7970e6600'))
+        request = frame(35, 2)
+        self.send(request)
+        first = fields()
+        self.assertEqual(int.from_bytes(first[1], 'little'), 1)
+        self.assertEqual(int.from_bytes(first[11], 'little'), 1)
+        self.assertEqual(self.lib.control_queued(), 1)
+        self.send(request)
+        self.assertEqual(fields(), first)
+        self.assertEqual(self.lib.control_queued(), 1)
+        self.send(frame(35, 2, 1))
+        self.assertEqual(int.from_bytes(fields()[1], 'little'), 3)
+        self.assertEqual(self.lib.control_queued(), 1)
+        for number in (3, 4, 5):
+            self.send(frame(35, number))
+            self.assertEqual(int.from_bytes(fields()[1], 'little'), 1)
+        self.assertEqual(self.lib.control_queued(), 4)
+        self.send(frame(35, 6))
+        self.assertEqual(int.from_bytes(fields()[1], 'little'), 2)
+        self.send(frame(35, 6))
+        self.assertEqual(int.from_bytes(fields()[1], 'little'), 4)
+        self.assertEqual(self.lib.control_queued(), 4)
 
     def test_short_and_empty_packets_preserve_line(self):
         self.send(b'PI')
