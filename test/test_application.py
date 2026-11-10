@@ -441,12 +441,11 @@ uint32_t HAL_GetUIDw2(void);
                           params=(8000, 0, 0, 0, 10000))
         self.lib.drms_user_config_apply.argtypes = [ctypes.c_char_p, ctypes.c_size_t, ctypes.c_uint64]
         self.lib.drms_user_config_commit_baseline.argtypes = [ctypes.c_double, ctypes.c_uint64, ctypes.c_uint64]
-        self.assertEqual(self.lib.drms_user_config_apply(body, len(body), 0), 0)
-        self.assertEqual(self.lib.drms_user_config_commit_baseline(10000.0, 1, 0), 0)
+        self.assertEqual(self.lib.drms_user_config_apply(body, len(body), 0), 3)
         self.lib.drms_acq_stop()
         self.lib.drms_application_init()
         self.assertEqual(self.status()['rate'], 4000)
-        self.assertEqual(self.status()['config_state'], 2)
+        self.assertEqual(self.status()['config_state'], 0)
         self.frames(3, 280000, 4200000)
         self.assertNotEqual(self.status()['monitor'], 5)
 

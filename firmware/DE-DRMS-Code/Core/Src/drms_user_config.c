@@ -78,6 +78,17 @@ uint32_t drms_user_config_unsupported_schema(void) { return unsupported_schema; 
 
 static int finite(double v) { return v == v && v < 1e308 && v > -1e308; }
 
+static int supported_monitor(const RunConfig *cfg)
+{
+  uint8_t reg;
+  if (!drms_rate_register(cfg->rate_hz, &reg))
+    return 0;
+  uint64_t min_stale = (128000000ULL + cfg->rate_hz - 1U) / cfg->rate_hz;
+  if (min_stale < 10000U)
+    min_stale = 10000U;
+  return cfg->stale_timeout_us >= min_stale;
+}
+
 static void put16(uint8_t *p, uint16_t v) { p[0] = (uint8_t)v; p[1] = (uint8_t)(v >> 8); }
 
 static void put32(uint8_t *p, uint32_t v)
@@ -564,6 +575,8 @@ DRMS_Result drms_user_config_apply(const uint8_t *encoded, size_t length,
     return DRMS_INVALID;
   if (!validate_encoded(encoded, length, &staged))
     return DRMS_INVALID;
+  if (!supported_monitor(&staged))
+    return DRMS_INVALID;
   /* An ordinary settings update must not silently erase the current baseline.
    * A rate change invalidates its dependency, while retaining the old value for
    * diagnostics. Explicit baseline commits remain the only measurement path. */
@@ -643,13 +656,7 @@ DRMS_Result drms_user_config_commit_baseline(double r0, uint64_t expected_versio
 
 uint32_t drms_user_config_get_monitor(DRMS_MonitorConfig *out)
 {
-  uint8_t clk2;
-  if (!out || !have_config || !drms_rate_register(run.rate_hz, &clk2))
-    return 0;
-  uint64_t minimum_stale = (128000000ULL + run.rate_hz - 1U) / run.rate_hz;
-  if (minimum_stale < 10000U)
-    minimum_stale = 10000U;
-  if (run.stale_timeout_us < minimum_stale)
+  if (!out || !have_config || !supported_monitor(&run))
     return 0;
   memset(out, 0, sizeof(*out));
   out->rate_hz = run.rate_hz;

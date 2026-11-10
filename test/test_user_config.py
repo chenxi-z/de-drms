@@ -79,7 +79,7 @@ def build_body(version=1, cal_version=0, r0_valid=0, r0=0.0, intervals=(), param
             tlv += struct.pack('<HBBdddB', ident, level, 1 if closed else 0, lo, hi, h, len(nm))
             tlv += nm
         body += struct.pack('<HH', 1, len(tlv)) + tlv
-    p = params or (4000, 1000, 200000, 50000, 20000)
+    p = params or (4000, 1000, 200000, 50000, 32000)
     body += struct.pack('<HHIQQQQ', 2, 36, *p)
     body[8:12] = struct.pack('<I', len(body) + 4)  # 先定长再算 CRC
     body += struct.pack('<I', crc32(bytes(body)))
@@ -298,6 +298,18 @@ class UserConfigTest(unittest.TestCase):
         encoded = bytes(body) + struct.pack('<I', crc32(body))
         self.assertEqual(self.lib.drms_user_config_apply(encoded, len(encoded), 0), INVALID)
         self.assertEqual(self.lib.drms_user_config_run_version(), 0)
+
+    def test_rejects_unsupported_rate_and_too_short_freshness(self):
+        for params in ((12345, 0, 0, 0, 100000), (8000, 0, 0, 0, 15999),
+                       (4000, 0, 0, 0, 31999), (128000, 0, 0, 0, 9999)):
+            body = build_body(params=params)
+            self.assertEqual(self.lib.drms_user_config_apply(body, len(body), 0), INVALID, params)
+            self.assertEqual(self.lib.drms_user_config_run_version(), 0)
+        for params in ((8000, 0, 0, 0, 16000), (4000, 0, 0, 0, 32000),
+                       (128000, 0, 0, 0, 10000)):
+            self.setUp()
+            body = build_body(params=params)
+            self.assertEqual(self.lib.drms_user_config_apply(body, len(body), 0), OK, params)
 
     def test_save_and_no_change(self):
         self.assertEqual(self.lib.drms_user_config_save(0), NO_CHANGE)  # 无脏数据
