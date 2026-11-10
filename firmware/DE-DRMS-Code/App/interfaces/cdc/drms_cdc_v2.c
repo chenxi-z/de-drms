@@ -111,7 +111,7 @@ static void received(void *user, const uint8_t *request, size_t length)
           }
         }
       }
-      else if (opcode == 35u)
+      else if (opcode == 35u || opcode == 48u || opcode == 49u)
       {
         if (drms_cdc_fields_validate(request + 20, payload_len, NULL, 0, NULL))
           result = DRMS_INVALID;
@@ -124,7 +124,8 @@ static void received(void *user, const uint8_t *request, size_t length)
           {
             DRMS_ControlRequest submission = {
               .source = DRMS_SOURCE_CDC, .session = session, .request_id = id,
-              .operation = DRMS_OP_BASELINE_R0};
+              .operation = opcode == 35u ? DRMS_OP_BASELINE_R0 :
+                           opcode == 48u ? DRMS_OP_MSC_EXPORT : DRMS_OP_MSC_RELEASE};
             result = (uint16_t)drms_control_submit_identified(&submission, &accepted_operation);
             if (result == DRMS_ACCEPTED)
             {
@@ -152,7 +153,8 @@ static void received(void *user, const uint8_t *request, size_t length)
     tlv(out, &pos, 3, temp, 12);
     put64(temp, ctx->session.boot); tlv(out, &pos, 4, temp, 8);
     put16(temp, 1); put16(temp + 2, 2); put16(temp + 4, 3);
-    put16(temp + 6, 35); tlv(out, &pos, 5, temp, 8);
+    put16(temp + 6, 35); put16(temp + 8, 48); put16(temp + 10, 49);
+    tlv(out, &pos, 5, temp, 12);
     put16(temp, 1024); tlv(out, &pos, 6, temp, 2);
     put32(temp, 4000); tlv(out, &pos, 7, temp, 4);
     tlv(out, &pos, 8, temp, 0); /* no recording capability is exposed yet */

@@ -70,6 +70,8 @@ static DRMS_TimeAnchor nominal_anchor;  /* T7 过渡：以 wall-clock 为锚（�
 static DRMS_End session_end;
 static DRMS_Token msc_token;
 static uint32_t msc_active, msc_reported;
+static DRMS_Token msc_release_token;
+static uint32_t msc_release_active;
 static DRMS_BaselineContext baseline;
 static DRMS_Token baseline_token;
 static uint64_t baseline_version, baseline_ticket;
@@ -161,6 +163,18 @@ static DRMS_Result app_dispatch(const DRMS_Token *token, const DRMS_ControlReque
       }
       return result;
     }
+    case DRMS_OP_MSC_RELEASE:
+    {
+      if (msc_release_active)
+        return DRMS_BUSY;
+      DRMS_Result result = drms_msc_request_release();
+      if (result == DRMS_ACCEPTED)
+      {
+        msc_release_token = *token;
+        msc_release_active = 1;
+      }
+      return result;
+    }
     case DRMS_OP_BASELINE_R0:
     {
       DRMS_BaselinePolicy policy;
@@ -202,6 +216,14 @@ static DRMS_Result app_dispatch(const DRMS_Token *token, const DRMS_ControlReque
 /* Hold TF_ACCESS across the entire exported lifetime, not just handoff. */
 static void msc_service_control(void)
 {
+  if (msc_release_active && drms_msc_owner() == DRMS_OWNER_LOCAL)
+  {
+    DRMS_Result result = drms_msc_last_error();
+    if (!drms_storage_mounted && result == DRMS_OK)
+      result = DRMS_IO_ERROR;
+    (void)drms_control_complete(msc_release_token, result, 0);
+    msc_release_active = 0;
+  }
   if (!msc_active)
     return;
   DRMS_Owner owner = drms_msc_owner();
@@ -666,7 +688,7 @@ void drms_application_init(void)
   /* T1：控制裁决接管业务请求投递 */
   drms_record_session_init();
   drms_control_init(app_dispatch);
-  msc_active = msc_reported = 0;
+  msc_active = msc_reported = msc_release_active = 0;
   baseline_active = 0;
   /* T7：开机自动监测（显式记录仍需请求）；失败保持可调度与诊断 */
   if (!drms_acq_running)

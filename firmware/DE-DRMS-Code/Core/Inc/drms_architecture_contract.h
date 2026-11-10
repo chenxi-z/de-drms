@@ -52,7 +52,8 @@ typedef enum {
   DRMS_OP_BASELINE_R0 = 5,   /* ACQ + TF_ACCESS + FLASH_MAINTENANCE */
   DRMS_OP_CALIBRATE = 6,     /* ACQ + TF_ACCESS + FLASH_MAINTENANCE */
   DRMS_OP_CONFIG_SAVE = 7,   /* ACQ + TF_ACCESS + FLASH_MAINTENANCE */
-  DRMS_OP_UPDATE = 8         /* 全部资源（UPDATE_EXCLUSIVE 展开） */
+  DRMS_OP_UPDATE = 8,        /* 全部资源（UPDATE_EXCLUSIVE 展开） */
+  DRMS_OP_MSC_RELEASE = 9    /* 归还已持有的 TF 租约；本操作不预占 TF */
 } DRMS_Operation;
 
 /* 请求来源（命令信封）。 */

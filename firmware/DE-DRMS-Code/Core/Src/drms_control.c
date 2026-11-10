@@ -181,7 +181,7 @@ DRMS_Result drms_control_submit_identified(const DRMS_ControlRequest *request, u
   uint32_t mask;
   QueuedRequest *slot;
   if (operation_id) *operation_id = 0;
-  if (!request || request->operation <= DRMS_OP_NONE || request->operation > DRMS_OP_UPDATE)
+  if (!request || request->operation <= DRMS_OP_NONE || request->operation > DRMS_OP_MSC_RELEASE)
     return DRMS_INVALID;
   mask = crit_enter();
   if (stopping)
@@ -207,7 +207,7 @@ DRMS_Result drms_control_submit_identified(const DRMS_ControlRequest *request, u
   return DRMS_ACCEPTED;
 }
 
-static DRMS_Result reserve_assigned(uint32_t resources, DRMS_Token *out, uint64_t assigned_id)
+static DRMS_Result reserve_assigned(uint32_t resources, DRMS_Token *out, uint64_t assigned_id, uint32_t allow_empty)
 {
   uint32_t mask, granted, i;
   Lease *lease = NULL;
@@ -220,7 +220,7 @@ static DRMS_Result reserve_assigned(uint32_t resources, DRMS_Token *out, uint64_
     return DRMS_INVALID;
   if (resources & DRMS_RES_UPDATE_EXCLUSIVE)
     resources = DRMS_RES_ALL; /* 升级位禁止单独持有，自动展开（C2） */
-  if (!resources)
+  if (!resources && !allow_empty)
     return DRMS_INVALID;
   mask = crit_enter();
   if (stopping)
@@ -273,7 +273,7 @@ static DRMS_Result reserve_assigned(uint32_t resources, DRMS_Token *out, uint64_
 
 DRMS_Result drms_control_reserve(uint32_t resources, DRMS_Token *out)
 {
-  return reserve_assigned(resources, out, 0);
+  return reserve_assigned(resources, out, 0, 0);
 }
 
 DRMS_Result drms_control_report(DRMS_Token token, DRMS_Result result)
@@ -417,7 +417,8 @@ void drms_control_poll(uint32_t max_requests)
     }
     QueuedRequest queued = requests[request_tail];
     request = queued.request;
-    result = reserve_assigned(drms_control_resources_for(request.operation), &token, queued.operation_id);
+    result = reserve_assigned(drms_control_resources_for(request.operation), &token, queued.operation_id,
+                              request.operation == DRMS_OP_MSC_RELEASE);
     request_tail = (request_tail + 1U) % DRMS_CONTROL_REQUESTS;
     --request_count;
     if (result != DRMS_ACCEPTED)

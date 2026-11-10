@@ -217,6 +217,15 @@ class StorageOwnershipTest(unittest.TestCase):
         self.assertEqual(self.u32('drms_log_state').value, 2)
         self.assertEqual(ctypes.c_int.in_dll(self.lib, 'uninits').value, 0)
 
+    def test_release_before_handoff_preserves_mounted_filex_driver(self):
+        self.mount()
+        self.assertEqual(self.lib.drms_msc_request_export(), 1)
+        self.assertEqual(self.lib.drms_msc_request_release(), 1)
+        self.lib.drms_msc_service()
+        self.assertEqual(self.owner(), 0)
+        self.assertEqual(self.u32('drms_storage_mounted').value, 1)
+        self.assertEqual(ctypes.c_int.in_dll(self.lib, 'uninits').value, 0)
+
     def test_disconnect_during_handoff_does_not_enable_raw_access(self):
         self.mount()
         ctypes.c_int.in_dll(self.lib, 'cancel_on_flush').value = 1

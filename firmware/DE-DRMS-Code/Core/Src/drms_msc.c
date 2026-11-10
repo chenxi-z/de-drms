@@ -119,12 +119,13 @@ DRMS_Result drms_msc_request_export(void)
 DRMS_Result drms_msc_request_release(void)
 {
   uint32_t mask = crit_enter();
-  if (owner_state == DRMS_OWNER_LOCAL || owner_state == DRMS_OWNER_QUARANTINED)
+  if (owner_state != DRMS_OWNER_EXPORTED && owner_state != DRMS_OWNER_EXPORTING)
   {
     crit_exit(mask);
     return DRMS_BUSY;
   }
   owner_state = (uint32_t)DRMS_OWNER_RELEASING;
+  last_error = DRMS_OK;
   request_release = 1;
   crit_exit(mask);
   return DRMS_ACCEPTED;
@@ -210,7 +211,8 @@ static void finish_release(void)
 {
   if (__atomic_load_n(&read_mailbox.state, __ATOMIC_ACQUIRE) == 1U)
     return; /* 在途读未归结：不得仅凭状态变量重挂载（缓冲仍由读路径使用） */
-  drms_storage_release_driver(); /* 原始访问结束；卡可能已拔出，容错 */
+  if (!drms_storage_mounted)
+    drms_storage_release_driver(); /* 已离开 FileX 后才释放原始驱动 */
   owner_state = (uint32_t)DRMS_OWNER_LOCAL;
   request_release = 0;
   __atomic_add_fetch(&export_generation, 1U, __ATOMIC_ACQ_REL); /* 撤销就绪即换代 */

@@ -248,11 +248,37 @@ uint32_t HAL_GetUIDw2(void);
         self.assertEqual(self.lib.drms_msc_owner(), 2)
         token = Token()
         self.assertEqual(self.lib.drms_control_reserve(4, ctypes.byref(token)), 2)
-        self.assertEqual(self.lib.drms_msc_request_release(), 1)
+        release = ControlRequest(source=3, request_id=43, operation=9)
+        release_id = ctypes.c_uint64()
+        self.lib.drms_control_submit_identified.argtypes = [ctypes.POINTER(ControlRequest), ctypes.POINTER(ctypes.c_uint64)]
+        self.assertEqual(self.lib.drms_control_submit_identified(ctypes.byref(release), ctypes.byref(release_id)), 1)
+        self.lib.drms_application_poll()
+        self.assertEqual(self.lib.drms_msc_owner(), 3)
         self.lib.drms_msc_service()
         self.lib.drms_application_poll()
         self.assertEqual(self.lib.drms_control_reserve(4, ctypes.byref(token)), 1)
         self.lib.drms_control_complete(token, 0, 4)
+
+    def test_msc_release_reports_remount_failure(self):
+        self.insert_card()
+        export = ControlRequest(source=3, request_id=42, operation=2)
+        self.assertEqual(self.lib.drms_control_submit(ctypes.byref(export)), 1)
+        self.lib.drms_application_poll()
+        self.lib.drms_msc_service()
+        self.lib.drms_application_poll()
+        ctypes.c_int.in_dll(self.lib, 'sd_card_present').value = 0
+        release = ControlRequest(source=3, request_id=44, operation=9)
+        operation_id = ctypes.c_uint64()
+        self.lib.drms_control_submit_identified.argtypes = [ctypes.POINTER(ControlRequest), ctypes.POINTER(ctypes.c_uint64)]
+        self.assertEqual(self.lib.drms_control_submit_identified(ctypes.byref(release), ctypes.byref(operation_id)), 1)
+        self.lib.drms_application_poll()
+        self.lib.drms_msc_service()
+        self.lib.drms_application_poll()
+        from test_control_contract import Completion
+        self.lib.drms_control_get_operation.argtypes = [ctypes.c_uint64, ctypes.POINTER(Completion)]
+        result = Completion()
+        self.assertEqual(self.lib.drms_control_get_operation(operation_id.value, ctypes.byref(result)), 0)
+        self.assertEqual((result.result, result.phase), (6, 2))
 
     def test_msc_export_failure_releases_tf_lease(self):
         request = ControlRequest(source=3, request_id=43, operation=2)
