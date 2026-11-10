@@ -271,12 +271,29 @@ class LoggingTest(unittest.TestCase):
         from tools.de_drms_log import LogReaderV2Segments
         split = sum(4 + len(body) for _, body in chunks[:3])
         first, last = data[:split], data[split:]
-        self.assertTrue(LogReaderV2Segments([io.BytesIO(first), io.BytesIO(last)]).summary()['no_reported_loss'])
+        # Older files with only a reboot-local record number cannot prove that
+        # adjacent-looking segments belong to the same instrument boot.
+        self.assertFalse(LogReaderV2Segments([io.BytesIO(first), io.BytesIO(last)]).summary()['no_reported_loss'])
         self.assertFalse(LogReaderV2Segments([io.BytesIO(last)]).summary()['no_reported_loss'])
         self.assertFalse(LogReaderV2Segments([io.BytesIO(last), io.BytesIO(first)]).summary()['no_reported_loss'])
+        def with_boot(segment, boot):
+            _, length = struct.unpack_from('<HH', segment)
+            header = bytearray(segment[4:4+length-4])
+            config = bytearray(b'DRMSUC01' + b'\0'*32)
+            config += struct.pack('<HHQ', 0xd704, 8, boot)
+            struct.pack_into('<I', config, 8, len(config)+4)
+            config += struct.pack('<I', zlib.crc32(config))
+            struct.pack_into('<H', header, 56, len(config))
+            header += config
+            return (struct.pack('<HH', 1, len(header)+4) + header +
+                    struct.pack('<I', zlib.crc32(header)) + segment[4+length:])
+        identified_first = with_boot(first, 123456)
+        identified_last = with_boot(last, 123456)
+        self.assertTrue(LogReaderV2Segments([io.BytesIO(identified_first), io.BytesIO(identified_last)]).summary()['no_reported_loss'])
+        self.assertFalse(LogReaderV2Segments([io.BytesIO(identified_first), io.BytesIO(with_boot(last, 456789))]).summary()['no_reported_loss'])
         with tempfile.TemporaryDirectory() as directory:
             a, b = Path(directory)/'a.bin', Path(directory)/'b.bin'
-            a.write_bytes(first); b.write_bytes(last)
+            a.write_bytes(identified_first); b.write_bytes(identified_last)
             result = subprocess.run(['python3', str(ROOT/'tools/de_drms_log.py'), str(a), str(b)],
                                     capture_output=True, text=True)
             self.assertEqual(result.returncode, 0, result.stderr)

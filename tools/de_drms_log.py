@@ -238,6 +238,7 @@ class LogReaderV2:
                            zlib.crc32(config[:len(config) - 4])):
             return None
         calibration = None
+        recording_boot = None
         if config[:8] == b'DRMSUC01':
             if struct.unpack_from('<I', config, 8)[0] != len(config):
                 return None
@@ -257,12 +258,18 @@ class LogReaderV2:
                         return None
                     calibration = {'valid': bool(valid), 'generation': generation, 'rate': cal_rate,
                                    'scale_ohms': scale, 'reference_ohms': reference}
+                elif kind == 0xd704:
+                    if recording_boot is not None or size != 8:
+                        return None
+                    recording_boot = struct.unpack_from('<Q', config, offset)[0]
+                    if not recording_boot:
+                        return None
                 offset += size
         return {'version': version, 'record_size': record_size, 'flags': flags, 'rate': rate,
                 'uid': (w0, w1, w2), 'record_id': record_id,
                 'anchor': {'generation': gen, 'rate_hz': arate,
                            'sample_seq0': seq0, 'mono_us0': mono0},
-                'config': config, 'calibration': calibration}
+                'config': config, 'calibration': calibration, 'recording_boot': recording_boot}
 
     def _parse_end(self, body):
         if len(body) != 83:
@@ -385,6 +392,8 @@ class LogReaderV2Segments:
         if not first.header or not (first.header['flags'] & 4) or first.header['flags'] & 8:
             errors.append('missing first segment')
         reference = first.header or {}
+        if not reference.get('recording_boot'):
+            errors.append('recording boot identity unavailable')
         identity = tuple(reference.get(k) for k in ('uid', 'record_id', 'rate', 'anchor', 'config'))
         total = 0
         previous = None

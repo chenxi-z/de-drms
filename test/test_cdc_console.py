@@ -120,6 +120,7 @@ class CDCConsoleTest(unittest.TestCase):
                         str(src.parent / 'App/interfaces/cdc/drms_cdc_frame.c'),
                         str(src / 'Src/drms_measurement.c'),
                         str(src / 'Src/drms_control.c'),
+                        str(src / 'Src/drms_boot_identity.c'),
                         str(src / 'Src/drms_config_snapshot.c'),
                         str(p / 'mock.c'), '-o', str(p / 'cdc.so')], check=True)
         cls.lib = ctypes.CDLL(str(p / 'cdc.so'))
@@ -150,6 +151,8 @@ class CDCConsoleTest(unittest.TestCase):
         self.lib.activate()
 
     def test_v2_hello_from_actual_cdc_stream(self):
+        self.lib.drms_boot_identity_get.restype = ctypes.c_uint64
+        self.assertEqual(self.lib.drms_boot_identity_get(), 0x123456789abcdef0)
         wire = bytes.fromhex('040201010101010102010101010101010101010105d7970e6600')
         self.send(wire[:8])
         self.assertEqual(self.value('writes').value, 0)

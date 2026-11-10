@@ -16,6 +16,7 @@
 #include "drms_storage.h"
 #include "drms_time.h"
 #include "drms_usb.h"
+#include "drms_boot_identity.h"
 #include "drms_runtime.h"
 #include "drms_power.h"
 #include "../../App/interfaces/local_ui/drms_button.h"
@@ -104,7 +105,7 @@ static void config_put_double(uint8_t *p, double value)
 
 /* A schema1 unknown TLV carries record-only calibration without changing the
  * user's saved configuration or the frozen v2 chunk layout. */
-static uint32_t record_config_with_calibration(uint32_t length)
+static uint32_t record_config_with_calibration(uint32_t length, uint64_t boot)
 {
   if (!length)
   {
@@ -112,7 +113,8 @@ static uint32_t record_config_with_calibration(uint32_t length)
     memcpy(config_candidate, "DRMSUC01", 8);
     length = 44;
   }
-  if (length < 44u || length > sizeof(config_candidate) - 32u) return 0;
+  uint32_t extra = 32u + (boot ? 12u : 0u);
+  if (length < 44u || length > sizeof(config_candidate) - extra) return 0;
   uint32_t offset = 40;
   while (offset < length - 4u)
   {
@@ -120,7 +122,7 @@ static uint32_t record_config_with_calibration(uint32_t length)
     uint16_t type = (uint16_t)(config_candidate[offset] | ((uint16_t)config_candidate[offset+1] << 8));
     uint16_t size = (uint16_t)(config_candidate[offset+2] | ((uint16_t)config_candidate[offset+3] << 8));
     offset += 4u;
-    if (size > length - 4u - offset || type == 0xd703u) return 0;
+    if (size > length - 4u - offset || type == 0xd703u || type == 0xd704u) return 0;
     offset += size;
   }
   if (offset != length - 4u) return 0;
@@ -131,6 +133,12 @@ static uint32_t record_config_with_calibration(uint32_t length)
   config_put32(config_candidate+offset, calibration.rate); offset += 4;
   config_put_double(config_candidate+offset, calibration.scale); offset += 8;
   config_put_double(config_candidate+offset, calibration.reference_ohms); offset += 8;
+  if (boot)
+  {
+    config_candidate[offset++] = 0x04; config_candidate[offset++] = 0xd7;
+    config_candidate[offset++] = 8; config_candidate[offset++] = 0;
+    for (unsigned i = 0; i < 8; ++i) config_candidate[offset++] = (uint8_t)(boot >> (8u*i));
+  }
   config_put32(config_candidate+8, offset + 4u);
   config_put32(config_candidate+offset, drms_crc32(config_candidate, offset));
   return offset + 4u;
@@ -256,7 +264,7 @@ static DRMS_Result app_dispatch(const DRMS_Token *token, const DRMS_ControlReque
       session_started_us = 0;
       uint32_t config_length = drms_user_config_export(config_candidate, sizeof(config_candidate));
       uint32_t metadata_only = !config_length;
-      config_length = record_config_with_calibration(config_length);
+      config_length = record_config_with_calibration(config_length, drms_boot_identity_get());
       DRMS_LogV2Meta metadata = {
         .flags = 1u | (metadata_only ? 2u : 0u), .rate_hz = drms_acq_rate,
         .uid_w0 = HAL_GetUIDw0(), .uid_w1 = HAL_GetUIDw1(), .uid_w2 = HAL_GetUIDw2(),

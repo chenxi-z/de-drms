@@ -67,6 +67,7 @@ int sd_card_present, measure_down, power_down;
 int HAL_GPIO_ReadPin(int p,int n) {
   return n==18 ? (sd_card_present ? 0 : 1) : n==13 ? !measure_down : n==14 ? !power_down : 1;
 }
+uint64_t drms_boot_identity_get(void) { return 0x123456789abcdef0ULL; }
 int drms_power_backend_enter(void) { return 0; }
 void drms_time_get(DRMS_Time *t) { *t=clock_value; }
 int drms_time_set(const char *text) { return drms_time_parse(text,&clock_value); }
@@ -823,13 +824,17 @@ uint32_t HAL_GetUIDw2(void);
         self.assertEqual(zlib.crc32(config[:-4]), struct.unpack_from('<I', config, len(config)-4)[0])
         offset = 40
         metadata = None
+        boot = None
         while offset < len(config)-4:
             kind, size = struct.unpack_from('<HH', config, offset)
             offset += 4
             if kind == 0xd703:
                 metadata = struct.unpack_from('<IIIdd', config, offset)
+            elif kind == 0xd704:
+                boot = struct.unpack_from('<Q', config, offset)[0]
             offset += size
         self.assertEqual(metadata, (0, 0, 4000, 150000.0, 100000.0))
+        self.assertEqual(boot, 0x123456789abcdef0)
         import io
         from tools.de_drms_log import LogReaderV2
         decoded = LogReaderV2(io.BytesIO(data))

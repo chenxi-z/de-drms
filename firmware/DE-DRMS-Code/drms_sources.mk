@@ -10,6 +10,7 @@ Core/Src/drms_usb.c \
 Core/Src/drms_storage.c \
 Core/Src/drms_msc.c \
 Core/Src/drms_control.c \
+Core/Src/drms_boot_identity.c \
 Core/Src/drms_record_session.c \
 Core/Src/drms_capture_time.c \
 Core/Src/drms_resource_lifecycle.c \

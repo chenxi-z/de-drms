@@ -1,5 +1,6 @@
 #include "drms_cdc.h"
 #include "drms_console.h"
+#include "drms_boot_identity.h"
 #include "drms_usb.h"
 #include "app_usbx_device.h"
 #include "main.h"
@@ -242,6 +243,7 @@ unsigned int drms_cdc_start(void)
   tx_head = tx_tail = tx_count = priority_count = 0;
   drms_cdc_tx_dropped = drms_cdc_tx_errors = 0;
   drms_cdc_v2_init(&v2, drms_entropy_boot_id, NULL, uid, send_v2, can_send_v2, NULL);
+  drms_boot_identity_publish(v2.session.healthy ? v2.session.boot : 0);
   UINT status = tx_thread_create(&tx_thread, "CDC sender", tx_entry, 0, tx_stack, sizeof(tx_stack),
                                  12, 12, TX_NO_TIME_SLICE, TX_AUTO_START);
   if (status != TX_SUCCESS)

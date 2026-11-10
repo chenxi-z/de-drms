@@ -51,6 +51,7 @@ v1（`shared/protocol/de-drms-v1.json`）只读兼容；v2 写入不改动 v1 �
 
 - `config_len` 上限 4096；无配置快照时为 0（空记录/纯数据文件合法）。
 - 新写记录在 schema1 快照中附加记录专用 TLV `0xD703`（小端，长度 28）：`valid:u32, generation:u32, calibration_rate:u32, scale_ohms:f64, reference_ohms:f64`。系数是开始记录时的实际运行值；`valid=0` 表示名义系数而非已校准。该 TLV 只写记录文件，不写回用户配置。没有用户配置时使用仅含该 TLV 的 schema1 快照并置 flags bit1；旧文件可缺少本 TLV，读取时不得虚构系数或电阻。保留原 chunk、HEADER 和 schema1 结构，旧读取器仍可按原规则读取原始帧。
+- 若 CDC 启动时已取得健康随机源生成的非零启动标识，记录还包含 `0xD704`（长度 8，小端 u64）。分段共同携带该标识，配合 UID 和 record_id 区分启动与会话；这是随机标识，不是绝对无碰撞保证。随机源或 CDC 不可用时省略此 TLV，不阻止本机记录。
 - 锚点为该记录会话所属采集代次的名义时间轴；`flags bit0=1` 表示时间为 NOMINAL——
   正常 ADC/MCU 频差不构成错误，仅作诊断；缺锚点（generation=0）时主机不得把
   样本序号映射为时间（拒绝伪正常时间解码）。
@@ -90,7 +91,7 @@ v1（`shared/protocol/de-drms-v1.json`）只读兼容；v2 写入不改动 v1 �
 - `unknown_loss=1` 或 `end_known=0` 或 `reason∈{INCOMPLETE,TIMEOUT,CANCELLED}` → 文件**不完整**。
 - 单文件若要判为无丢失，DATA 的首末序号和帧数必须覆盖 `[first_index, end_exclusive_index)`；空记录还必须为 `EMPTY`。CRC 正确和 END 存在本身不能证明采样完整。
 - 采用分段规则时，每个文件均独立包含 HEADER/DATA/END；首段 bit3=0，后续段 bit3=1。中间段 END 的 `end_known=0`、`unknown_loss=1`、`reason=INCOMPLETE`，只记录该段已确认的首末样本及记录环已写水位，不冒充整场结束。最终段 END 保存整场 `[B,E)` 和累计损失。按文件创建顺序提供全部分段给解码器后，必须核对设备 UID、record_id、采集锚点、配置、段顺序、跨段序号、总帧数和最终 END；缺段、乱序或不一致不得判完整。
-- 当前 record_id 在每次启动后重新编号；UID、record_id 与时间锚点用于核对，但不能作为跨多次启动的全局唯一标识。用户应保留同一次记录的全部原始文件和顺序，不应仅凭编号拼接来自不同启动的文件。
+- record_id 在每次启动后重新编号。跨段判定还须有一致的 `0xD704` 启动标识；旧文件或随机源不可用的文件若缺此字段，仍可读取原始数据，但不能被自动判为跨段完整。用户应保留同一次记录的全部原始文件和顺序。
 
 ## 错误处理（解码器必须全部实现）
 
