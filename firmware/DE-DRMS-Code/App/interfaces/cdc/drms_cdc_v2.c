@@ -390,7 +390,7 @@ static void received(void *user, const uint8_t *request, size_t length)
     put16(temp + 16, 32); put16(temp + 18, 33); put16(temp + 20, 34); put16(temp + 22, 35); put16(temp + 24, 36); put16(temp + 26, 37); put16(temp + 28, 48); put16(temp + 30, 49); put16(temp + 32, 50); put16(temp + 34, 51); put16(temp + 36, 52); put16(temp + 38, 53); tlv(out, &pos, 5, temp, 40);
     put16(temp, 1024); tlv(out, &pos, 6, temp, 2);
     put32(temp, 4000); tlv(out, &pos, 7, temp, 4);
-    tlv(out, &pos, 8, temp, 0); /* no recording capability is exposed yet */
+    tlv(out, &pos, 8, temp, 4); /* conservative default; physical throughput still requires board tests */
   }
   else if (accepted_operation)
   {
@@ -475,6 +475,11 @@ static void received(void *user, const uint8_t *request, size_t length)
               operation.source == DRMS_SOURCE_CDC ? 2u :
               operation.source == DRMS_SOURCE_CONSOLE ? 3u : 0u;
     tlv(out, &pos, 44, temp, 1);
+    uint64_t related_record = drms_control_operation_record(operation.operation_id);
+    if (related_record)
+    {
+      put64(temp, related_record); optional_tlv(out, &pos, 12, temp, 8);
+    }
     DRMS_ApplicationFile file;
     if (operation.phase == 1u && drms_application_file_snapshot(&file) && file.phase == 1u &&
         file.session == session && file.operation == operation.operation_id)

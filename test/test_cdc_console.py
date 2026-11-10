@@ -206,6 +206,11 @@ class CDCConsoleTest(unittest.TestCase):
         import struct, zlib
         self.assertEqual(struct.unpack_from('<BBHIQ', raw), (2, 2, 1, 1, 1))
         self.assertEqual(struct.unpack_from('<I', raw, len(raw) - 4)[0], zlib.crc32(raw[:-4]))
+        fields = {}; pos = 20
+        while pos < len(raw) - 4:
+            tag, length = struct.unpack_from('<HH', raw, pos); pos += 4
+            fields[tag & 0x7fff] = raw[pos:pos + length]; pos += length
+        self.assertIn(4000, struct.unpack('<' + 'I' * (len(fields[8]) // 4), fields[8]))
 
     def test_receiver_does_not_write_until_sender_runs_and_drops_stale_reply(self):
         self.send(b'PING\n', drain=False)

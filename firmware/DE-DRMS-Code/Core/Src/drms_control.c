@@ -380,6 +380,21 @@ DRMS_Result drms_control_record_admission(uint64_t record_id, DRMS_Result *resul
   return status;
 }
 
+uint64_t drms_control_operation_record(uint64_t operation_id)
+{
+  if (!operation_id) return 0;
+  uint32_t mask = crit_enter();
+  uint64_t record_id = 0;
+  for (uint32_t i = 0; i < 16u; ++i)
+    if (record_admissions[i].operation_id == operation_id)
+    {
+      record_id = record_admissions[i].record_id;
+      break;
+    }
+  crit_exit(mask);
+  return record_id;
+}
+
 static DRMS_Result reserve_assigned(uint32_t resources, DRMS_Token *out, uint64_t assigned_id,
                                     uint32_t allow_empty, uint32_t allow_stopping)
 {

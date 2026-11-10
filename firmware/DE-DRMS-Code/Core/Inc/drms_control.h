@@ -59,6 +59,7 @@ DRMS_Result drms_control_submit_identified(const DRMS_ControlRequest *request, u
 DRMS_Result drms_control_submit_record(const DRMS_ControlRequest *request, uint64_t *operation_id, uint64_t *record_id);
 /* Recent admitted recordings which have not reached the application view yet. */
 DRMS_Result drms_control_record_admission(uint64_t record_id, DRMS_Result *result);
+uint64_t drms_control_operation_record(uint64_t operation_id);
 /* Dedicated stop latch; independent of normal queue and resource leases. */
 DRMS_Result drms_control_safe_stop_submit(const DRMS_ControlRequest *request, uint64_t *operation_id);
 uint32_t drms_control_safe_stop_take(void); /* control owner only */
