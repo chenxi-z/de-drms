@@ -78,6 +78,7 @@ static uint64_t baseline_version, baseline_ticket;
 static uint32_t baseline_active, baseline_rate, baseline_started, baseline_timeout_ms;
 static uint32_t baseline_overruns, baseline_drops, baseline_first_seq, baseline_previous_seq;
 static DRMS_Result baseline_failure;
+static uint32_t priority_stop_active, priority_stop_started, priority_stop_had_record;
 static uint32_t begin(uint32_t rate, uint32_t reference);
 
 int drms_console_dispatch(const char *line)
@@ -727,6 +728,7 @@ void drms_application_init(void)
   drms_control_init(app_dispatch);
   msc_active = msc_reported = msc_release_active = 0;
   baseline_active = 0;
+  priority_stop_active = 0;
   /* T7：开机自动监测（显式记录仍需请求）；失败保持可调度与诊断 */
   if (!drms_acq_running)
     (void)begin(boot_rate, 0);
@@ -778,8 +780,16 @@ void drms_application_poll(void)
       cmd_result = begin(boot_rate, 0);
     }
   }
-  if (__atomic_exchange_n(&stop_requested, 0U, __ATOMIC_ACQ_REL))
+  uint32_t priority_stop = drms_control_safe_stop_take();
+  uint32_t local_stop = __atomic_exchange_n(&stop_requested, 0U, __ATOMIC_ACQ_REL);
+  if (priority_stop || local_stop)
   {
+    if (priority_stop)
+    {
+      priority_stop_active = 1;
+      priority_stop_started = now;
+      priority_stop_had_record = session_active || session_armed || drms_log_state;
+    }
     /* STOP 是取消屏障：旧排队 START 不得重新使能 */
     if (ready)
       (void)tx_queue_flush(&commands);
@@ -848,6 +858,23 @@ void drms_application_poll(void)
         session_cancelled = 0;
         have_begin = 0;
       }
+    }
+  }
+  if (priority_stop_active)
+  {
+    if (drms_acq_is_quiescent() && !session_active && !session_armed &&
+        !drms_log_state && !msc_active && !msc_release_active &&
+        drms_msc_owner() == DRMS_OWNER_LOCAL)
+    {
+      DRMS_Result result = priority_stop_had_record && drms_log_status ? DRMS_IO_ERROR : DRMS_OK;
+      (void)drms_control_safe_stop_finish(result);
+      priority_stop_active = 0;
+    }
+    else if ((uint32_t)(now - priority_stop_started) >= 5000u)
+    {
+      /* Stopping remains asserted; outstanding resource leases are not released. */
+      (void)drms_control_safe_stop_finish(DRMS_TIMEOUT);
+      priority_stop_active = 0;
     }
   }
   if (consecutive_bad >= 32)

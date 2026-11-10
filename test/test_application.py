@@ -485,6 +485,50 @@ uint32_t HAL_GetUIDw2(void);
         self.command('START')
         self.assertEqual(self.value('drms_acq_running').value, 1)
 
+    def test_priority_stop_waits_for_record_close_before_completion(self):
+        self.insert_card()
+        self.command('RECORD')
+        self.lib.drms_log_poll()
+        self.lib.drms_application_poll()
+        self.lib.drms_log_poll()
+        request = ControlRequest(source=3, request_id=92)
+        operation = ctypes.c_uint64()
+        self.lib.drms_control_safe_stop_submit.argtypes = [ctypes.POINTER(ControlRequest), ctypes.POINTER(ctypes.c_uint64)]
+        self.assertEqual(self.lib.drms_control_safe_stop_submit(ctypes.byref(request), ctypes.byref(operation)), 1)
+        self.lib.drms_application_poll()
+        from test_control_contract import Completion
+        result = Completion()
+        self.lib.drms_control_get_operation.argtypes = [ctypes.c_uint64, ctypes.POINTER(Completion)]
+        self.assertEqual(self.lib.drms_control_get_operation(operation.value, ctypes.byref(result)), 0)
+        self.assertEqual((result.result, result.phase), (1, 1))
+        self.lib.drms_log_poll()
+        self.lib.drms_application_poll()
+        self.assertEqual(self.lib.drms_control_get_operation(operation.value, ctypes.byref(result)), 0)
+        self.assertEqual((result.result, result.phase), (0, 2))
+        self.assertEqual(self.value('drms_acq_running').value, 0)
+
+    def test_priority_stop_timeout_keeps_stop_barrier_and_record_lease(self):
+        self.insert_card()
+        self.command('RECORD')
+        self.lib.drms_log_poll()
+        self.lib.drms_application_poll()
+        self.lib.drms_log_poll()
+        request = ControlRequest(source=3, request_id=93)
+        operation = ctypes.c_uint64()
+        self.lib.drms_control_safe_stop_submit.argtypes = [ctypes.POINTER(ControlRequest), ctypes.POINTER(ctypes.c_uint64)]
+        self.assertEqual(self.lib.drms_control_safe_stop_submit(ctypes.byref(request), ctypes.byref(operation)), 1)
+        self.lib.drms_application_poll()
+        self.lib.advance_ms(5001)
+        self.lib.drms_application_poll()
+        from test_control_contract import Completion, Snapshot
+        result, snapshot = Completion(), Snapshot()
+        self.lib.drms_control_get_operation.argtypes = [ctypes.c_uint64, ctypes.POINTER(Completion)]
+        self.assertEqual(self.lib.drms_control_get_operation(operation.value, ctypes.byref(result)), 0)
+        self.assertEqual((result.result, result.phase), (7, 2))
+        self.lib.drms_control_get_snapshot(ctypes.byref(snapshot))
+        self.assertEqual(snapshot.stopping, 1)
+        self.assertNotEqual(snapshot.reserved_mask & 4, 0)
+
     def test_status_reads_published_monitor_without_advancing_it(self):
         self.frames(5, 280000, 4200000)
         before = self.status()

@@ -40,6 +40,9 @@ static void received(void *user, const uint8_t *request, size_t length)
   if (request[1] != 1u || !ctx->session.healthy)
     return;
   uint16_t opcode = get16(request + 2), payload_len = get16(request + 16);
+  uint32_t priority = opcode == 18u;
+  if (ctx->can_send && !ctx->can_send(ctx->send_context, priority))
+    return; /* no reply capacity: do not admit or consume the request */
   uint32_t session = get32(request + 4);
   uint64_t id = get64(request + 8);
   uint16_t result = 0;
@@ -63,6 +66,15 @@ static void received(void *user, const uint8_t *request, size_t length)
     if (id <= ctx->last_request)
     {
       result = 4;
+      if (ctx->stop_mutation.request_id == id)
+      {
+        if (ctx->stop_mutation.length == length && !memcmp(ctx->stop_mutation.bytes, request, length))
+        {
+          result = DRMS_ACCEPTED;
+          accepted_operation = ctx->stop_mutation.operation_id;
+        }
+        else result = DRMS_INVALID;
+      }
       for (unsigned i = 0; i < 4; ++i)
       {
         DRMS_CDCMutation *slot = &ctx->mutations[i];
@@ -111,7 +123,7 @@ static void received(void *user, const uint8_t *request, size_t length)
           }
         }
       }
-      else if (opcode == 34u || opcode == 35u || opcode == 48u || opcode == 49u)
+      else if (opcode == 18u || opcode == 34u || opcode == 35u || opcode == 48u || opcode == 49u)
       {
         static const DRMS_CDCFieldRule version_rule[] = {{48, 8, 8, 0, 1}};
         DRMS_CDCFieldView version_field[1];
@@ -122,19 +134,22 @@ static void received(void *user, const uint8_t *request, size_t length)
           result = DRMS_INVALID;
         else
         {
-          DRMS_CDCMutation *slot = mutation_slot(ctx);
+          DRMS_CDCMutation *slot = opcode == 18u ? &ctx->stop_mutation : mutation_slot(ctx);
           if (!slot)
             result = DRMS_BUSY;
           else
           {
             DRMS_ControlRequest submission = {
               .source = DRMS_SOURCE_CDC, .session = session, .request_id = id,
-              .operation = opcode == 34u ? DRMS_OP_CONFIG_SAVE :
+              .operation = opcode == 18u ? DRMS_OP_NONE :
+                           opcode == 34u ? DRMS_OP_CONFIG_SAVE :
                            opcode == 35u ? DRMS_OP_BASELINE_R0 :
                            opcode == 48u ? DRMS_OP_MSC_EXPORT : DRMS_OP_MSC_RELEASE};
             if (opcode == 34u)
               submission.expected_version = get64(version_field[0].value);
-            result = (uint16_t)drms_control_submit_identified(&submission, &accepted_operation);
+            result = (uint16_t)(opcode == 18u ?
+                drms_control_safe_stop_submit(&submission, &accepted_operation) :
+                drms_control_submit_identified(&submission, &accepted_operation));
             if (result == DRMS_ACCEPTED)
             {
               slot->request_id = id;
@@ -161,8 +176,8 @@ static void received(void *user, const uint8_t *request, size_t length)
     tlv(out, &pos, 3, temp, 12);
     put64(temp, ctx->session.boot); tlv(out, &pos, 4, temp, 8);
     put16(temp, 1); put16(temp + 2, 2); put16(temp + 4, 3);
-    put16(temp + 6, 34); put16(temp + 8, 35); put16(temp + 10, 48); put16(temp + 12, 49);
-    tlv(out, &pos, 5, temp, 14);
+    put16(temp + 6, 18); put16(temp + 8, 34); put16(temp + 10, 35);
+    put16(temp + 12, 48); put16(temp + 14, 49); tlv(out, &pos, 5, temp, 16);
     put16(temp, 1024); tlv(out, &pos, 6, temp, 2);
     put32(temp, 4000); tlv(out, &pos, 7, temp, 4);
     tlv(out, &pos, 8, temp, 0); /* no recording capability is exposed yet */
@@ -214,15 +229,16 @@ static void received(void *user, const uint8_t *request, size_t length)
   put16(out + 16, (uint16_t)(pos - 20u));
   put32(out + pos, drms_crc32(out, pos)); pos += 4;
   size_t encoded = drms_cdc_frame_encode(out, pos, ctx->wire, sizeof(ctx->wire));
-  if (encoded && ctx->send) ctx->send(ctx->send_context, ctx->wire, encoded);
+  if (encoded && ctx->send) ctx->send(ctx->send_context, ctx->wire, encoded, priority);
 }
 
 void drms_cdc_v2_init(DRMS_CDCV2 *ctx, DRMS_CDCEntropy entropy, void *entropy_context,
-                      const uint32_t uid[3], DRMS_CDCV2Send send, void *send_context)
+                      const uint32_t uid[3], DRMS_CDCV2Send send, DRMS_CDCV2CanSend can_send,
+                      void *send_context)
 {
   memset(ctx, 0, sizeof(*ctx));
   if (uid) memcpy(ctx->uid, uid, sizeof(ctx->uid));
-  ctx->send = send; ctx->send_context = send_context;
+  ctx->send = send; ctx->can_send = can_send; ctx->send_context = send_context;
   (void)drms_cdc_session_init(&ctx->session, entropy, entropy_context);
 }
 
@@ -232,6 +248,7 @@ void drms_cdc_v2_disconnect(DRMS_CDCV2 *ctx)
   drms_cdc_frame_init(&ctx->frame);
   ctx->last_request = 0;
   memset(ctx->mutations, 0, sizeof(ctx->mutations));
+  memset(&ctx->stop_mutation, 0, sizeof(ctx->stop_mutation));
   ctx->mutation_age = 0;
 }
 

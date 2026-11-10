@@ -52,6 +52,10 @@ DRMS_Result drms_control_submit(const DRMS_ControlRequest *request);
 /* As above, but returns the boot-scoped operation ID upon queue admission.
  * That ID remains queryable while queued, dispatched, or recently completed. */
 DRMS_Result drms_control_submit_identified(const DRMS_ControlRequest *request, uint64_t *operation_id);
+/* Dedicated stop latch; independent of normal queue and resource leases. */
+DRMS_Result drms_control_safe_stop_submit(const DRMS_ControlRequest *request, uint64_t *operation_id);
+uint32_t drms_control_safe_stop_take(void); /* control owner only */
+DRMS_Result drms_control_safe_stop_finish(DRMS_Result result); /* control owner only */
 
 /* 控制任务：本轮至多处理 max_requests 条队列请求。每条依次
  * reserve(op_resources) → 失败写完成记录；成功则 dispatch → 拒绝即回滚。 */

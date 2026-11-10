@@ -194,6 +194,42 @@ class CDCConsoleTest(unittest.TestCase):
         self.send(bytes(wire), drain=False)
         self.assertEqual(self.lib.control_queued(), 1)
 
+    def test_safe_stop_uses_reserved_reply_when_normal_queue_is_full(self):
+        import struct, zlib
+        self.send(bytes.fromhex('040201010101010102010101010101010101010105d7970e6600'))
+        for _ in range(4): self.send(b'PING\n', drain=False)
+        raw = struct.pack('<BBHIQHH', 2, 1, 18, 1, 2, 0, 0)
+        raw += struct.pack('<I', zlib.crc32(raw))
+        wire = bytearray(b'\x00'); start = 0; code = 1
+        for byte in raw:
+            if byte == 0:
+                wire[start] = code; start = len(wire); wire.append(0); code = 1
+            else:
+                wire.append(byte); code += 1
+        wire[start] = code; wire.append(0)
+        self.send(bytes(wire), drain=False)
+        self.assertEqual(self.lib.drms_control_safe_stop_take(), 1)
+        self.lib.drms_cdc_tx_poll()
+        size = self.value('written_len').value
+        encoded = bytes((ctypes.c_ubyte * 512).in_dll(self.lib, 'written')[:size])
+        decoded = bytearray(); i = 0
+        while i < len(encoded)-1:
+            code = encoded[i]; i += 1; decoded += encoded[i:i+code-1]; i += code-1
+            if code != 255 and i < len(encoded)-1: decoded.append(0)
+        self.assertEqual(struct.unpack_from('<H', decoded, 2)[0], 18)
+        self.assertEqual(struct.unpack_from('<H', decoded, 24)[0], 1)  # ACCEPTED
+        first = bytes(decoded)
+        self.send(bytes(wire), drain=False)
+        self.assertEqual(self.lib.drms_control_safe_stop_take(), 0)
+        self.lib.drms_cdc_tx_poll()
+        size = self.value('written_len').value
+        encoded = bytes((ctypes.c_ubyte * 512).in_dll(self.lib, 'written')[:size])
+        decoded = bytearray(); i = 0
+        while i < len(encoded)-1:
+            code = encoded[i]; i += 1; decoded += encoded[i:i+code-1]; i += code-1
+            if code != 255 and i < len(encoded)-1: decoded.append(0)
+        self.assertEqual(bytes(decoded), first)
+
     def test_v2_read_error_discards_until_next_delimiter(self):
         hello = bytes.fromhex('040201010101010102010101010101010101010105d7970e6600')
         self.send(hello[:6])

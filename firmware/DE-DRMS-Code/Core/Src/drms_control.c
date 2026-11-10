@@ -37,6 +37,8 @@ static uint32_t stopping, control_generation, snapshot_sequence;
 static uint64_t next_operation_id;
 static uint64_t requests_accepted, requests_rejected;
 static uint64_t completions_overflow, completions_consumed;
+static QueuedRequest safe_stop;
+static uint32_t safe_stop_phase; /* 0 empty, 1 pending, 2 active */
 
 static uint32_t crit_enter(void)
 {
@@ -106,6 +108,8 @@ void drms_control_init(DRMS_ControlDispatch dispatch)
   memset(requests, 0, sizeof(requests));
   memset(completions, 0, sizeof(completions));
   memset(history, 0, sizeof(history));
+  memset(&safe_stop, 0, sizeof(safe_stop));
+  safe_stop_phase = 0;
   history_head = history_count = 0;
   request_head = request_count = request_tail = 0;
   completion_head = completion_count = 0;
@@ -124,6 +128,18 @@ DRMS_Result drms_control_get_operation(uint64_t operation_id, DRMS_ControlComple
   if (!operation_id || !out)
     return DRMS_INVALID;
   uint32_t mask = crit_enter();
+  if (safe_stop_phase && safe_stop.operation_id == operation_id)
+  {
+    memset(out, 0, sizeof(*out));
+    out->operation_id = operation_id;
+    out->source = safe_stop.request.source;
+    out->session = safe_stop.request.session;
+    out->request_id = safe_stop.request.request_id;
+    out->result = DRMS_ACCEPTED;
+    out->phase = safe_stop_phase - 1u;
+    crit_exit(mask);
+    return DRMS_OK;
+  }
   for (uint32_t i = 0; i < history_count; ++i)
   {
     uint32_t index = (history_head + DRMS_CONTROL_HISTORY - 1U - i) % DRMS_CONTROL_HISTORY;
@@ -174,6 +190,49 @@ DRMS_Result drms_control_get_operation(uint64_t operation_id, DRMS_ControlComple
 DRMS_Result drms_control_submit(const DRMS_ControlRequest *request)
 {
   return drms_control_submit_identified(request, NULL);
+}
+
+DRMS_Result drms_control_safe_stop_submit(const DRMS_ControlRequest *request, uint64_t *operation_id)
+{
+  if (operation_id) *operation_id = 0;
+  if (!request || !operation_id)
+    return DRMS_INVALID;
+  uint32_t mask = crit_enter();
+  if (safe_stop_phase || !next_operation_id)
+  {
+    crit_exit(mask);
+    return DRMS_BUSY;
+  }
+  safe_stop.request = *request;
+  safe_stop.operation_id = next_operation_id++;
+  *operation_id = safe_stop.operation_id;
+  safe_stop_phase = 1;
+  crit_exit(mask);
+  return DRMS_ACCEPTED;
+}
+
+uint32_t drms_control_safe_stop_take(void)
+{
+  uint32_t mask = crit_enter();
+  uint32_t taken = safe_stop_phase == 1u;
+  if (taken) safe_stop_phase = 2u;
+  crit_exit(mask);
+  return taken;
+}
+
+DRMS_Result drms_control_safe_stop_finish(DRMS_Result result)
+{
+  uint32_t mask = crit_enter();
+  if (safe_stop_phase != 2u)
+  {
+    crit_exit(mask);
+    return DRMS_INVALID;
+  }
+  push_completion_locked(safe_stop.request.source, safe_stop.request.session,
+                         safe_stop.request.request_id, safe_stop.operation_id, result, 0, 0);
+  safe_stop_phase = 0;
+  crit_exit(mask);
+  return DRMS_OK;
 }
 
 DRMS_Result drms_control_submit_identified(const DRMS_ControlRequest *request, uint64_t *operation_id)

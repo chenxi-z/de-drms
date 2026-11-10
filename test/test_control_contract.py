@@ -233,6 +233,24 @@ class ControlContractTest(unittest.TestCase):
         self.assertEqual(state.result, CANCELLED)
         self.lib.drms_control_complete(active, CANCELLED, TF)
 
+    def test_safe_stop_has_dedicated_admission_and_queryable_result(self):
+        for number in range(8):
+            self.assertEqual(self.submit(RECORD, request_id=number + 1), ACCEPTED)
+        req = Request(source=3, session=7, request_id=99)
+        operation = ctypes.c_uint64()
+        self.lib.drms_control_safe_stop_submit.argtypes = [ctypes.POINTER(Request), ctypes.POINTER(ctypes.c_uint64)]
+        self.assertEqual(self.lib.drms_control_safe_stop_submit(ctypes.byref(req), ctypes.byref(operation)), ACCEPTED)
+        result = Completion()
+        self.assertEqual(self.lib.drms_control_get_operation(operation.value, ctypes.byref(result)), OK)
+        self.assertEqual((result.result, result.phase), (ACCEPTED, 0))
+        self.assertEqual(self.lib.drms_control_safe_stop_take(), 1)
+        self.lib.drms_control_stop()
+        self.assertEqual(self.lib.drms_control_get_operation(operation.value, ctypes.byref(result)), OK)
+        self.assertEqual(result.phase, 1)
+        self.assertEqual(self.lib.drms_control_safe_stop_finish(OK), OK)
+        self.assertEqual(self.lib.drms_control_get_operation(operation.value, ctypes.byref(result)), OK)
+        self.assertEqual((result.result, result.phase, result.stale), (OK, 2, 0))
+
     def test_reserve_is_exclusive_and_all_or_nothing(self):
         token = Token()
         self.assertEqual(self.lib.drms_control_reserve(RS | TF, ctypes.byref(token)), ACCEPTED)
