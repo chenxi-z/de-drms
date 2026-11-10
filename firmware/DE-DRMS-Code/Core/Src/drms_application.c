@@ -558,6 +558,12 @@ static uint32_t begin(uint32_t rate, uint32_t reference)
 {
   if (drms_log_state || cal_active)
     return 3;
+  DRMS_ControlSnapshot control;
+  drms_control_get_snapshot(&control);
+  if (control.quarantined_mask & DRMS_RES_ACQUISITION_CONFIG)
+    return 3;
+  if (control.stopping && drms_control_resume() != DRMS_OK)
+    return 3; /* prior operations must finish cleanup before a restart */
   r_valid = 0;
   latest.flags = DRMS_SAMPLE_FORMAT_ERROR;
   crc_bad = adc_faults = consecutive_bad = 0;
@@ -778,6 +784,8 @@ void drms_application_poll(void)
     if (ready)
       (void)tx_queue_flush(&commands);
     stop_acquisition();
+    drms_msc_cancel();
+    drms_control_stop(); /* cancel admitted-but-not-yet-dispatched operations */
     last_cmd = DRMS_CMD_STOP;
     cmd_result = 0;
   }

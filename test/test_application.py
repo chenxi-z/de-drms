@@ -446,6 +446,45 @@ uint32_t HAL_GetUIDw2(void);
         self.assertGreater(self.value('command_count').value, 0)  # 开机监测已发过命令
         self.assertEqual(self.lib.pin(5), 1)  # 激励抑制
 
+    def test_stop_cancels_control_queue_and_prevents_later_export(self):
+        self.insert_card()
+        request = ControlRequest(source=3, request_id=91, operation=2)
+        operation = ctypes.c_uint64()
+        self.lib.drms_control_submit_identified.argtypes = [ctypes.POINTER(ControlRequest), ctypes.POINTER(ctypes.c_uint64)]
+        self.assertEqual(self.lib.drms_control_submit_identified(ctypes.byref(request), ctypes.byref(operation)), 1)
+        self.assertEqual(self.lib.drms_console_dispatch(b'STOP'), 1)
+        self.lib.drms_application_poll()
+        self.lib.drms_application_poll()
+        self.lib.drms_msc_service()
+        self.assertEqual(self.lib.drms_msc_owner(), 0)
+        from test_control_contract import Completion
+        result = Completion()
+        self.lib.drms_control_get_operation.argtypes = [ctypes.c_uint64, ctypes.POINTER(Completion)]
+        self.assertEqual(self.lib.drms_control_get_operation(operation.value, ctypes.byref(result)), 0)
+        self.assertEqual(result.result, 8)
+
+    def test_monitor_can_restart_after_safe_stop(self):
+        self.command('STOP')
+        self.assertEqual(self.value('drms_acq_running').value, 0)
+        self.command('START')
+        self.assertEqual(self.value('drms_acq_running').value, 1)
+
+    def test_stop_record_waits_for_storage_cleanup_before_restart(self):
+        self.insert_card()
+        self.command('RECORD')
+        self.lib.drms_log_poll()
+        self.lib.drms_application_poll()
+        self.lib.drms_log_poll()
+        self.assertEqual(self.value('drms_log_running').value, 1)
+        self.command('STOP')
+        self.assertEqual(self.value('drms_acq_running').value, 0)
+        self.command('START')
+        self.assertEqual(self.value('drms_acq_running').value, 0)
+        self.lib.drms_log_poll()
+        self.lib.drms_application_poll()
+        self.command('START')
+        self.assertEqual(self.value('drms_acq_running').value, 1)
+
     def test_status_reads_published_monitor_without_advancing_it(self):
         self.frames(5, 280000, 4200000)
         before = self.status()
