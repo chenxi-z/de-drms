@@ -23,7 +23,7 @@ typedef struct {
   uint32_t result;
   uint8_t phase, clean_end, unknown_loss;
 } DRMS_ApplicationRecord;
-/* One retained most-recent record; id=0 selects it. Older IDs return STALE. */
+/* Current/latest plus four older completed records; id=0 selects latest. */
 DRMS_Result drms_application_record_snapshot(uint64_t id, DRMS_ApplicationRecord *out);
 void drms_application_init(void);
 void drms_application_poll(void);

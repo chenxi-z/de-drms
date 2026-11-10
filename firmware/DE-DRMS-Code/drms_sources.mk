@@ -8,6 +8,7 @@ App/interfaces/cdc/drms_config_wire.c \
 App/interfaces/cdc/drms_cdc_v2.c \
 Core/Src/drms_usb.c \
 Core/Src/drms_storage.c \
+Core/Src/drms_file_backend.c \
 Core/Src/drms_msc.c \
 Core/Src/drms_control.c \
 Core/Src/drms_boot_identity.c \

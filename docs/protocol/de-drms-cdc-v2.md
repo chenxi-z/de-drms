@@ -26,7 +26,7 @@ GET_STATUS 为一次逻辑一致快照，status_revision 按发布快照递增�
 
 | 请求 | 规则 |
 | --- | --- |
-| BEGIN_RECORD、END_RECORD | BEGIN 的 duration_ms 省略表示使用当前配置，零表示手动结束；非零以确认起点 B 的单调时刻起算。受理先分配记录号和操作号。开始操作在确认 B 后完成；记录本身持续。END 指定 record，受理后待末边界 E 及存储收尾完成才结束。GET_RECORD 的 phase 反映记录生命周期，进行中 clean_end=false。当前固件只保留本次启动中最近一次已受理记录的状态，旧编号返回 STALE，未知编号返回 INVALID；数据和缺失计数在存储完成后为最终值。 |
+| BEGIN_RECORD、END_RECORD | BEGIN 的 duration_ms 省略表示使用当前配置，零表示手动结束；非零以确认起点 B 的单调时刻起算。受理先分配记录号和操作号。开始操作在确认 B 后完成；记录本身持续。END 指定 record，受理后待末边界 E 及存储收尾完成才结束。GET_RECORD 的 phase 反映记录生命周期，进行中 clean_end=false。当前固件保留当前或最近一条记录及之前四条已结束记录，过期编号返回 STALE，未知编号返回 INVALID；数据和缺失计数在存储完成后为最终值。 |
 | SAFE_STOP、RESUME_MONITOR | 安全停止失效化冲突启动、停止激励与采集、有界收尾。恢复仅启动监测。查询和安全路径保留容量；同目标重复停止可合并。 |
 | GET_CONFIG、APPLY_CONFIG、SAVE_CONFIG、BUILD_R0、CALIBRATE、SET_UTC | APPLY 和 SAVE 校验 expected_version 等于当前运行版本；配置整体校验。R₀ 使用当前试件，校准使用板载参考。UTC 为 Unix epoch 秒，范围 2000–2099。返回 ACCEPTED 的操作均可按操作号查最终结果；校时不改定时试验截止时间。 |
 | MSC_EXPORT、MSC_RELEASE | 显式申请/交还 TF；CDC 保持可查询。RELEASE 等所有原始读退出；实际重挂载失败报告故障。 |

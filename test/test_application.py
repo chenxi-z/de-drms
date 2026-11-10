@@ -838,6 +838,26 @@ uint32_t HAL_GetUIDw2(void);
         self.assertNotEqual(view.result, 0)
         self.assertEqual(view.clean_end, 0)
 
+    def test_record_query_retains_four_completed_results(self):
+        self.lib.drms_application_record_snapshot.argtypes = [ctypes.c_uint64, ctypes.POINTER(RecordView)]
+        self.insert_card()
+        for record_id in range(1, 7):
+            self.command('RECORD')
+            self.lib.drms_log_poll(); self.lib.drms_application_poll()
+            self.frames(2, 280000, 4200000)
+            self.command('END')
+            for _ in range(5):
+                self.lib.drms_application_poll(); self.lib.drms_log_poll()
+            self.lib.drms_application_poll()
+            view = RecordView()
+            self.assertEqual(self.lib.drms_application_record_snapshot(record_id, ctypes.byref(view)), 0)
+            self.assertEqual((view.phase, view.clean_end), (2, 1))
+        for record_id in (2, 3, 4, 5, 6):
+            view = RecordView()
+            self.assertEqual(self.lib.drms_application_record_snapshot(record_id, ctypes.byref(view)), 0)
+            self.assertEqual(view.record, record_id)
+        self.assertEqual(self.lib.drms_application_record_snapshot(1, ctypes.byref(RecordView())), 4)
+
     def test_recording_writes_v2_header_data_and_final_boundary(self):
         import zlib
         self.insert_card()

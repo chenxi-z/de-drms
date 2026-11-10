@@ -54,6 +54,8 @@ static DRMS_MonitorContext *const monitor = (DRMS_MonitorContext *)monitor_store
 static DRMS_MonitorOutput published_monitor;
 static DRMS_ApplicationSnapshot published_status;
 static DRMS_ApplicationRecord published_record;
+static DRMS_ApplicationRecord record_history[4];
+static uint32_t record_history_next, record_history_count;
 static uint8_t monitor_levels[DRMS_MONITOR_INTERVALS_MAX];
 static uint16_t monitor_interval_ids[DRMS_MONITOR_INTERVALS_MAX];
 static uint8_t monitor_level_count;
@@ -98,6 +100,12 @@ static void record_publish(const DRMS_ApplicationRecord *view)
 {
   uint32_t mask = __get_PRIMASK();
   __disable_irq();
+  if (published_record.record && published_record.record != view->record && published_record.phase == 2u)
+  {
+    record_history[record_history_next] = published_record;
+    record_history_next = (record_history_next + 1u) % 4u;
+    if (record_history_count < 4u) ++record_history_count;
+  }
   published_record = *view;
   __set_PRIMASK(mask);
 }
@@ -108,6 +116,18 @@ DRMS_Result drms_application_record_snapshot(uint64_t id, DRMS_ApplicationRecord
   uint32_t mask = __get_PRIMASK();
   __disable_irq();
   *out = published_record;
+  if (id && id != out->record)
+  {
+    for (uint32_t i = 0; i < record_history_count; ++i)
+    {
+      uint32_t index = (record_history_next + 4u - 1u - i) % 4u;
+      if (record_history[index].record == id)
+      {
+        *out = record_history[index];
+        break;
+      }
+    }
+  }
   __set_PRIMASK(mask);
   if (!out->record || (id && id > out->record)) return DRMS_INVALID;
   if (id && id < out->record) return DRMS_STALE;
@@ -909,6 +929,8 @@ static void execute(const DRMS_Command *command)
 void drms_application_init(void)
 {
   memset(&published_record, 0, sizeof(published_record));
+  memset(record_history, 0, sizeof(record_history));
+  record_history_next = record_history_count = 0;
   drms_config_snapshot_init();
   config_view_current = 0;
   memset(&published_status, 0, sizeof(published_status));
