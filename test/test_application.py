@@ -1015,6 +1015,32 @@ uint32_t HAL_GetUIDw2(void);
         self.assertEqual(self.lib.drms_application_record_snapshot(1, ctypes.byref(view)), 0)
         self.assertEqual((view.phase, view.result, view.clean_end, view.unknown_loss), (2, 0, 1, 0))
 
+    def test_record_query_during_queue_and_rejected_start(self):
+        self.lib.drms_application_record_snapshot.argtypes = [ctypes.c_uint64, ctypes.POINTER(RecordView)]
+        self.lib.drms_control_submit_record.argtypes = [ctypes.POINTER(ControlRequest), ctypes.POINTER(ctypes.c_uint64), ctypes.POINTER(ctypes.c_uint64)]
+        lease = Token()
+        self.assertEqual(self.lib.drms_control_reserve(4, ctypes.byref(lease)), 1)
+        request = ControlRequest(source=3, session=1, operation=1)
+        operation = ctypes.c_uint64(); record = ctypes.c_uint64()
+        self.assertEqual(self.lib.drms_control_submit_record(ctypes.byref(request), ctypes.byref(operation), ctypes.byref(record)), 1)
+        view = RecordView()
+        self.assertEqual(self.lib.drms_application_record_snapshot(record.value, ctypes.byref(view)), 0)
+        self.assertEqual((view.phase, view.result), (0, 1))
+        self.lib.drms_application_poll()
+        self.assertEqual(self.lib.drms_application_record_snapshot(record.value, ctypes.byref(view)), 0)
+        self.assertEqual((view.phase, view.result, view.clean_end), (2, 2, 0))
+
+    def test_record_query_reports_queued_request_cancelled_by_stop(self):
+        self.lib.drms_application_record_snapshot.argtypes = [ctypes.c_uint64, ctypes.POINTER(RecordView)]
+        request = ControlRequest(source=3, session=1, operation=1)
+        operation = ctypes.c_uint64(); record = ctypes.c_uint64()
+        self.lib.drms_control_submit_record.argtypes = [ctypes.POINTER(ControlRequest), ctypes.POINTER(ctypes.c_uint64), ctypes.POINTER(ctypes.c_uint64)]
+        self.assertEqual(self.lib.drms_control_submit_record(ctypes.byref(request), ctypes.byref(operation), ctypes.byref(record)), 1)
+        self.command('STOP')
+        view = RecordView()
+        self.assertEqual(self.lib.drms_application_record_snapshot(record.value, ctypes.byref(view)), 0)
+        self.assertEqual((view.phase, view.result, view.clean_end), (2, 8, 0))
+
     def test_control_end_record_waits_for_file_finalization(self):
         from test_control_contract import Completion
         self.insert_card(); self.command('RECORD')

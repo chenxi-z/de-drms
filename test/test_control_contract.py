@@ -195,6 +195,23 @@ class ControlContractTest(unittest.TestCase):
         self.assertEqual(self.lib.drms_control_submit_record(ctypes.byref(remote), ctypes.byref(operation), ctypes.byref(record)), ACCEPTED)
         self.assertEqual((operation.value, record.value), (2, 2))
 
+    def test_record_admission_retains_inflight_when_failure_history_wraps(self):
+        self.lib.drms_control_submit_record.argtypes = [ctypes.POINTER(Request), ctypes.POINTER(ctypes.c_uint64), ctypes.POINTER(ctypes.c_uint64)]
+        self.lib.drms_control_record_admission.argtypes = [ctypes.c_uint64, ctypes.POINTER(ctypes.c_int)]
+        request = Request(source=3, session=1, operation=RECORD)
+        operation = ctypes.c_uint64(); record = ctypes.c_uint64()
+        self.assertEqual(self.lib.drms_control_submit_record(ctypes.byref(request), ctypes.byref(operation), ctypes.byref(record)), ACCEPTED)
+        first = record.value
+        self.lib.drms_control_poll(1)  # retain the first operation's recording lease
+        for _ in range(24):
+            self.assertEqual(self.lib.drms_control_submit_record(ctypes.byref(request), ctypes.byref(operation), ctypes.byref(record)), ACCEPTED)
+            self.lib.drms_control_poll(1)  # resource conflict is a terminal result
+        result = ctypes.c_int()
+        self.assertEqual(self.lib.drms_control_record_admission(first, ctypes.byref(result)), OK)
+        self.assertEqual(result.value, ACCEPTED)
+        self.assertEqual(self.lib.drms_control_record_admission(record.value, ctypes.byref(result)), OK)
+        self.assertEqual(result.value, BUSY)
+
     def test_config_payload_is_owned_until_dispatch_and_pool_is_bounded(self):
         original = ctypes.create_string_buffer(b'first')
         request = Request(source=3, session=1, request_id=1, operation=CONFIG_APPLY,

@@ -41,6 +41,9 @@ static uint32_t reserved_mask, quarantined_mask;
 static uint32_t stopping, control_generation, snapshot_sequence;
 static uint64_t next_operation_id;
 static uint64_t next_record_id;
+typedef struct { uint64_t record_id, operation_id; DRMS_Result result; uint32_t started; } RecordAdmission;
+static RecordAdmission record_admissions[16];
+static uint32_t record_admission_next;
 static uint64_t requests_accepted, requests_rejected;
 static uint64_t completions_overflow, completions_consumed;
 static QueuedRequest safe_stop;
@@ -81,6 +84,12 @@ static void push_completion_locked(uint32_t source, uint32_t session, uint64_t r
                                    uint32_t quiescent_mask, uint32_t stale)
 {
   DRMS_ControlCompletion *slot;
+  for (uint32_t i = 0; i < 16u; ++i)
+    if (record_admissions[i].operation_id == operation_id && operation_id)
+    {
+      if (result == DRMS_OK) record_admissions[i].started = 1;
+      else record_admissions[i].result = result;
+    }
   if (completion_count == DRMS_CONTROL_COMPLETIONS)
   {
     /* 拥塞：丢最旧并计数。资源释放在 complete 内已完成，永不因拥塞占用资源。 */
@@ -127,6 +136,8 @@ void drms_control_init(DRMS_ControlDispatch dispatch)
   snapshot_sequence = 0;
   next_operation_id = 1;
   next_record_id = 1;
+  memset(record_admissions, 0, sizeof(record_admissions));
+  record_admission_next = 0;
   requests_accepted = requests_rejected = 0;
   completions_overflow = completions_consumed = 0;
   crit_exit(mask);
@@ -293,12 +304,39 @@ static DRMS_Result submit_identified(const DRMS_ControlRequest *request, uint64_
     ++requests_rejected;
     return DRMS_BUSY;
   }
+  uint32_t admission_index = record_admission_next;
+  if (request->operation == DRMS_OP_RECORD)
+  {
+    uint32_t count = 0;
+    while (count < 16u && record_admissions[admission_index].record_id &&
+           !record_admissions[admission_index].started &&
+           record_admissions[admission_index].result == DRMS_ACCEPTED)
+    {
+      admission_index = (admission_index + 1u) % 16u;
+      ++count;
+    }
+    if (count == 16u)
+    {
+      crit_exit(mask);
+      ++requests_rejected;
+      return DRMS_BUSY;
+    }
+  }
   slot = &requests[request_head];
   slot->request = *request;
   slot->request.record_id = request->operation == DRMS_OP_RECORD ? next_record_id++ : 0;
   if (record_id) *record_id = slot->request.record_id;
   if (owns_payload) slot->request.payload = config_payload;
   slot->operation_id = next_operation_id++;
+  if (slot->request.record_id)
+  {
+    RecordAdmission *entry = &record_admissions[admission_index];
+    entry->record_id = slot->request.record_id;
+    entry->operation_id = slot->operation_id;
+    entry->result = DRMS_ACCEPTED;
+    entry->started = 0;
+    record_admission_next = (admission_index + 1u) % 16u;
+  }
   if (operation_id) *operation_id = slot->operation_id;
   request_head = (request_head + 1U) % DRMS_CONTROL_REQUESTS;
   ++request_count;
@@ -317,6 +355,29 @@ DRMS_Result drms_control_submit_record(const DRMS_ControlRequest *request, uint6
   if (!request || request->operation != DRMS_OP_RECORD || !operation_id || !record_id)
     return DRMS_INVALID;
   return submit_identified(request, operation_id, record_id);
+}
+
+DRMS_Result drms_control_record_admission(uint64_t record_id, DRMS_Result *result)
+{
+  if (!record_id || !result) return DRMS_INVALID;
+  uint32_t mask = crit_enter();
+  for (uint32_t i = 0; i < 16u; ++i)
+  {
+    if (record_admissions[i].record_id == record_id)
+    {
+      if (record_admissions[i].started)
+      {
+        crit_exit(mask);
+        return DRMS_STALE;
+      }
+      *result = record_admissions[i].result;
+      crit_exit(mask);
+      return DRMS_OK;
+    }
+  }
+  DRMS_Result status = record_id < next_record_id ? DRMS_STALE : DRMS_INVALID;
+  crit_exit(mask);
+  return status;
 }
 
 static DRMS_Result reserve_assigned(uint32_t resources, DRMS_Token *out, uint64_t assigned_id,

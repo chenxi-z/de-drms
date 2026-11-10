@@ -198,6 +198,20 @@ DRMS_Result drms_application_record_snapshot(uint64_t id, DRMS_ApplicationRecord
     }
   }
   __set_PRIMASK(mask);
+  if (id && id != out->record)
+  {
+    DRMS_Result result;
+    DRMS_Result status = drms_control_record_admission(id, &result);
+    if (status == DRMS_OK)
+    {
+      memset(out, 0, sizeof(*out));
+      out->record = id;
+      out->result = result;
+      out->phase = result == DRMS_ACCEPTED ? 0u : 2u;
+      return DRMS_OK;
+    }
+    return status;
+  }
   if (!out->record || (id && id > out->record)) return DRMS_INVALID;
   if (id && id < out->record) return DRMS_STALE;
   return DRMS_OK;
