@@ -1,5 +1,26 @@
 #include "drms_time.h"
 #include <string.h>
+#include <stdio.h>
+
+int drms_time_epoch_to_iso(uint64_t epoch_s, char out[20])
+{
+  if (!out || epoch_s < 946684800ULL || epoch_s >= 4102444800ULL) return 0;
+  uint32_t days=(uint32_t)((epoch_s-946684800ULL)/86400u);
+  uint32_t seconds=(uint32_t)((epoch_s-946684800ULL)%86400u);
+  unsigned year=2000;
+  while (days >= (year%4u==0 ? 366u : 365u))
+  { days -= year%4u==0 ? 366u : 365u; ++year; }
+  static const uint8_t month_days[12]={31,28,31,30,31,30,31,31,30,31,30,31};
+  unsigned month=0;
+  while (month<11u)
+  {
+    unsigned n=month_days[month] + (month==1u && year%4u==0);
+    if (days<n) break;
+    days-=n; ++month;
+  }
+  return snprintf(out,20,"%04u-%02u-%02uT%02u:%02u:%02u",year,month+1u,(unsigned)(days+1u),
+                  (unsigned)(seconds/3600u),(unsigned)((seconds/60u)%60u),(unsigned)(seconds%60u))==19;
+}
 
 int drms_time_valid(const DRMS_Time *time)
 {

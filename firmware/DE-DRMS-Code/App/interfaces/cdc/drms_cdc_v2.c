@@ -295,16 +295,18 @@ static void received(void *user, const uint8_t *request, size_t length)
         else
           have_config = 1;
       }
-      else if (opcode == 18u || opcode == 19u || opcode == 33u || opcode == 34u || opcode == 35u || opcode == 48u || opcode == 49u || opcode == 50u)
+      else if (opcode == 18u || opcode == 19u || opcode == 33u || opcode == 34u || opcode == 35u || opcode == 37u || opcode == 48u || opcode == 49u || opcode == 50u)
       {
         static const DRMS_CDCFieldRule version_rule[] = {{48, 8, 8, 0, 1}};
         /* GET_CONFIG needs 34 payload bytes for result, TLV headers and versions. */
         static const DRMS_CDCFieldRule apply_rules[] = {{48, 8, 8, 0, 1}, {49, 1, 990, 0, 1}};
         static const DRMS_CDCFieldRule open_rules[] = {{56, 4, 4, 0, 1}, {85, 4, 4, 0, 1}};
+        static const DRMS_CDCFieldRule utc_rules[] = {{51, 8, 8, 0, 1}};
         DRMS_CDCFieldView version_field[2];
         int invalid = opcode == 33u ?
             drms_cdc_fields_validate(request + 20, payload_len, apply_rules, 2, version_field) :
             opcode == 50u ? drms_cdc_fields_validate(request + 20, payload_len, open_rules, 2, version_field) :
+            opcode == 37u ? drms_cdc_fields_validate(request + 20, payload_len, utc_rules, 1, version_field) :
             opcode == 34u ? drms_cdc_fields_validate(request + 20, payload_len, version_rule, 1, version_field) :
                            drms_cdc_fields_validate(request + 20, payload_len, NULL, 0, NULL);
         if (invalid)
@@ -323,9 +325,10 @@ static void received(void *user, const uint8_t *request, size_t length)
                            opcode == 33u ? DRMS_OP_CONFIG_APPLY :
                            opcode == 34u ? DRMS_OP_CONFIG_SAVE :
                            opcode == 35u ? DRMS_OP_BASELINE_R0 :
+                           opcode == 37u ? DRMS_OP_SET_UTC :
                            opcode == 50u ? DRMS_OP_FILE_DOWNLOAD :
                            opcode == 48u ? DRMS_OP_MSC_EXPORT : DRMS_OP_MSC_RELEASE};
-            if (opcode == 33u || opcode == 34u)
+            if (opcode == 33u || opcode == 34u || opcode == 37u)
               submission.expected_version = get64(version_field[0].value);
             if (opcode == 33u)
             {
@@ -358,7 +361,7 @@ static void received(void *user, const uint8_t *request, size_t length)
   memset(out, 0, 20);
   out[0] = 2; out[1] = 2; put16(out + 2, opcode); put32(out + 4, session); put64(out + 8, id);
   size_t pos = 20;
-  uint8_t temp[32];
+  uint8_t temp[40];
   put16(temp, result); tlv(out, &pos, 1, temp, 2);
   if (opcode == 1u)
   {
@@ -367,7 +370,7 @@ static void received(void *user, const uint8_t *request, size_t length)
     put64(temp, ctx->session.boot); tlv(out, &pos, 4, temp, 8);
     put16(temp, 1); put16(temp + 2, 2); put16(temp + 4, 3); put16(temp + 6, 4);
     put16(temp + 8, 18); put16(temp + 10, 19); put16(temp + 12, 32); put16(temp + 14, 33);
-    put16(temp + 16, 34); put16(temp + 18, 35); put16(temp + 20, 48); put16(temp + 22, 49); put16(temp + 24, 50); put16(temp + 26, 51); put16(temp + 28, 52); put16(temp + 30, 53); tlv(out, &pos, 5, temp, 32);
+    put16(temp + 16, 34); put16(temp + 18, 35); put16(temp + 20, 37); put16(temp + 22, 48); put16(temp + 24, 49); put16(temp + 26, 50); put16(temp + 28, 51); put16(temp + 30, 52); put16(temp + 32, 53); tlv(out, &pos, 5, temp, 34);
     put16(temp, 1024); tlv(out, &pos, 6, temp, 2);
     put32(temp, 4000); tlv(out, &pos, 7, temp, 4);
     tlv(out, &pos, 8, temp, 0); /* no recording capability is exposed yet */

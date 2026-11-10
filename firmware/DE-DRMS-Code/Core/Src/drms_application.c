@@ -329,6 +329,14 @@ static DRMS_Result app_dispatch(const DRMS_Token *token, const DRMS_ControlReque
   last_cmd = (uint32_t)request->operation;
   switch (request->operation)
   {
+    case DRMS_OP_SET_UTC:
+    {
+      char iso[20];
+      if (!drms_time_epoch_to_iso(request->expected_version, iso)) return DRMS_INVALID;
+      if (!drms_time_set(iso)) return DRMS_IO_ERROR;
+      drms_time_get(&clock_snapshot);
+      return DRMS_OK;
+    }
     case DRMS_OP_RESUME_MONITOR:
     {
       if (drms_shutdown_requested)

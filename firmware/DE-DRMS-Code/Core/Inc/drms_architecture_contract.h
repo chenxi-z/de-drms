@@ -55,7 +55,8 @@ typedef enum {
   DRMS_OP_UPDATE = 8,        /* 全部资源（UPDATE_EXCLUSIVE 展开） */
   DRMS_OP_MSC_RELEASE = 9,   /* 归还已持有的 TF 租约；本操作不预占 TF */
   DRMS_OP_RESUME_MONITOR = 10, /* 仅恢复监测；停止屏障期间允许受理 */
-  DRMS_OP_FILE_LIST = 11 /* temporary TF lease for a bounded directory scan */
+  DRMS_OP_FILE_LIST = 11, /* temporary TF lease for a bounded directory scan */
+  DRMS_OP_SET_UTC = 12 /* RTC only; monotonic recording deadlines are unaffected */
 } DRMS_Operation;
 
 /* 请求来源（命令信封）。 */

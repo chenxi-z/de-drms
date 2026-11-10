@@ -1160,6 +1160,31 @@ uint32_t HAL_GetUIDw2(void);
         self.assertEqual(self.value('drms_log_state').value, 0)
         self.assertEqual(self.value('drms_acq_running').value, 1)
 
+    def test_set_utc_does_not_change_monotonic_record_deadline(self):
+        from test_time import Time
+        payload=settings().replace(tlv(73,struct.pack('<I',30000)),tlv(73,struct.pack('<I',200)))
+        source=ctypes.create_string_buffer(payload)
+        request=ControlRequest(source=3,operation=4,payload=ctypes.addressof(source),payload_length=len(payload))
+        self.assertEqual(self.lib.drms_control_submit(ctypes.byref(request)),1);self.lib.drms_application_poll()
+        self.insert_card();self.press_measure();self.lib.drms_log_poll();self.lib.drms_application_poll()
+        self.lib.advance_ms(100);self.frames(1,280000,4200000);self.lib.drms_application_poll()
+        utc=ControlRequest(source=3,session=1,operation=12,expected_version=946684800)
+        op=ctypes.c_uint64()
+        self.lib.drms_control_submit_identified.argtypes=[ctypes.POINTER(ControlRequest),ctypes.POINTER(ctypes.c_uint64)]
+        self.assertEqual(self.lib.drms_control_submit_identified(ctypes.byref(utc),ctypes.byref(op)),1)
+        self.lib.drms_application_poll()
+        from test_control_contract import Completion
+        result=Completion();self.lib.drms_control_get_operation.argtypes=[ctypes.c_uint64,ctypes.POINTER(Completion)]
+        self.assertEqual(self.lib.drms_control_get_operation(op.value,ctypes.byref(result)),0)
+        self.assertEqual(result.result,0)
+        clock=Time();self.lib.drms_time_get(ctypes.byref(clock))
+        self.assertEqual((clock.year,clock.month,clock.day),(2000,1,1))
+        self.assertEqual(self.value('drms_log_running').value,1)
+        self.lib.advance_ms(100);self.frames(1,280000,4200000)
+        for _ in range(5):self.lib.drms_application_poll();self.lib.drms_log_poll()
+        self.assertEqual(self.value('drms_log_state').value,0)
+        self.assertEqual(self.value('drms_acq_running').value,1)
+
     def test_calibration_with_collapsed_current_times_out_as_calibration_failure(self):
         self.command('REF')
         self.command('CAL')
