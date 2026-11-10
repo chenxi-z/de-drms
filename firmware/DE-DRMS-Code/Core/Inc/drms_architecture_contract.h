@@ -78,7 +78,7 @@ typedef struct {
   double number;         /* 浮点参数（如参考电阻 Ω），按 operation 解释 */
   const void *payload;   /* 固定池描述符指针；可为 NULL */
   uint32_t payload_length;
-  uint64_t expected_version; /* 配置写入的乐观并发版本 */
+  uint64_t expected_version; /* 配置写入版本；CDC RECORD 时为时长覆盖存在标志（0/1） */
 } DRMS_ControlRequest;
 
 /* ------------------------------------------------------------------ */

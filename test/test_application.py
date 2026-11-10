@@ -1160,6 +1160,41 @@ uint32_t HAL_GetUIDw2(void);
         self.assertEqual(self.value('drms_log_state').value, 0)
         self.assertEqual(self.value('drms_acq_running').value, 1)
 
+    def test_record_duration_override_starts_at_confirmed_boundary(self):
+        self.insert_card()
+        request = ControlRequest(source=3, session=1, operation=1, value=200, expected_version=1)
+        self.assertEqual(self.lib.drms_control_submit(ctypes.byref(request)), 1)
+        self.lib.drms_application_poll()
+        # File creation is delayed; the requested recording time must not run yet.
+        for _ in range(3):
+            self.lib.advance_ms(100)
+            self.frames(1, 280000, 4200000)
+        self.lib.drms_log_poll(); self.lib.drms_application_poll()
+        self.assertEqual(self.value('drms_log_running').value, 1)
+        self.lib.advance_ms(100); self.frames(1, 280000, 4200000)
+        self.assertEqual(self.value('drms_log_running').value, 1)
+        self.lib.advance_ms(100); self.frames(1, 280000, 4200000)
+        for _ in range(5):
+            self.lib.drms_application_poll(); self.lib.drms_log_poll()
+        self.assertEqual(self.value('drms_log_state').value, 0)
+        self.assertEqual(self.value('drms_acq_running').value, 1)
+
+    def test_zero_record_duration_override_means_manual_stop(self):
+        payload = settings().replace(tlv(73, struct.pack('<I', 30000)), tlv(73, struct.pack('<I', 200)))
+        source = ctypes.create_string_buffer(payload)
+        config = ControlRequest(source=3, operation=4, payload=ctypes.addressof(source), payload_length=len(payload))
+        self.assertEqual(self.lib.drms_control_submit(ctypes.byref(config)), 1)
+        self.lib.drms_application_poll(); self.insert_card()
+        request = ControlRequest(source=3, session=1, operation=1, value=0, expected_version=1)
+        self.assertEqual(self.lib.drms_control_submit(ctypes.byref(request)), 1)
+        self.lib.drms_application_poll(); self.lib.drms_log_poll(); self.lib.drms_application_poll()
+        for _ in range(3):
+            self.lib.advance_ms(100); self.frames(1, 280000, 4200000); self.lib.drms_log_poll()
+        self.assertEqual(self.value('drms_log_running').value, 1)
+        self.command('END')
+        for _ in range(5): self.lib.drms_application_poll(); self.lib.drms_log_poll()
+        self.assertEqual(self.value('drms_log_state').value, 0)
+
     def test_set_utc_does_not_change_monotonic_record_deadline(self):
         from test_time import Time
         payload=settings().replace(tlv(73,struct.pack('<I',30000)),tlv(73,struct.pack('<I',200)))

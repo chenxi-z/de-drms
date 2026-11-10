@@ -379,6 +379,10 @@ static DRMS_Result app_dispatch(const DRMS_Token *token, const DRMS_ControlReque
         return rc;
       uint32_t wire_length = drms_user_config_get_wire(config_candidate, sizeof(config_candidate));
       session_duration_ms = wire_length ? config_wire_u32(config_candidate, wire_length, 73u) : 0;
+      /* CDC uses expected_version as a presence flag for its optional duration;
+       * zero duration is an explicit request for manual termination. */
+      if (request->source == DRMS_SOURCE_CDC && request->expected_version == 1u)
+        session_duration_ms = request->value;
       session_started_us = 0;
       uint32_t config_length = drms_user_config_export(config_candidate, sizeof(config_candidate));
       uint32_t metadata_only = !config_length;
