@@ -212,13 +212,15 @@ uint32_t HAL_GetUIDw2(void);
                  'log_codec', 'calibration_codec', 'calibration_journal', 'time_codec', 'power',
                  'control', 'record_session', 'monitor', 'filter', 'classifier', 'baseline', 'capture_time',
                  'user_config', 'config_snapshot', 'msc', 'storage')
-        subprocess.run(['cc', '-shared', '-fPIC', '-Wall', '-Werror=implicit-function-declaration',
+        command = ['cc', '-shared', '-fPIC', '-Wall', '-Werror=implicit-function-declaration',
                         '-I', str(p), '-I', str(src / 'Inc'),
                         *[str((src.parent / 'App/application/measurement' if name in ('monitor', 'filter', 'classifier', 'baseline') else src / 'Src') / f'drms_{name}.c') for name in names],
                         str(src.parent / 'App/interfaces/local_ui/drms_button.c'),
                         str(src.parent / 'App/interfaces/cdc/drms_config_wire.c'),
                         str(src.parent / 'App/interfaces/cdc/drms_cdc_frame.c'),
-                        str(p / 'mock.c'), '-lm', '-o', str(p / 'app.so')], check=True)
+                        str(p / 'mock.c'), '-lm']
+        subprocess.run(command + ['-o', str(p / 'app.so')], check=True)
+        subprocess.run(command + ['-DDRMS_LOG_SEGMENT_RECORDS=2', '-o', str(p / 'app-segments.so')], check=True)
         cls.instance = 0
 
     @classmethod
@@ -842,6 +844,41 @@ uint32_t HAL_GetUIDw2(void);
         self.assertAlmostEqual(next(iter(decoded))['ohms'], 10000.0)
         self.assertEqual(chunks[2][1][52], 1)
         self.assertEqual(struct.unpack_from('<I', chunks[2][1], 79)[0], 0)
+
+    def test_application_recording_across_segments_is_decodable(self):
+        import io
+        from tools.de_drms_log import LogReaderV2Segments
+        self.lib = ctypes.CDLL(str(Path(self.tmp.name) / 'app-segments.so'))
+        self.lib.drms_console_dispatch.argtypes = [ctypes.c_char_p]
+        self.lib.drms_application_status.argtypes = [ctypes.c_void_p, ctypes.c_size_t]
+        self.lib.drms_application_status.restype = ctypes.c_size_t
+        self.lib.reset_flash()
+        self.lib.drms_log_init()
+        self.lib.drms_application_init()
+        self.insert_card()
+        self.press_measure()
+        self.lib.drms_log_poll()
+        self.lib.drms_application_poll()
+        for _ in range(3):
+            self.lib.advance_ms(100)
+            self.frames(2, 280000, 4200000)
+            self.lib.drms_log_poll()
+        self.press_measure()
+        for _ in range(10):
+            self.lib.drms_application_poll()
+            self.lib.drms_log_poll()
+        self.assertEqual(self.value('drms_log_state').value, 0)
+        length = self.value('written_bytes').value
+        data = bytes((ctypes.c_ubyte * 1048576).in_dll(self.lib, 'file_bytes')[:length])
+        segments = []; start = offset = 0
+        while offset < len(data):
+            kind, size = struct.unpack_from('<HH', data, offset)
+            offset += 4 + size
+            if kind == 3:
+                segments.append(io.BytesIO(data[start:offset])); start = offset
+        self.assertGreater(len(segments), 1)
+        result = LogReaderV2Segments(segments).summary()
+        self.assertTrue(result['no_reported_loss'], result)
 
     def test_configured_duration_stops_recording_after_ready_without_stopping_measurement(self):
         payload = settings().replace(tlv(73, struct.pack('<I', 30000)), tlv(73, struct.pack('<I', 200)))

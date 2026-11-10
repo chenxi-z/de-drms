@@ -291,6 +291,28 @@ class LoggingTest(unittest.TestCase):
         identified_last = with_boot(last, 123456)
         self.assertTrue(LogReaderV2Segments([io.BytesIO(identified_first), io.BytesIO(identified_last)]).summary()['no_reported_loss'])
         self.assertFalse(LogReaderV2Segments([io.BytesIO(identified_first), io.BytesIO(with_boot(last, 456789))]).summary()['no_reported_loss'])
+        def rewrite_chunk(segment, target, mutate):
+            data = bytearray(segment)
+            offset = 0
+            while offset < len(data):
+                kind, length = struct.unpack_from('<HH', data, offset)
+                if kind == target:
+                    payload = offset + 4
+                    mutate(data, payload)
+                    struct.pack_into('<I', data, payload+length-4, zlib.crc32(data[payload:payload+length-4]))
+                    return bytes(data)
+                offset += 4 + length
+            self.fail('chunk missing')
+        def checked(a, b):
+            return LogReaderV2Segments([io.BytesIO(a), io.BytesIO(b)]).summary()['no_reported_loss']
+        empty_reason = rewrite_chunk(identified_last, 3, lambda b, o: struct.pack_into('<I', b, o+79, 12))
+        self.assertFalse(checked(identified_first, empty_reason))  # nonempty data cannot have EMPTY reason
+        different_time_quality = rewrite_chunk(identified_last, 1, lambda b, o: b.__setitem__(o+4, b[o+4] ^ 1))
+        self.assertFalse(checked(identified_first, different_time_quality))
+        intermediate_storage_error = rewrite_chunk(identified_first, 3, lambda b, o: b.__setitem__(o+78, 1))
+        self.assertFalse(checked(intermediate_storage_error, identified_last))
+        wrong_ticket = rewrite_chunk(identified_first, 3, lambda b, o: struct.pack_into('<Q', b, o+12, 999))
+        self.assertFalse(checked(wrong_ticket, identified_last))
         with tempfile.TemporaryDirectory() as directory:
             a, b = Path(directory)/'a.bin', Path(directory)/'b.bin'
             a.write_bytes(identified_first); b.write_bytes(identified_last)

@@ -404,11 +404,15 @@ class LogReaderV2Segments:
                 errors.append('incomplete or mismatched segment')
             if not (header.get('flags', 0) & 4) or bool(header.get('flags', 0) & 8) != bool(index):
                 errors.append('invalid segment order')
+            if (header.get('flags', 0) & ~8) != (reference.get('flags', 0) & ~8):
+                errors.append('inconsistent segment flags')
             if reader.crc_errors or reader.format_errors or reader.adc_faults or reader.sequence_gaps or reader.sequence_disorder:
                 errors.append('frame error or sequence gap')
             if index < len(self.readers)-1:
                 end = reader.end or {}
-                if not reader.records or end.get('end_known') or not end.get('unknown_loss') or end.get('reason') != 9:
+                if (not reader.records or end.get('end_known') or not end.get('unknown_loss') or
+                        end.get('reason') != 9 or end.get('storage_error') or end.get('capture_lost') or
+                        end.get('log_dropped') or end.get('quality_bad')):
                     errors.append('invalid intermediate END')
             if reader.records:
                 if first_sequence is None:
@@ -417,12 +421,15 @@ class LogReaderV2Segments:
                     errors.append('missing or overlapping segment')
                 previous = reader.previous_sequence
             total += reader.records
+            if (reader.end or {}).get('ring_end') != total:
+                errors.append('segment ring boundary mismatch')
         end = last.end or {}
         start, stop = end.get('first_index', 0), end.get('end_exclusive_index', 0)
         if (not end.get('end_known') or end.get('unknown_loss') or end.get('storage_error') or
                 end.get('reason') not in (0, 12) or end.get('capture_lost') or end.get('log_dropped') or
                 end.get('quality_bad') or stop < start or stop - start >= 0x80000000 or stop - start != total or
                 (total and (first_sequence != (start & 0xffffffff) or previous != ((stop-1) & 0xffffffff))) or
+                (total and end.get('reason') == 12) or
                 (not total and end.get('reason') != 12)):
             errors.append('final session boundary or loss mismatch')
         return {'complete': not errors, 'no_reported_loss': not errors, 'errors': errors,
