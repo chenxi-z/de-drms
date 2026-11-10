@@ -1395,46 +1395,92 @@ uint32_t HAL_GetUIDw2(void);
         self.assertEqual(self.value('programs').value, 0)
         self.assertEqual((self.value('drms_acq_running').value, self.value('drms_acq_reference').value), (1, 0))
 
-    def test_cdc_calibration_through_wire_and_operation_query(self):
+    def cdc_exchange(self, opcode, request_id, payload=b'', session=1):
         import zlib
+        raw = struct.pack('<BBHIQHH', 2, 1, opcode, session, request_id, len(payload), 0) + payload
+        raw += struct.pack('<I', zlib.crc32(raw))
+        wire = bytearray(b'\0'); start = 0; code = 1
+        for byte in raw:
+            if byte == 0 or code == 255:
+                wire[start] = code; start = len(wire); wire.append(0); code = 1
+                if byte == 0: continue
+            wire.append(byte); code += 1
+        wire[start] = code; wire.append(0)
+        source = ctypes.create_string_buffer(bytes(wire))
+        self.lib.test_cdc_feed(source, len(wire))
+        length = self.value('test_cdc_length').value
+        encoded = bytes((ctypes.c_ubyte * 1054).in_dll(self.lib, 'test_cdc_wire')[:length])
+        decoded = bytearray(); i = 0
+        while i < len(encoded) - 1:
+            size = encoded[i]; i += 1; decoded += encoded[i:i + size - 1]; i += size - 1
+            if size != 255 and i < len(encoded) - 1: decoded.append(0)
+        fields = {}; i = 20
+        while i < len(decoded) - 4:
+            tag, size = struct.unpack_from('<HH', decoded, i); i += 4
+            fields[tag & 0x7fff] = decoded[i:i + size]; i += size
+        return fields
+
+    def test_cdc_calibration_through_wire_and_operation_query(self):
         self.lib.test_cdc_init()
         self.lib.test_cdc_feed.argtypes = [ctypes.c_void_p, ctypes.c_uint32]
 
-        def exchange(opcode, request_id, payload=b'', session=1):
-            raw = struct.pack('<BBHIQHH', 2, 1, opcode, session, request_id, len(payload), 0) + payload
-            raw += struct.pack('<I', zlib.crc32(raw))
-            wire = bytearray(b'\0'); start = 0; code = 1
-            for byte in raw:
-                if byte == 0 or code == 255:
-                    wire[start] = code; start = len(wire); wire.append(0); code = 1
-                    if byte == 0: continue
-                wire.append(byte); code += 1
-            wire[start] = code; wire.append(0)
-            source = ctypes.create_string_buffer(bytes(wire))
-            self.lib.test_cdc_feed(source, len(wire))
-            length = self.value('test_cdc_length').value
-            encoded = bytes((ctypes.c_ubyte * 1054).in_dll(self.lib, 'test_cdc_wire')[:length])
-            decoded = bytearray(); i = 0
-            while i < len(encoded) - 1:
-                size = encoded[i]; i += 1; decoded += encoded[i:i + size - 1]; i += size - 1
-                if size != 255 and i < len(encoded) - 1: decoded.append(0)
-            fields = {}; i = 20
-            while i < len(decoded) - 4:
-                tag, size = struct.unpack_from('<HH', decoded, i); i += 4
-                fields[tag & 0x7fff] = decoded[i:i + size]; i += size
-            return fields
-
-        hello = exchange(1, 1, session=0)
+        hello = self.cdc_exchange(1, 1, session=0)
         self.assertIn(36, struct.unpack('<' + 'H' * (len(hello[5]) // 2), hello[5]))
-        accepted = exchange(36, 2)
+        accepted = self.cdc_exchange(36, 2)
         self.assertEqual(int.from_bytes(accepted[1], 'little'), 1)
-        self.assertEqual(exchange(36, 2), accepted)
+        self.assertEqual(self.cdc_exchange(36, 2), accepted)
         operation = int.from_bytes(accepted[11], 'little')
         self.lib.drms_application_poll()
         self.frames(4096, 2800000, 4200000)
-        query = exchange(3, 3, struct.pack('<HHQ', 0x800b, 8, operation))
+        query = self.cdc_exchange(3, 3, struct.pack('<HHQ', 0x800b, 8, operation))
         self.assertEqual((int.from_bytes(query[1], 'little'), query[45][0], query[44][0]), (0, 2, 2))
         self.assertEqual(self.value('programs').value, 4)
+
+    def test_cdc_record_lifecycle_through_wire_and_storage(self):
+        self.insert_card()
+        self.lib.test_cdc_init()
+        self.lib.test_cdc_feed.argtypes = [ctypes.c_void_p, ctypes.c_uint32]
+        self.cdc_exchange(1, 1, session=0)
+        begin = self.cdc_exchange(16, 2, struct.pack('<HHI', 0x8032, 4, 0))
+        record = int.from_bytes(begin[12], 'little')
+        self.assertEqual(int.from_bytes(begin[1], 'little'), 1)
+        record_field = struct.pack('<HHQ', 0x800c, 8, record)
+        queued = self.cdc_exchange(4, 3, record_field)
+        self.assertEqual((int.from_bytes(queued[1], 'little'), queued[45][0]), (1, 0))
+        self.lib.drms_application_poll(); self.lib.drms_log_poll(); self.lib.drms_application_poll()
+        self.frames(2, 280000, 4200000)
+        active = self.cdc_exchange(4, 4, record_field)
+        self.assertEqual((int.from_bytes(active[1], 'little'), active[45][0]), (1, 1))
+        end = self.cdc_exchange(17, 5, record_field)
+        self.assertEqual(int.from_bytes(end[1], 'little'), 1)
+        operation = int.from_bytes(end[11], 'little')
+        self.lib.drms_application_poll()
+        for _ in range(6): self.lib.drms_log_poll(); self.lib.drms_application_poll()
+        result = self.cdc_exchange(3, 6, struct.pack('<HHQ', 0x800b, 8, operation))
+        self.assertEqual((int.from_bytes(result[1], 'little'), result[45][0]), (0, 2))
+        finished = self.cdc_exchange(4, 7, record_field)
+        self.assertEqual((int.from_bytes(finished[1], 'little'), finished[45][0], finished[41][0]), (0, 2, 1))
+        self.assertEqual(self.value('drms_acq_running').value, 1)
+
+    def test_cdc_record_write_failure_reports_incomplete(self):
+        self.insert_card()
+        self.lib.test_cdc_init()
+        self.lib.test_cdc_feed.argtypes = [ctypes.c_void_p, ctypes.c_uint32]
+        self.cdc_exchange(1, 1, session=0)
+        begin = self.cdc_exchange(16, 2, struct.pack('<HHI', 0x8032, 4, 0))
+        record = int.from_bytes(begin[12], 'little')
+        record_field = struct.pack('<HHQ', 0x800c, 8, record)
+        self.lib.drms_application_poll(); self.lib.drms_log_poll(); self.lib.drms_application_poll()
+        self.frames(2, 280000, 4200000)
+        self.value('fail_at').value = self.value('writes').value + 1
+        end = self.cdc_exchange(17, 3, record_field)
+        operation = int.from_bytes(end[11], 'little')
+        for _ in range(8): self.lib.drms_application_poll(); self.lib.drms_log_poll()
+        self.lib.drms_application_poll()
+        result = self.cdc_exchange(3, 4, struct.pack('<HHQ', 0x800b, 8, operation))
+        self.assertEqual((int.from_bytes(result[1], 'little'), result[45][0]), (6, 2))
+        finished = self.cdc_exchange(4, 5, record_field)
+        self.assertEqual((int.from_bytes(finished[1], 'little'), finished[45][0], finished[41][0]), (6, 2, 0))
 
 
 if __name__ == '__main__':
