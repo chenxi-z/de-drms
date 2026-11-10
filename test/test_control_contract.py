@@ -75,7 +75,8 @@ class Request(ctypes.Structure):
     _fields_ = [('source', ctypes.c_uint32), ('session', ctypes.c_uint32),
                 ('request_id', ctypes.c_uint64), ('operation', ctypes.c_int),
                 ('value', ctypes.c_uint32), ('number', ctypes.c_double),
-                ('payload', ctypes.c_void_p), ('payload_length', ctypes.c_uint32)]
+                ('payload', ctypes.c_void_p), ('payload_length', ctypes.c_uint32),
+                ('expected_version', ctypes.c_uint64)]
 
 
 class Completion(ctypes.Structure):

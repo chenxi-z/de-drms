@@ -19,7 +19,8 @@ class ControlRequest(ctypes.Structure):
     _fields_ = [('source', ctypes.c_uint32), ('session', ctypes.c_uint32),
                 ('request_id', ctypes.c_uint64), ('operation', ctypes.c_int),
                 ('value', ctypes.c_uint32), ('number', ctypes.c_double),
-                ('payload', ctypes.c_void_p), ('payload_length', ctypes.c_uint32)]
+                ('payload', ctypes.c_void_p), ('payload_length', ctypes.c_uint32),
+                ('expected_version', ctypes.c_uint64)]
 
 class Token(ctypes.Structure):
     _fields_ = [('operation_id', ctypes.c_uint64), ('generation', ctypes.c_uint32)]
@@ -199,6 +200,8 @@ uint32_t HAL_GetUIDw2(void);
         fx = fx.replace('void drms_storage_invalidate(void) { ++invalidates;drms_storage_mounted=0;drms_log_removed(); }',
                         '')  # 真实 storage.c 提供定义；计数器归集成测试
         mock = ACQ_MOCK.replace('pins[8]', 'pins[16]')
+        mock = mock.replace('int HAL_SPI_Abort(SPI_HandleTypeDef *s) { return 0; }',
+                            'int abort_failure; int HAL_SPI_Abort(SPI_HandleTypeDef *s) { return abort_failure; }')
         (p / 'mock.c').write_text(mock + fx + CAL_MOCK + APP_MOCK)
         src = ROOT / 'firmware/DE-DRMS-Code/Core'
         names = ('application', 'command', 'acquisition', 'measurement', 'fifo', 'logging',
@@ -290,6 +293,77 @@ uint32_t HAL_GetUIDw2(void);
         token = Token()
         self.assertEqual(self.lib.drms_control_reserve(4, ctypes.byref(token)), 1)
         self.lib.drms_control_complete(token, 0, 4)
+
+    def test_save_config_stops_safely_persists_and_resumes(self):
+        body = build_body(params=(4000, 0, 0, 0, 32000))
+        self.lib.drms_user_config_apply.argtypes = [ctypes.c_char_p, ctypes.c_size_t, ctypes.c_uint64]
+        self.assertEqual(self.lib.drms_user_config_apply(body, len(body), 0), 0)
+        request = ControlRequest(source=3, request_id=80, operation=7, expected_version=1)
+        ident = ctypes.c_uint64()
+        self.lib.drms_control_submit_identified.argtypes = [ctypes.POINTER(ControlRequest), ctypes.POINTER(ctypes.c_uint64)]
+        self.assertEqual(self.lib.drms_control_submit_identified(ctypes.byref(request), ctypes.byref(ident)), 1)
+        self.lib.drms_application_poll()
+        from test_control_contract import Completion
+        result = Completion()
+        self.lib.drms_control_get_operation.argtypes = [ctypes.c_uint64, ctypes.POINTER(Completion)]
+        self.assertEqual(self.lib.drms_control_get_operation(ident.value, ctypes.byref(result)), 0)
+        self.assertEqual((result.result, result.phase), (0, 2))
+        self.assertEqual(self.lib.drms_user_config_persisted_version(), 1)
+        self.assertEqual(self.value('drms_acq_running').value, 1)
+
+    def test_save_config_version_mismatch_does_not_interrupt_sampling(self):
+        generation = self.lib.drms_acq_generation()
+        request = ControlRequest(source=3, request_id=81, operation=7, expected_version=99)
+        ident = ctypes.c_uint64()
+        self.lib.drms_control_submit_identified.argtypes = [ctypes.POINTER(ControlRequest), ctypes.POINTER(ctypes.c_uint64)]
+        self.assertEqual(self.lib.drms_control_submit_identified(ctypes.byref(request), ctypes.byref(ident)), 1)
+        self.lib.drms_application_poll()
+        from test_control_contract import Completion
+        result = Completion()
+        self.lib.drms_control_get_operation.argtypes = [ctypes.c_uint64, ctypes.POINTER(Completion)]
+        self.assertEqual(self.lib.drms_control_get_operation(ident.value, ctypes.byref(result)), 0)
+        self.assertEqual(result.result, 4)
+        self.assertEqual(self.lib.drms_acq_generation(), generation)
+        self.assertEqual(self.value('drms_acq_running').value, 1)
+
+    def test_save_config_failure_preserves_dirty_config_and_resumes(self):
+        body = build_body(params=(4000, 0, 0, 0, 32000))
+        self.lib.drms_user_config_apply.argtypes = [ctypes.c_char_p, ctypes.c_size_t, ctypes.c_uint64]
+        self.assertEqual(self.lib.drms_user_config_apply(body, len(body), 0), 0)
+        ctypes.c_int.in_dll(self.lib, 'fail_user_write').value = 1
+        request = ControlRequest(source=3, request_id=82, operation=7, expected_version=1)
+        ident = ctypes.c_uint64()
+        self.lib.drms_control_submit_identified.argtypes = [ctypes.POINTER(ControlRequest), ctypes.POINTER(ctypes.c_uint64)]
+        self.assertEqual(self.lib.drms_control_submit_identified(ctypes.byref(request), ctypes.byref(ident)), 1)
+        self.lib.drms_application_poll()
+        from test_control_contract import Completion
+        result = Completion()
+        self.lib.drms_control_get_operation.argtypes = [ctypes.c_uint64, ctypes.POINTER(Completion)]
+        self.assertEqual(self.lib.drms_control_get_operation(ident.value, ctypes.byref(result)), 0)
+        self.assertEqual(result.result, 6)
+        self.assertEqual(self.lib.drms_user_config_dirty(), 1)
+        self.assertEqual(self.lib.drms_user_config_persisted_version(), 0)
+        self.assertEqual(self.value('drms_acq_running').value, 1)
+
+    def test_save_config_quarantines_unconfirmed_dma_abort(self):
+        body = build_body(params=(4000, 0, 0, 0, 32000))
+        self.lib.drms_user_config_apply.argtypes = [ctypes.c_char_p, ctypes.c_size_t, ctypes.c_uint64]
+        self.assertEqual(self.lib.drms_user_config_apply(body, len(body), 0), 0)
+        self.lib.drms_acq_drdy()
+        ctypes.c_int.in_dll(self.lib, 'abort_failure').value = 1
+        request = ControlRequest(source=3, request_id=83, operation=7, expected_version=1)
+        ident = ctypes.c_uint64()
+        self.lib.drms_control_submit_identified.argtypes = [ctypes.POINTER(ControlRequest), ctypes.POINTER(ctypes.c_uint64)]
+        self.assertEqual(self.lib.drms_control_submit_identified(ctypes.byref(request), ctypes.byref(ident)), 1)
+        self.lib.drms_application_poll()
+        from test_control_contract import Completion, Snapshot
+        result, snapshot = Completion(), Snapshot()
+        self.lib.drms_control_get_operation.argtypes = [ctypes.c_uint64, ctypes.POINTER(Completion)]
+        self.assertEqual(self.lib.drms_control_get_operation(ident.value, ctypes.byref(result)), 0)
+        self.assertEqual(result.result, 10)
+        self.lib.drms_control_get_snapshot(ctypes.byref(snapshot))
+        self.assertNotEqual(snapshot.quarantined_mask & 1, 0)
+        self.assertEqual(self.lib.drms_user_config_persisted_version(), 0)
 
     def test_baseline_build_without_card_persists_and_resumes_monitor(self):
         body = with_baseline_policy(build_body(params=(4000, 0, 0, 0, 32000)), 4, 750, 0.01)

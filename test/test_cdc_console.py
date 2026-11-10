@@ -55,8 +55,9 @@ uint32_t HAL_GetUIDw1(void) { return 2; }
 uint32_t HAL_GetUIDw2(void) { return 3; }
 int drms_entropy_boot_id(void *ctx,uint64_t *out) { *out=0x123456789abcdef0ULL; return 1; }
 static DRMS_Token test_token;
+uint64_t observed_version;
 static DRMS_Result test_dispatch(const DRMS_Token *token, const DRMS_ControlRequest *request) {
- (void)request;test_token=*token;return DRMS_ACCEPTED;
+ observed_version=request->expected_version;test_token=*token;return DRMS_ACCEPTED;
 }
 void install_control(void) { drms_control_init(test_dispatch); }
 void complete_operation(void) {
@@ -65,6 +66,7 @@ void complete_operation(void) {
  drms_control_complete(test_token,DRMS_OK,DRMS_RES_TF_ACCESS);
 }
 uint32_t control_queued(void) { DRMS_ControlSnapshot s; drms_control_get_snapshot(&s); return s.requests_queued; }
+void process_one(void) { drms_control_poll(1); }
 uint32_t drms_application_snapshot(DRMS_ApplicationSnapshot *out) {
  memset(out,0,sizeof(*out));out->revision=8;out->mono_us=123000;out->acquisition=3;
  out->rate=4000;out->fresh=1;out->classification=2;out->ohms_valid=1;out->ohms=10000;
@@ -315,6 +317,24 @@ class CDCConsoleTest(unittest.TestCase):
             wire[start] = code; wire.append(0)
             self.send(bytes(wire))
             self.assertEqual(self.lib.control_queued(), number - 1)
+
+    def test_v2_save_passes_full_expected_version_to_control(self):
+        import struct, zlib
+        self.send(bytes.fromhex('040201010101010102010101010101010101010105d7970e6600'))
+        payload = struct.pack('<HHQ', 0x8030, 8, 0x100000001)
+        raw = struct.pack('<BBHIQHH', 2, 1, 34, 1, 2, len(payload), 0) + payload
+        raw += struct.pack('<I', zlib.crc32(raw))
+        wire = bytearray(b'\x00'); start = 0; code = 1
+        for byte in raw:
+            if byte == 0:
+                wire[start] = code; start = len(wire); wire.append(0); code = 1
+            else:
+                wire.append(byte); code += 1
+        wire[start] = code; wire.append(0)
+        self.send(bytes(wire))
+        self.assertEqual(self.lib.control_queued(), 1)
+        self.lib.process_one()
+        self.assertEqual(ctypes.c_uint64.in_dll(self.lib, 'observed_version').value, 0x100000001)
 
     def test_short_and_empty_packets_preserve_line(self):
         self.send(b'PI')

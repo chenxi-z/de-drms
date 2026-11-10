@@ -78,6 +78,7 @@ static uint64_t baseline_version, baseline_ticket;
 static uint32_t baseline_active, baseline_rate, baseline_started, baseline_timeout_ms;
 static uint32_t baseline_overruns, baseline_drops, baseline_first_seq, baseline_previous_seq;
 static DRMS_Result baseline_failure;
+static uint32_t begin(uint32_t rate, uint32_t reference);
 
 int drms_console_dispatch(const char *line)
 {
@@ -202,8 +203,38 @@ static DRMS_Result app_dispatch(const DRMS_Token *token, const DRMS_ControlReque
       baseline_active = 1;
       return DRMS_ACCEPTED;
     }
-    case DRMS_OP_CONFIG_APPLY:
     case DRMS_OP_CONFIG_SAVE:
+    {
+      if (request->expected_version != drms_user_config_run_version())
+        return DRMS_STALE;
+      if (!drms_user_config_dirty())
+        return DRMS_NO_CHANGE;
+      if (cal_active || drms_acq_reference)
+        return DRMS_BUSY;
+      uint32_t was_running = drms_acq_running;
+      uint32_t rate = drms_acq_rate;
+      if (was_running)
+        drms_acq_stop();
+      if (!drms_acq_is_quiescent())
+      {
+        (void)drms_control_complete(*token, DRMS_QUARANTINED,
+                                    DRMS_RES_TF_ACCESS | DRMS_RES_FLASH_MAINTENANCE);
+        return DRMS_ACCEPTED;
+      }
+      DRMS_Result result = drms_user_config_save(request->expected_version);
+      if (was_running && begin(rate, 0) != 0)
+      {
+        if (!drms_acq_is_quiescent())
+        {
+          (void)drms_control_complete(*token, DRMS_QUARANTINED,
+                                      DRMS_RES_TF_ACCESS | DRMS_RES_FLASH_MAINTENANCE);
+          return DRMS_ACCEPTED;
+        }
+        result = DRMS_IO_ERROR;
+      }
+      return result;
+    }
+    case DRMS_OP_CONFIG_APPLY:
     case DRMS_OP_FILE_DOWNLOAD:
     case DRMS_OP_CALIBRATE:
     case DRMS_OP_UPDATE:
