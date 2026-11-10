@@ -12,6 +12,8 @@ from test_acquisition import HEADER as ACQ_HEADER, MOCK as ACQ_MOCK
 from test_logging import HEADER as FX_HEADER, MOCK as FX_MOCK
 from test_calibration_journal import MOCK as CAL_MOCK
 from test_user_config import build_body, with_baseline_policy
+from test_config_wire import settings, tlv
+import struct
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -212,6 +214,8 @@ uint32_t HAL_GetUIDw2(void);
                         '-I', str(p), '-I', str(src / 'Inc'),
                         *[str((src.parent / 'App/application/measurement' if name in ('monitor', 'filter', 'classifier', 'baseline') else src / 'Src') / f'drms_{name}.c') for name in names],
                         str(src.parent / 'App/interfaces/local_ui/drms_button.c'),
+                        str(src.parent / 'App/interfaces/cdc/drms_config_wire.c'),
+                        str(src.parent / 'App/interfaces/cdc/drms_cdc_frame.c'),
                         str(p / 'mock.c'), '-lm', '-o', str(p / 'app.so')], check=True)
         cls.instance = 0
 
@@ -310,6 +314,47 @@ uint32_t HAL_GetUIDw2(void);
         self.assertEqual((result.result, result.phase), (0, 2))
         self.assertEqual(self.lib.drms_user_config_persisted_version(), 1)
         self.assertEqual(self.value('drms_acq_running').value, 1)
+
+    def test_apply_config_updates_rate_and_rejects_stale_without_stopping(self):
+        self.assertEqual(self.value('drms_acq_running').value, 1)
+        payload = settings().replace(tlv(72, struct.pack('<I', 4000)), tlv(72, struct.pack('<I', 8000)))
+        source = ctypes.create_string_buffer(payload)
+        request = ControlRequest(source=3, request_id=80, operation=4,
+                                 payload=ctypes.addressof(source), payload_length=len(payload), expected_version=0)
+        ident = ctypes.c_uint64()
+        self.lib.drms_control_submit_identified.argtypes = [ctypes.POINTER(ControlRequest), ctypes.POINTER(ctypes.c_uint64)]
+        self.assertEqual(self.lib.drms_control_submit_identified(ctypes.byref(request), ctypes.byref(ident)), 1)
+        self.lib.drms_application_poll()
+        from test_control_contract import Completion
+        result = Completion()
+        self.lib.drms_control_get_operation.argtypes = [ctypes.c_uint64, ctypes.POINTER(Completion)]
+        self.assertEqual(self.lib.drms_control_get_operation(ident.value, ctypes.byref(result)), 0)
+        self.assertEqual((result.result, result.phase), (0, 2))
+        self.assertEqual(self.value('drms_acq_rate').value, 8000)
+        self.assertEqual(self.lib.drms_user_config_run_version(), 1)
+        self.assertEqual(self.lib.drms_control_submit_identified(ctypes.byref(request), ctypes.byref(ident)), 1)
+        self.lib.drms_application_poll()
+        self.assertEqual(self.lib.drms_control_get_operation(ident.value, ctypes.byref(result)), 0)
+        self.assertEqual(result.result, 4)
+        self.assertEqual((self.value('drms_acq_rate').value, self.value('drms_acq_running').value), (8000, 1))
+
+    def test_apply_failed_restart_does_not_publish_candidate(self):
+        payload = settings()
+        source = ctypes.create_string_buffer(payload)
+        request = ControlRequest(source=3, request_id=81, operation=4,
+                                 payload=ctypes.addressof(source), payload_length=len(payload), expected_version=0)
+        operation = ctypes.c_uint64()
+        self.lib.drms_control_submit_identified.argtypes = [ctypes.POINTER(ControlRequest), ctypes.POINTER(ctypes.c_uint64)]
+        self.lib.set_spi_size(23)
+        self.assertEqual(self.lib.drms_control_submit_identified(ctypes.byref(request), ctypes.byref(operation)), 1)
+        self.lib.drms_application_poll()
+        from test_control_contract import Completion
+        result = Completion()
+        self.lib.drms_control_get_operation.argtypes = [ctypes.c_uint64, ctypes.POINTER(Completion)]
+        self.assertEqual(self.lib.drms_control_get_operation(operation.value, ctypes.byref(result)), 0)
+        self.assertEqual(result.result, 6)
+        self.assertEqual(self.lib.drms_user_config_run_version(), 0)
+        self.assertEqual(self.value('drms_acq_running').value, 0)
 
     def test_save_config_version_mismatch_does_not_interrupt_sampling(self):
         generation = self.lib.drms_acq_generation()

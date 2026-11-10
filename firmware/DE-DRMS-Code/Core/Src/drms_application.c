@@ -17,6 +17,7 @@
 #include "drms_runtime.h"
 #include "drms_power.h"
 #include "../../App/interfaces/local_ui/drms_button.h"
+#include "../../App/interfaces/cdc/drms_config_wire.h"
 #include "main.h"
 #include "tx_api.h"
 #include <stdio.h>
@@ -79,7 +80,27 @@ static uint32_t baseline_active, baseline_rate, baseline_started, baseline_timeo
 static uint32_t baseline_overruns, baseline_drops, baseline_first_seq, baseline_previous_seq;
 static DRMS_Result baseline_failure;
 static uint32_t priority_stop_active, priority_stop_started, priority_stop_had_record;
+/* Only the serialized application owner uses this scratch buffer. */
+static uint8_t config_candidate[DRMS_USER_BODY_MAX];
 static uint32_t begin(uint32_t rate, uint32_t reference);
+static void configure_monitor(uint32_t rate);
+
+static uint32_t config_wire_rate(const uint8_t *payload, size_t length)
+{
+  size_t offset = 0;
+  while (length - offset >= 4u)
+  {
+    uint16_t tag = (uint16_t)(payload[offset] | ((uint16_t)payload[offset + 1] << 8));
+    uint16_t size = (uint16_t)(payload[offset + 2] | ((uint16_t)payload[offset + 3] << 8));
+    offset += 4u;
+    if (size > length - offset) return 0;
+    if ((tag & 0x7fffu) == 72u && size == 4u)
+      return (uint32_t)payload[offset] | ((uint32_t)payload[offset+1] << 8) |
+             ((uint32_t)payload[offset+2] << 16) | ((uint32_t)payload[offset+3] << 24);
+    offset += size;
+  }
+  return 0;
+}
 
 int drms_console_dispatch(const char *line)
 {
@@ -258,6 +279,65 @@ static DRMS_Result app_dispatch(const DRMS_Token *token, const DRMS_ControlReque
       return result;
     }
     case DRMS_OP_CONFIG_APPLY:
+    {
+      if (!request->payload || !request->payload_length || drms_shutdown_requested)
+        return DRMS_INVALID;
+      if (cal_active || baseline_active || drms_acq_reference)
+        return DRMS_BUSY;
+      size_t size = drms_config_wire_to_body(request->payload, request->payload_length,
+                                             config_candidate, sizeof(config_candidate));
+      if (!size) return DRMS_INVALID;
+      DRMS_Result result = drms_user_config_preflight(config_candidate, size, request->expected_version);
+      if (result != DRMS_OK) return result;
+      uint32_t rate = config_wire_rate(request->payload, request->payload_length);
+      uint32_t was_running = drms_acq_running;
+      uint32_t old_rate = was_running ? drms_acq_rate : boot_rate;
+      if (was_running) drms_acq_stop();
+      if (!drms_acq_is_quiescent())
+      {
+        (void)drms_control_complete(*token, DRMS_QUARANTINED, DRMS_RES_FLASH_MAINTENANCE);
+        return DRMS_ACCEPTED;
+      }
+      /* Probe the new rate before publishing. On failure the old snapshot is
+       * still authoritative; resume its acquisition if the backend is quiet. */
+      if (was_running && begin(rate, 0) != 0)
+      {
+        if (!drms_acq_is_quiescent())
+        {
+          (void)drms_control_complete(*token, DRMS_QUARANTINED, DRMS_RES_FLASH_MAINTENANCE);
+          return DRMS_ACCEPTED;
+        }
+        if (begin(old_rate, 0) != 0 && !drms_acq_is_quiescent())
+        {
+          (void)drms_control_complete(*token, DRMS_QUARANTINED, DRMS_RES_FLASH_MAINTENANCE);
+          return DRMS_ACCEPTED;
+        }
+        return DRMS_IO_ERROR;
+      }
+      result = drms_user_config_apply(config_candidate, size, request->expected_version);
+      if (result != DRMS_OK)
+      {
+        if (was_running)
+        {
+          drms_acq_stop();
+          if (!drms_acq_is_quiescent())
+          {
+            (void)drms_control_complete(*token, DRMS_QUARANTINED, DRMS_RES_FLASH_MAINTENANCE);
+            return DRMS_ACCEPTED;
+          }
+          if (begin(old_rate, 0) != 0 && !drms_acq_is_quiescent())
+          {
+            (void)drms_control_complete(*token, DRMS_QUARANTINED, DRMS_RES_FLASH_MAINTENANCE);
+            return DRMS_ACCEPTED;
+          }
+        }
+        return result;
+      }
+      boot_rate = rate;
+      config_state = 1;
+      configure_monitor(rate);
+      return DRMS_OK;
+    }
     case DRMS_OP_FILE_DOWNLOAD:
     case DRMS_OP_CALIBRATE:
     case DRMS_OP_UPDATE:

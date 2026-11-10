@@ -110,6 +110,7 @@ class UserConfigTest(unittest.TestCase):
                         str(p / 'fake.c'), '-o', str(p / 'uc.so')], check=True)
         cls.lib = ctypes.CDLL(str(p / 'uc.so'))
         cls.lib.drms_user_config_apply.argtypes = [ctypes.c_char_p, ctypes.c_size_t, ctypes.c_uint64]
+        cls.lib.drms_user_config_preflight.argtypes = [ctypes.c_char_p, ctypes.c_size_t, ctypes.c_uint64]
         cls.lib.drms_user_config_save.argtypes = [ctypes.c_uint64]
         cls.lib.drms_user_config_commit_baseline.argtypes = [ctypes.c_double, ctypes.c_uint64, ctypes.c_uint64]
         cls.lib.fake_page.restype = ctypes.c_void_p
@@ -150,6 +151,23 @@ class UserConfigTest(unittest.TestCase):
         self.reboot()
         self.assertEqual(self.lib.drms_user_config_get_baseline_policy(ctypes.byref(policy)), 1)
         self.assertEqual((policy.min_count, policy.min_duration_us, policy.max_cv), (400, 1000000, 0.01))
+
+    def test_preflight_checks_without_publishing_or_altering_existing_configuration(self):
+        body = with_baseline_policy(build_body(), 400, 1000000, .01)
+        self.assertEqual(self.lib.drms_user_config_apply(body, len(body), 0), OK)
+        candidate = with_baseline_policy(build_body(params=(8000, 0, 0, 0, 16000)), 200, 0, .02)
+        self.assertEqual(self.lib.drms_user_config_preflight(candidate, len(candidate), 0), STALE)
+        self.assertEqual(self.lib.drms_user_config_preflight(candidate, len(candidate), 1), OK)
+        self.assertEqual(self.lib.drms_user_config_run_version(), 1)
+        self.assertEqual(self.lib.drms_user_config_baseline_rate(), 4000)
+        policy = BaselinePolicy()
+        self.assertEqual(self.lib.drms_user_config_get_baseline_policy(ctypes.byref(policy)), 1)
+        self.assertEqual(policy.min_count, 400)
+        damaged = candidate[:-1] + bytes([candidate[-1] ^ 1])
+        self.assertEqual(self.lib.drms_user_config_preflight(damaged, len(damaged), 1), INVALID)
+        self.assertEqual(self.lib.drms_user_config_baseline_rate(), 4000)
+        self.assertEqual(self.lib.drms_user_config_apply(candidate, len(candidate), 1), OK)
+        self.assertEqual(self.lib.drms_user_config_baseline_rate(), 8000)
 
     def test_baseline_policy_rejects_invalid_values(self):
         for count, duration, cv in [(0, 1, 0.1), (0, 0, 0.1), (10, 0, -1), (10, 0, float('nan'))]:

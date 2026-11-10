@@ -562,8 +562,8 @@ void drms_user_config_load(void)
   /* Both known snapshots failed validation; no invalid version is published. */
 }
 
-DRMS_Result drms_user_config_apply(const uint8_t *encoded, size_t length,
-                                   uint64_t expected_version)
+static DRMS_Result validate_candidate(const uint8_t *encoded, size_t length,
+                                      uint64_t expected_version, RunConfig *candidate)
 {
   if (!encoded || !length)
     return DRMS_INVALID;
@@ -573,10 +573,25 @@ DRMS_Result drms_user_config_apply(const uint8_t *encoded, size_t length,
     return DRMS_STALE;
   if (run_version == UINT64_MAX)
     return DRMS_INVALID;
-  if (!validate_encoded(encoded, length, &staged))
+  if (!validate_encoded(encoded, length, candidate))
     return DRMS_INVALID;
-  if (!supported_monitor(&staged))
+  if (!supported_monitor(candidate))
     return DRMS_INVALID;
+  return DRMS_OK;
+}
+
+DRMS_Result drms_user_config_preflight(const uint8_t *encoded, size_t length,
+                                       uint64_t expected_version)
+{
+  return validate_candidate(encoded, length, expected_version, &transaction_workspace);
+}
+
+DRMS_Result drms_user_config_apply(const uint8_t *encoded, size_t length,
+                                   uint64_t expected_version)
+{
+  DRMS_Result result = validate_candidate(encoded, length, expected_version, &staged);
+  if (result != DRMS_OK)
+    return result;
   /* An ordinary settings update must not silently erase the current baseline.
    * A rate change invalidates its dependency, while retaining the old value for
    * diagnostics. Explicit baseline commits remain the only measurement path. */

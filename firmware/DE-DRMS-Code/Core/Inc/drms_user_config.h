@@ -39,6 +39,12 @@ void drms_user_config_set_calibration_generation(uint64_t generation);
  * 保留原始页并进入恢复状态（普通保存拒绝覆盖）；两页均无效 → 出厂默认。 */
 void drms_user_config_load(void);
 
+/* Serialized configuration owner only. Performs the same validity and version
+ * checks as apply without publishing, incrementing a version or writing flash.
+ * Revalidate at commit: another operation may change the version meanwhile. */
+DRMS_Result drms_user_config_preflight(const uint8_t *encoded, size_t length,
+                                       uint64_t expected_version);
+
 /* 校验并发布运行配置（整体校验；任何非法输入整包拒绝，不部分生效）。
  * expected_version 必须等于当前运行版本，否则 STALE。成功后运行版本 +1、
  * 置未保存标志；持久化由 save/commit_baseline 完成。 */

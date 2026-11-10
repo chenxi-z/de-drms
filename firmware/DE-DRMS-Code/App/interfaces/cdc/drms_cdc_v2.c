@@ -123,13 +123,15 @@ static void received(void *user, const uint8_t *request, size_t length)
           }
         }
       }
-      else if (opcode == 18u || opcode == 19u || opcode == 34u || opcode == 35u || opcode == 48u || opcode == 49u)
+      else if (opcode == 18u || opcode == 19u || opcode == 33u || opcode == 34u || opcode == 35u || opcode == 48u || opcode == 49u)
       {
         static const DRMS_CDCFieldRule version_rule[] = {{48, 8, 8, 0, 1}};
-        DRMS_CDCFieldView version_field[1];
-        int invalid = opcode == 34u ?
-            drms_cdc_fields_validate(request + 20, payload_len, version_rule, 1, version_field) :
-            drms_cdc_fields_validate(request + 20, payload_len, NULL, 0, NULL);
+        static const DRMS_CDCFieldRule apply_rules[] = {{48, 8, 8, 0, 1}, {49, 1, 1004, 0, 1}};
+        DRMS_CDCFieldView version_field[2];
+        int invalid = opcode == 33u ?
+            drms_cdc_fields_validate(request + 20, payload_len, apply_rules, 2, version_field) :
+            opcode == 34u ? drms_cdc_fields_validate(request + 20, payload_len, version_rule, 1, version_field) :
+                           drms_cdc_fields_validate(request + 20, payload_len, NULL, 0, NULL);
         if (invalid)
           result = DRMS_INVALID;
         else
@@ -143,11 +145,17 @@ static void received(void *user, const uint8_t *request, size_t length)
               .source = DRMS_SOURCE_CDC, .session = session, .request_id = id,
               .operation = opcode == 18u ? DRMS_OP_NONE :
                            opcode == 19u ? DRMS_OP_RESUME_MONITOR :
+                           opcode == 33u ? DRMS_OP_CONFIG_APPLY :
                            opcode == 34u ? DRMS_OP_CONFIG_SAVE :
                            opcode == 35u ? DRMS_OP_BASELINE_R0 :
                            opcode == 48u ? DRMS_OP_MSC_EXPORT : DRMS_OP_MSC_RELEASE};
-            if (opcode == 34u)
+            if (opcode == 33u || opcode == 34u)
               submission.expected_version = get64(version_field[0].value);
+            if (opcode == 33u)
+            {
+              submission.payload = version_field[1].value;
+              submission.payload_length = version_field[1].length;
+            }
             result = (uint16_t)(opcode == 18u ?
                 drms_control_safe_stop_submit(&submission, &accepted_operation) :
                 drms_control_submit_identified(&submission, &accepted_operation));
@@ -177,8 +185,8 @@ static void received(void *user, const uint8_t *request, size_t length)
     tlv(out, &pos, 3, temp, 12);
     put64(temp, ctx->session.boot); tlv(out, &pos, 4, temp, 8);
     put16(temp, 1); put16(temp + 2, 2); put16(temp + 4, 3);
-    put16(temp + 6, 18); put16(temp + 8, 19); put16(temp + 10, 34); put16(temp + 12, 35);
-    put16(temp + 14, 48); put16(temp + 16, 49); tlv(out, &pos, 5, temp, 18);
+    put16(temp + 6, 18); put16(temp + 8, 19); put16(temp + 10, 33); put16(temp + 12, 34);
+    put16(temp + 14, 35); put16(temp + 16, 48); put16(temp + 18, 49); tlv(out, &pos, 5, temp, 20);
     put16(temp, 1024); tlv(out, &pos, 6, temp, 2);
     put32(temp, 4000); tlv(out, &pos, 7, temp, 4);
     tlv(out, &pos, 8, temp, 0); /* no recording capability is exposed yet */

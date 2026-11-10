@@ -59,8 +59,14 @@ uint32_t HAL_GetUIDw2(void) { return 3; }
 int drms_entropy_boot_id(void *ctx,uint64_t *out) { *out=0x123456789abcdef0ULL; return 1; }
 static DRMS_Token test_token;
 uint64_t observed_version;
+uint8_t observed_payload[1024];
+uint32_t observed_length;
 static DRMS_Result test_dispatch(const DRMS_Token *token, const DRMS_ControlRequest *request) {
- observed_version=request->expected_version;test_token=*token;return DRMS_ACCEPTED;
+ observed_version=request->expected_version;test_token=*token;
+ if (request->operation == DRMS_OP_CONFIG_APPLY && request->payload_length <= sizeof(observed_payload)) {
+   observed_length=request->payload_length; memcpy(observed_payload, request->payload, observed_length);
+ }
+ return DRMS_ACCEPTED;
 }
 void install_control(void) { drms_control_init(test_dispatch); }
 void complete_operation(void) {
@@ -444,6 +450,31 @@ class CDCConsoleTest(unittest.TestCase):
         self.assertEqual(self.lib.control_queued(), 1)
         self.lib.process_one()
         self.assertEqual(ctypes.c_uint64.in_dll(self.lib, 'observed_version').value, 0x100000001)
+
+    def test_v2_apply_owns_nested_payload_through_disconnect(self):
+        import struct, zlib
+        from test_config_wire import settings
+        self.send(bytes.fromhex('040201010101010102010101010101010101010105d7970e6600'))
+        config = settings()
+        payload = struct.pack('<HHQHH', 0x8030, 8, 0x100000001, 0x8031, len(config)) + config
+        raw = struct.pack('<BBHIQHH', 2, 1, 33, 1, 2, len(payload), 0) + payload
+        raw += struct.pack('<I', zlib.crc32(raw))
+        wire = bytearray(b'\0'); start = 0; code = 1
+        for byte in raw:
+            if byte == 0:
+                wire[start] = code; start = len(wire); wire.append(0); code = 1
+            else:
+                wire.append(byte); code += 1
+                if code == 255:
+                    wire[start] = code; start = len(wire); wire.append(0); code = 1
+        wire[start] = code; wire.append(0)
+        for i in range(0, len(wire), 64): self.send(bytes(wire[i:i+64]))
+        self.assertEqual(self.lib.control_queued(), 1)
+        self.lib.drms_cdc_deactivate()
+        self.lib.process_one()
+        self.assertEqual(ctypes.c_uint64.in_dll(self.lib, 'observed_version').value, 0x100000001)
+        n = self.value('observed_length').value
+        self.assertEqual(bytes((ctypes.c_ubyte * 1024).in_dll(self.lib, 'observed_payload')[:n]), config)
 
     def test_short_and_empty_packets_preserve_line(self):
         self.send(b'PI')
