@@ -224,13 +224,32 @@ class V2CodecTest(unittest.TestCase):
         hbuf = ctypes.create_string_buffer(8192)
         n = self.lib.drms_log_v2_pack_header(hbuf, 8192, ctypes.byref(meta))
         self.assertGreater(n, 0)
-        reader = self.decode(hbuf.raw[:n] + hand_valid_data((5,)) + hand_end(
+        reader = self.decode(hbuf.raw[:n] + hand_valid_data((0,)) + hand_end(
             gen=1, record_id=9, ring_end=1, lost=0, first=0, end_excl=1, last=0,
             capture=0, quality=0, reason=0))
         self.assertTrue(reader.complete())
         self.assertEqual(reader.header['config'], config)
         self.assertEqual(reader.end['reason'], 0)
         self.assertTrue(reader.summary()['no_reported_loss'])
+
+    def test_clean_claim_requires_data_to_cover_both_boundaries(self):
+        for sequences, first, end_excl in [((101, 102), 100, 103), ((100, 101), 100, 103),
+                                             ((100, 101), 100, 101), ((), 100, 101)]:
+            data = hand_valid_data(sequences) if sequences else b''
+            reader = self.decode(hand_header() + data + hand_end(
+                ring_end=len(sequences), lost=0, first=first, end_excl=end_excl,
+                last=sequences[-1] if sequences else 0, capture=0, quality=0, reason=0))
+            self.assertFalse(reader.summary()['no_reported_loss'], (sequences, first, end_excl))
+
+    def test_anchor_rate_mismatch_is_invalid(self):
+        reader = self.decode(hand_header(anchor=(3, 8000, 100, 123456)) + hand_end())
+        self.assertFalse(reader.complete())
+        meta = V2Meta()
+        meta.rate_hz = 4000
+        meta.anchor.acquisition_generation = 3
+        meta.anchor.rate_hz = 8000
+        output = ctypes.create_string_buffer(256)
+        self.assertEqual(self.lib.drms_log_v2_pack_header(output, len(output), ctypes.byref(meta)), 0)
 
     def test_corrupt_adc_frame_is_not_reported_lossless(self):
         reader = self.decode(hand_header() + hand_data((100,)) + hand_end(

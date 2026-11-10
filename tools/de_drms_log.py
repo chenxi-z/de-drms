@@ -136,6 +136,7 @@ class LogReaderV2:
         self.crc_errors = self.format_errors = self.adc_faults = 0
         self.sequence_gaps = self.sequence_disorder = 0
         self.previous_sequence = None
+        self.first_sequence = None
         self.dup_end = trailing = False
         head = stream.read(4)
         stream.seek(0)
@@ -192,6 +193,8 @@ class LogReaderV2:
                 for offset in range(0, len(body), 16):
                     frame = body[offset:offset + 12]
                     sequence = struct.unpack_from('<I', body, offset + 12)[0]
+                    if self.first_sequence is None:
+                        self.first_sequence = sequence
                     self.crc_errors += binascii.crc_hqx(frame[:9], 0xffff) != int.from_bytes(frame[9:11], 'big')
                     self.format_errors += not (frame[0] == 0x22 and not (frame[1] & 0x80) and frame[2] == 0 and frame[11] == 0)
                     self.adc_faults += bool(frame[1] & 0x6f)
@@ -226,7 +229,7 @@ class LogReaderV2:
         (version, record_size, flags, rate, w0, w1, w2, record_id,
          gen, arate, seq0, mono0, config_len) = struct.unpack_from(
             '<HHIIIIIQIIQQH', body, 0)
-        if version != 2 or record_size != 16 or rate == 0 or config_len != len(body) - 58:
+        if version != 2 or record_size != 16 or rate == 0 or arate != rate or config_len != len(body) - 58:
             return None
         config = body[58:58 + config_len]
         if config_len and (len(config) < 44 or
@@ -305,15 +308,25 @@ class LogReaderV2:
 
     def summary(self):
         end = self.end or {}
+        boundary_mismatch = False
+        if self.complete() and end.get('end_known'):
+            first, last = end['first_index'], end['end_exclusive_index']
+            boundary_mismatch = last < first or last - first >= 0x80000000 or last - first != self.records
+            if self.records:
+                boundary_mismatch |= self.first_sequence != (first & 0xffffffff)
+                boundary_mismatch |= self.previous_sequence != ((last - 1) & 0xffffffff)
+                boundary_mismatch |= end['reason'] == 12
+            else:
+                boundary_mismatch |= end['reason'] != 12
         incomplete = not self.complete() or not end.get('end_known') or \
             end.get('unknown_loss') or end.get('storage_error') or \
             end.get('reason') not in (0, 12) or end.get('capture_lost') or \
             end.get('log_dropped') or end.get('quality_bad') or self.crc_errors or \
-            self.format_errors or self.adc_faults or self.sequence_gaps or self.sequence_disorder
+            self.format_errors or self.adc_faults or self.sequence_gaps or self.sequence_disorder or boundary_mismatch
         return {'complete': self.complete(), 'error': self.error,
                 'crc_errors': self.crc_errors, 'format_errors': self.format_errors,
                 'adc_faults': self.adc_faults, 'sequence_gaps': self.sequence_gaps,
-                'sequence_disorder': self.sequence_disorder,
+                'sequence_disorder': self.sequence_disorder, 'boundary_mismatch': bool(boundary_mismatch),
                 'records': self.records, 'data_chunks': self.data_chunks,
                 'header': self.header, 'end': self.end,
                 'no_reported_loss': bool(self.complete() and not incomplete)}

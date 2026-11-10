@@ -97,7 +97,7 @@ static uint16_t v2_finish_payload(uint8_t *payload, uint16_t used)
 
 uint32_t drms_log_v2_pack_header(uint8_t *out, uint32_t capacity, const DRMS_LogV2Meta *meta)
 {
-  if (!out || !meta || !meta->rate_hz || meta->config_len > 4096u ||
+  if (!out || !meta || !meta->rate_hz || meta->anchor.rate_hz != meta->rate_hz || meta->config_len > 4096u ||
       (meta->config && !meta->config_len) || (!meta->config && meta->config_len))
     return 0;
   uint32_t total = 4u + 58u + meta->config_len + 4u;

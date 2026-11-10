@@ -87,6 +87,7 @@ v1（`shared/protocol/de-drms-v1.json`）只读兼容；v2 写入不改动 v1 �
 
 - `end_known=0` 时 `end_exclusive_index` 必须为 0——**未知末边界不写伪精确值**。
 - `unknown_loss=1` 或 `end_known=0` 或 `reason∈{INCOMPLETE,TIMEOUT,CANCELLED}` → 文件**不完整**。
+- 单文件若要判为无丢失，DATA 的首末序号和帧数必须覆盖 `[first_index, end_exclusive_index)`；空记录还必须为 `EMPTY`。CRC 正确和 END 存在本身不能证明采样完整。分段文件不得各自假称满足整场记录边界，分段格式尚待完成。
 
 ## 错误处理（解码器必须全部实现）
 
