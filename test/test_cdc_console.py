@@ -552,6 +552,20 @@ class CDCConsoleTest(unittest.TestCase):
         self.assertEqual(tuple(int.from_bytes(first[t], 'little') for t in (1, 11, 12)), (1, 1, 1))
         self.assertEqual(exchange(), first)
         self.assertEqual(self.lib.control_queued(), 1)
+        payload = struct.pack('<HHQ', 0x800c, 8, 1)
+        raw = struct.pack('<BBHIQHH', 2, 1, 17, 1, 3, len(payload), 0) + payload
+        raw += struct.pack('<I', zlib.crc32(raw))
+        wire = bytearray(b'\0'); start = 0; code = 1
+        for byte in raw:
+            if byte == 0:
+                wire[start] = code; start = len(wire); wire.append(0); code = 1
+            else:
+                wire.append(byte); code += 1
+        wire[start] = code; wire.append(0)
+        end = exchange()
+        self.assertEqual(tuple(int.from_bytes(end[t], 'little') for t in (1, 11, 12)), (1, 2, 1))
+        self.assertEqual(exchange(), end)
+        self.assertEqual(self.lib.control_queued(), 2)
 
     def test_v2_get_record_reports_active_record_and_counters(self):
         import struct, zlib

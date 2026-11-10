@@ -531,7 +531,7 @@ class ControlContractTest(unittest.TestCase):
         request = Request(source=3, session=0, request_id=1, operation=0,
                           value=0, number=0.0, payload=None, payload_length=0)
         self.assertEqual(self.lib.drms_control_submit(ctypes.byref(request)), INVALID)
-        request.operation = 13
+        request.operation = 14
         self.assertEqual(self.lib.drms_control_submit(ctypes.byref(request)), INVALID)
         self.assertEqual(self.snapshot().requests_queued, 0)
 

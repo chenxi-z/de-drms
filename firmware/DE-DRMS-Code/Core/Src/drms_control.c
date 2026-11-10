@@ -252,7 +252,7 @@ static DRMS_Result submit_identified(const DRMS_ControlRequest *request, uint64_
   QueuedRequest *slot;
   if (operation_id) *operation_id = 0;
   if (record_id) *record_id = 0;
-  if (!request || request->operation <= DRMS_OP_NONE || request->operation > DRMS_OP_SET_UTC)
+  if (!request || request->operation <= DRMS_OP_NONE || request->operation > DRMS_OP_END_RECORD)
     return DRMS_INVALID;
   if (request->operation == DRMS_OP_CONFIG_APPLY && request->payload_length)
   {
@@ -560,7 +560,7 @@ void drms_control_poll(uint32_t max_requests)
     request = queued.request;
     result = reserve_assigned(drms_control_resources_for(request.operation), &token, queued.operation_id,
                               request.operation == DRMS_OP_MSC_RELEASE || request.operation == DRMS_OP_RESUME_MONITOR ||
-                              request.operation == DRMS_OP_SET_UTC,
+                              request.operation == DRMS_OP_SET_UTC || request.operation == DRMS_OP_END_RECORD,
                               request.operation == DRMS_OP_RESUME_MONITOR);
     request_tail = (request_tail + 1U) % DRMS_CONTROL_REQUESTS;
     --request_count;

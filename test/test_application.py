@@ -1015,6 +1015,39 @@ uint32_t HAL_GetUIDw2(void);
         self.assertEqual(self.lib.drms_application_record_snapshot(1, ctypes.byref(view)), 0)
         self.assertEqual((view.phase, view.result, view.clean_end, view.unknown_loss), (2, 0, 1, 0))
 
+    def test_control_end_record_waits_for_file_finalization(self):
+        from test_control_contract import Completion
+        self.insert_card(); self.command('RECORD')
+        self.lib.drms_log_poll(); self.lib.drms_application_poll()
+        self.frames(2, 280000, 4200000)
+        request = ControlRequest(source=3, session=1, operation=13, expected_version=1)
+        operation = ctypes.c_uint64()
+        self.lib.drms_control_submit_identified.argtypes = [ctypes.POINTER(ControlRequest), ctypes.POINTER(ctypes.c_uint64)]
+        self.lib.drms_control_get_operation.argtypes = [ctypes.c_uint64, ctypes.POINTER(Completion)]
+        self.assertEqual(self.lib.drms_control_submit_identified(ctypes.byref(request), ctypes.byref(operation)), 1)
+        self.lib.drms_application_poll()
+        result = Completion()
+        self.assertEqual(self.lib.drms_control_get_operation(operation.value, ctypes.byref(result)), 0)
+        self.assertEqual((result.phase, result.result), (1, 1))
+        for _ in range(6): self.lib.drms_log_poll(); self.lib.drms_application_poll()
+        self.assertEqual(self.lib.drms_control_get_operation(operation.value, ctypes.byref(result)), 0)
+        self.assertEqual((result.phase, result.result), (2, 0))
+        self.assertEqual(self.value('drms_acq_running').value, 1)
+
+    def test_control_end_wrong_record_does_not_stop_active_record(self):
+        from test_control_contract import Completion
+        self.insert_card(); self.command('RECORD')
+        self.lib.drms_log_poll(); self.lib.drms_application_poll()
+        request = ControlRequest(source=3, session=1, operation=13, expected_version=99)
+        operation = ctypes.c_uint64()
+        self.assertEqual(self.lib.drms_control_submit_identified(ctypes.byref(request), ctypes.byref(operation)), 1)
+        self.lib.drms_application_poll()
+        result = Completion()
+        self.lib.drms_control_get_operation.argtypes = [ctypes.c_uint64, ctypes.POINTER(Completion)]
+        self.assertEqual(self.lib.drms_control_get_operation(operation.value, ctypes.byref(result)), 0)
+        self.assertEqual((result.phase, result.result), (2, 3))
+        self.assertEqual(self.value('drms_log_running').value, 1)
+
     def test_record_query_does_not_call_emergency_stop_a_clean_end(self):
         self.lib.drms_application_record_snapshot.argtypes = [ctypes.c_uint64, ctypes.POINTER(RecordView)]
         self.insert_card()

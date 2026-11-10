@@ -70,6 +70,8 @@ static uint32_t boot_rate = DRMS_APP_DEFAULT_RATE;
 static uint32_t config_state;
 static uint64_t monitor_config_version;
 static DRMS_Token session_token;
+static DRMS_Token session_end_token;
+static uint32_t session_end_active;
 static uint64_t session_record_id;
 static uint32_t session_armed;   /* prepare 已完成，等文件就绪+边界 B */
 static uint32_t session_cancelled;
@@ -403,6 +405,26 @@ static DRMS_Result app_dispatch(const DRMS_Token *token, const DRMS_ControlReque
       DRMS_ApplicationRecord view = {.record = session_record_id, .phase = 0, .result = DRMS_ACCEPTED};
       record_publish(&view);
       return DRMS_ACCEPTED; /* 文件就绪+边界 B 在 poll 中归结 */
+    }
+    case DRMS_OP_END_RECORD:
+    {
+      if (request->source != DRMS_SOURCE_CDC || !request->session || !request->expected_version)
+        return DRMS_INVALID;
+      if ((!session_active && !session_armed) || request->expected_version != session_record_id)
+        return DRMS_INVALID;
+      if (session_end_active || session_stopping || session_cancelled)
+        return DRMS_BUSY;
+      session_end_token = *token;
+      session_end_active = 1;
+      if (session_armed)
+        session_cancel_local(DRMS_CANCELLED);
+      else
+      {
+        drms_record_session_request_stop();
+        session_stopping = 1;
+        session_duration_ms = 0;
+      }
+      return DRMS_ACCEPTED;
     }
     case DRMS_OP_MSC_EXPORT:
     {
@@ -1270,6 +1292,7 @@ void drms_application_init(void)
   msc_active = msc_reported = msc_release_active = 0;
   baseline_active = 0;
   protocol_cal_active = 0;
+  session_end_active = 0;
   priority_stop_active = 0;
   /* T7：开机自动监测（显式记录仍需请求）；失败保持可调度与诊断 */
   if (!drms_acq_running)
@@ -1410,6 +1433,11 @@ void drms_application_poll(void)
           .unknown_loss = end.unknown_loss || !session_footer_requested};
         record_publish(&view);
         (void)drms_record_end_ack(end.token, storage_result);
+        if (session_end_active)
+        {
+          (void)drms_control_complete(session_end_token, (DRMS_Result)view.result, 0);
+          session_end_active = 0;
+        }
         if (storage_result != DRMS_OK)
           cmd_result = 5;
         (void)drms_control_release(end.token,

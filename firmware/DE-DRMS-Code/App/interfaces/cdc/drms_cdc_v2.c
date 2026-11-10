@@ -297,7 +297,7 @@ static void received(void *user, const uint8_t *request, size_t length)
         else
           have_config = 1;
       }
-      else if (opcode == 16u || opcode == 18u || opcode == 19u || opcode == 33u || opcode == 34u || opcode == 35u || opcode == 36u || opcode == 37u || opcode == 48u || opcode == 49u || opcode == 50u)
+      else if (opcode == 16u || opcode == 17u || opcode == 18u || opcode == 19u || opcode == 33u || opcode == 34u || opcode == 35u || opcode == 36u || opcode == 37u || opcode == 48u || opcode == 49u || opcode == 50u)
       {
         static const DRMS_CDCFieldRule version_rule[] = {{48, 8, 8, 0, 1}};
         /* GET_CONFIG needs 34 payload bytes for result, TLV headers and versions. */
@@ -305,14 +305,16 @@ static void received(void *user, const uint8_t *request, size_t length)
         static const DRMS_CDCFieldRule open_rules[] = {{56, 4, 4, 0, 1}, {85, 4, 4, 0, 1}};
         static const DRMS_CDCFieldRule utc_rules[] = {{51, 8, 8, 0, 1}};
         static const DRMS_CDCFieldRule record_rules[] = {{50, 4, 4, 0, 0}};
+        static const DRMS_CDCFieldRule end_rules[] = {{12, 8, 8, 0, 1}};
         DRMS_CDCFieldView version_field[2];
-        int invalid = opcode == 16u ? drms_cdc_fields_validate(request + 20, payload_len, record_rules, 1, version_field) : opcode == 33u ?
+        int invalid = opcode == 16u ? drms_cdc_fields_validate(request + 20, payload_len, record_rules, 1, version_field) :
+            opcode == 17u ? drms_cdc_fields_validate(request + 20, payload_len, end_rules, 1, version_field) : opcode == 33u ?
             drms_cdc_fields_validate(request + 20, payload_len, apply_rules, 2, version_field) :
             opcode == 50u ? drms_cdc_fields_validate(request + 20, payload_len, open_rules, 2, version_field) :
             opcode == 37u ? drms_cdc_fields_validate(request + 20, payload_len, utc_rules, 1, version_field) :
             opcode == 34u ? drms_cdc_fields_validate(request + 20, payload_len, version_rule, 1, version_field) :
                            drms_cdc_fields_validate(request + 20, payload_len, NULL, 0, NULL);
-        if (invalid)
+        if (invalid || (opcode == 17u && !get64(version_field[0].value)))
           result = DRMS_INVALID;
         else
         {
@@ -324,6 +326,7 @@ static void received(void *user, const uint8_t *request, size_t length)
             DRMS_ControlRequest submission = {
               .source = DRMS_SOURCE_CDC, .session = session, .request_id = id,
               .operation = opcode == 16u ? DRMS_OP_RECORD :
+                           opcode == 17u ? DRMS_OP_END_RECORD :
                            opcode == 18u ? DRMS_OP_NONE :
                            opcode == 19u ? DRMS_OP_RESUME_MONITOR :
                            opcode == 33u ? DRMS_OP_CONFIG_APPLY :
@@ -338,6 +341,7 @@ static void received(void *user, const uint8_t *request, size_t length)
               submission.value = get32(version_field[0].value);
               submission.expected_version = 1;
             }
+            if (opcode == 17u) submission.expected_version = get64(version_field[0].value);
             if (opcode == 33u || opcode == 34u || opcode == 37u)
               submission.expected_version = get64(version_field[0].value);
             if (opcode == 33u)
@@ -356,6 +360,7 @@ static void received(void *user, const uint8_t *request, size_t length)
                 drms_control_submit_identified(&submission, &accepted_operation));
             if (result == DRMS_ACCEPTED)
             {
+              if (opcode == 17u) accepted_record = submission.expected_version;
               slot->request_id = id;
               slot->operation_id = accepted_operation;
               slot->record_id = accepted_record;
@@ -381,8 +386,8 @@ static void received(void *user, const uint8_t *request, size_t length)
     tlv(out, &pos, 3, temp, 12);
     put64(temp, ctx->session.boot); tlv(out, &pos, 4, temp, 8);
     put16(temp, 1); put16(temp + 2, 2); put16(temp + 4, 3); put16(temp + 6, 4);
-    put16(temp + 8, 16); put16(temp + 10, 18); put16(temp + 12, 19); put16(temp + 14, 32);
-    put16(temp + 16, 33); put16(temp + 18, 34); put16(temp + 20, 35); put16(temp + 22, 36); put16(temp + 24, 37); put16(temp + 26, 48); put16(temp + 28, 49); put16(temp + 30, 50); put16(temp + 32, 51); put16(temp + 34, 52); put16(temp + 36, 53); tlv(out, &pos, 5, temp, 38);
+    put16(temp + 8, 16); put16(temp + 10, 17); put16(temp + 12, 18); put16(temp + 14, 19);
+    put16(temp + 16, 32); put16(temp + 18, 33); put16(temp + 20, 34); put16(temp + 22, 35); put16(temp + 24, 36); put16(temp + 26, 37); put16(temp + 28, 48); put16(temp + 30, 49); put16(temp + 32, 50); put16(temp + 34, 51); put16(temp + 36, 52); put16(temp + 38, 53); tlv(out, &pos, 5, temp, 40);
     put16(temp, 1024); tlv(out, &pos, 6, temp, 2);
     put32(temp, 4000); tlv(out, &pos, 7, temp, 4);
     tlv(out, &pos, 8, temp, 0); /* no recording capability is exposed yet */
