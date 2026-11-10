@@ -1,6 +1,6 @@
 # 正式 CDC v2 固件接口（设计候选版）
 
-[机器定义](../../shared/protocol/de-drms-cdc-v2.json)列出字段号、类型、请求/成功回复字段、枚举和四条线上向量。本文规定编码与生命周期。版本 2 区别于现有 ASCII v1；当前固件的 CDC 入口支持 v2 HELLO、GET_STATUS、GET_OPERATION、GET_RECORD、SAFE_STOP、RESUME_MONITOR、GET_CONFIG、APPLY_CONFIG、SAVE_CONFIG、BUILD_R0、SET_UTC、MSC_EXPORT、MSC_RELEASE、FILE_OPEN、FILE_READ、FILE_CLOSE 和 FILE_LIST。其他未实现命令返回 UNSUPPORTED，ASCII v1 调试入口暂时保留。出厂空配置和无完整 CDC 字段的旧配置暂无法读取完整设置，GET_CONFIG 返回 UNSUPPORTED；首次完整 APPLY_CONFIG 成功后可读。按键记录已使用配置时长定时结束；CDC 记录控制及其时长覆盖尚未接通。以下其余内容是目标规格，不能视作已实现能力；真实 USB 和硬件随机源仍须板测。
+[机器定义](../../shared/protocol/de-drms-cdc-v2.json)列出字段号、类型、请求/成功回复字段、枚举和四条线上向量。本文规定编码与生命周期。版本 2 区别于现有 ASCII v1；当前固件的 CDC 入口支持 v2 HELLO、GET_STATUS、GET_OPERATION、GET_RECORD、SAFE_STOP、RESUME_MONITOR、GET_CONFIG、APPLY_CONFIG、SAVE_CONFIG、BUILD_R0、CALIBRATE、SET_UTC、MSC_EXPORT、MSC_RELEASE、FILE_OPEN、FILE_READ、FILE_CLOSE 和 FILE_LIST。其他未实现命令返回 UNSUPPORTED，ASCII v1 调试入口暂时保留。出厂空配置和无完整 CDC 字段的旧配置暂无法读取完整设置，GET_CONFIG 返回 UNSUPPORTED；首次完整 APPLY_CONFIG 成功后可读。按键记录已使用配置时长定时结束；CDC 记录控制及其时长覆盖尚未接通。以下其余内容是目标规格，不能视作已实现能力；真实 USB 和硬件随机源仍须板测。
 
 当前 CDC 收发由独立线程处理，发送端使用 4 个普通槽和 1 个安全停止专用槽；对应槽已满时，请求在业务受理前被丢弃，不产生动作，主机可超时重试。旧会话排队回复不会在新连接发送。故障优先队列和遥测流尚未实现，不能将本段视为下文完整 TX 调度能力已交付。
 
@@ -29,6 +29,8 @@ GET_STATUS 为一次逻辑一致快照，status_revision 按发布快照递增�
 | BEGIN_RECORD、END_RECORD | BEGIN 的 duration_ms 省略表示使用当前配置，零表示手动结束；非零以确认起点 B 的单调时刻起算。受理先分配记录号和操作号。开始操作在确认 B 后完成；记录本身持续。END 指定 record，受理后待末边界 E 及存储收尾完成才结束。GET_RECORD 的 phase 反映记录生命周期，进行中 clean_end=false。当前固件保留当前或最近一条记录及之前四条已结束记录，过期编号返回 STALE，未知编号返回 INVALID；数据和缺失计数在存储完成后为最终值。 |
 | SAFE_STOP、RESUME_MONITOR | 安全停止失效化冲突启动、停止激励与采集、有界收尾。恢复仅启动监测。查询和安全路径保留容量；同目标重复停止可合并。 |
 | GET_CONFIG、APPLY_CONFIG、SAVE_CONFIG、BUILD_R0、CALIBRATE、SET_UTC | APPLY 和 SAVE 校验 expected_version 等于当前运行版本；配置整体校验。R₀ 使用当前试件，校准使用板载参考。UTC 为 Unix epoch 秒，范围 2000–2099。返回 ACCEPTED 的操作均可按操作号查最终结果；校时不改定时试验截止时间。 |
+
+CALIBRATE 需要正常监测运行且无记录或其他维护任务：切到标称 100 kΩ 板载参考，采集 4096 个连续有效帧，停止采集并验证写入后才启用新系数和使旧 R₀ 失效，随后恢复监测。坏帧、激励异常、丢样、超时或写入失败不会启用候选系数；停止请求取消流程。若系数已成功写入但恢复监测失败，最终结果为 IO_ERROR，已写入的新系数仍有效；应查询设备状态，不应假定 IO_ERROR 表示系数未改变。模拟测试不证明板载参考实际阻值或切换时序，需上板验证。
 | MSC_EXPORT、MSC_RELEASE | 显式申请/交还 TF；CDC 保持可查询。RELEASE 等所有原始读退出；实际重挂载失败报告故障。 |
 | FILE_LIST、FILE_OPEN、FILE_READ、FILE_CLOSE | 只读历史文件。file_id 对应 DRMSnnnn.BIN 的 nnnn。列表按编号递增，cursor 为下一候选号（首次 0），每次至多一项，无 next_cursor 表示结束，查询不持有跨请求租约。每次列举都须获短时 TF 访问权。列表是即时视图；换卡使旧选择失效，介质代次见下文。OPEN 建立本会话唯一下载，成功回复 OK 时文件已打开，operation 是下载句柄；READ 使用绝对偏移，可重读，count=1..768，offset 等于文件大小返回空 data、eof=true，越界拒绝。CLOSE 或断线退出句柄，等在途 I/O 完成才释放。文件请求可异步等待存储线程，CDC 接收线程保持可用。 |
 

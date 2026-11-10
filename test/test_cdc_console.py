@@ -60,6 +60,7 @@ uint32_t HAL_GetUIDw2(void) { return 3; }
 int drms_entropy_boot_id(void *ctx,uint64_t *out) { *out=0x123456789abcdef0ULL; return 1; }
 static DRMS_Token test_token;
 uint64_t observed_version;
+uint32_t observed_operation;
 uint32_t observed_file_id, disconnected_session;
 uint32_t file_close_calls;
 uint32_t file_view_enabled;
@@ -68,7 +69,7 @@ uint32_t file_read_ready,file_read_submits;
 uint8_t observed_payload[1024];
 uint32_t observed_length;
 static DRMS_Result test_dispatch(const DRMS_Token *token, const DRMS_ControlRequest *request) {
- observed_version=request->expected_version;observed_file_id=request->value;test_token=*token;
+ observed_version=request->expected_version;observed_file_id=request->value;observed_operation=request->operation;test_token=*token;
  if (request->operation == DRMS_OP_CONFIG_APPLY && request->payload_length <= sizeof(observed_payload)) {
    observed_length=request->payload_length; memcpy(observed_payload, request->payload, observed_length);
  }
@@ -504,6 +505,23 @@ class CDCConsoleTest(unittest.TestCase):
         self.assertEqual(self.lib.control_queued(),1)
         self.lib.process_one()
         self.assertEqual(ctypes.c_uint64.in_dll(self.lib,'observed_version').value,4102444799)
+
+    def test_v2_calibration_command_is_admitted_once(self):
+        import struct, zlib
+        self.send(bytes.fromhex('040201010101010102010101010101010101010105d7970e6600'))
+        raw = struct.pack('<BBHIQHH', 2, 1, 36, 1, 2, 0, 0)
+        raw += struct.pack('<I', zlib.crc32(raw))
+        wire = bytearray(b'\0'); start = 0; code = 1
+        for byte in raw:
+            if byte == 0:
+                wire[start] = code; start = len(wire); wire.append(0); code = 1
+            else:
+                wire.append(byte); code += 1
+        wire[start] = code; wire.append(0)
+        self.send(bytes(wire)); self.send(bytes(wire))
+        self.assertEqual(self.lib.control_queued(), 1)
+        self.lib.process_one()
+        self.assertEqual(ctypes.c_uint32.in_dll(self.lib, 'observed_operation').value, 6)
 
     def test_v2_get_record_reports_active_record_and_counters(self):
         import struct, zlib

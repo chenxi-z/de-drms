@@ -295,7 +295,7 @@ static void received(void *user, const uint8_t *request, size_t length)
         else
           have_config = 1;
       }
-      else if (opcode == 18u || opcode == 19u || opcode == 33u || opcode == 34u || opcode == 35u || opcode == 37u || opcode == 48u || opcode == 49u || opcode == 50u)
+      else if (opcode == 18u || opcode == 19u || opcode == 33u || opcode == 34u || opcode == 35u || opcode == 36u || opcode == 37u || opcode == 48u || opcode == 49u || opcode == 50u)
       {
         static const DRMS_CDCFieldRule version_rule[] = {{48, 8, 8, 0, 1}};
         /* GET_CONFIG needs 34 payload bytes for result, TLV headers and versions. */
@@ -325,6 +325,7 @@ static void received(void *user, const uint8_t *request, size_t length)
                            opcode == 33u ? DRMS_OP_CONFIG_APPLY :
                            opcode == 34u ? DRMS_OP_CONFIG_SAVE :
                            opcode == 35u ? DRMS_OP_BASELINE_R0 :
+                           opcode == 36u ? DRMS_OP_CALIBRATE :
                            opcode == 37u ? DRMS_OP_SET_UTC :
                            opcode == 50u ? DRMS_OP_FILE_DOWNLOAD :
                            opcode == 48u ? DRMS_OP_MSC_EXPORT : DRMS_OP_MSC_RELEASE};
@@ -370,7 +371,7 @@ static void received(void *user, const uint8_t *request, size_t length)
     put64(temp, ctx->session.boot); tlv(out, &pos, 4, temp, 8);
     put16(temp, 1); put16(temp + 2, 2); put16(temp + 4, 3); put16(temp + 6, 4);
     put16(temp + 8, 18); put16(temp + 10, 19); put16(temp + 12, 32); put16(temp + 14, 33);
-    put16(temp + 16, 34); put16(temp + 18, 35); put16(temp + 20, 37); put16(temp + 22, 48); put16(temp + 24, 49); put16(temp + 26, 50); put16(temp + 28, 51); put16(temp + 30, 52); put16(temp + 32, 53); tlv(out, &pos, 5, temp, 34);
+    put16(temp + 16, 34); put16(temp + 18, 35); put16(temp + 20, 36); put16(temp + 22, 37); put16(temp + 24, 48); put16(temp + 26, 49); put16(temp + 28, 50); put16(temp + 30, 51); put16(temp + 32, 52); put16(temp + 34, 53); tlv(out, &pos, 5, temp, 36);
     put16(temp, 1024); tlv(out, &pos, 6, temp, 2);
     put32(temp, 4000); tlv(out, &pos, 7, temp, 4);
     tlv(out, &pos, 8, temp, 0); /* no recording capability is exposed yet */

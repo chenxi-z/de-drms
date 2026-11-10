@@ -1220,6 +1220,87 @@ uint32_t HAL_GetUIDw2(void);
         self.frames(4096,2800000,4200000)
         self.assertEqual(self.lib.drms_user_config_r0_valid(),0)
 
+    def test_control_calibration_persists_and_resumes_monitoring(self):
+        from test_control_contract import Completion
+        request = ControlRequest(source=3, session=1, operation=6)
+        op = ctypes.c_uint64()
+        self.lib.drms_control_submit_identified.argtypes = [ctypes.POINTER(ControlRequest), ctypes.POINTER(ctypes.c_uint64)]
+        self.lib.drms_control_get_operation.argtypes = [ctypes.c_uint64, ctypes.POINTER(Completion)]
+        self.assertEqual(self.lib.drms_control_submit_identified(ctypes.byref(request), ctypes.byref(op)), 1)
+        self.lib.drms_application_poll()
+        self.assertEqual(self.value('drms_acq_reference').value, 1)
+        self.frames(4096, 2800000, 4200000)
+        result = Completion()
+        self.assertEqual(self.lib.drms_control_get_operation(op.value, ctypes.byref(result)), 0)
+        self.assertEqual((result.phase, result.result), (2, 0))
+        self.assertEqual(self.value('programs').value, 4)
+        self.assertEqual((self.value('drms_acq_running').value, self.value('drms_acq_reference').value), (1, 0))
+        self.assertEqual(self.status()['cal'], 1)
+
+    def test_control_calibration_write_failure_preserves_baseline(self):
+        from test_control_contract import Completion
+        body = build_body()
+        self.lib.drms_user_config_apply.argtypes = [ctypes.c_char_p, ctypes.c_size_t, ctypes.c_uint64]
+        self.lib.drms_user_config_commit_baseline.argtypes = [ctypes.c_double, ctypes.c_uint64, ctypes.c_uint64]
+        self.assertEqual(self.lib.drms_user_config_apply(body, len(body), 0), 0)
+        self.assertEqual(self.lib.drms_user_config_commit_baseline(10000.0, 1, 0), 0)
+        self.value('failure_at').value = 1
+        request = ControlRequest(source=3, session=1, operation=6)
+        op = ctypes.c_uint64()
+        self.lib.drms_control_submit_identified(ctypes.byref(request), ctypes.byref(op))
+        self.lib.drms_application_poll()
+        self.frames(4096, 2800000, 4200000)
+        result = Completion()
+        self.lib.drms_control_get_operation.argtypes = [ctypes.c_uint64, ctypes.POINTER(Completion)]
+        self.assertEqual(self.lib.drms_control_get_operation(op.value, ctypes.byref(result)), 0)
+        self.assertEqual((result.phase, result.result), (2, 6))
+        self.assertEqual(self.status()['cal'], 0)
+        self.assertEqual(self.lib.drms_user_config_r0_valid(), 1)
+        self.assertEqual((self.value('drms_acq_running').value, self.value('drms_acq_reference').value), (1, 0))
+
+    def test_control_calibration_stop_cancels_without_writing(self):
+        from test_control_contract import Completion
+        request = ControlRequest(source=3, session=1, operation=6)
+        op = ctypes.c_uint64()
+        self.lib.drms_control_submit_identified(ctypes.byref(request), ctypes.byref(op))
+        self.lib.drms_application_poll()
+        self.command('STOP')
+        result = Completion()
+        self.lib.drms_control_get_operation.argtypes = [ctypes.c_uint64, ctypes.POINTER(Completion)]
+        self.assertEqual(self.lib.drms_control_get_operation(op.value, ctypes.byref(result)), 0)
+        self.assertEqual((result.phase, result.result), (2, 8))
+        self.assertEqual(self.value('programs').value, 0)
+        self.assertEqual(self.value('drms_acq_running').value, 0)
+
+    def test_control_calibration_bad_excitation_fails_without_writing(self):
+        from test_control_contract import Completion
+        request = ControlRequest(source=3, session=1, operation=6)
+        op = ctypes.c_uint64()
+        self.lib.drms_control_submit_identified(ctypes.byref(request), ctypes.byref(op))
+        self.lib.drms_application_poll()
+        self.frames(1, 2000000, 3000000)
+        result = Completion()
+        self.lib.drms_control_get_operation.argtypes = [ctypes.c_uint64, ctypes.POINTER(Completion)]
+        self.assertEqual(self.lib.drms_control_get_operation(op.value, ctypes.byref(result)), 0)
+        self.assertEqual((result.phase, result.result), (2, 9))
+        self.assertEqual(self.value('programs').value, 0)
+        self.assertEqual((self.value('drms_acq_running').value, self.value('drms_acq_reference').value), (1, 0))
+
+    def test_control_calibration_timeout_restores_monitoring(self):
+        from test_control_contract import Completion
+        request = ControlRequest(source=3, session=1, operation=6)
+        op = ctypes.c_uint64()
+        self.lib.drms_control_submit_identified(ctypes.byref(request), ctypes.byref(op))
+        self.lib.drms_application_poll()
+        self.lib.advance_ms(12000)
+        self.lib.drms_application_poll()
+        result = Completion()
+        self.lib.drms_control_get_operation.argtypes = [ctypes.c_uint64, ctypes.POINTER(Completion)]
+        self.assertEqual(self.lib.drms_control_get_operation(op.value, ctypes.byref(result)), 0)
+        self.assertEqual((result.phase, result.result), (2, 7))
+        self.assertEqual(self.value('programs').value, 0)
+        self.assertEqual((self.value('drms_acq_running').value, self.value('drms_acq_reference').value), (1, 0))
+
 
 if __name__ == '__main__':
     unittest.main()

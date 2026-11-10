@@ -42,6 +42,11 @@ static DRMS_Time clock_snapshot;
 static volatile uint32_t ready, stop_requested;
 static DRMS_Button measurement_button, power_button;
 static uint32_t cal_active, cal_count, cal_result, cal_started, cal_dirty;
+static uint32_t protocol_cal_active, protocol_cal_rate, protocol_cal_timeout;
+static uint32_t protocol_cal_overruns, protocol_cal_drops, protocol_cal_previous, protocol_cal_have_previous;
+static DRMS_Token protocol_cal_token;
+static DRMS_Result protocol_cal_result;
+static DRMS_Calibration protocol_cal_candidate;
 static int64_t voltage_sum, sense_sum;
 static double requested_reference;
 static uint32_t crc_bad, adc_faults, consecutive_bad;
@@ -575,6 +580,41 @@ static DRMS_Result app_dispatch(const DRMS_Token *token, const DRMS_ControlReque
       return DRMS_ACCEPTED;
     }
     case DRMS_OP_CALIBRATE:
+    {
+      if (request->source != DRMS_SOURCE_CDC || !request->session ||
+          !drms_acq_running || drms_acq_reference || cal_active || baseline_active ||
+          session_active || session_armed || drms_log_state || drms_shutdown_requested)
+        return DRMS_INVALID;
+      protocol_cal_rate = drms_acq_rate;
+      drms_acq_stop();
+      if (!drms_acq_is_quiescent())
+      {
+        (void)drms_control_complete(*token, DRMS_QUARANTINED,
+                                    DRMS_RES_TF_ACCESS | DRMS_RES_FLASH_MAINTENANCE);
+        return DRMS_ACCEPTED;
+      }
+      if (begin(protocol_cal_rate, 1) != 0)
+      {
+        if (drms_acq_is_quiescent()) (void)begin(protocol_cal_rate, 0);
+        if (!drms_acq_running && !drms_acq_is_quiescent())
+        {
+          (void)drms_control_complete(*token, DRMS_QUARANTINED,
+                                      DRMS_RES_TF_ACCESS | DRMS_RES_FLASH_MAINTENANCE);
+          return DRMS_ACCEPTED;
+        }
+        return DRMS_IO_ERROR;
+      }
+      protocol_cal_token = *token;
+      protocol_cal_candidate = calibration;
+      requested_reference = 100000.0;
+      cal_count = 0; cal_result = 100; voltage_sum = sense_sum = 0;
+      cal_started = HAL_GetTick();
+      protocol_cal_timeout = (uint32_t)(((uint64_t)4096u * 1000u + protocol_cal_rate - 1u) / protocol_cal_rate) + 10000u;
+      protocol_cal_overruns = drms_acq_overruns; protocol_cal_drops = drms_acq_queue_drops;
+      protocol_cal_have_previous = 0; protocol_cal_result = DRMS_OK;
+      protocol_cal_active = cal_active = 1;
+      return DRMS_ACCEPTED;
+    }
     case DRMS_OP_UPDATE:
       return DRMS_UNSUPPORTED; /* 非本阶段交付操作：明确拒绝而非静默 */
     default:
@@ -888,6 +928,18 @@ static void drain_frames(void)
       ++consecutive_bad;
     else
       consecutive_bad = 0;
+    if (cal_active && protocol_cal_active &&
+        (!valid || !drms_excitation_ok(&latest) || latest.flags ||
+         (protocol_cal_have_previous && frame.sequence != protocol_cal_previous + 1u)))
+    {
+      protocol_cal_result = DRMS_INCOMPLETE;
+      cal_active = 0;
+    }
+    if (cal_active && protocol_cal_active)
+    {
+      protocol_cal_previous = frame.sequence;
+      protocol_cal_have_previous = 1;
+    }
     if (cal_active && drms_excitation_ok(&latest) &&
         !(latest.flags & (DRMS_SAMPLE_CRC_ERROR | DRMS_SAMPLE_FORMAT_ERROR)))
     {
@@ -899,16 +951,23 @@ static void drain_frames(void)
         cal_active = 0;
         if (drms_reference_scale(voltage_sum, sense_sum, requested_reference, &scale))
         {
-          calibration.scale = scale;
-          calibration.reference_ohms = requested_reference;
-          calibration.rate = drms_acq_rate;
-          calibration.valid = 1;
-          drms_user_config_invalidate_baseline();
-          cal_dirty = 1;
+          DRMS_Calibration *target = protocol_cal_active ? &protocol_cal_candidate : &calibration;
+          target->scale = scale;
+          target->reference_ohms = requested_reference;
+          target->rate = drms_acq_rate;
+          target->valid = 1;
+          if (!protocol_cal_active)
+          {
+            drms_user_config_invalidate_baseline();
+            cal_dirty = 1;
+          }
           cal_result = 0;
         }
         else
+        {
           cal_result = 4;
+          if (protocol_cal_active) protocol_cal_result = DRMS_INCOMPLETE;
+        }
         if (last_cmd == DRMS_CMD_CALIBRATE)
           cmd_result = cal_result;
       }
@@ -1040,6 +1099,54 @@ static void baseline_service(uint32_t now)
   cmd_result = result == DRMS_OK ? 0 : 1;
 }
 
+static void protocol_cal_service(uint32_t now)
+{
+  if (!protocol_cal_active) return;
+  DRMS_ControlSnapshot control;
+  drms_control_get_snapshot(&control);
+  if (control.stopping || drms_shutdown_requested)
+    protocol_cal_result = DRMS_CANCELLED;
+  else if (!drms_acq_running || !drms_acq_reference || drms_acq_rate != protocol_cal_rate ||
+           drms_acq_overruns != protocol_cal_overruns || drms_acq_queue_drops != protocol_cal_drops)
+    protocol_cal_result = DRMS_INCOMPLETE;
+  else if ((uint32_t)(now - cal_started) >= protocol_cal_timeout)
+    protocol_cal_result = DRMS_TIMEOUT;
+  if (cal_active && protocol_cal_result == DRMS_OK) return;
+  cal_active = 0;
+  drms_acq_stop();
+  uint32_t quiet_mask = DRMS_RES_TF_ACCESS | DRMS_RES_FLASH_MAINTENANCE;
+  if (!drms_acq_is_quiescent())
+    protocol_cal_result = DRMS_QUARANTINED;
+  else
+  {
+    quiet_mask |= DRMS_RES_ACQUISITION_CONFIG;
+    if (protocol_cal_result == DRMS_OK)
+    {
+      if (!drms_calibration_save(&protocol_cal_candidate)) protocol_cal_result = DRMS_IO_ERROR;
+      else
+      {
+        calibration = protocol_cal_candidate;
+        cal_dirty = 0;
+        drms_user_config_set_calibration_generation(calibration.generation);
+        drms_user_config_invalidate_baseline();
+        publish_config_view();
+      }
+    }
+    if (!control.stopping && !drms_shutdown_requested && begin(protocol_cal_rate, 0) != 0)
+    {
+      protocol_cal_result = DRMS_IO_ERROR;
+      if (!drms_acq_is_quiescent())
+      {
+        protocol_cal_result = DRMS_QUARANTINED;
+        quiet_mask &= ~DRMS_RES_ACQUISITION_CONFIG;
+      }
+    }
+  }
+  cal_result = protocol_cal_result == DRMS_OK ? 0 : 4;
+  protocol_cal_active = 0;
+  (void)drms_control_complete(protocol_cal_token, protocol_cal_result, quiet_mask);
+}
+
 static void execute(const DRMS_Command *command)
 {
   last_cmd = command->id;
@@ -1159,6 +1266,7 @@ void drms_application_init(void)
   drms_control_init(app_dispatch);
   msc_active = msc_reported = msc_release_active = 0;
   baseline_active = 0;
+  protocol_cal_active = 0;
   priority_stop_active = 0;
   /* T7：开机自动监测（显式记录仍需请求）；失败保持可调度与诊断 */
   if (!drms_acq_running)
@@ -1270,6 +1378,7 @@ void drms_application_poll(void)
   if (!drms_record_session_barrier())
     drain_frames();
   baseline_service(now);
+  protocol_cal_service(HAL_GetTick());
   if (session_active)
   {
     /* END 已发布（会话收尾）：等存储把记录环排空并关闭文件后 ack，
@@ -1313,7 +1422,7 @@ void drms_application_poll(void)
   if (priority_stop_active)
   {
     if (drms_acq_is_quiescent() && !session_active && !session_armed &&
-        !drms_log_state && !msc_active && !msc_release_active && !file_active &&
+        !drms_log_state && !msc_active && !msc_release_active && !file_active && !protocol_cal_active &&
         drms_msc_owner() == DRMS_OWNER_LOCAL)
     {
       DRMS_Result result = priority_stop_had_record && drms_log_status ? DRMS_IO_ERROR : DRMS_OK;
@@ -1335,7 +1444,7 @@ void drms_application_poll(void)
     r_valid = 0;
     session_cancel_local(DRMS_IO_ERROR);
   }
-  if (cal_active && (uint32_t)(now - cal_started) > 10000U)
+  if (cal_active && !protocol_cal_active && (uint32_t)(now - cal_started) > 10000U)
   {
     stop_acquisition();
     cmd_result = 4;
