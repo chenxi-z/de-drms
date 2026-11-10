@@ -523,6 +523,36 @@ class CDCConsoleTest(unittest.TestCase):
         self.lib.process_one()
         self.assertEqual(ctypes.c_uint32.in_dll(self.lib, 'observed_operation').value, 6)
 
+    def test_v2_begin_record_returns_stable_identifiers(self):
+        import struct, zlib
+        self.send(bytes.fromhex('040201010101010102010101010101010101010105d7970e6600'))
+        payload = struct.pack('<HHI', 0x8032, 4, 200)
+        raw = struct.pack('<BBHIQHH', 2, 1, 16, 1, 2, len(payload), 0) + payload
+        raw += struct.pack('<I', zlib.crc32(raw))
+        wire = bytearray(b'\0'); start = 0; code = 1
+        for byte in raw:
+            if byte == 0:
+                wire[start] = code; start = len(wire); wire.append(0); code = 1
+            else:
+                wire.append(byte); code += 1
+        wire[start] = code; wire.append(0)
+        def exchange():
+            self.send(bytes(wire)); n = self.value('written_len').value
+            encoded = bytes((ctypes.c_ubyte * 1056).in_dll(self.lib, 'written')[:n])
+            decoded = bytearray(); i = 0
+            while i < len(encoded) - 1:
+                count = encoded[i]; i += 1; decoded += encoded[i:i + count - 1]; i += count - 1
+                if count != 255 and i < len(encoded) - 1: decoded.append(0)
+            fields = {}; i = 20
+            while i < len(decoded) - 4:
+                tag, length = struct.unpack_from('<HH', decoded, i); i += 4
+                fields[tag & 0x7fff] = decoded[i:i + length]; i += length
+            return fields
+        first = exchange()
+        self.assertEqual(tuple(int.from_bytes(first[t], 'little') for t in (1, 11, 12)), (1, 1, 1))
+        self.assertEqual(exchange(), first)
+        self.assertEqual(self.lib.control_queued(), 1)
+
     def test_v2_get_record_reports_active_record_and_counters(self):
         import struct, zlib
         self.send(bytes.fromhex('040201010101010102010101010101010101010105d7970e6600'))

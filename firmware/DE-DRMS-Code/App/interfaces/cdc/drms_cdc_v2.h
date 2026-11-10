@@ -5,7 +5,7 @@
 typedef void (*DRMS_CDCV2Send)(void *context, const uint8_t *data, size_t size, uint32_t priority);
 typedef int (*DRMS_CDCV2CanSend)(void *context, uint32_t priority);
 typedef struct {
-  uint64_t request_id, operation_id, age;
+  uint64_t request_id, operation_id, record_id, age;
   uint16_t length;
   uint8_t bytes[DRMS_CDC_RAW_MAX];
 } DRMS_CDCMutation;

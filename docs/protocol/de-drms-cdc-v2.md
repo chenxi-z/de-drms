@@ -1,6 +1,6 @@
 # 正式 CDC v2 固件接口（设计候选版）
 
-[机器定义](../../shared/protocol/de-drms-cdc-v2.json)列出字段号、类型、请求/成功回复字段、枚举和四条线上向量。本文规定编码与生命周期。版本 2 区别于现有 ASCII v1；当前固件的 CDC 入口支持 v2 HELLO、GET_STATUS、GET_OPERATION、GET_RECORD、SAFE_STOP、RESUME_MONITOR、GET_CONFIG、APPLY_CONFIG、SAVE_CONFIG、BUILD_R0、CALIBRATE、SET_UTC、MSC_EXPORT、MSC_RELEASE、FILE_OPEN、FILE_READ、FILE_CLOSE 和 FILE_LIST。其他未实现命令返回 UNSUPPORTED，ASCII v1 调试入口暂时保留。出厂空配置和无完整 CDC 字段的旧配置暂无法读取完整设置，GET_CONFIG 返回 UNSUPPORTED；首次完整 APPLY_CONFIG 成功后可读。按键记录已使用配置时长定时结束；CDC 记录控制及其时长覆盖尚未接通。以下其余内容是目标规格，不能视作已实现能力；真实 USB 和硬件随机源仍须板测。
+[机器定义](../../shared/protocol/de-drms-cdc-v2.json)列出字段号、类型、请求/成功回复字段、枚举和四条线上向量。本文规定编码与生命周期。版本 2 区别于现有 ASCII v1；当前固件的 CDC 入口支持 v2 HELLO、GET_STATUS、GET_OPERATION、GET_RECORD、BEGIN_RECORD、SAFE_STOP、RESUME_MONITOR、GET_CONFIG、APPLY_CONFIG、SAVE_CONFIG、BUILD_R0、CALIBRATE、SET_UTC、MSC_EXPORT、MSC_RELEASE、FILE_OPEN、FILE_READ、FILE_CLOSE 和 FILE_LIST。其他未实现命令返回 UNSUPPORTED，ASCII v1 调试入口暂时保留。出厂空配置和无完整 CDC 字段的旧配置暂无法读取完整设置，GET_CONFIG 返回 UNSUPPORTED；首次完整 APPLY_CONFIG 成功后可读。BEGIN_RECORD 已支持时长覆盖，END_RECORD 尚未接通：零时长记录须通过本机按键或调试控制结束。记录请求排队或启动失败时 GET_RECORD 尚不能可靠查询该编号，须查询 GET_OPERATION。以下其余内容是目标规格，不能视作已实现能力；真实 USB 和硬件随机源仍须板测。
 
 当前 CDC 收发由独立线程处理，发送端使用 4 个普通槽和 1 个安全停止专用槽；对应槽已满时，请求在业务受理前被丢弃，不产生动作，主机可超时重试。旧会话排队回复不会在新连接发送。故障优先队列和遥测流尚未实现，不能将本段视为下文完整 TX 调度能力已交付。
 

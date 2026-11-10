@@ -63,6 +63,7 @@ static void received(void *user, const uint8_t *request, size_t length)
   DRMS_ConfigView config_view;
   uint32_t have_config = 0;
   uint64_t accepted_operation = 0;
+  uint64_t accepted_record = 0;
   if (opcode == 1u)
   {
     if (get16(request + 18) ||
@@ -96,6 +97,7 @@ static void received(void *user, const uint8_t *request, size_t length)
           {
             result = DRMS_ACCEPTED;
             accepted_operation = slot->operation_id;
+            accepted_record = slot->record_id;
           }
           else
             result = DRMS_INVALID;
@@ -295,15 +297,16 @@ static void received(void *user, const uint8_t *request, size_t length)
         else
           have_config = 1;
       }
-      else if (opcode == 18u || opcode == 19u || opcode == 33u || opcode == 34u || opcode == 35u || opcode == 36u || opcode == 37u || opcode == 48u || opcode == 49u || opcode == 50u)
+      else if (opcode == 16u || opcode == 18u || opcode == 19u || opcode == 33u || opcode == 34u || opcode == 35u || opcode == 36u || opcode == 37u || opcode == 48u || opcode == 49u || opcode == 50u)
       {
         static const DRMS_CDCFieldRule version_rule[] = {{48, 8, 8, 0, 1}};
         /* GET_CONFIG needs 34 payload bytes for result, TLV headers and versions. */
         static const DRMS_CDCFieldRule apply_rules[] = {{48, 8, 8, 0, 1}, {49, 1, 990, 0, 1}};
         static const DRMS_CDCFieldRule open_rules[] = {{56, 4, 4, 0, 1}, {85, 4, 4, 0, 1}};
         static const DRMS_CDCFieldRule utc_rules[] = {{51, 8, 8, 0, 1}};
+        static const DRMS_CDCFieldRule record_rules[] = {{50, 4, 4, 0, 0}};
         DRMS_CDCFieldView version_field[2];
-        int invalid = opcode == 33u ?
+        int invalid = opcode == 16u ? drms_cdc_fields_validate(request + 20, payload_len, record_rules, 1, version_field) : opcode == 33u ?
             drms_cdc_fields_validate(request + 20, payload_len, apply_rules, 2, version_field) :
             opcode == 50u ? drms_cdc_fields_validate(request + 20, payload_len, open_rules, 2, version_field) :
             opcode == 37u ? drms_cdc_fields_validate(request + 20, payload_len, utc_rules, 1, version_field) :
@@ -320,7 +323,8 @@ static void received(void *user, const uint8_t *request, size_t length)
           {
             DRMS_ControlRequest submission = {
               .source = DRMS_SOURCE_CDC, .session = session, .request_id = id,
-              .operation = opcode == 18u ? DRMS_OP_NONE :
+              .operation = opcode == 16u ? DRMS_OP_RECORD :
+                           opcode == 18u ? DRMS_OP_NONE :
                            opcode == 19u ? DRMS_OP_RESUME_MONITOR :
                            opcode == 33u ? DRMS_OP_CONFIG_APPLY :
                            opcode == 34u ? DRMS_OP_CONFIG_SAVE :
@@ -329,6 +333,11 @@ static void received(void *user, const uint8_t *request, size_t length)
                            opcode == 37u ? DRMS_OP_SET_UTC :
                            opcode == 50u ? DRMS_OP_FILE_DOWNLOAD :
                            opcode == 48u ? DRMS_OP_MSC_EXPORT : DRMS_OP_MSC_RELEASE};
+            if (opcode == 16u && version_field[0].value)
+            {
+              submission.value = get32(version_field[0].value);
+              submission.expected_version = 1;
+            }
             if (opcode == 33u || opcode == 34u || opcode == 37u)
               submission.expected_version = get64(version_field[0].value);
             if (opcode == 33u)
@@ -341,13 +350,15 @@ static void received(void *user, const uint8_t *request, size_t length)
               submission.value = get32(version_field[0].value);
               submission.expected_version = get32(version_field[1].value);
             }
-            result = (uint16_t)(opcode == 18u ?
+            result = (uint16_t)(opcode == 16u ?
+                drms_control_submit_record(&submission, &accepted_operation, &accepted_record) : opcode == 18u ?
                 drms_control_safe_stop_submit(&submission, &accepted_operation) :
                 drms_control_submit_identified(&submission, &accepted_operation));
             if (result == DRMS_ACCEPTED)
             {
               slot->request_id = id;
               slot->operation_id = accepted_operation;
+              slot->record_id = accepted_record;
               slot->age = ++ctx->mutation_age;
               slot->length = (uint16_t)length;
               memcpy(slot->bytes, request, length);
@@ -370,8 +381,8 @@ static void received(void *user, const uint8_t *request, size_t length)
     tlv(out, &pos, 3, temp, 12);
     put64(temp, ctx->session.boot); tlv(out, &pos, 4, temp, 8);
     put16(temp, 1); put16(temp + 2, 2); put16(temp + 4, 3); put16(temp + 6, 4);
-    put16(temp + 8, 18); put16(temp + 10, 19); put16(temp + 12, 32); put16(temp + 14, 33);
-    put16(temp + 16, 34); put16(temp + 18, 35); put16(temp + 20, 36); put16(temp + 22, 37); put16(temp + 24, 48); put16(temp + 26, 49); put16(temp + 28, 50); put16(temp + 30, 51); put16(temp + 32, 52); put16(temp + 34, 53); tlv(out, &pos, 5, temp, 36);
+    put16(temp + 8, 16); put16(temp + 10, 18); put16(temp + 12, 19); put16(temp + 14, 32);
+    put16(temp + 16, 33); put16(temp + 18, 34); put16(temp + 20, 35); put16(temp + 22, 36); put16(temp + 24, 37); put16(temp + 26, 48); put16(temp + 28, 49); put16(temp + 30, 50); put16(temp + 32, 51); put16(temp + 34, 52); put16(temp + 36, 53); tlv(out, &pos, 5, temp, 38);
     put16(temp, 1024); tlv(out, &pos, 6, temp, 2);
     put32(temp, 4000); tlv(out, &pos, 7, temp, 4);
     tlv(out, &pos, 8, temp, 0); /* no recording capability is exposed yet */
@@ -379,6 +390,7 @@ static void received(void *user, const uint8_t *request, size_t length)
   else if (accepted_operation)
   {
     put64(temp, accepted_operation); tlv(out, &pos, 11, temp, 8);
+    if (accepted_record) { put64(temp, accepted_record); tlv(out, &pos, 12, temp, 8); }
   }
   else if (have_config)
   {
