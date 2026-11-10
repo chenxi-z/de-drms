@@ -174,6 +174,18 @@ class UserConfigTest(unittest.TestCase):
             body = with_baseline_policy(build_body(), count, duration, cv)
             self.assertEqual(self.lib.drms_user_config_apply(body, len(body), 0), INVALID)
 
+    def test_new_calibration_invalidates_running_baseline_without_reboot(self):
+        body=build_body()
+        self.lib.drms_user_config_set_calibration_generation(1)
+        self.assertEqual(self.lib.drms_user_config_apply(body,len(body),0),OK)
+        self.assertEqual(self.lib.drms_user_config_commit_baseline(10000.0,1,1),OK)
+        self.assertEqual(self.lib.drms_user_config_r0_valid(),1)
+        self.lib.drms_user_config_set_calibration_generation(2)
+        self.assertEqual(self.lib.drms_user_config_r0_valid(),0)
+        self.assertEqual(self.lib.drms_user_config_run_version(),2)
+        self.reboot(generation=2)
+        self.assertEqual(self.lib.drms_user_config_r0_valid(),0)
+
     def reboot(self, generation=0):
         # 重启 = init + 设定当前校准代次 + load（依赖检查在 load 内执行）
         self.lib.drms_user_config_init()

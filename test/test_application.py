@@ -1209,6 +1209,17 @@ uint32_t HAL_GetUIDw2(void);
         self.assertEqual(self.value('programs').value, 4)
         self.assertEqual(self.status()['cal_dirty'], 0)
 
+    def test_reference_calibration_invalidates_existing_baseline_before_save(self):
+        body=build_body()
+        self.lib.drms_user_config_apply.argtypes=[ctypes.c_char_p,ctypes.c_size_t,ctypes.c_uint64]
+        self.lib.drms_user_config_commit_baseline.argtypes=[ctypes.c_double,ctypes.c_uint64,ctypes.c_uint64]
+        self.assertEqual(self.lib.drms_user_config_apply(body,len(body),0),0)
+        self.assertEqual(self.lib.drms_user_config_commit_baseline(10000.0,1,0),0)
+        self.assertEqual(self.lib.drms_user_config_r0_valid(),1)
+        self.command('REF');self.command('CAL 100000000')
+        self.frames(4096,2800000,4200000)
+        self.assertEqual(self.lib.drms_user_config_r0_valid(),0)
+
 
 if __name__ == '__main__':
     unittest.main()

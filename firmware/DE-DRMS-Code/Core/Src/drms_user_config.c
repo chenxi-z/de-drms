@@ -67,6 +67,15 @@ void drms_user_config_init(void)
 void drms_user_config_set_calibration_generation(uint64_t generation)
 {
   calibration_generation_now = generation;
+  /* A baseline is meaningful only under the calibration that produced it.
+   * Persisted data remains available for diagnostics; load applies the same
+   * dependency check after reboot. Never resurrect a previously invalidated R0. */
+  if (run.r0_valid && run.calibration_version != generation)
+    run.r0_valid = 0;
+}
+void drms_user_config_invalidate_baseline(void)
+{
+  run.r0_valid = 0;
 }
 
 uint64_t drms_user_config_run_version(void) { return run_version; }

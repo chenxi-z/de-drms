@@ -903,6 +903,7 @@ static void drain_frames(void)
           calibration.reference_ohms = requested_reference;
           calibration.rate = drms_acq_rate;
           calibration.valid = 1;
+          drms_user_config_invalidate_baseline();
           cal_dirty = 1;
           cal_result = 0;
         }
@@ -1072,7 +1073,10 @@ static void execute(const DRMS_Command *command)
       else if (!drms_calibration_save(&calibration))
         cmd_result = 6;
       else
+      {
         cal_dirty = 0;
+        drms_user_config_set_calibration_generation(calibration.generation);
+      }
       break;
     case DRMS_CMD_RECORD:
     {
