@@ -39,6 +39,12 @@ class FileView(ctypes.Structure):
                 ('session', ctypes.c_uint32), ('generation', ctypes.c_uint32),
                 ('phase', ctypes.c_uint32), ('result', ctypes.c_uint32)]
 
+class FileListView(ctypes.Structure):
+    _fields_ = [('operation', ctypes.c_uint64), ('size', ctypes.c_uint64),
+                ('session', ctypes.c_uint32), ('generation', ctypes.c_uint32),
+                ('cursor', ctypes.c_uint32), ('file_id', ctypes.c_uint32),
+                ('next_cursor', ctypes.c_uint32), ('phase', ctypes.c_uint32), ('result', ctypes.c_uint32)]
+
 class StatusSnapshot(ctypes.Structure):
     _fields_ = [('revision', ctypes.c_uint64), ('mono_us', ctypes.c_uint64),
                 ('running_version', ctypes.c_uint64), ('saved_version', ctypes.c_uint64),
@@ -331,6 +337,23 @@ uint32_t HAL_GetUIDw2(void);
         self.assertEqual(self.lib.drms_control_reserve(4, ctypes.byref(held)), 1)
         self.lib.drms_control_complete(held, 0, 4)
 
+    def test_file_list_uses_short_tf_lease_and_returns_worker_result(self):
+        self.insert_card()
+        generation = self.lib.drms_storage_media_generation()
+        request = ControlRequest(source=3, session=4, operation=11, value=42, expected_version=generation)
+        op=ctypes.c_uint64()
+        self.lib.drms_control_submit_identified.argtypes=[ctypes.POINTER(ControlRequest),ctypes.POINTER(ctypes.c_uint64)]
+        self.assertEqual(self.lib.drms_control_submit_identified(ctypes.byref(request),ctypes.byref(op)),1)
+        self.lib.drms_application_poll()
+        self.assertEqual(self.lib.drms_control_reserve(4,ctypes.byref(Token())),2)
+        self.lib.drms_file_service_poll();self.lib.drms_application_poll()
+        view=FileListView()
+        self.lib.drms_application_file_list_snapshot.argtypes=[ctypes.POINTER(FileListView)]
+        self.assertEqual(self.lib.drms_application_file_list_snapshot(ctypes.byref(view)),1)
+        self.assertEqual((view.operation,view.file_id,view.size,view.next_cursor,view.phase,view.result),
+                         (op.value,42,123,43,2,0))
+        self.assertEqual(self.lib.drms_control_reserve(4,ctypes.byref(Token())),1)
+
     def test_download_failed_cleanup_quarantines_tf_resource(self):
         from test_control_contract import Snapshot
         self.insert_card()
@@ -386,6 +409,7 @@ uint32_t HAL_GetUIDw2(void);
         import zlib
         self.insert_card()
         generation=self.lib.drms_storage_media_generation()
+        self.lib.drms_application_poll()  # publish current media generation
         self.lib.test_cdc_init()
         self.lib.test_cdc_feed.argtypes=[ctypes.c_void_p,ctypes.c_uint32]
         def exchange(op, number, payload=b'', session=1):
@@ -410,18 +434,23 @@ uint32_t HAL_GetUIDw2(void);
             return fields
         def integer(fields,tag): return int.from_bytes(fields[tag],'little')
         exchange(1,1,session=0)
+        listing=struct.pack('<HHI',0x803a,4,42)
+        self.assertEqual(integer(exchange(53,2,listing),1),2)
+        self.lib.drms_application_poll();self.lib.drms_file_service_poll();self.lib.drms_application_poll()
+        found=exchange(53,3,listing)
+        self.assertEqual((integer(found,1),integer(found,56),integer(found,85)),(0,42,generation))
         payload=struct.pack('<HHIHHI',0x8038,4,42,0x8055,4,generation)
-        opened=exchange(50,2,payload)
+        opened=exchange(50,4,payload)
         self.assertEqual(integer(opened,1),1); operation=integer(opened,11)
         self.lib.drms_application_poll(); self.lib.drms_file_service_poll(); self.lib.drms_application_poll()
-        query=exchange(3,3,struct.pack('<HHQ',0x800b,8,operation))
+        query=exchange(3,5,struct.pack('<HHQ',0x800b,8,operation))
         self.assertEqual((integer(query,45),integer(query,57)),(1,123))
         read=struct.pack('<HHQHHQHHH',0x800b,8,operation,0x8034,8,2,0x8035,2,3)
-        self.assertEqual(integer(exchange(51,4,read),1),2)
+        self.assertEqual(integer(exchange(51,6,read),1),2)
         self.lib.drms_file_service_poll()
-        result=exchange(51,5,read)
+        result=exchange(51,7,read)
         self.assertEqual((integer(result,1),result[54]),(0,b'AAA'))
-        close=exchange(52,6,struct.pack('<HHQ',0x800b,8,operation))
+        close=exchange(52,8,struct.pack('<HHQ',0x800b,8,operation))
         self.assertEqual(integer(close,1),1)
         self.lib.drms_file_service_poll(); self.lib.drms_application_poll()
         lease=Token();self.assertEqual(self.lib.drms_control_reserve(4,ctypes.byref(lease)),1)

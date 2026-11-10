@@ -22,6 +22,8 @@ typedef struct {
   DRMS_CDCMutation stop_mutation;
   uint64_t mutation_age;
   uint64_t file_read_ticket, file_read_operation, file_read_offset;
+  uint64_t file_list_operation;
+  uint32_t file_list_cursor, file_list_generation;
   uint16_t file_read_count;
   DRMS_FileReply file_read_reply;
 } DRMS_CDCV2;

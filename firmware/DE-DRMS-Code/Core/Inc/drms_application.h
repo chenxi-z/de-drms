@@ -30,6 +30,11 @@ typedef struct {
   uint32_t session, generation, phase, result; /* 0 opening, 1 active, 2 closed */
 } DRMS_ApplicationFile;
 uint32_t drms_application_file_snapshot(DRMS_ApplicationFile *out);
+typedef struct {
+  uint64_t operation, size;
+  uint32_t session, generation, cursor, file_id, next_cursor, phase, result;
+} DRMS_ApplicationFileList;
+uint32_t drms_application_file_list_snapshot(DRMS_ApplicationFileList *out);
 /* Revoke a disconnected CDC session, including opens not yet dispatched. */
 void drms_application_file_disconnect(uint32_t session);
 DRMS_Result drms_application_file_close(uint32_t session, uint64_t operation);

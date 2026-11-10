@@ -17,6 +17,10 @@ static void tlv(uint8_t *raw, size_t *pos, uint16_t tag, const uint8_t *data, ui
   put16(raw + *pos, tag | 0x8000u); put16(raw + *pos + 2, size); *pos += 4;
   memcpy(raw + *pos, data, size); *pos += size;
 }
+static void optional_tlv(uint8_t *raw, size_t *pos, uint16_t tag, const uint8_t *data, uint16_t size)
+{
+  size_t start=*pos; tlv(raw,pos,tag,data,size); put16(raw+start,tag);
+}
 
 static DRMS_CDCMutation *mutation_slot(DRMS_CDCV2 *ctx)
 {
@@ -54,6 +58,8 @@ static void received(void *user, const uint8_t *request, size_t length)
   DRMS_ApplicationRecord record;
   uint32_t have_record = 0;
   uint32_t have_file_data = 0;
+  DRMS_ApplicationFileList file_list;
+  uint32_t have_file_list = 0;
   DRMS_ConfigView config_view;
   uint32_t have_config = 0;
   uint64_t accepted_operation = 0;
@@ -140,6 +146,57 @@ static void received(void *user, const uint8_t *request, size_t length)
           DRMS_Result query = drms_application_record_snapshot(get64(fields[0].value), &record);
           result = (uint16_t)query;
           if (query == DRMS_OK) { result = (uint16_t)record.result; have_record = 1; }
+        }
+      }
+      else if (opcode == 53u)
+      {
+        static const DRMS_CDCFieldRule rules[]={{58,4,4,0,1}};
+        DRMS_CDCFieldView fields[1];
+        if (drms_cdc_fields_validate(request+20,payload_len,rules,1,fields)) result=DRMS_INVALID;
+        else
+        {
+          uint32_t cursor=get32(fields[0].value);
+          if (cursor>10000u) result=DRMS_INVALID;
+          else if (ctx->file_list_operation && cursor!=ctx->file_list_cursor) result=DRMS_BUSY;
+          else if (!ctx->file_list_operation)
+          {
+            DRMS_ApplicationSnapshot current;
+            if (!drms_application_snapshot(&current)) result=DRMS_BUSY;
+            else
+            {
+              DRMS_ControlRequest submission={.source=DRMS_SOURCE_CDC,.session=session,.request_id=id,
+                .operation=DRMS_OP_FILE_LIST,.value=cursor,.expected_version=current.media_generation};
+              uint64_t op=0;
+              DRMS_Result status=drms_control_submit_identified(&submission,&op);
+              if (status==DRMS_ACCEPTED)
+              {
+                ctx->file_list_operation=op; ctx->file_list_cursor=cursor;
+                ctx->file_list_generation=current.media_generation; result=DRMS_BUSY;
+              }
+              else result=(uint16_t)status;
+            }
+          }
+          else if (drms_application_file_list_snapshot(&file_list) &&
+                   file_list.operation==ctx->file_list_operation && file_list.session==session)
+          {
+            if (file_list.phase!=2u) result=DRMS_BUSY;
+            else
+            {
+              ctx->file_list_operation=0;
+              if (file_list.generation!=ctx->file_list_generation || file_list.cursor!=cursor)
+                result=DRMS_STALE;
+              else if (file_list.result==DRMS_OK || file_list.result==DRMS_EMPTY)
+                { result=DRMS_OK; have_file_list=1; }
+              else result=(uint16_t)file_list.result;
+            }
+          }
+          else
+          {
+            DRMS_ControlCompletion status;
+            DRMS_Result query=drms_control_get_operation(ctx->file_list_operation,&status);
+            if (query==DRMS_OK && status.phase!=2u) result=DRMS_BUSY;
+            else { result=query==DRMS_OK ? (uint16_t)status.result : (uint16_t)query; ctx->file_list_operation=0; }
+          }
         }
       }
       else if (opcode == 51u)
@@ -310,7 +367,7 @@ static void received(void *user, const uint8_t *request, size_t length)
     put64(temp, ctx->session.boot); tlv(out, &pos, 4, temp, 8);
     put16(temp, 1); put16(temp + 2, 2); put16(temp + 4, 3); put16(temp + 6, 4);
     put16(temp + 8, 18); put16(temp + 10, 19); put16(temp + 12, 32); put16(temp + 14, 33);
-    put16(temp + 16, 34); put16(temp + 18, 35); put16(temp + 20, 48); put16(temp + 22, 49); put16(temp + 24, 50); put16(temp + 26, 51); put16(temp + 28, 52); tlv(out, &pos, 5, temp, 30);
+    put16(temp + 16, 34); put16(temp + 18, 35); put16(temp + 20, 48); put16(temp + 22, 49); put16(temp + 24, 50); put16(temp + 26, 51); put16(temp + 28, 52); put16(temp + 30, 53); tlv(out, &pos, 5, temp, 32);
     put16(temp, 1024); tlv(out, &pos, 6, temp, 2);
     put32(temp, 4000); tlv(out, &pos, 7, temp, 4);
     tlv(out, &pos, 8, temp, 0); /* no recording capability is exposed yet */
@@ -341,6 +398,17 @@ static void received(void *user, const uint8_t *request, size_t length)
     put64(temp, ctx->file_read_offset); tlv(out, &pos, 52, temp, 8);
     tlv(out, &pos, 54, ctx->file_read_reply.data, ctx->file_read_reply.length);
     temp[0]=ctx->file_read_reply.eof; tlv(out, &pos, 55, temp, 1);
+  }
+  else if (have_file_list)
+  {
+    put32(temp,file_list.generation); tlv(out,&pos,85,temp,4);
+    if (file_list.result==DRMS_OK)
+    {
+      put32(temp,file_list.file_id); optional_tlv(out,&pos,56,temp,4);
+      put64(temp,file_list.size); optional_tlv(out,&pos,57,temp,8);
+      if (file_list.next_cursor<10000u)
+      { put32(temp,file_list.next_cursor); optional_tlv(out,&pos,59,temp,4); }
+    }
   }
   else if (have_snapshot)
   {
@@ -415,6 +483,7 @@ void drms_cdc_v2_disconnect(DRMS_CDCV2 *ctx)
 {
   if (ctx->session.session) drms_application_file_disconnect(ctx->session.session);
   ctx->file_read_ticket=0;
+  ctx->file_list_operation=0;
   drms_cdc_session_disconnect(&ctx->session);
   drms_cdc_frame_init(&ctx->frame);
   ctx->last_request = 0;

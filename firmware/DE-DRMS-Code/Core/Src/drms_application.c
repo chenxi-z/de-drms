@@ -87,10 +87,12 @@ static DRMS_Token file_token;
 static uint64_t file_open_ticket;
 static uint64_t file_close_ticket;
 static uint32_t file_active, file_opened;
+static uint32_t file_listing;
 static uint32_t file_close_pending;
 static uint32_t file_revoked_session;
 static DRMS_FileReply file_open_reply;
 static DRMS_ApplicationFile published_file;
+static DRMS_ApplicationFileList published_file_list;
 static DRMS_BaselineContext baseline;
 static DRMS_Token baseline_token;
 static uint64_t baseline_version, baseline_ticket;
@@ -117,6 +119,16 @@ uint32_t drms_application_file_snapshot(DRMS_ApplicationFile *out)
   uint32_t mask = __get_PRIMASK(); __disable_irq();
   *out = published_file;
   __set_PRIMASK(mask);
+  return out->operation != 0;
+}
+static void file_list_publish(const DRMS_ApplicationFileList *view)
+{
+  uint32_t mask=__get_PRIMASK(); __disable_irq(); published_file_list=*view; __set_PRIMASK(mask);
+}
+uint32_t drms_application_file_list_snapshot(DRMS_ApplicationFileList *out)
+{
+  if (!out) return 0;
+  uint32_t mask=__get_PRIMASK(); __disable_irq(); *out=published_file_list; __set_PRIMASK(mask);
   return out->operation != 0;
 }
 void drms_application_file_disconnect(uint32_t session)
@@ -531,10 +543,27 @@ static DRMS_Result app_dispatch(const DRMS_Token *token, const DRMS_ControlReque
       if (result != DRMS_ACCEPTED) return result;
       if (request->session <= __atomic_load_n(&file_revoked_session, __ATOMIC_ACQUIRE))
         drms_file_service_disconnect(request->session);
-      file_token = *token; file_active = 1; file_opened = 0;
+      file_token = *token; file_active = 1; file_opened = file_listing = 0;
       DRMS_ApplicationFile view = {.operation = token->operation_id, .session = request->session,
         .generation = file.generation, .phase = 0, .result = DRMS_ACCEPTED};
       file_publish(&view);
+      return DRMS_ACCEPTED;
+    }
+    case DRMS_OP_FILE_LIST:
+    {
+      if (request->source != DRMS_SOURCE_CDC || !request->session || request->expected_version > UINT32_MAX ||
+          request->value > 10000u || file_active) return DRMS_INVALID;
+      if (request->session <= __atomic_load_n(&file_revoked_session, __ATOMIC_ACQUIRE)) return DRMS_CANCELLED;
+      DRMS_FileRequest file={.kind=DRMS_FILE_LIST,.session=request->session,
+        .generation=(uint32_t)request->expected_version,.cursor=request->value};
+      DRMS_Result result=drms_file_service_submit(&file,&file_open_ticket);
+      if (result != DRMS_ACCEPTED) return result;
+      if (request->session <= __atomic_load_n(&file_revoked_session, __ATOMIC_ACQUIRE))
+        drms_file_service_disconnect(request->session);
+      file_token=*token; file_active=1; file_listing=1; file_opened=0;
+      DRMS_ApplicationFileList view={.operation=token->operation_id,.session=request->session,
+        .generation=file.generation,.cursor=file.cursor,.phase=0,.result=DRMS_ACCEPTED};
+      file_list_publish(&view);
       return DRMS_ACCEPTED;
     }
     case DRMS_OP_CALIBRATE:
@@ -583,6 +612,25 @@ static void msc_service_control(void)
 static void file_service_control(void)
 {
   if (!file_active) return;
+  if (file_listing)
+  {
+    DRMS_ApplicationFileList list;
+    if (!drms_application_file_list_snapshot(&list)) return;
+    if (drms_file_service_quarantined())
+    {
+      list.phase=2; list.result=DRMS_QUARANTINED; file_list_publish(&list);
+      (void)drms_control_complete(file_token,DRMS_QUARANTINED,0);
+      file_active=file_listing=0; return;
+    }
+    DRMS_Result state=drms_file_service_take(file_open_ticket,&file_open_reply);
+    if (state==DRMS_ACCEPTED || !drms_file_service_quiescent()) return;
+    DRMS_Result result=state==DRMS_OK ? file_open_reply.result : DRMS_CANCELLED;
+    list.phase=2; list.result=result; list.file_id=file_open_reply.file_id;
+    list.size=file_open_reply.size; list.next_cursor=file_open_reply.next_cursor;
+    file_list_publish(&list);
+    (void)drms_control_complete(file_token,result,DRMS_RES_TF_ACCESS);
+    file_active=file_listing=0; return;
+  }
   DRMS_ApplicationFile view;
   if (!drms_application_file_snapshot(&view)) return;
   if (drms_file_service_quarantined())
@@ -1055,7 +1103,8 @@ void drms_application_init(void)
 {
   memset(&published_record, 0, sizeof(published_record));
   memset(&published_file, 0, sizeof(published_file));
-  file_active = file_opened = file_close_pending = 0;
+  memset(&published_file_list, 0, sizeof(published_file_list));
+  file_active = file_opened = file_close_pending = file_listing = 0;
   file_revoked_session = 0;
   memset(record_history, 0, sizeof(record_history));
   record_history_next = record_history_count = 0;

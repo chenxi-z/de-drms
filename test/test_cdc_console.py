@@ -63,6 +63,7 @@ uint64_t observed_version;
 uint32_t observed_file_id, disconnected_session;
 uint32_t file_close_calls;
 uint32_t file_view_enabled;
+uint32_t file_list_view_enabled;
 uint32_t file_read_ready,file_read_submits;
 uint8_t observed_payload[1024];
 uint32_t observed_length;
@@ -83,7 +84,7 @@ uint32_t control_queued(void) { DRMS_ControlSnapshot s; drms_control_get_snapsho
 void process_one(void) { drms_control_poll(1); }
 uint32_t drms_application_snapshot(DRMS_ApplicationSnapshot *out) {
  memset(out,0,sizeof(*out));out->revision=8;out->mono_us=123000;out->acquisition=3;
- out->rate=4000;out->fresh=1;out->classification=2;out->ohms_valid=1;out->ohms=10000;
+ out->rate=4000;out->fresh=1;out->classification=2;out->ohms_valid=1;out->ohms=10000;out->media_generation=9;
  return 1;
 }
 DRMS_Result drms_application_record_snapshot(uint64_t id, DRMS_ApplicationRecord *out) {
@@ -95,6 +96,11 @@ void drms_application_file_disconnect(uint32_t session) { disconnected_session=s
 uint32_t drms_application_file_snapshot(DRMS_ApplicationFile *out) {
  if(!file_view_enabled) return 0;
  *out=(DRMS_ApplicationFile){.operation=1,.size=123,.session=1,.generation=9,.phase=1}; return 1;
+}
+uint32_t drms_application_file_list_snapshot(DRMS_ApplicationFileList *out) {
+ if(!file_list_view_enabled) return 0;
+ *out=(DRMS_ApplicationFileList){.operation=1,.session=1,.generation=9,.cursor=40,
+   .file_id=42,.size=123,.next_cursor=43,.phase=2,.result=DRMS_OK};return 1;
 }
 DRMS_Result drms_application_file_close(uint32_t session, uint64_t op) {
  if (session!=1 || op!=55) return DRMS_STALE;
@@ -601,6 +607,35 @@ class CDCConsoleTest(unittest.TestCase):
         fields=send_read(4)
         self.assertEqual((int.from_bytes(fields[1],'little'),fields[54],fields[55][0]),(0,b'abc',0))
         self.value('file_view_enabled').value=0
+
+    def test_v2_file_list_waits_for_worker_and_returns_media_generation(self):
+        import struct, zlib
+        self.value('file_list_view_enabled').value=0
+        self.send(bytes.fromhex('040201010101010102010101010101010101010105d7970e6600'))
+        payload=struct.pack('<HHI',0x803a,4,40)
+        def query(number):
+            raw=struct.pack('<BBHIQHH',2,1,53,1,number,len(payload),0)+payload
+            raw+=struct.pack('<I',zlib.crc32(raw));wire=bytearray(b'\0');start=0;code=1
+            for byte in raw:
+                if byte==0:wire[start]=code;start=len(wire);wire.append(0);code=1
+                else:wire.append(byte);code+=1
+            wire[start]=code;wire.append(0);self.send(bytes(wire))
+            n=self.value('written_len').value; encoded=bytes((ctypes.c_ubyte*1056).in_dll(self.lib,'written')[:n])
+            decoded=bytearray();i=0
+            while i<len(encoded)-1:
+                count=encoded[i];i+=1;decoded+=encoded[i:i+count-1];i+=count-1
+                if count!=255 and i<len(encoded)-1:decoded.append(0)
+            fields={};i=20
+            while i<len(decoded)-4:
+                tag,length=struct.unpack_from('<HH',decoded,i);i+=4;fields[tag&0x7fff]=decoded[i:i+length];i+=length
+            return fields
+        self.assertEqual(int.from_bytes(query(2)[1],'little'),2)
+        self.assertEqual(self.lib.control_queued(),1)
+        self.lib.process_one()
+        self.value('file_list_view_enabled').value=1
+        fields=query(3)
+        self.assertEqual(tuple(int.from_bytes(fields[x],'little') for x in (1,56,57,59,85)),(0,42,123,43,9))
+        self.value('file_list_view_enabled').value=0
 
     def test_v2_apply_owns_nested_payload_through_disconnect(self):
         import struct, zlib

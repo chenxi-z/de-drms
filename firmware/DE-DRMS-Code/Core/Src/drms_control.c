@@ -62,6 +62,7 @@ uint32_t drms_control_resources_for(DRMS_Operation operation)
                                 DRMS_RES_TF_ACCESS;
     case DRMS_OP_MSC_EXPORT: return DRMS_RES_TF_ACCESS;
     case DRMS_OP_FILE_DOWNLOAD: return DRMS_RES_TF_ACCESS;
+    case DRMS_OP_FILE_LIST: return DRMS_RES_TF_ACCESS;
     case DRMS_OP_CONFIG_APPLY: return DRMS_RES_ACQUISITION_CONFIG | DRMS_RES_FLASH_MAINTENANCE;
     case DRMS_OP_BASELINE_R0: return DRMS_RES_ACQUISITION_CONFIG | DRMS_RES_TF_ACCESS |
                                       DRMS_RES_FLASH_MAINTENANCE;
@@ -248,7 +249,7 @@ DRMS_Result drms_control_submit_identified(const DRMS_ControlRequest *request, u
   uint32_t payload_generation = 0;
   QueuedRequest *slot;
   if (operation_id) *operation_id = 0;
-  if (!request || request->operation <= DRMS_OP_NONE || request->operation > DRMS_OP_RESUME_MONITOR)
+  if (!request || request->operation <= DRMS_OP_NONE || request->operation > DRMS_OP_FILE_LIST)
     return DRMS_INVALID;
   if (request->operation == DRMS_OP_CONFIG_APPLY && request->payload_length)
   {
