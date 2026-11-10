@@ -49,6 +49,9 @@ void drms_control_init(DRMS_ControlDispatch dispatch);
 /* 复制请求入有界队列。同步返回：ACCEPTED=已入队、BUSY=队列满、
  * INVALID=请求非法、CANCELLED=停止中拒绝。 */
 DRMS_Result drms_control_submit(const DRMS_ControlRequest *request);
+/* CONFIG_APPLY 载荷最多 1024 字节；submit 复制并持有至 dispatch 返回，
+ * dispatch 若需异步使用必须再次复制。仅一个配置载荷可在途，额外请求返回 BUSY。
+ * 入队取消、资源冲突或无 dispatch 时控制器释放载荷。 */
 /* As above, but returns the boot-scoped operation ID upon queue admission.
  * That ID remains queryable while queued, dispatched, or recently completed. */
 DRMS_Result drms_control_submit_identified(const DRMS_ControlRequest *request, uint64_t *operation_id);

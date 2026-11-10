@@ -27,6 +27,11 @@ static DRMS_ControlDispatch dispatch_hook;
 static Lease leases[DRMS_CONTROL_LEASES];
 typedef struct { DRMS_ControlRequest request; uint64_t operation_id; } QueuedRequest;
 static QueuedRequest requests[DRMS_CONTROL_REQUESTS];
+/* One configuration payload is owned from admission through dispatch. Copying
+ * happens with interrupts enabled; the reservation prevents reuse meanwhile. */
+#define DRMS_CONTROL_CONFIG_MAX 1024u
+static uint8_t config_payload[DRMS_CONTROL_CONFIG_MAX];
+static uint32_t config_payload_in_use;
 static DRMS_ControlCompletion completions[DRMS_CONTROL_COMPLETIONS];
 static DRMS_ControlCompletion history[DRMS_CONTROL_HISTORY];
 static uint32_t history_head, history_count;
@@ -106,6 +111,7 @@ void drms_control_init(DRMS_ControlDispatch dispatch)
   dispatch_hook = dispatch;
   memset(leases, 0, sizeof(leases));
   memset(requests, 0, sizeof(requests));
+  config_payload_in_use = 0;
   memset(completions, 0, sizeof(completions));
   memset(history, 0, sizeof(history));
   memset(&safe_stop, 0, sizeof(safe_stop));
@@ -238,25 +244,53 @@ DRMS_Result drms_control_safe_stop_finish(DRMS_Result result)
 DRMS_Result drms_control_submit_identified(const DRMS_ControlRequest *request, uint64_t *operation_id)
 {
   uint32_t mask;
+  uint32_t owns_payload = 0;
+  uint32_t payload_generation = 0;
   QueuedRequest *slot;
   if (operation_id) *operation_id = 0;
   if (!request || request->operation <= DRMS_OP_NONE || request->operation > DRMS_OP_RESUME_MONITOR)
     return DRMS_INVALID;
+  if (request->operation == DRMS_OP_CONFIG_APPLY && request->payload_length)
+  {
+    if (!request->payload || request->payload_length > sizeof(config_payload))
+      return DRMS_INVALID;
+    mask = crit_enter();
+    if (stopping || config_payload_in_use)
+    {
+      DRMS_Result result = stopping ? DRMS_CANCELLED : DRMS_BUSY;
+      crit_exit(mask);
+      return result;
+    }
+    config_payload_in_use = 1;
+    payload_generation = control_generation;
+    crit_exit(mask);
+    memcpy(config_payload, request->payload, request->payload_length);
+    owns_payload = 1;
+  }
   mask = crit_enter();
+  if (owns_payload && payload_generation != control_generation)
+  {
+    config_payload_in_use = 0;
+    crit_exit(mask);
+    return DRMS_CANCELLED;
+  }
   if (stopping && request->operation != DRMS_OP_RESUME_MONITOR)
   {
+    if (owns_payload) config_payload_in_use = 0;
     crit_exit(mask);
     ++requests_rejected;
     return DRMS_CANCELLED;
   }
   if (request_count == DRMS_CONTROL_REQUESTS || !next_operation_id)
   {
+    if (owns_payload) config_payload_in_use = 0;
     crit_exit(mask);
     ++requests_rejected;
     return DRMS_BUSY;
   }
   slot = &requests[request_head];
   slot->request = *request;
+  if (owns_payload) slot->request.payload = config_payload;
   slot->operation_id = next_operation_id++;
   if (operation_id) *operation_id = slot->operation_id;
   request_head = (request_head + 1U) % DRMS_CONTROL_REQUESTS;
@@ -430,6 +464,7 @@ void drms_control_stop(void)
     DRMS_ControlRequest *request = &queued->request;
     push_completion_locked(request->source, request->session, request->request_id,
                            queued->operation_id, DRMS_CANCELLED, 0, 0);
+    if (request->payload == config_payload) config_payload_in_use = 0;
     request_tail = (request_tail + 1U) % DRMS_CONTROL_REQUESTS;
     --request_count;
   }
@@ -511,6 +546,7 @@ void drms_control_poll(uint32_t max_requests)
     --request_count;
     if (result != DRMS_ACCEPTED)
     {
+      if (request.payload == config_payload) config_payload_in_use = 0;
       push_completion_locked(request.source, request.session, request.request_id,
                              queued.operation_id, result, 0, 0);
       crit_exit(mask);
@@ -532,10 +568,16 @@ void drms_control_poll(uint32_t max_requests)
     crit_exit(mask);
     if (!dispatch_hook)
     {
+      mask = crit_enter();
+      if (request.payload == config_payload) config_payload_in_use = 0;
+      crit_exit(mask);
       (void)drms_control_complete(token, DRMS_UNSUPPORTED, leased);
       continue;
     }
     result = dispatch_hook(&token, &request);
+    mask = crit_enter();
+    if (request.payload == config_payload) config_payload_in_use = 0;
+    crit_exit(mask);
     if (result != DRMS_ACCEPTED)
       /* 投递失败回滚尚未启动的预占：工作从未到达后端，租约整体视为静止。 */
       (void)drms_control_complete(token, result, leased);

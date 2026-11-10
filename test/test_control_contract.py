@@ -24,12 +24,20 @@ HEADER = r'''
 
 MOCK = r'''
 #include "drms_control.h"
+#include <string.h>
 static DRMS_Result next_result = DRMS_ACCEPTED;
 DRMS_Token op_tokens[16];
 int dispatch_calls;
+uint8_t received_payload[1024];
+uint32_t received_length;
 static DRMS_Result test_dispatch(const DRMS_Token *token, const DRMS_ControlRequest *request)
 {
   ++dispatch_calls;
+  if (request->operation == DRMS_OP_CONFIG_APPLY && request->payload && request->payload_length <= sizeof(received_payload))
+  {
+    received_length = request->payload_length;
+    memcpy(received_payload, request->payload, received_length);
+  }
   if (request->operation < 16)
     op_tokens[request->operation] = *token;
   return next_result;
@@ -38,6 +46,7 @@ void test_install(void)
 {
   next_result = DRMS_ACCEPTED;
   dispatch_calls = 0;
+  received_length = 0;
   drms_control_init(test_dispatch);
 }
 void set_dispatch_result(int result) { next_result = (DRMS_Result)result; }
@@ -171,6 +180,54 @@ class ControlContractTest(unittest.TestCase):
         self.assertEqual(self.lib.drms_control_release(token, ACQ | RS | TF), OK)
         self.assertEqual(self.snapshot().reserved_mask, 0)
         self.assertEqual(self.collect(), [])
+
+    def test_config_payload_is_owned_until_dispatch_and_pool_is_bounded(self):
+        original = ctypes.create_string_buffer(b'first')
+        request = Request(source=3, session=1, request_id=1, operation=CONFIG_APPLY,
+                          payload=ctypes.addressof(original), payload_length=5)
+        self.assertEqual(self.lib.drms_control_submit(ctypes.byref(request)), ACCEPTED)
+        original.raw = b'other\0'
+        self.assertEqual(self.lib.drms_control_submit(ctypes.byref(request)), BUSY)
+        self.lib.set_dispatch_result(OK)
+        self.lib.drms_control_poll(1)
+        received = (ctypes.c_ubyte * 1024).in_dll(self.lib, 'received_payload')
+        self.assertEqual(bytes(received[:5]), b'first')
+        self.assertEqual(self.lib.drms_control_submit(ctypes.byref(request)), ACCEPTED)
+
+    def test_config_payload_released_on_stop_and_rejects_invalid_lengths(self):
+        payload = ctypes.create_string_buffer(b'abc')
+        request = Request(source=3, operation=CONFIG_APPLY, payload=ctypes.addressof(payload), payload_length=3)
+        self.assertEqual(self.lib.drms_control_submit(ctypes.byref(request)), ACCEPTED)
+        self.lib.drms_control_stop()
+        self.assertEqual(self.lib.drms_control_resume(), OK)
+        self.assertEqual(self.lib.drms_control_submit(ctypes.byref(request)), ACCEPTED)
+        self.lib.drms_control_stop()
+        self.assertEqual(self.lib.drms_control_resume(), OK)
+        request.payload_length = 1025
+        self.assertEqual(self.lib.drms_control_submit(ctypes.byref(request)), INVALID)
+        request.payload_length = 1
+        request.payload = None
+        self.assertEqual(self.lib.drms_control_submit(ctypes.byref(request)), INVALID)
+
+    def test_config_payload_released_when_resource_reservation_fails(self):
+        lease = Token()
+        self.assertEqual(self.lib.drms_control_reserve(ACQ, ctypes.byref(lease)), ACCEPTED)
+        payload = ctypes.create_string_buffer(b'abc')
+        request = Request(source=3, operation=CONFIG_APPLY, payload=ctypes.addressof(payload), payload_length=3)
+        self.assertEqual(self.lib.drms_control_submit(ctypes.byref(request)), ACCEPTED)
+        self.lib.drms_control_poll(1)
+        self.assertEqual(self.collect()[0].result, BUSY)
+        self.assertEqual(self.lib.drms_control_submit(ctypes.byref(request)), ACCEPTED)
+
+    def test_config_pool_released_when_normal_queue_is_full(self):
+        for _ in range(8):
+            self.assertEqual(self.submit(MSC_EXPORT), ACCEPTED)
+        payload = ctypes.create_string_buffer(b'abc')
+        request = Request(source=3, operation=CONFIG_APPLY, payload=ctypes.addressof(payload), payload_length=3)
+        self.assertEqual(self.lib.drms_control_submit(ctypes.byref(request)), BUSY)
+        self.lib.drms_control_stop()
+        self.assertEqual(self.lib.drms_control_resume(), OK)
+        self.assertEqual(self.lib.drms_control_submit(ctypes.byref(request)), ACCEPTED)
 
     def test_operation_query_survives_completion_queue_consumption_and_eviction(self):
         token = self.submit_and_poll(MSC_EXPORT, request_id=123)
