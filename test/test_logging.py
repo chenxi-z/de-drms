@@ -29,6 +29,7 @@ uint32_t HAL_GetTick(void);
 MOCK = r'''
 #include "app_filex.h"
 #include "drms_logging.h"
+#include "drms_log_codec.h"
 #include <string.h>
 FX_MEDIA sdio_disk;
 volatile unsigned int drms_storage_mounted=1,drms_storage_status;
@@ -48,6 +49,16 @@ UINT fx_file_close(FX_FILE *f) { ++closes;return 0; }
 UINT fx_media_flush(FX_MEDIA *m) { ++flushes;return 0; }
 uint32_t HAL_GetTick(void) { return ticks; }
 void drms_storage_invalidate(void) { ++invalidates;drms_storage_mounted=0;drms_log_removed(); }
+int test_start_v2(void) {
+ DRMS_LogV2Meta m={.flags=1,.rate_hz=4000,.uid_w0=1,.uid_w1=2,.uid_w2=3,.record_id=7,
+   .anchor={.acquisition_generation=3,.rate_hz=4000,.sample_seq0=100,.mono_us0=123456}};
+ return drms_log_start_v2(&m);
+}
+int test_finish_v2(int reason) {
+ DRMS_End e={.record_id=7,.ring_end=2,.first={.generation=3,.index=100},
+   .end_exclusive={.generation=3,.index=102},.end_known=1,.reason=reason};
+ return drms_log_finish_v2(&e);
+}
 '''
 
 
@@ -112,6 +123,42 @@ class LoggingTest(unittest.TestCase):
         self.value('mock_msc_blocked').value = 1
         self.assertEqual(self.lib.drms_log_start(ctypes.byref(self.metadata)), 0)
         self.assertEqual(self.value('drms_log_state').value, 0)
+
+    def test_v2_writes_chunks_and_preserves_explicit_end_reason(self):
+        self.assertEqual(self.lib.test_start_v2(), 1)
+        self.lib.drms_log_poll()
+        for seq in (100, 101):
+            self.assertEqual(self.lib.drms_log_enqueue(ctypes.byref(Raw(sequence=seq))), 1)
+        self.assertEqual(self.lib.test_finish_v2(9), 1)
+        self.lib.drms_log_poll()
+        data = bytes((ctypes.c_ubyte * 1048576).in_dll(self.lib, 'file_bytes'))[:self.value('written_bytes').value]
+        chunks = []; offset = 0
+        while offset < len(data):
+            kind, length = struct.unpack_from('<HH', data, offset); offset += 4
+            payload = data[offset:offset+length]; offset += length
+            self.assertEqual(zlib.crc32(payload[:-4]), struct.unpack_from('<I', payload, len(payload)-4)[0])
+            chunks.append((kind, payload))
+        self.assertEqual([kind for kind, _ in chunks], [1, 2, 3])
+        self.assertEqual(struct.unpack_from('<Q', chunks[0][1], 24)[0], 7)
+        self.assertEqual(struct.unpack_from('<I', chunks[1][1], 12)[0], 100)
+        self.assertEqual(struct.unpack_from('<I', chunks[2][1], 79)[0], 9)
+
+    def test_v2_does_not_accept_wrong_record_boundary_or_emit_clean_end_after_failure(self):
+        self.assertEqual(self.lib.test_start_v2(), 1)
+        self.assertEqual(self.lib.test_finish_v2(0), 0)  # no open file/boundary yet
+        self.lib.drms_log_poll()
+        self.assertEqual(self.lib.test_finish_v2(0), 0)  # expected ring end 2; none enqueued
+        for seq in (100, 101):
+            self.assertEqual(self.lib.drms_log_enqueue(ctypes.byref(Raw(sequence=seq))), 1)
+        self.assertEqual(self.lib.test_finish_v2(0), 1)
+        self.lib.drms_log_stop_incomplete()
+        self.lib.drms_log_poll()
+        data = bytes((ctypes.c_ubyte * 1048576).in_dll(self.lib, 'file_bytes'))[:self.value('written_bytes').value]
+        kinds = []; offset = 0
+        while offset < len(data):
+            kind, length = struct.unpack_from('<HH', data, offset)
+            kinds.append(kind); offset += 4 + length
+        self.assertEqual(kinds, [1, 2])  # no END: decoder must report incomplete
 
     def test_header_records_footer_and_normal_stop_flush(self):
         self.start()

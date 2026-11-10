@@ -27,6 +27,11 @@ typedef struct {
   uint16_t config_len;
 } DRMS_LogV2Meta;
 
+/* Internal v2 integration path. The logger copies metadata and config before
+ * returning; only the FileX owner writes the resulting file. */
+int drms_log_start_v2(const DRMS_LogV2Meta *metadata);
+int drms_log_finish_v2(const DRMS_End *end);
+
 uint32_t drms_log_v2_pack_header(uint8_t *out, uint32_t capacity, const DRMS_LogV2Meta *meta);
 uint32_t drms_log_v2_pack_data(uint8_t *out, uint32_t capacity,
                                const DRMS_RawFrame *frames, uint32_t count);

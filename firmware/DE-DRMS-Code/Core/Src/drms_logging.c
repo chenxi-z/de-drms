@@ -17,6 +17,11 @@ static DRMS_RawFrame records[32768];
 static DRMS_FIFO queue;
 static uint8_t staging[32768] __attribute__((aligned(32)));
 static DRMS_LogMetadata metadata;
+static DRMS_LogV2Meta v2_metadata;
+static uint8_t v2_config[4096];
+static DRMS_RawFrame v2_frames[256];
+static DRMS_End v2_end;
+static uint32_t use_v2, v2_end_valid;
 static uint32_t action, file_open, pending_records, filename_index, last_flush, segment_records;
 static uint32_t incomplete;
 static uint64_t log_ticket_next;
@@ -31,6 +36,7 @@ void drms_log_init(void)
   drms_log_records = drms_log_dropped = pending_records = 0;
   log_ticket_next = 0;
   incomplete = 0;
+  use_v2 = v2_end_valid = 0;
 }
 
 uint64_t drms_log_ticket_next(void)
@@ -38,10 +44,8 @@ uint64_t drms_log_ticket_next(void)
   return log_ticket_next;
 }
 
-int drms_log_start(const DRMS_LogMetadata *request)
+static int reserve_start(void)
 {
-  if (!request)
-    return 0;
   uint32_t mask = __get_PRIMASK();
   __disable_irq();
   if (!drms_storage_mounted || drms_msc_blocks_recording() || drms_log_state)
@@ -51,8 +55,51 @@ int drms_log_start(const DRMS_LogMetadata *request)
   }
   __atomic_store_n(&drms_log_state, 1U, __ATOMIC_RELEASE);
   __set_PRIMASK(mask);
+  return 1;
+}
+
+int drms_log_start(const DRMS_LogMetadata *request)
+{
+  if (!request || !reserve_start())
+    return 0;
+  use_v2 = v2_end_valid = 0;
   metadata = *request;
   __atomic_store_n(&action, 1U, __ATOMIC_RELEASE);
+  return 1;
+}
+
+int drms_log_start_v2(const DRMS_LogV2Meta *request)
+{
+  if (!request || !request->record_id || !request->rate_hz ||
+      request->anchor.acquisition_generation == 0 || request->anchor.rate_hz != request->rate_hz ||
+      request->config_len > sizeof(v2_config) || (!!request->config != !!request->config_len) ||
+      !reserve_start())
+    return 0;
+  v2_metadata = *request;
+  if (request->config_len)
+  {
+    memcpy(v2_config, request->config, request->config_len);
+    v2_metadata.config = v2_config;
+  }
+  use_v2 = 1;
+  v2_end_valid = 0;
+  __atomic_store_n(&action, 1U, __ATOMIC_RELEASE);
+  return 1;
+}
+
+int drms_log_finish_v2(const DRMS_End *end)
+{
+  if (!end || !use_v2 || !drms_log_running || end->record_id != v2_metadata.record_id ||
+      end->ring_end != log_ticket_next || end->first.generation != v2_metadata.anchor.acquisition_generation ||
+      (end->end_known && end->end_exclusive.generation != end->first.generation) ||
+      (!end->end_known && end->end_exclusive.index))
+    return 0;
+  uint32_t mask = __get_PRIMASK();
+  __disable_irq();
+  v2_end = *end;
+  v2_end_valid = 1;
+  __atomic_store_n(&action, 4U, __ATOMIC_RELEASE);
+  __set_PRIMASK(mask);
   return 1;
 }
 
@@ -71,7 +118,10 @@ void drms_log_stop(void)
 void drms_log_stop_incomplete(void)
 {
   if (drms_log_state)
+  {
+    v2_end_valid = 0; /* a later failure must never retain a previously clean END */
     __atomic_store_n(&action, 3U, __ATOMIC_RELEASE);
+  }
 }
 
 int drms_log_enqueue(const DRMS_RawFrame *frame)
@@ -138,8 +188,15 @@ static int open_file(unsigned int continuation)
     log_ticket_next = 0;
   }
   segment_records = 0;
-  drms_log_pack_header(staging, &metadata);
-  status = fx_file_write(&file, staging, 64);
+  uint32_t header_size;
+  if (use_v2)
+    header_size = drms_log_v2_pack_header(staging, sizeof(staging), &v2_metadata);
+  else
+  {
+    drms_log_pack_header(staging, &metadata);
+    header_size = 64;
+  }
+  status = header_size ? fx_file_write(&file, staging, header_size) : FX_IO_ERROR;
   if (status != FX_SUCCESS)
   {
     failed(status);
@@ -165,7 +222,7 @@ void drms_log_poll(void)
     if (!open_file(0))
       return;
   }
-  else if (request == 2 || request == 3)
+  else if (request == 2 || request == 3 || request == 4)
   {
     if (request == 3)
       incomplete = 1;
@@ -180,16 +237,35 @@ void drms_log_poll(void)
   if (!file_open || !drms_storage_mounted)
     return;
   /* Batch up to 32 KiB. SPSC samples are copied before releasing their slots. */
-  DRMS_RawFrame frame;
   pending_records = 0;
-  while (pending_records < sizeof(staging) / 16U && drms_fifo_pop(&queue, &frame))
+  uint32_t output_size = 0;
+  if (use_v2)
   {
-    drms_log_pack_record(staging + pending_records * 16U, &frame);
-    ++pending_records;
+    while (sizeof(staging) - output_size >= 4104u)
+    {
+      uint32_t count = 0;
+      while (count < 256u && drms_fifo_pop(&queue, &v2_frames[count])) ++count;
+      if (!count) break;
+      uint32_t size = drms_log_v2_pack_data(staging + output_size, sizeof(staging) - output_size,
+                                            v2_frames, count);
+      if (!size) { failed(FX_IO_ERROR); return; }
+      output_size += size;
+      pending_records += count;
+    }
+  }
+  else
+  {
+    DRMS_RawFrame frame;
+    while (pending_records < sizeof(staging) / 16U && drms_fifo_pop(&queue, &frame))
+    {
+      drms_log_pack_record(staging + pending_records * 16U, &frame);
+      ++pending_records;
+    }
+    output_size = pending_records * 16U;
   }
   if (pending_records)
   {
-    UINT status = fx_file_write(&file, staging, pending_records * 16U);
+    UINT status = fx_file_write(&file, staging, output_size);
     if (status != FX_SUCCESS)
     {
       failed(status);
@@ -212,12 +288,23 @@ void drms_log_poll(void)
   unsigned int rollover = drms_log_state == 2 && segment_records >= DRMS_LOG_SEGMENT_RECORDS;
   if (rollover || (drms_log_state == 3 && !drms_fifo_count(&queue)))
   {
+    if (rollover && use_v2)
+    {
+      /* A segment boundary needs its own accurate END; never invent one. */
+      failed(FX_IO_ERROR);
+      return;
+    }
     /* Keep the producer enabled during a rollover: its queue bridges close/open
        latency, and any full-queue loss is counted rather than silently skipped. */
     if (rollover)
       drms_log_state = 1;
     UINT status = FX_SUCCESS;
-    if (!incomplete)
+    if (use_v2 && v2_end_valid)
+    {
+      uint32_t end_size = drms_log_v2_pack_end(staging, sizeof(staging), &v2_end);
+      status = end_size ? fx_file_write(&file, staging, end_size) : FX_IO_ERROR;
+    }
+    else if (!use_v2 && !incomplete)
     {
       drms_log_pack_footer(staging, segment_records, drms_log_dropped,
                            drms_acq_overruns, drms_acq_queue_drops, HAL_GetTick());
