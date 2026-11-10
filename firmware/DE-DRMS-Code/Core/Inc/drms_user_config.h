@@ -84,6 +84,10 @@ uint32_t drms_user_config_get_monitor(DRMS_MonitorConfig *out);
 /* Configuration owner copies the committed running snapshot into caller storage.
  * Returns encoded length or zero if no compatible configuration or insufficient space. */
 uint32_t drms_user_config_export(uint8_t *out, uint32_t capacity);
+/* Configuration owner only: copies the exact settings object retained from CDC.
+ * Zero means unavailable, ambiguous, or buffer too short; never fabricates
+ * protocol-only fields for a legacy configuration. */
+uint32_t drms_user_config_get_wire(uint8_t *out, uint32_t capacity);
 
 /* 运行配置快照（已校验）；返回 1 = 有已应用配置。 */
 uint32_t drms_user_config_get_intervals(uint16_t *count,

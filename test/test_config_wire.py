@@ -43,6 +43,7 @@ class ConfigWireTest(unittest.TestCase):
         cls.lib.drms_config_wire_to_body.argtypes = [ctypes.c_void_p, ctypes.c_size_t, ctypes.c_void_p, ctypes.c_size_t]
         cls.lib.drms_user_config_apply.argtypes = [ctypes.c_void_p, ctypes.c_size_t, ctypes.c_uint64]
         cls.lib.drms_user_config_get_baseline_policy.argtypes = [ctypes.POINTER(BaselinePolicy)]
+        cls.lib.drms_user_config_get_wire.argtypes = [ctypes.c_void_p, ctypes.c_uint32]
 
     @classmethod
     def tearDownClass(cls): cls.tmp.cleanup()
@@ -70,6 +71,15 @@ class ConfigWireTest(unittest.TestCase):
         exported = ctypes.create_string_buffer(4096)
         n = self.lib.drms_user_config_export(exported, len(exported))
         self.assertIn(original, exported.raw[:n])
+        saved_wire = ctypes.create_string_buffer(1024)
+        n = self.lib.drms_user_config_get_wire(saved_wire, len(saved_wire))
+        self.assertEqual(saved_wire.raw[:n], original)
+        self.assertEqual(self.lib.drms_user_config_get_wire(saved_wire, n-1), 0)
+        self.assertEqual(self.lib.drms_user_config_save(1), 0)
+        self.lib.drms_user_config_init()
+        self.lib.drms_user_config_load()
+        n = self.lib.drms_user_config_get_wire(saved_wire, len(saved_wire))
+        self.assertEqual(saved_wire.raw[:n], original)
 
     def test_missing_required_and_invalid_names_rejected(self):
         self.assertEqual(self.convert(settings()[:-12])[1], 0)

@@ -12,6 +12,7 @@
     "flags"
   ],
   "max_payload": 1024,
+  "max_settings_length": 990,
   "crc": "CRC-32/ISO-HDLC",
   "tlv_header": "<HH",
   "required_tag_mask": 32768,

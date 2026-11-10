@@ -16,6 +16,7 @@ int drms_user_backend_read(unsigned int page, unsigned int offset,
 #define DRMS_USER_TLV_PARAMS 2u
 #define DRMS_USER_TLV_ALIAS 3u
 #define DRMS_USER_TLV_BASELINE_POLICY 0xD701u
+#define DRMS_USER_TLV_WIRE_SETTINGS 0xD702u
 
 static const uint8_t MAGIC_PREFIX[7] = {'D', 'R', 'M', 'S', 'U', 'C', '0'};
 static const uint8_t COMMIT_MAGIC[4] = {'U', 'C', 'M', 'T'};
@@ -402,6 +403,30 @@ uint32_t drms_user_config_export(uint8_t *out, uint32_t capacity)
   if (!out || !have_config || unsupported_schema)
     return 0;
   return encode_body(&run, out, capacity);
+}
+
+uint32_t drms_user_config_get_wire(uint8_t *out, uint32_t capacity)
+{
+  if (!out || !have_config || unsupported_schema) return 0;
+  const uint8_t *value = NULL;
+  uint32_t size = 0, offset = 0;
+  while (offset + 4u <= run.extra_length)
+  {
+    uint16_t type = get16(run.extra + offset);
+    uint16_t len = get16(run.extra + offset + 2u);
+    offset += 4u;
+    if (len > run.extra_length - offset) return 0;
+    if (type == DRMS_USER_TLV_WIRE_SETTINGS)
+    {
+      if (value || !len || len > 1024u) return 0;
+      value = run.extra + offset;
+      size = len;
+    }
+    offset += len;
+  }
+  if (offset != run.extra_length || !value || size > capacity) return 0;
+  memcpy(out, value, size);
+  return size;
 }
 
 static int validate_encoded(const uint8_t *encoded, size_t length, RunConfig *out)

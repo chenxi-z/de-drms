@@ -13,6 +13,7 @@ from test_logging import HEADER as FX_HEADER, MOCK as FX_MOCK
 from test_calibration_journal import MOCK as CAL_MOCK
 from test_user_config import build_body, with_baseline_policy
 from test_config_wire import settings, tlv
+from test_config_snapshot import View
 import struct
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -209,7 +210,7 @@ uint32_t HAL_GetUIDw2(void);
         names = ('application', 'command', 'acquisition', 'measurement', 'fifo', 'logging',
                  'log_codec', 'calibration_codec', 'calibration_journal', 'time_codec', 'power',
                  'control', 'record_session', 'monitor', 'filter', 'classifier', 'baseline', 'capture_time',
-                 'user_config', 'msc', 'storage')
+                 'user_config', 'config_snapshot', 'msc', 'storage')
         subprocess.run(['cc', '-shared', '-fPIC', '-Wall', '-Werror=implicit-function-declaration',
                         '-I', str(p), '-I', str(src / 'Inc'),
                         *[str((src.parent / 'App/application/measurement' if name in ('monitor', 'filter', 'classifier', 'baseline') else src / 'Src') / f'drms_{name}.c') for name in names],
@@ -332,11 +333,25 @@ uint32_t HAL_GetUIDw2(void);
         self.assertEqual((result.result, result.phase), (0, 2))
         self.assertEqual(self.value('drms_acq_rate').value, 8000)
         self.assertEqual(self.lib.drms_user_config_run_version(), 1)
+        self.lib.drms_config_snapshot_acquire.argtypes = [ctypes.POINTER(View)]
+        self.lib.drms_config_snapshot_release.argtypes = [ctypes.POINTER(View)]
+        view = View()
+        self.assertEqual(self.lib.drms_config_snapshot_acquire(ctypes.byref(view)), 1)
+        self.assertEqual((ctypes.string_at(view.data, view.length), view.running, view.saved), (payload, 1, 0))
+        self.lib.drms_config_snapshot_release(ctypes.byref(view))
         self.assertEqual(self.lib.drms_control_submit_identified(ctypes.byref(request), ctypes.byref(ident)), 1)
         self.lib.drms_application_poll()
         self.assertEqual(self.lib.drms_control_get_operation(ident.value, ctypes.byref(result)), 0)
         self.assertEqual(result.result, 4)
         self.assertEqual((self.value('drms_acq_rate').value, self.value('drms_acq_running').value), (8000, 1))
+        save = ControlRequest(source=3, request_id=81, operation=7, expected_version=1)
+        self.assertEqual(self.lib.drms_control_submit_identified(ctypes.byref(save), ctypes.byref(ident)), 1)
+        self.lib.drms_application_poll()
+        self.assertEqual(self.lib.drms_control_get_operation(ident.value, ctypes.byref(result)), 0)
+        self.assertEqual(result.result, 0)
+        self.assertEqual(self.lib.drms_config_snapshot_acquire(ctypes.byref(view)), 1)
+        self.assertEqual((ctypes.string_at(view.data, view.length), view.running, view.saved), (payload, 1, 1))
+        self.lib.drms_config_snapshot_release(ctypes.byref(view))
 
     def test_apply_failed_restart_does_not_publish_candidate(self):
         payload = settings()

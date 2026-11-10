@@ -16,7 +16,7 @@ typedef struct {
   DRMS_CDCV2Send send;
   DRMS_CDCV2CanSend can_send;
   void *send_context;
-  uint8_t raw[256], wire[260];
+  uint8_t raw[DRMS_CDC_RAW_MAX], wire[DRMS_CDC_WIRE_MAX];
   DRMS_CDCMutation mutations[4];
   DRMS_CDCMutation stop_mutation;
   uint64_t mutation_age;

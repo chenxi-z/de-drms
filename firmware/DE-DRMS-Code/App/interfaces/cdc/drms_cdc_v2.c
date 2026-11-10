@@ -2,6 +2,7 @@
 #include "drms_measurement.h"
 #include "drms_control.h"
 #include "drms_application.h"
+#include "drms_config_snapshot.h"
 #include <string.h>
 
 static uint16_t get16(const uint8_t *p) { return (uint16_t)(p[0] | ((uint16_t)p[1] << 8)); }
@@ -50,6 +51,8 @@ static void received(void *user, const uint8_t *request, size_t length)
   uint32_t have_operation = 0;
   DRMS_ApplicationSnapshot snapshot;
   uint32_t have_snapshot = 0;
+  DRMS_ConfigView config_view;
+  uint32_t have_config = 0;
   uint64_t accepted_operation = 0;
   if (opcode == 1u)
   {
@@ -123,10 +126,25 @@ static void received(void *user, const uint8_t *request, size_t length)
           }
         }
       }
+      else if (opcode == 32u)
+      {
+        if (drms_cdc_fields_validate(request + 20, payload_len, NULL, 0, NULL))
+          result = DRMS_INVALID;
+        else if (!drms_config_snapshot_acquire(&config_view))
+          result = DRMS_UNSUPPORTED;
+        else if (config_view.length > 990u)
+        {
+          drms_config_snapshot_release(&config_view);
+          result = DRMS_UNSUPPORTED; /* complete response must fit one frame */
+        }
+        else
+          have_config = 1;
+      }
       else if (opcode == 18u || opcode == 19u || opcode == 33u || opcode == 34u || opcode == 35u || opcode == 48u || opcode == 49u)
       {
         static const DRMS_CDCFieldRule version_rule[] = {{48, 8, 8, 0, 1}};
-        static const DRMS_CDCFieldRule apply_rules[] = {{48, 8, 8, 0, 1}, {49, 1, 1004, 0, 1}};
+        /* GET_CONFIG needs 34 payload bytes for result, TLV headers and versions. */
+        static const DRMS_CDCFieldRule apply_rules[] = {{48, 8, 8, 0, 1}, {49, 1, 990, 0, 1}};
         DRMS_CDCFieldView version_field[2];
         int invalid = opcode == 33u ?
             drms_cdc_fields_validate(request + 20, payload_len, apply_rules, 2, version_field) :
@@ -185,8 +203,8 @@ static void received(void *user, const uint8_t *request, size_t length)
     tlv(out, &pos, 3, temp, 12);
     put64(temp, ctx->session.boot); tlv(out, &pos, 4, temp, 8);
     put16(temp, 1); put16(temp + 2, 2); put16(temp + 4, 3);
-    put16(temp + 6, 18); put16(temp + 8, 19); put16(temp + 10, 33); put16(temp + 12, 34);
-    put16(temp + 14, 35); put16(temp + 16, 48); put16(temp + 18, 49); tlv(out, &pos, 5, temp, 20);
+    put16(temp + 6, 18); put16(temp + 8, 19); put16(temp + 10, 32); put16(temp + 12, 33);
+    put16(temp + 14, 34); put16(temp + 16, 35); put16(temp + 18, 48); put16(temp + 20, 49); tlv(out, &pos, 5, temp, 22);
     put16(temp, 1024); tlv(out, &pos, 6, temp, 2);
     put32(temp, 4000); tlv(out, &pos, 7, temp, 4);
     tlv(out, &pos, 8, temp, 0); /* no recording capability is exposed yet */
@@ -194,6 +212,13 @@ static void received(void *user, const uint8_t *request, size_t length)
   else if (accepted_operation)
   {
     put64(temp, accepted_operation); tlv(out, &pos, 11, temp, 8);
+  }
+  else if (have_config)
+  {
+    tlv(out, &pos, 49, config_view.data, (uint16_t)config_view.length);
+    put64(temp, config_view.running); tlv(out, &pos, 31, temp, 8);
+    put64(temp, config_view.saved); tlv(out, &pos, 32, temp, 8);
+    drms_config_snapshot_release(&config_view);
   }
   else if (have_snapshot)
   {

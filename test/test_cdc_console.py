@@ -50,7 +50,7 @@ MOCK = r'''
 #include <string.h>
 #include <stdio.h>
 UX_SLAVE_CLASS_CDC_ACM cdc={1};
-char incoming[64],written[512];
+char incoming[64],written[1056];
 unsigned int read_status,read_calls,writes,can_io=1,disconnect_during_read,indefinite_io,abort_calls,revocations,incoming_len,written_len,write_short;
 uint32_t HAL_GetTick(void) { return 0; }
 uint32_t HAL_GetUIDw0(void) { return 1; }
@@ -120,6 +120,7 @@ class CDCConsoleTest(unittest.TestCase):
                         str(src.parent / 'App/interfaces/cdc/drms_cdc_frame.c'),
                         str(src / 'Src/drms_measurement.c'),
                         str(src / 'Src/drms_control.c'),
+                        str(src / 'Src/drms_config_snapshot.c'),
                         str(p / 'mock.c'), '-o', str(p / 'cdc.so')], check=True)
         cls.lib = ctypes.CDLL(str(p / 'cdc.so'))
 
@@ -144,6 +145,7 @@ class CDCConsoleTest(unittest.TestCase):
         self.value('can_io').value = 1
         self.lib.set_dtr(1)
         self.lib.install_control()
+        self.lib.drms_config_snapshot_init()
         self.lib.drms_cdc_start()
         self.lib.activate()
 
@@ -475,6 +477,39 @@ class CDCConsoleTest(unittest.TestCase):
         self.assertEqual(ctypes.c_uint64.in_dll(self.lib, 'observed_version').value, 0x100000001)
         n = self.value('observed_length').value
         self.assertEqual(bytes((ctypes.c_ubyte * 1024).in_dll(self.lib, 'observed_payload')[:n]), config)
+
+    def test_v2_get_config_returns_full_published_snapshot(self):
+        import struct, zlib
+        from test_config_wire import settings
+        config = settings() + struct.pack('<HH', 900, 700) + b'x' * 700
+        self.lib.drms_config_snapshot_publish.argtypes = [ctypes.c_void_p, ctypes.c_uint32, ctypes.c_uint64, ctypes.c_uint64]
+        source = ctypes.create_string_buffer(config)
+        self.assertEqual(self.lib.drms_config_snapshot_publish(source, len(config), 12, 10), 1)
+        self.send(bytes.fromhex('040201010101010102010101010101010101010105d7970e6600'))
+        raw = struct.pack('<BBHIQHH', 2, 1, 32, 1, 2, 0, 0)
+        raw += struct.pack('<I', zlib.crc32(raw))
+        wire = bytearray(b'\0'); start = 0; code = 1
+        for byte in raw:
+            if byte == 0:
+                wire[start] = code; start = len(wire); wire.append(0); code = 1
+            else:
+                wire.append(byte); code += 1
+        wire[start] = code; wire.append(0)
+        self.send(bytes(wire))
+        n = self.value('written_len').value
+        encoded = bytes((ctypes.c_ubyte * 1056).in_dll(self.lib, 'written')[:n])
+        decoded = bytearray(); i = 0
+        while i < len(encoded)-1:
+            count = encoded[i]; i += 1
+            decoded += encoded[i:i+count-1]; i += count-1
+            if count != 255 and i < len(encoded)-1: decoded.append(0)
+        fields = {}; i = 20
+        while i < len(decoded)-4:
+            tag, length = struct.unpack_from('<HH', decoded, i); i += 4
+            fields[tag & 0x7fff] = decoded[i:i+length]; i += length
+        self.assertEqual(int.from_bytes(fields[1], 'little'), 0)
+        self.assertEqual(fields[49], config)
+        self.assertEqual((int.from_bytes(fields[31], 'little'), int.from_bytes(fields[32], 'little')), (12, 10))
 
     def test_short_and_empty_packets_preserve_line(self):
         self.send(b'PI')

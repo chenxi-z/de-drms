@@ -14,6 +14,7 @@ Core/Src/drms_record_session.c \
 Core/Src/drms_capture_time.c \
 Core/Src/drms_resource_lifecycle.c \
 Core/Src/drms_user_config.c \
+Core/Src/drms_config_snapshot.c \
 Core/Src/drms_user_backend.c \
 App/application/measurement/drms_monitor.c \
 App/application/measurement/drms_filter.c \

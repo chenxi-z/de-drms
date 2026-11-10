@@ -7,6 +7,7 @@
 #include "drms_measurement.h"
 #include "drms_calibration.h"
 #include "drms_user_config.h"
+#include "drms_config_snapshot.h"
 #include "drms_baseline.h"
 #include "drms_msc.h"
 #include "drms_capture_time.h"
@@ -82,8 +83,32 @@ static DRMS_Result baseline_failure;
 static uint32_t priority_stop_active, priority_stop_started, priority_stop_had_record;
 /* Only the serialized application owner uses this scratch buffer. */
 static uint8_t config_candidate[DRMS_USER_BODY_MAX];
+static uint64_t config_view_running, config_view_saved;
+static uint32_t config_view_current;
 static uint32_t begin(uint32_t rate, uint32_t reference);
 static void configure_monitor(uint32_t rate);
+
+/* The application thread is the sole configuration writer and publisher. */
+static void publish_config_view(void)
+{
+  uint64_t running = drms_user_config_run_version();
+  uint64_t saved = drms_user_config_persisted_version();
+  if (config_view_current && running == config_view_running && saved == config_view_saved) return;
+  uint32_t n = drms_user_config_get_wire(config_candidate, DRMS_CONFIG_SNAPSHOT_MAX);
+  if (!n)
+  {
+    drms_config_snapshot_invalidate();
+    config_view_running = running; config_view_saved = saved; config_view_current = 1;
+    return;
+  }
+  if (!drms_config_snapshot_publish(config_candidate, n, running, saved))
+  {
+    drms_config_snapshot_invalidate();
+    config_view_current = 0; /* a reader pins the target: retry on next poll */
+    return;
+  }
+  config_view_running = running; config_view_saved = saved; config_view_current = 1;
+}
 
 static uint32_t config_wire_rate(const uint8_t *payload, size_t length)
 {
@@ -266,6 +291,7 @@ static DRMS_Result app_dispatch(const DRMS_Token *token, const DRMS_ControlReque
         return DRMS_ACCEPTED;
       }
       DRMS_Result result = drms_user_config_save(request->expected_version);
+      publish_config_view();
       if (was_running && begin(rate, 0) != 0)
       {
         if (!drms_acq_is_quiescent())
@@ -336,6 +362,7 @@ static DRMS_Result app_dispatch(const DRMS_Token *token, const DRMS_ControlReque
       boot_rate = rate;
       config_state = 1;
       configure_monitor(rate);
+      publish_config_view();
       return DRMS_OK;
     }
     case DRMS_OP_FILE_DOWNLOAD:
@@ -716,6 +743,7 @@ static void baseline_service(uint32_t now)
     else
     {
       result = drms_user_config_commit_baseline(mean, baseline_version, calibration.generation);
+      publish_config_view();
       if (begin(baseline_rate, 0) != 0 && result == DRMS_OK)
         result = DRMS_IO_ERROR;
     }
@@ -793,6 +821,8 @@ static void execute(const DRMS_Command *command)
 
 void drms_application_init(void)
 {
+  drms_config_snapshot_init();
+  config_view_current = 0;
   memset(&published_status, 0, sizeof(published_status));
   _Static_assert(sizeof(DRMS_Command) % sizeof(ULONG) == 0, "Queue word alignment");
   ready = tx_queue_create(&commands, "instrument commands", sizeof(DRMS_Command) / sizeof(ULONG),
@@ -834,6 +864,7 @@ void drms_application_init(void)
   /* T7：开机自动监测（显式记录仍需请求）；失败保持可调度与诊断 */
   if (!drms_acq_running)
     (void)begin(boot_rate, 0);
+  publish_config_view();
 }
 
 void drms_application_poll(void)
@@ -1111,6 +1142,7 @@ void drms_application_poll(void)
     published_status = next;
     __set_PRIMASK(mask);
   }
+  publish_config_view();
 }
 
 uint32_t drms_application_snapshot(DRMS_ApplicationSnapshot *out)

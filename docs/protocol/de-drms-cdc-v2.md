@@ -1,6 +1,6 @@
 # 正式 CDC v2 固件接口（设计候选版）
 
-[机器定义](../../shared/protocol/de-drms-cdc-v2.json)列出字段号、类型、请求/成功回复字段、枚举和四条线上向量。本文规定编码与生命周期。版本 2 区别于现有 ASCII v1；当前固件的 CDC 入口支持 v2 HELLO、GET_STATUS、GET_OPERATION、SAFE_STOP、RESUME_MONITOR、SAVE_CONFIG、BUILD_R0、MSC_EXPORT 和 MSC_RELEASE；其他 v2 命令尚未实现并返回 UNSUPPORTED，ASCII v1 调试入口暂时保留。以下其余内容是目标规格，不能视作已实现能力；真实 USB 和硬件随机源仍须板测。
+[机器定义](../../shared/protocol/de-drms-cdc-v2.json)列出字段号、类型、请求/成功回复字段、枚举和四条线上向量。本文规定编码与生命周期。版本 2 区别于现有 ASCII v1；当前固件的 CDC 入口支持 v2 HELLO、GET_STATUS、GET_OPERATION、SAFE_STOP、RESUME_MONITOR、GET_CONFIG、APPLY_CONFIG、SAVE_CONFIG、BUILD_R0、MSC_EXPORT 和 MSC_RELEASE；其他 v2 命令尚未实现并返回 UNSUPPORTED，ASCII v1 调试入口暂时保留。出厂空配置和无完整 CDC 字段的旧配置暂无法读取完整设置，GET_CONFIG 返回 UNSUPPORTED；首次完整 APPLY_CONFIG 成功后可读。记录时长等字段已保存但对应行为尚未完全接通。以下其余内容是目标规格，不能视作已实现能力；真实 USB 和硬件随机源仍须板测。
 
 当前 CDC 收发由独立线程处理，发送端使用 4 个普通槽和 1 个安全停止专用槽；对应槽已满时，请求在业务受理前被丢弃，不产生动作，主机可超时重试。旧会话排队回复不会在新连接发送。故障优先队列和遥测流尚未实现，不能将本段视为下文完整 TX 调度能力已交付。
 
@@ -11,6 +11,7 @@
 - 载荷依次排列 TLV，头为 tag:u16、value_length:u16，长度仅指 value。低 15 位为字段号，高位表示接收者必须理解；机器表中带问号表示可省略，其余字段必须出现。发送方对必填字段置高位。可选字段可清高位；未知且高位置位返回 INVALID/UNKNOWN_REQUIRED，未知可选字段按长度跳过。重复已知字段、缺少必填、长度错误、已知字段出现在错误消息、非零 flags 均拒绝。最多 64 个顶层字段。
 - bool 只接受单字节 0 或 1，f64 是有限 IEEE754 binary64，utf8 为合法 UTF-8，无 NUL，最多 32 字节；定宽数列表为无填充元素串。可选数值无效时省略，不能用零替代。所有回复含 result；非成功或非受理回复可附 reason，错误回复无需成功字段。事件载荷按机器表 success 栏，事件 request_id=0，回复使用原请求编号和 opcode。
 - config 为一层嵌套 TLV，完整配置包含机器表 tag 72 至 83 全部字段，禁止再嵌套。interval_list 为连续 30 字节条目：lo、hi、h 三个 f64，id:u16、level:u8、last_upper_closed:bool、direction:u8（0 无/1 下降/2 上升）、reserved:u8=0，最多 16 项。level 取 0..3，区间编号唯一。可选 config tag 84 为区间名称表，重复条目 id:u16、UTF-8 字节数:u8、名称字节；每项至多 16 字节，引用现有 id，每 id 至多一次。配置整体须装入单帧；不截断。算法边界校验按 C6。时间均按字段名单位；CV 为标准差与正均值之比，合法范围由校验配置决定。未标定允许用空区间表；baseline_min_count=0 表示基线参数未配置，此时后两项为零，建立 R₀ 返回 INVALID/WRONG_STATE。
+- settings 的嵌套 TLV 字节数上限为 990：GET_CONFIG 成功回复还需 34 字节承载 result、settings 的 TLV 头和两个版本字段，因此总载荷仍不超过 1024 字节。APPLY_CONFIG 必须遵守同一上限，确保接受的配置能完整读回。
 - quality 位 0..5 分别表示无有效样本、帧完整性失败、激励无效、采样缺口、基线不适用、区间表缺失；fault 位 0..5 分别为采集、存储、持久化、时间基准、USB、隔离故障。各字段均是独立位集合，新位只增不复用。端点报告未知位时，读者保留原值。fresh 单列，不能用历史等级代替当前有效等级。
 
 ## 连接、请求和查询
