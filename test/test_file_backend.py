@@ -28,7 +28,7 @@ MOCK = r'''
 FX_MEDIA sdio_disk;
 volatile unsigned int drms_storage_mounted = 1;
 volatile uint32_t drms_log_state;
-uint32_t mock_generation=1, mock_owner, opens, closes, reads, fail_read, strict_names;
+uint32_t mock_generation=1, mock_owner, opens, closes, reads, fail_read, fail_close, strict_names;
 char opened_name[32];
 static uint32_t pos;
 uint32_t drms_storage_media_generation(void) { return mock_generation; }
@@ -40,7 +40,7 @@ UINT fx_file_open(FX_MEDIA *m,FX_FILE *f,char *name,UINT mode) {
 UINT fx_file_extended_seek(FX_FILE *f,ULONG64 offset) { (void)f;pos=(uint32_t)offset;return 0; }
 UINT fx_file_read(FX_FILE *f,void *out,ULONG n,ULONG *actual) {
  (void)f; ++reads; if(fail_read) return 1; memcpy(out,"0123456789"+pos,n);pos+=n;*actual=n;return 0; }
-UINT fx_file_close(FX_FILE *f) { (void)f;++closes;return 0; }
+UINT fx_file_close(FX_FILE *f) { (void)f;++closes;return fail_close ? 1 : 0; }
 '''
 
 class FileBackendTest(unittest.TestCase):
@@ -58,7 +58,7 @@ class FileBackendTest(unittest.TestCase):
     def value(self,name): return ctypes.c_uint32.in_dll(self.lib,name)
     def setUp(self):
         self.lib.drms_file_backend_init()
-        for name in ('opens','closes','reads','mock_owner','drms_log_state','fail_read','strict_names'): self.value(name).value=0
+        for name in ('opens','closes','reads','mock_owner','drms_log_state','fail_read','fail_close','strict_names'): self.value(name).value=0
         self.value('mock_generation').value=1; self.value('drms_storage_mounted').value=1
     def open(self, ident=42,session=4,generation=1):
         size=ctypes.c_uint64(); result=self.lib.drms_file_backend_open(ident,session,generation,ctypes.byref(size))
@@ -84,6 +84,9 @@ class FileBackendTest(unittest.TestCase):
         self.assertEqual(self.read()[0],4)
         self.assertEqual(self.value('reads').value,0)
         self.assertEqual(self.value('closes').value,0)
+        self.assertEqual(self.open(generation=2)[0],10)
+        self.lib.drms_file_backend_invalidate()  # worker has already aborted old medium
+        self.assertEqual(self.open(generation=2)[0],0)
     def test_recording_or_msc_blocks_access_and_io_error_closes(self):
         self.value('drms_log_state').value=1
         self.assertEqual(self.open()[0],2)
@@ -109,3 +112,22 @@ class FileBackendTest(unittest.TestCase):
         self.assertEqual((found.value,size.value,cursor.value),(42,10,43))
         self.assertEqual(step(44,2),4)
         self.assertEqual(step(10000),12)
+    def test_failed_close_quarantines_backend_until_media_abort(self):
+        self.assertEqual(self.open()[0],0)
+        self.value('fail_close').value=1
+        self.assertEqual(self.lib.drms_file_backend_close(4,1),10)
+        self.assertEqual(self.open()[0],10)
+        self.assertEqual(self.read()[0],10)
+        self.lib.drms_file_backend_invalidate()
+        self.value('fail_close').value=0
+        self.assertEqual(self.open()[0],0)
+    def test_list_close_failure_never_leaves_filex_pointing_to_stack(self):
+        self.value('fail_close').value=1
+        ident=ctypes.c_uint32(); size=ctypes.c_uint64(); cursor=ctypes.c_uint32()
+        self.assertEqual(self.lib.drms_file_backend_list_step(42,1,ctypes.byref(ident),ctypes.byref(size),ctypes.byref(cursor)),10)
+        self.assertEqual(self.open()[0],10)
+    def test_read_error_with_failed_close_remains_quarantined(self):
+        self.assertEqual(self.open()[0],0)
+        self.value('fail_read').value=1; self.value('fail_close').value=1
+        self.assertEqual(self.read()[0],10)
+        self.assertEqual(self.open()[0],10)

@@ -14,6 +14,7 @@ DRMS_Result drms_file_backend_open(uint32_t file_id, uint32_t session, uint32_t 
 DRMS_Result drms_file_backend_read(uint32_t session, uint32_t media_generation, uint64_t offset,
                                    uint16_t count, uint8_t *out, uint16_t *actual, uint8_t *eof);
 DRMS_Result drms_file_backend_close(uint32_t session, uint32_t media_generation);
-/* Storage owner invokes on removal or unmount; no I/O to an invalid medium. */
+/* Storage owner invokes only after abort/unmount on removal or quarantine;
+ * this clears stale FileX state without touching an invalid medium. */
 void drms_file_backend_invalidate(void);
 #endif
