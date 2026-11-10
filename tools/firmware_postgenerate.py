@@ -63,6 +63,22 @@ def repaired(relative, text):
             raise ValueError('unknown linker settings partition')
         if not re.search(r'USERDATA\s*\(rx\)\s*:\s*ORIGIN = 0x080F8000,\s*LENGTH = 16K', text):
             raise ValueError('unknown linker user-data partition')
+        if not re.search(r'SRAM4\s*\(xrw\)\s*:\s*ORIGIN\s*=\s*0x28000000,\s*LENGTH\s*=\s*16K', text):
+            raise ValueError('unknown SRAM4 memory layout')
+        section = ('  /* DRMS SRAM4 workspace begin */\n'
+                   '  .drms_sram4_workspace (NOLOAD) : ALIGN(8)\n'
+                   '  {\n'
+                   '    *(.drms_sram4_workspace)\n'
+                   '    . = ALIGN(8);\n'
+                   '  } >SRAM4\n'
+                   '  /* DRMS SRAM4 workspace end */\n')
+        if section not in text:
+            if 'DRMS SRAM4 workspace' in text or '.drms_sram4_workspace' in text:
+                raise ValueError('unknown SRAM4 workspace section')
+            anchor = '  /* User_heap_stack section, used to check that there is enough "RAM" Ram  type memory left */'
+            if anchor not in text:
+                raise ValueError('unknown linker workspace insertion point')
+            text = text.replace(anchor, section + '\n' + anchor, 1)
         return text
     if relative == 'Core/Src/sdmmc.c':
         if 'HAL_StatusTypeDef sd_init_status = HAL_ERROR;' not in text or 'static HAL_StatusTypeDef sd_startup_init(' not in text:

@@ -15,6 +15,17 @@ SPEC.loader.exec_module(PG)
 
 
 class PostgenerateTest(unittest.TestCase):
+    def test_sram4_workspace_section_is_restored_after_regeneration(self):
+        linker = self.project / 'STM32U575xx_FLASH.ld'
+        text = linker.read_text()
+        text = re.sub(r'  /\* DRMS SRAM4 workspace begin \*/.*?  /\* DRMS SRAM4 workspace end \*/\n', '', text, flags=re.S)
+        linker.write_text(text)
+        self.assertEqual(self.run_script(apply=True).returncode, 0)
+        repaired = linker.read_text()
+        self.assertIn('*(.drms_sram4_workspace)', repaired)
+        self.assertRegex(repaired, r'\.drms_sram4_workspace\s*\(NOLOAD\)')
+        self.assertIn('>SRAM4', repaired)
+
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
         self.project = Path(self.tmp.name)

@@ -48,6 +48,10 @@ make -C firmware/DE-DRMS-Code -j6 BUILD_DIR=/tmp/de-drms-build
 Makefile 源文件列表。遇到未知模板、丢失 USER 内容或错误 MCU 会停止，不修改 IOC。
 CubeMX 的 **Keep User Code** 必须保持启用；SD 初始化调用仍由 FileX 发起，不回到 main。
 
+链接脚本将配置事务与记录编码的 12 KiB CPU 临时工作区放在 SRAM4；这些缓冲每次使用前写入，
+不依赖复位清零。采样环、记录环和 SD 写入缓冲仍在主 SRAM。更改后应重新构建并检查链接映射；
+SRAM4 在实际板上的访问和长时间记录表现仍需验证。
+
 Flash 共 1024 KiB：程序区 1008 KiB，最后 16 KiB 是校准区 `0x080FC000–0x080FFFFF`。
 持久化后端只接受本器件的默认双 Bank、未交换映射；其他布局返回错误，不修改 Option Bytes。
 整片擦除仍会删除校准；普通复位不会。设置区 ECC 故障只在受限读取窗口内降级，其他 NMI 保持原处理。

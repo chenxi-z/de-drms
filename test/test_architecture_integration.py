@@ -227,6 +227,19 @@ class ArchitectureIntegrationTest(unittest.TestCase):
         for name, want in (('frames', 0x10000), ('records', 0x80000), ('staging', 0x8000)):
             found = re.search(r'\.bss\.' + name + r'\s+0x[0-9a-f]+\s+(0x[0-9a-f]+)', m)
             self.assertEqual(int(found.group(1), 16), want, name)
+        elf = elfs[0].with_suffix('.elf')
+        symbols = subprocess.check_output(['arm-none-eabi-nm', '-S', str(elf)], text=True)
+        for name in ('transaction_body', 'v2_config', 'v2_frames'):
+            match = re.search(r'^([0-9a-f]+)\s+([0-9a-f]+)\s+[bBdD]\s+' + name + r'$', symbols, re.M)
+            self.assertIsNotNone(match, name)
+            address, size = (int(value, 16) for value in match.groups())
+            self.assertGreaterEqual(address, 0x28000000, name)
+            self.assertLessEqual(address + size, 0x28004000, name)
+        for name in ('frames', 'records', 'staging'):
+            match = re.search(r'^([0-9a-f]+)\s+[0-9a-f]+\s+[bBdD]\s+' + name + r'$', symbols, re.M)
+            self.assertIsNotNone(match, name)
+            self.assertGreaterEqual(int(match.group(1), 16), 0x20000000, name)
+            self.assertLess(int(match.group(1), 16), 0x200c0000, name)
 
     def test_measurement_algorithms_live_outside_generated_core(self):
         directory = ROOT / 'firmware/DE-DRMS-Code/App/application/measurement'

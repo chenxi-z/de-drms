@@ -18,8 +18,9 @@ static DRMS_FIFO queue;
 static uint8_t staging[32768] __attribute__((aligned(32)));
 static DRMS_LogMetadata metadata;
 static DRMS_LogV2Meta v2_metadata;
-static uint8_t v2_config[4096];
-static DRMS_RawFrame v2_frames[256];
+/* CPU-only scratch. SDMMC DMA always uses staging in main SRAM. */
+static uint8_t v2_config[4096] __attribute__((section(".drms_sram4_workspace")));
+static DRMS_RawFrame v2_frames[256] __attribute__((section(".drms_sram4_workspace")));
 static DRMS_End v2_end;
 static uint32_t use_v2, v2_end_valid;
 static uint32_t action, file_open, pending_records, filename_index, last_flush, segment_records;

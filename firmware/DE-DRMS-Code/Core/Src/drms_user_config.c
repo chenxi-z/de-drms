@@ -44,11 +44,11 @@ typedef struct {
 } RunConfig;
 
 static RunConfig run;
-static RunConfig staged;
 /* Transactions execute only in the serialized configuration owner context. */
 static RunConfig transaction_workspace;
-static uint8_t transaction_body[DRMS_USER_BODY_MAX];
-static uint32_t have_staged;
+/* CPU-only scratch: each use fills the bytes before reading; no startup zeroing
+ * or peripheral DMA access is required. */
+static uint8_t transaction_body[DRMS_USER_BODY_MAX] __attribute__((section(".drms_sram4_workspace")));
 static uint64_t run_version, persisted_version;
 static uint32_t dirty, unsupported_schema, have_config;
 static int32_t active_page = -1;
@@ -57,8 +57,7 @@ static uint64_t calibration_generation_now;
 void drms_user_config_init(void)
 {
   memset(&run, 0, sizeof(run));
-  memset(&staged, 0, sizeof(staged));
-  have_staged = 0;
+  memset(&transaction_workspace, 0, sizeof(transaction_workspace));
   run_version = persisted_version = 0;
   dirty = unsupported_schema = have_config = 0;
   active_page = -1;
@@ -318,7 +317,7 @@ uint32_t drms_user_config_get_baseline_policy(DRMS_BaselinePolicy *out)
   if (!out)
     return 0;
   memset(out, 0, sizeof(*out));
-  const RunConfig *cfg = have_staged ? &staged : &run;
+  const RunConfig *cfg = &run;
   uint32_t offset = 0;
   while (offset + 4u <= cfg->extra_length)
   {
@@ -340,7 +339,7 @@ uint32_t drms_user_config_get_baseline_policy(DRMS_BaselinePolicy *out)
 
 uint32_t drms_user_config_baseline_rate(void)
 {
-  return (have_staged ? &staged : &run)->rate_hz;
+  return run.rate_hz;
 }
 
 static uint32_t encode_body(const RunConfig *cfg, uint8_t *out, uint32_t capacity)
@@ -623,22 +622,22 @@ DRMS_Result drms_user_config_preflight(const uint8_t *encoded, size_t length,
 DRMS_Result drms_user_config_apply(const uint8_t *encoded, size_t length,
                                    uint64_t expected_version)
 {
-  DRMS_Result result = validate_candidate(encoded, length, expected_version, &staged);
+  RunConfig *candidate = &transaction_workspace;
+  DRMS_Result result = validate_candidate(encoded, length, expected_version, candidate);
   if (result != DRMS_OK)
     return result;
   /* An ordinary settings update must not silently erase the current baseline.
    * A rate change invalidates its dependency, while retaining the old value for
    * diagnostics. Explicit baseline commits remain the only measurement path. */
-  if (run.r0_valid && !staged.r0_valid)
+  if (run.r0_valid && !candidate->r0_valid)
   {
-    staged.r0 = run.r0;
-    staged.calibration_version = run.calibration_version;
-    staged.r0_valid = staged.rate_hz == run.rate_hz;
+    candidate->r0 = run.r0;
+    candidate->calibration_version = run.calibration_version;
+    candidate->r0_valid = candidate->rate_hz == run.rate_hz;
   }
   ++run_version;
-  staged.config_version = run_version;
-  run = staged;
-  have_staged = 0;
+  candidate->config_version = run_version;
+  run = *candidate;
   have_config = 1;
   dirty = 1;
   return DRMS_OK;
@@ -653,7 +652,7 @@ DRMS_Result drms_user_config_save(uint64_t expected_version)
   if (!dirty)
     return DRMS_NO_CHANGE;
   RunConfig *out = &transaction_workspace;
-  *out = have_staged ? staged : run;
+  *out = run;
   out->config_version = run_version;
   uint8_t *body = transaction_body;
   uint32_t body_len = encode_body(out, body, sizeof(transaction_body));
@@ -663,7 +662,6 @@ DRMS_Result drms_user_config_save(uint64_t expected_version)
   if (!page_commit(page, body, body_len))
     return DRMS_IO_ERROR; /* 旧页未动；未保存标志保留 */
   run = *out;
-  have_staged = 0;
   persisted_version = run_version;
   dirty = 0;
   active_page = (int32_t)page;
@@ -681,7 +679,7 @@ DRMS_Result drms_user_config_commit_baseline(double r0, uint64_t expected_versio
   if (expected_version != run_version)
     return DRMS_STALE;
   RunConfig *out = &transaction_workspace;
-  *out = have_staged ? staged : run;
+  *out = run;
   out->r0 = r0;
   out->r0_valid = 1;
   out->calibration_version = calibration_version;
@@ -694,7 +692,6 @@ DRMS_Result drms_user_config_commit_baseline(double r0, uint64_t expected_versio
   if (!page_commit(page, body, body_len))
     return DRMS_IO_ERROR; /* 失败保留旧 R0 与未保存状态 */
   run = *out;
-  have_staged = 0;
   run_version = out->config_version;
   persisted_version = run_version;
   dirty = 0;

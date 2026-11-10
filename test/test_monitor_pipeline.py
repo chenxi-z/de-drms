@@ -23,7 +23,7 @@ OK, ACCEPTED, BUSY, INVALID, STALE = 0, 1, 2, 3, 4
 
 INVALID_S, WARMUP_S, UNCONFIGURED_S, UNMAPPED_S, PENDING_S, CONFIRMED_S = range(6)
 
-CONTEXT_BYTES = 4096
+CONTEXT_BYTES = 1536
 
 
 class TimeAnchor(ctypes.Structure):
@@ -63,6 +63,13 @@ class Output(ctypes.Structure):
 
 
 class PipelineTest(unittest.TestCase):
+    def test_monitor_context_budget_is_at_most_1536_bytes(self):
+        src = ROOT / 'firmware/DE-DRMS-Code/Core/Inc'
+        subprocess.run(['cc', '-std=c11', '-fsyntax-only', '-I', str(src), '-xc', '-'],
+                       input='#include "drms_architecture_contract.h"\n'
+                             '_Static_assert(DRMS_MONITOR_CONTEXT_BYTES <= 1536u, "context budget");\n',
+                       text=True, check=True)
+
     @classmethod
     def setUpClass(cls):
         cls.tmp = tempfile.TemporaryDirectory()

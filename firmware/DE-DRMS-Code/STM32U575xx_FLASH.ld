@@ -220,6 +220,14 @@ SECTIONS
   PROVIDE( __bss_size = __bss_end - __bss_start );
 
 
+  /* DRMS SRAM4 workspace begin */
+  .drms_sram4_workspace (NOLOAD) : ALIGN(8)
+  {
+    *(.drms_sram4_workspace)
+    . = ALIGN(8);
+  } >SRAM4
+  /* DRMS SRAM4 workspace end */
+
   /* User_heap_stack section, used to check that there is enough "RAM" Ram  type memory left */
   ._user_heap_stack (NOLOAD) :
   {
