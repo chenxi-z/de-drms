@@ -1,6 +1,6 @@
 # 正式 CDC v2 固件接口（设计候选版）
 
-[机器定义](../../shared/protocol/de-drms-cdc-v2.json)列出字段号、类型、请求/成功回复字段、枚举和四条线上向量。本文规定编码与生命周期。版本 2 区别于现有 ASCII v1；当前固件的 CDC 入口支持 v2 HELLO、GET_STATUS、GET_OPERATION、GET_RECORD、SAFE_STOP、RESUME_MONITOR、GET_CONFIG、APPLY_CONFIG、SAVE_CONFIG、BUILD_R0、MSC_EXPORT 和 MSC_RELEASE；其他 v2 命令尚未实现并返回 UNSUPPORTED，ASCII v1 调试入口暂时保留。出厂空配置和无完整 CDC 字段的旧配置暂无法读取完整设置，GET_CONFIG 返回 UNSUPPORTED；首次完整 APPLY_CONFIG 成功后可读。按键记录已使用配置时长定时结束；CDC 记录控制及其时长覆盖尚未接通。以下其余内容是目标规格，不能视作已实现能力；真实 USB 和硬件随机源仍须板测。
+[机器定义](../../shared/protocol/de-drms-cdc-v2.json)列出字段号、类型、请求/成功回复字段、枚举和四条线上向量。本文规定编码与生命周期。版本 2 区别于现有 ASCII v1；当前固件的 CDC 入口支持 v2 HELLO、GET_STATUS、GET_OPERATION、GET_RECORD、SAFE_STOP、RESUME_MONITOR、GET_CONFIG、APPLY_CONFIG、SAVE_CONFIG、BUILD_R0、MSC_EXPORT、MSC_RELEASE、FILE_OPEN 和 FILE_CLOSE；FILE_READ 与 FILE_LIST 尚未接通，因此当前还不能下载文件。其他未实现命令返回 UNSUPPORTED，ASCII v1 调试入口暂时保留。出厂空配置和无完整 CDC 字段的旧配置暂无法读取完整设置，GET_CONFIG 返回 UNSUPPORTED；首次完整 APPLY_CONFIG 成功后可读。按键记录已使用配置时长定时结束；CDC 记录控制及其时长覆盖尚未接通。以下其余内容是目标规格，不能视作已实现能力；真实 USB 和硬件随机源仍须板测。
 
 当前 CDC 收发由独立线程处理，发送端使用 4 个普通槽和 1 个安全停止专用槽；对应槽已满时，请求在业务受理前被丢弃，不产生动作，主机可超时重试。旧会话排队回复不会在新连接发送。故障优先队列和遥测流尚未实现，不能将本段视为下文完整 TX 调度能力已交付。
 
@@ -31,6 +31,8 @@ GET_STATUS 为一次逻辑一致快照，status_revision 按发布快照递增�
 | GET_CONFIG、APPLY_CONFIG、SAVE_CONFIG、BUILD_R0、CALIBRATE、SET_UTC | APPLY 和 SAVE 校验 expected_version 等于当前运行版本；配置整体校验。R₀ 使用当前试件，校准使用板载参考。UTC 为 Unix epoch 秒，范围 2000–2099。返回 ACCEPTED 的操作均可按操作号查最终结果；校时不改定时试验截止时间。 |
 | MSC_EXPORT、MSC_RELEASE | 显式申请/交还 TF；CDC 保持可查询。RELEASE 等所有原始读退出；实际重挂载失败报告故障。 |
 | FILE_LIST、FILE_OPEN、FILE_READ、FILE_CLOSE | 只读历史文件。file_id 对应 DRMSnnnn.BIN 的 nnnn。列表按编号递增，cursor 为下一候选号（首次 0），每次至多一项，无 next_cursor 表示结束，查询不持有跨请求租约。每次列举都须获短时 TF 访问权。列表是即时视图；换卡使旧选择失效，介质代次见下文。OPEN 建立本会话唯一下载，成功回复 OK 时文件已打开，operation 是下载句柄；READ 使用绝对偏移，可重读，count=1..768，offset 等于文件大小返回空 data、eof=true，越界拒绝。CLOSE 或断线退出句柄，等在途 I/O 完成才释放。文件请求可异步等待存储线程，CDC 接收线程保持可用。 |
+
+当前 FILE_OPEN/FILE_CLOSE 先返回 ACCEPTED 与操作号，主机以 GET_OPERATION 查询；OPEN 完成且句柄仍活动时，回复携带可选的 file_size 字段，phase 保持 ACTIVE 至 CLOSE 完成。FILE_READ、FILE_LIST 仍未实现。此可选字段向旧客户端保持兼容。
 | SUBSCRIBE、UNSUBSCRIBE | 会话级，断线清除。stream=CURVE 为经降速的最新快照，period_ms 正值；RAW 以 period_ms=0 请求分块，受带宽限制。返回实际周期。每流 sequence 从 1 递增，lost 为本次订阅累计未交付条目数（曲线点或原始帧）。RAW data 为同一代次连续的 16 字节记录，按 [BIN 记录布局](../design/2026-11-06-record-v2-format.md)；缺口或换代另起帧。 |
 | OP_EVENT、FAULT_EVENT、MEAS_EVENT、RAW_EVENT | 设备单向发送；故障及操作结果在帧边界优先。控制回复保留发送槽，慢主机先丢可替代遥测并统计。当前没有已实现的升级能力，升级命令在独立 Bootloader 规格冻结时分配。 |
 

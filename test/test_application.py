@@ -331,6 +331,35 @@ uint32_t HAL_GetUIDw2(void);
         self.assertEqual(snapshot.quarantined_mask & 4, 4)
         self.assertEqual(self.lib.drms_control_reserve(4, ctypes.byref(Token())), 2)
 
+    def test_download_close_releases_lease_only_after_worker_finishes(self):
+        self.insert_card()
+        generation = self.lib.drms_storage_media_generation()
+        req = ControlRequest(source=3, session=4, operation=3, value=42, expected_version=generation)
+        op=ctypes.c_uint64()
+        self.lib.drms_control_submit_identified.argtypes=[ctypes.POINTER(ControlRequest),ctypes.POINTER(ctypes.c_uint64)]
+        self.assertEqual(self.lib.drms_control_submit_identified(ctypes.byref(req),ctypes.byref(op)),1)
+        self.lib.drms_application_poll(); self.lib.drms_file_service_poll(); self.lib.drms_application_poll()
+        self.lib.drms_application_file_close.argtypes=[ctypes.c_uint32,ctypes.c_uint64]
+        self.assertEqual(self.lib.drms_application_file_close(5,op.value),4)
+        self.assertEqual(self.lib.drms_application_file_close(4,op.value),1)
+        self.assertEqual(self.lib.drms_control_reserve(4,ctypes.byref(Token())),2)
+        self.lib.drms_file_service_poll(); self.lib.drms_application_poll()
+        self.assertEqual(self.lib.drms_control_reserve(4,ctypes.byref(Token())),1)
+
+    def test_disconnect_before_download_dispatch_cannot_open_or_leak_lease(self):
+        self.insert_card()
+        generation = self.lib.drms_storage_media_generation()
+        request = ControlRequest(source=3, session=4, operation=3, value=42, expected_version=generation)
+        self.assertEqual(self.lib.drms_control_submit(ctypes.byref(request)), 1)
+        self.lib.drms_application_file_disconnect(4)
+        self.lib.drms_application_poll()
+        self.lib.drms_file_service_poll()
+        self.lib.drms_application_poll()
+        held = Token()
+        self.assertEqual(self.lib.drms_control_reserve(4, ctypes.byref(held)), 1)
+        self.lib.drms_control_complete(held, 0, 4)
+        self.assertEqual(self.lib.drms_file_service_quiescent(), 1)
+
     def test_msc_release_reports_remount_failure(self):
         self.insert_card()
         export = ControlRequest(source=3, request_id=42, operation=2)

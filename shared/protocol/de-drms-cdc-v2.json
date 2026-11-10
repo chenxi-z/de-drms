@@ -369,7 +369,8 @@
         "source",
         "result",
         "?reason",
-        "?record"
+        "?record",
+        "?file_size"
       ]
     },
     "GET_RECORD": {

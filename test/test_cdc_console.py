@@ -59,10 +59,13 @@ uint32_t HAL_GetUIDw2(void) { return 3; }
 int drms_entropy_boot_id(void *ctx,uint64_t *out) { *out=0x123456789abcdef0ULL; return 1; }
 static DRMS_Token test_token;
 uint64_t observed_version;
+uint32_t observed_file_id, disconnected_session;
+uint32_t file_close_calls;
+uint32_t file_view_enabled;
 uint8_t observed_payload[1024];
 uint32_t observed_length;
 static DRMS_Result test_dispatch(const DRMS_Token *token, const DRMS_ControlRequest *request) {
- observed_version=request->expected_version;test_token=*token;
+ observed_version=request->expected_version;observed_file_id=request->value;test_token=*token;
  if (request->operation == DRMS_OP_CONFIG_APPLY && request->payload_length <= sizeof(observed_payload)) {
    observed_length=request->payload_length; memcpy(observed_payload, request->payload, observed_length);
  }
@@ -85,6 +88,15 @@ DRMS_Result drms_application_record_snapshot(uint64_t id, DRMS_ApplicationRecord
  if (id && id != 7) return DRMS_INVALID;
  *out=(DRMS_ApplicationRecord){.record=7,.phase=1,.result=DRMS_ACCEPTED,.capture_lost=2,.log_dropped=3};
  return DRMS_OK;
+}
+void drms_application_file_disconnect(uint32_t session) { disconnected_session=session; }
+uint32_t drms_application_file_snapshot(DRMS_ApplicationFile *out) {
+ if(!file_view_enabled) return 0;
+ *out=(DRMS_ApplicationFile){.operation=1,.size=123,.session=1,.generation=9,.phase=1}; return 1;
+}
+DRMS_Result drms_application_file_close(uint32_t session, uint64_t op) {
+ if (session!=1 || op!=55) return DRMS_STALE;
+ ++file_close_calls; return DRMS_ACCEPTED;
 }
 UINT ux_device_class_cdc_acm_ioctl(void *a,UINT b,VOID *c) { if(c==(void *)UX_WAIT_FOREVER) ++indefinite_io;if(b==4) ++abort_calls;return 0; }
 UINT ux_device_class_cdc_acm_read(void *a,UCHAR *b,ULONG n,ULONG *actual) {
@@ -489,6 +501,63 @@ class CDCConsoleTest(unittest.TestCase):
         self.assertEqual(int.from_bytes(fields[12], 'little'), 7)
         self.assertEqual((fields[45][0], fields[41][0], fields[40][0]), (1, 0, 0))
         self.assertEqual((int.from_bytes(fields[38], 'little'), int.from_bytes(fields[39], 'little')), (2, 3))
+
+    def test_v2_file_open_admission_is_idempotent_and_disconnect_revokes(self):
+        import struct, zlib
+        self.send(bytes.fromhex('040201010101010102010101010101010101010105d7970e6600'))
+        payload = struct.pack('<HHIHHI', 0x8038, 4, 42, 0x8055, 4, 9)
+        raw = struct.pack('<BBHIQHH', 2, 1, 50, 1, 2, len(payload), 0) + payload
+        raw += struct.pack('<I', zlib.crc32(raw))
+        wire = bytearray(b'\0'); start = 0; code = 1
+        for byte in raw:
+            if byte == 0:
+                wire[start] = code; start = len(wire); wire.append(0); code = 1
+            else:
+                wire.append(byte); code += 1
+        wire[start] = code; wire.append(0)
+        self.send(bytes(wire)); self.send(bytes(wire))
+        self.assertEqual(self.lib.control_queued(), 1)
+        self.lib.process_one()
+        self.assertEqual((ctypes.c_uint64.in_dll(self.lib,'observed_version').value,
+                          self.value('observed_file_id').value), (9,42))
+        self.value('file_view_enabled').value=1
+        payload=struct.pack('<HHQ',0x800b,8,1)
+        raw=struct.pack('<BBHIQHH',2,1,3,1,3,len(payload),0)+payload
+        raw+=struct.pack('<I',zlib.crc32(raw))
+        query=bytearray(b'\0');start=0;code=1
+        for byte in raw:
+            if byte==0:
+                query[start]=code;start=len(query);query.append(0);code=1
+            else: query.append(byte);code+=1
+        query[start]=code;query.append(0)
+        self.send(bytes(query))
+        n=self.value('written_len').value
+        encoded=bytes((ctypes.c_ubyte*1056).in_dll(self.lib,'written')[:n])
+        decoded=bytearray();i=0
+        while i<len(encoded)-1:
+            count=encoded[i];i+=1;decoded+=encoded[i:i+count-1];i+=count-1
+            if count!=255 and i<len(encoded)-1:decoded.append(0)
+        self.assertIn(struct.pack('<HHQ',57,8,123),decoded)
+        self.value('file_view_enabled').value=0
+        self.lib.drms_cdc_deactivate()
+        self.lib.drms_cdc_poll()  # worker observes the disconnect
+        self.assertEqual(self.value('disconnected_session').value,1)
+
+    def test_v2_file_close_retries_do_not_submit_twice(self):
+        import struct, zlib
+        self.value('file_close_calls').value=0
+        self.send(bytes.fromhex('040201010101010102010101010101010101010105d7970e6600'))
+        payload=struct.pack('<HHQ',0x800b,8,55)
+        raw=struct.pack('<BBHIQHH',2,1,52,1,2,len(payload),0)+payload
+        raw+=struct.pack('<I',zlib.crc32(raw))
+        wire=bytearray(b'\0');start=0;code=1
+        for byte in raw:
+            if byte==0:
+                wire[start]=code;start=len(wire);wire.append(0);code=1
+            else: wire.append(byte);code+=1
+        wire[start]=code;wire.append(0)
+        self.send(bytes(wire)); self.send(bytes(wire))
+        self.assertEqual(self.value('file_close_calls').value,1)
 
     def test_v2_apply_owns_nested_payload_through_disconnect(self):
         import struct, zlib
