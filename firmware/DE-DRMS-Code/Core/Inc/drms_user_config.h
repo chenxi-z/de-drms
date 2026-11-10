@@ -39,13 +39,13 @@ void drms_user_config_set_calibration_generation(uint64_t generation);
  * 保留原始页并进入恢复状态（普通保存拒绝覆盖）；两页均无效 → 出厂默认。 */
 void drms_user_config_load(void);
 
-/* 校验并暂存运行配置（整体校验；任何非法输入整包拒绝，不部分生效）。
+/* 校验并发布运行配置（整体校验；任何非法输入整包拒绝，不部分生效）。
  * expected_version 必须等于当前运行版本，否则 STALE。成功后运行版本 +1、
  * 置未保存标志；持久化由 save/commit_baseline 完成。 */
 DRMS_Result drms_user_config_apply(const uint8_t *encoded, size_t length,
                                    uint64_t expected_version);
 
-/* 暂存运行配置持久化（expected_version 须等于当前运行版本）。
+/* 运行配置持久化（expected_version 须等于当前运行版本）。
  * 同值已持久化 → NO_CHANGE 不擦写；写失败保留旧页内容与未保存标志。 */
 DRMS_Result drms_user_config_save(uint64_t expected_version);
 
@@ -68,7 +68,7 @@ typedef struct {
   uint64_t min_duration_us;
   double max_cv;
 } DRMS_BaselinePolicy;
-/* Returns 0 when no policy is configured. A staged policy follows run_version. */
+/* Returns 0 when no policy is configured. The policy follows run_version. */
 uint32_t drms_user_config_get_baseline_policy(DRMS_BaselinePolicy *out);
 /* Sampling rate of the snapshot that baseline commit would persist. */
 uint32_t drms_user_config_baseline_rate(void);

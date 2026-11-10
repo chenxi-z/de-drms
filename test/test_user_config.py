@@ -241,6 +241,13 @@ class UserConfigTest(unittest.TestCase):
             ('名称超长', [(1, 1, 0, 0.0, 0.1, 0.0, 'x' * 49)]),
             ('非法UTF8', [(1, 1, 0, 0.0, 0.1, 0.0, b'\xff\xfe')]),
             ('截断UTF8', [(1, 1, 0, 0.0, 0.1, 0.0, b'\xe4\xb8')]),
+            ('代理码UTF8', [(1, 1, 0, 0.0, 0.1, 0.0, b'\xed\xa0\x80')]),
+            ('超出Unicode', [(1, 1, 0, 0.0, 0.1, 0.0, b'\xf4\x90\x80\x80')]),
+            ('名称含NUL', [(1, 1, 0, 0.0, 0.1, 0.0, b'a\x00b')]),
+            ('重复编号', [(1, 1, 0, 0.0, 0.1, 0.0, ''), (1, 2, 0, 0.1, 0.2, 0.0, '')]),
+            ('非法等级', [(1, 4, 0, 0.0, 0.1, 0.0, '')]),
+            ('非末项闭合', [(1, 1, 1, 0.0, 0.1, 0.0, ''), (2, 1, 0, 0.1, 0.2, 0.0, '')]),
+            ('回差吞掉空隙', [(1, 1, 0, 0.0, 1.0, 0.2, ''), (2, 1, 0, 1.3, 2.0, 0.2, '')]),
         ]
         for name, intervals in bad_cases:
             with self.subTest(name):
@@ -262,12 +269,35 @@ class UserConfigTest(unittest.TestCase):
         self.assertEqual(self.lib.drms_user_config_apply(body, len(body), 5), STALE)
         self.assertEqual(self.lib.drms_user_config_apply(body, len(body), 0), OK)
         self.assertEqual(self.lib.drms_user_config_run_version(), 1)
+
+    def test_apply_publishes_one_running_snapshot_before_save(self):
+        body = with_baseline_policy(build_body(params=(8000, 0, 0, 0, 16000)), 100, 50000, 0.01)
+        self.assertEqual(self.lib.drms_user_config_apply(body, len(body), 0), OK)
+        self.assertEqual(self.lib.drms_user_config_dirty(), 1)
+        output = ctypes.create_string_buffer(4096)
+        length = self.lib.drms_user_config_export(output, len(output))
+        self.assertGreater(length, 0)
+        data = output.raw[:length]
+        self.assertEqual(struct.unpack_from('<Q', data, 12)[0], 1)
+        self.assertEqual(struct.unpack_from('<I', data, 44)[0], 8000)
+        policy = BaselinePolicy()
+        self.assertEqual(self.lib.drms_user_config_get_baseline_policy(ctypes.byref(policy)), 1)
+        self.assertEqual((policy.min_count, policy.min_duration_us), (100, 50000))
+        self.assertEqual(self.lib.drms_user_config_persisted_version(), 0)
         # CRC 破坏 → 整包拒绝
         broken = bytearray(body)
         broken[-1] ^= 1
         self.assertEqual(self.lib.drms_user_config_apply(bytes(broken), len(broken), 1), INVALID)
         # 运行版本未变（拒绝后不生效）
         self.assertEqual(self.lib.drms_user_config_run_version(), 1)
+
+    def test_duplicate_singleton_tlv_is_rejected_atomically(self):
+        body = bytearray(build_body()[:-4])
+        body += struct.pack('<HHIQQQQ', 2, 36, 8000, 0, 0, 0, 16000)
+        struct.pack_into('<I', body, 8, len(body) + 4)
+        encoded = bytes(body) + struct.pack('<I', crc32(body))
+        self.assertEqual(self.lib.drms_user_config_apply(encoded, len(encoded), 0), INVALID)
+        self.assertEqual(self.lib.drms_user_config_run_version(), 0)
 
     def test_save_and_no_change(self):
         self.assertEqual(self.lib.drms_user_config_save(0), NO_CHANGE)  # 无脏数据
@@ -319,6 +349,15 @@ class UserConfigTest(unittest.TestCase):
         self.assertEqual(self.lib.drms_user_config_commit_baseline(float('nan'), 3, 7), INVALID)
         self.assertEqual(self.lib.drms_user_config_commit_baseline(0.0, 3, 7), INVALID)
 
+    def test_applied_rate_change_invalidates_prior_baseline_before_save(self):
+        self.assertEqual(self.lib.drms_user_config_apply(build_body(), len(build_body()), 0), OK)
+        self.assertEqual(self.lib.drms_user_config_commit_baseline(100000.0, 1, 0), OK)
+        changed = build_body(params=(8000, 0, 0, 0, 16000))
+        self.assertEqual(self.lib.drms_user_config_apply(changed, len(changed), 2), OK)
+        self.assertEqual(self.lib.drms_user_config_r0_valid(), 0)
+        self.assertEqual(self.lib.drms_user_config_r0(), 100000.0)
+        self.assertEqual(self.lib.drms_user_config_dirty(), 1)
+
     def test_calibration_generation_change_invalidates_r0_on_load(self):
         self.assertEqual(self.lib.drms_user_config_commit_baseline(100000.0, 0, 7), OK)
         # 模拟重启 + 校准代次已推进
@@ -367,6 +406,17 @@ class UserConfigTest(unittest.TestCase):
         self.assertEqual(self.lib.drms_user_config_save(2), OK)
         self.reboot()
         self.assertEqual(self.lib.drms_user_config_persisted_version(), 2)
+
+    def test_semantically_corrupt_newer_page_falls_back_to_valid_older_page(self):
+        self.assertEqual(self.lib.drms_user_config_commit_baseline(100000.0, 0, 0), OK)
+        broken = build_body(version=2, intervals=[(1, 7, False, 0.0, 1.0, 0.0, '')])
+        ptr = self.page_ptr(1)
+        ctypes.memmove(ptr, broken, len(broken))
+        commit = b'UCMT' + struct.pack('<II', len(broken), crc32(broken[:-4])) + b'\xff' * 4
+        ctypes.memmove(ptr + PAGE - 16, commit, 16)
+        self.reboot()
+        self.assertEqual(self.lib.drms_user_config_persisted_version(), 1)
+        self.assertEqual(self.lib.drms_user_config_r0(), 100000.0)
 
 
 if __name__ == '__main__':

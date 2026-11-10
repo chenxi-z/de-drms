@@ -129,6 +129,8 @@ static int utf8_valid(const uint8_t *s, uint32_t length)
   {
     uint8_t c = s[i];
     uint32_t need;
+    if (!c)
+      return 0;
     if (c < 0x80)
       need = 0;
     else if ((c & 0xE0) == 0xC0 && c >= 0xC2)
@@ -146,7 +148,11 @@ static int utf8_valid(const uint8_t *s, uint32_t length)
         return 0;
     if (need == 2 && s[i] == 0xE0 && s[i + 1] < 0xA0)
       return 0; /* 超长编码 */
+    if (need == 2 && s[i] == 0xED && s[i + 1] >= 0xA0)
+      return 0; /* UTF-16 surrogate code points are not UTF-8 scalar values */
     if (need == 3 && s[i] == 0xF0 && s[i + 1] < 0x90)
+      return 0;
+    if (need == 3 && s[i] == 0xF4 && s[i + 1] >= 0x90)
       return 0;
     i += need + 1;
   }
@@ -164,12 +170,21 @@ static int validate_intervals(const uint8_t *value, uint32_t length)
     return 0;
   uint32_t offset = 2;
   double prev_hi = 0.0;
+  double prev_h = 0.0;
+  uint16_t ids[DRMS_USER_INTERVALS_MAX];
   int have_prev = 0;
   for (uint16_t i = 0; i < count; ++i)
   {
     if (offset + INTERVAL_FIXED > length)
       return 0;
     const uint8_t *rec = value + offset;
+    uint16_t id = get16(rec);
+    if (rec[2] > 3u || (rec[3] & ~1u) || ((rec[3] & 1u) && i + 1u != count))
+      return 0;
+    for (uint16_t j = 0; j < i; ++j)
+      if (ids[j] == id)
+        return 0;
+    ids[i] = id;
     uint8_t name_len = rec[28];
     if (name_len > DRMS_USER_NAME_MAX || offset + INTERVAL_FIXED + name_len > length)
       return 0;
@@ -184,7 +199,10 @@ static int validate_intervals(const uint8_t *value, uint32_t length)
       return 0; /* C6 回差约束 */
     if (have_prev && !(lo >= prev_hi))
       return 0; /* 有序不重叠 */
+    if (have_prev && lo > prev_hi && !(prev_h + h < lo - prev_hi))
+      return 0; /* 两侧回差不得吞没整个空隙 */
     prev_hi = hi;
+    prev_h = h;
     have_prev = 1;
     offset += INTERVAL_FIXED + name_len;
   }
@@ -197,10 +215,18 @@ static int parse_tlv(const uint8_t *body, uint32_t body_len, RunConfig *cfg)
   cfg->extra_length = 0;
   uint32_t offset = 40;
   uint32_t baseline_seen = 0;
+  uint32_t singleton_seen = 0;
   while (offset + 4u <= body_len - 4u)
   {
     uint16_t type = get16(body + offset);
     uint16_t len = get16(body + offset + 2);
+    if (type >= DRMS_USER_TLV_INTERVALS && type <= DRMS_USER_TLV_ALIAS)
+    {
+      uint32_t bit = 1u << (type - 1u);
+      if (singleton_seen & bit)
+        return 0;
+      singleton_seen |= bit;
+    }
     if (offset + 4u + len > body_len - 4u)
       return 0;
     const uint8_t *value = body + offset + 4;
@@ -487,24 +513,42 @@ void drms_user_config_load(void)
     version = pa ? va : vb;
     len = pa ? la : lb;
   }
-  active_page = (int32_t)best;
-  persisted_version = version;
-  run_version = version;
   uint8_t *body = transaction_body;
-  if (!drms_user_backend_read(best, 0, body, len))
-    return;
-  if (body[7] != SCHEMA_VERSION)
+  for (unsigned attempt = 0; attempt < 2; ++attempt)
   {
-    /* 未来 schema：保留原始页；普通保存/apply 拒绝覆盖（R3）。 */
-    unsupported_schema = 1;
-    return;
+    if (drms_user_backend_read(best, 0, body, len))
+    {
+      if (body[7] != SCHEMA_VERSION)
+      {
+        /* Do not erase an unrecognized committed schema, even on fallback. */
+        active_page = (int32_t)best;
+        persisted_version = run_version = version;
+        unsupported_schema = 1;
+        return;
+      }
+      if (validate_encoded(body, len, &run))
+      {
+        active_page = (int32_t)best;
+        persisted_version = run_version = version;
+        have_config = 1;
+        dirty = 0;
+        if (run.r0_valid && run.calibration_version != calibration_generation_now)
+          run.r0_valid = 0;
+        return;
+      }
+    }
+    /* A valid CRC does not imply a valid configuration. Try the other
+     * committed page before abandoning the last known-good snapshot. */
+    if ((best == 0 && pb) || (best == 1 && pa))
+    {
+      best ^= 1u;
+      version = best ? vb : va;
+      len = best ? lb : la;
+    }
+    else
+      break;
   }
-  if (!validate_encoded(body, len, &run))
-    return; /* 提交有效但内容损坏：出厂默认，页保持供诊断 */
-  have_config = 1;
-  dirty = 0;
-  if (run.r0_valid && run.calibration_version != calibration_generation_now)
-    run.r0_valid = 0; /* 校准代次变化：旧 R0 依赖不匹配 → 失效（可诊断不可用） */
+  /* Both known snapshots failed validation; no invalid version is published. */
 }
 
 DRMS_Result drms_user_config_apply(const uint8_t *encoded, size_t length,
@@ -516,10 +560,24 @@ DRMS_Result drms_user_config_apply(const uint8_t *encoded, size_t length,
     return DRMS_UNSUPPORTED; /* 未知 schema：普通路径不得覆盖 */
   if (expected_version != run_version)
     return DRMS_STALE;
+  if (run_version == UINT64_MAX)
+    return DRMS_INVALID;
   if (!validate_encoded(encoded, length, &staged))
     return DRMS_INVALID;
-  have_staged = 1;
+  /* An ordinary settings update must not silently erase the current baseline.
+   * A rate change invalidates its dependency, while retaining the old value for
+   * diagnostics. Explicit baseline commits remain the only measurement path. */
+  if (run.r0_valid && !staged.r0_valid)
+  {
+    staged.r0 = run.r0;
+    staged.calibration_version = run.calibration_version;
+    staged.r0_valid = staged.rate_hz == run.rate_hz;
+  }
   ++run_version;
+  staged.config_version = run_version;
+  run = staged;
+  have_staged = 0;
+  have_config = 1;
   dirty = 1;
   return DRMS_OK;
 }
