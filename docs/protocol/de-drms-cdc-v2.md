@@ -1,6 +1,6 @@
 # 正式 CDC v2 固件接口（设计候选版）
 
-[机器定义](../../shared/protocol/de-drms-cdc-v2.json)列出字段号、类型、请求/成功回复字段、枚举和四条线上向量。本文规定编码与生命周期。版本 2 区别于现有 ASCII v1；当前固件的 CDC 入口支持 v2 HELLO、GET_STATUS、GET_OPERATION、SAFE_STOP、RESUME_MONITOR、GET_CONFIG、APPLY_CONFIG、SAVE_CONFIG、BUILD_R0、MSC_EXPORT 和 MSC_RELEASE；其他 v2 命令尚未实现并返回 UNSUPPORTED，ASCII v1 调试入口暂时保留。出厂空配置和无完整 CDC 字段的旧配置暂无法读取完整设置，GET_CONFIG 返回 UNSUPPORTED；首次完整 APPLY_CONFIG 成功后可读。按键记录已使用配置时长定时结束；CDC 记录控制及其时长覆盖尚未接通。以下其余内容是目标规格，不能视作已实现能力；真实 USB 和硬件随机源仍须板测。
+[机器定义](../../shared/protocol/de-drms-cdc-v2.json)列出字段号、类型、请求/成功回复字段、枚举和四条线上向量。本文规定编码与生命周期。版本 2 区别于现有 ASCII v1；当前固件的 CDC 入口支持 v2 HELLO、GET_STATUS、GET_OPERATION、GET_RECORD、SAFE_STOP、RESUME_MONITOR、GET_CONFIG、APPLY_CONFIG、SAVE_CONFIG、BUILD_R0、MSC_EXPORT 和 MSC_RELEASE；其他 v2 命令尚未实现并返回 UNSUPPORTED，ASCII v1 调试入口暂时保留。出厂空配置和无完整 CDC 字段的旧配置暂无法读取完整设置，GET_CONFIG 返回 UNSUPPORTED；首次完整 APPLY_CONFIG 成功后可读。按键记录已使用配置时长定时结束；CDC 记录控制及其时长覆盖尚未接通。以下其余内容是目标规格，不能视作已实现能力；真实 USB 和硬件随机源仍须板测。
 
 当前 CDC 收发由独立线程处理，发送端使用 4 个普通槽和 1 个安全停止专用槽；对应槽已满时，请求在业务受理前被丢弃，不产生动作，主机可超时重试。旧会话排队回复不会在新连接发送。故障优先队列和遥测流尚未实现，不能将本段视为下文完整 TX 调度能力已交付。
 
@@ -26,7 +26,7 @@ GET_STATUS 为一次逻辑一致快照，status_revision 按发布快照递增�
 
 | 请求 | 规则 |
 | --- | --- |
-| BEGIN_RECORD、END_RECORD | BEGIN 的 duration_ms 省略表示使用当前配置，零表示手动结束；非零以确认起点 B 的单调时刻起算。受理先分配记录号和操作号。开始操作在确认 B 后完成；记录本身持续。END 指定 record，受理后待末边界 E 及存储收尾完成才结束。GET_RECORD 的 phase 反映记录生命周期，进行中 clean_end=false。 |
+| BEGIN_RECORD、END_RECORD | BEGIN 的 duration_ms 省略表示使用当前配置，零表示手动结束；非零以确认起点 B 的单调时刻起算。受理先分配记录号和操作号。开始操作在确认 B 后完成；记录本身持续。END 指定 record，受理后待末边界 E 及存储收尾完成才结束。GET_RECORD 的 phase 反映记录生命周期，进行中 clean_end=false。当前固件只保留本次启动中最近一次已受理记录的状态，旧编号返回 STALE，未知编号返回 INVALID；数据和缺失计数在存储完成后为最终值。 |
 | SAFE_STOP、RESUME_MONITOR | 安全停止失效化冲突启动、停止激励与采集、有界收尾。恢复仅启动监测。查询和安全路径保留容量；同目标重复停止可合并。 |
 | GET_CONFIG、APPLY_CONFIG、SAVE_CONFIG、BUILD_R0、CALIBRATE、SET_UTC | APPLY 和 SAVE 校验 expected_version 等于当前运行版本；配置整体校验。R₀ 使用当前试件，校准使用板载参考。UTC 为 Unix epoch 秒，范围 2000–2099。返回 ACCEPTED 的操作均可按操作号查最终结果；校时不改定时试验截止时间。 |
 | MSC_EXPORT、MSC_RELEASE | 显式申请/交还 TF；CDC 保持可查询。RELEASE 等所有原始读退出；实际重挂载失败报告故障。 |

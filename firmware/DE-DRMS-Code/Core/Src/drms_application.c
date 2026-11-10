@@ -53,6 +53,7 @@ static DRMS_MonitorContext *const monitor = (DRMS_MonitorContext *)monitor_store
 /* Written only by the measurement owner, copied under a short critical section. */
 static DRMS_MonitorOutput published_monitor;
 static DRMS_ApplicationSnapshot published_status;
+static DRMS_ApplicationRecord published_record;
 static uint8_t monitor_levels[DRMS_MONITOR_INTERVALS_MAX];
 static uint16_t monitor_interval_ids[DRMS_MONITOR_INTERVALS_MAX];
 static uint8_t monitor_level_count;
@@ -65,6 +66,7 @@ static uint64_t session_record_id;
 static uint64_t next_record_id = 1;
 static uint32_t session_armed;   /* prepare 已完成，等文件就绪+边界 B */
 static uint32_t session_cancelled;
+static uint32_t session_footer_requested;
 static uint32_t session_duration_ms;
 static uint64_t session_started_us;
 static uint32_t session_stopping;/* request_stop 已发，等 E */
@@ -91,6 +93,26 @@ static uint64_t config_view_running, config_view_saved;
 static uint32_t config_view_current;
 static uint32_t begin(uint32_t rate, uint32_t reference);
 static void configure_monitor(uint32_t rate);
+
+static void record_publish(const DRMS_ApplicationRecord *view)
+{
+  uint32_t mask = __get_PRIMASK();
+  __disable_irq();
+  published_record = *view;
+  __set_PRIMASK(mask);
+}
+
+DRMS_Result drms_application_record_snapshot(uint64_t id, DRMS_ApplicationRecord *out)
+{
+  if (!out) return DRMS_INVALID;
+  uint32_t mask = __get_PRIMASK();
+  __disable_irq();
+  *out = published_record;
+  __set_PRIMASK(mask);
+  if (!out->record || (id && id > out->record)) return DRMS_INVALID;
+  if (id && id < out->record) return DRMS_STALE;
+  return DRMS_OK;
+}
 
 static void config_put32(uint8_t *p, uint32_t n)
 {
@@ -278,6 +300,9 @@ static DRMS_Result app_dispatch(const DRMS_Token *token, const DRMS_ControlReque
       }
       session_armed = 1;
       session_cancelled = 0;
+      session_footer_requested = 0;
+      DRMS_ApplicationRecord view = {.record = session_record_id, .phase = 0, .result = DRMS_ACCEPTED};
+      record_publish(&view);
       return DRMS_ACCEPTED; /* 文件就绪+边界 B 在 poll 中归结 */
     }
     case DRMS_OP_MSC_EXPORT:
@@ -504,6 +529,8 @@ static void session_service(uint32_t now_ms)
       session_armed = 0;
       session_active = 1;
       session_started_us = drms_acq_now_us();
+      DRMS_ApplicationRecord view = {.record = session_record_id, .phase = 1, .result = DRMS_ACCEPTED};
+      record_publish(&view);
       (void)drms_control_report(session_token, DRMS_OK);
       cmd_result = 0;
     }
@@ -881,6 +908,7 @@ static void execute(const DRMS_Command *command)
 
 void drms_application_init(void)
 {
+  memset(&published_record, 0, sizeof(published_record));
   drms_config_snapshot_init();
   config_view_current = 0;
   memset(&published_status, 0, sizeof(published_status));
@@ -1042,10 +1070,20 @@ void drms_application_poll(void)
       {
         if (session_cancelled || !drms_log_finish_v2(&end))
           drms_log_stop_incomplete();
+        else
+          session_footer_requested = 1;
       }
       if (!drms_log_running && drms_log_state == 0)
       {
         DRMS_Result storage_result = drms_log_status ? DRMS_IO_ERROR : DRMS_OK;
+        DRMS_ApplicationRecord view = {
+          .record = end.record_id, .phase = 2,
+          .result = storage_result != DRMS_OK ? storage_result :
+                    (!session_footer_requested && (end.reason == DRMS_OK || end.reason == DRMS_EMPTY) ? DRMS_INCOMPLETE : end.reason),
+          .clean_end = session_footer_requested && storage_result == DRMS_OK,
+          .capture_lost = end.capture_lost, .log_dropped = end.log_dropped,
+          .unknown_loss = end.unknown_loss || !session_footer_requested};
+        record_publish(&view);
         (void)drms_record_end_ack(end.token, storage_result);
         if (storage_result != DRMS_OK)
           cmd_result = 5;
@@ -1175,6 +1213,9 @@ void drms_application_poll(void)
     next.acquisition = drms_acq_error ? 5u : !drms_acq_running ? 0u :
                        drms_acq_reference ? 4u : 3u;
     next.recording = session_armed ? 1u : session_stopping ? 3u : session_active ? 2u : 0u;
+    next.record_id = published_record.record;
+    next.record_phase = published_record.phase;
+    next.record_result = published_record.result;
     next.medium = (uint8_t)health;
     next.owner = (uint8_t)owner;
     next.maintenance = baseline_active ? 1u : cal_active ? 2u : 0u;

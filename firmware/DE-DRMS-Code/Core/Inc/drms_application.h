@@ -2,6 +2,7 @@
 #define DRMS_APPLICATION_H
 #include <stddef.h>
 #include <stdint.h>
+#include "drms_architecture_contract.h"
 typedef struct {
   uint64_t revision, mono_us, running_version, saved_version, baseline_version, calibration_version;
   uint64_t sample_index;
@@ -11,9 +12,19 @@ typedef struct {
   uint8_t ohms_valid, ratio_valid;
   uint8_t level_valid, level;
   uint16_t interval;
+  uint64_t record_id;
+  uint32_t record_result;
+  uint8_t record_phase;
 } DRMS_ApplicationSnapshot;
 /* Copies the last supervisor-published, logically consistent status view. */
 uint32_t drms_application_snapshot(DRMS_ApplicationSnapshot *out);
+typedef struct {
+  uint64_t record, capture_lost, log_dropped;
+  uint32_t result;
+  uint8_t phase, clean_end, unknown_loss;
+} DRMS_ApplicationRecord;
+/* One retained most-recent record; id=0 selects it. Older IDs return STALE. */
+DRMS_Result drms_application_record_snapshot(uint64_t id, DRMS_ApplicationRecord *out);
 void drms_application_init(void);
 void drms_application_poll(void);
 size_t drms_application_status(char *out, size_t capacity);

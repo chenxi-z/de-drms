@@ -51,6 +51,8 @@ static void received(void *user, const uint8_t *request, size_t length)
   uint32_t have_operation = 0;
   DRMS_ApplicationSnapshot snapshot;
   uint32_t have_snapshot = 0;
+  DRMS_ApplicationRecord record;
+  uint32_t have_record = 0;
   DRMS_ConfigView config_view;
   uint32_t have_config = 0;
   uint64_t accepted_operation = 0;
@@ -124,6 +126,19 @@ static void received(void *user, const uint8_t *request, size_t length)
             result = (uint16_t)operation.result;
             have_operation = 1;
           }
+        }
+      }
+      else if (opcode == 4u)
+      {
+        static const DRMS_CDCFieldRule rules[] = {{12, 8, 8, 0, 1}};
+        DRMS_CDCFieldView fields[1];
+        if (drms_cdc_fields_validate(request + 20, payload_len, rules, 1, fields) || !get64(fields[0].value))
+          result = DRMS_INVALID;
+        else
+        {
+          DRMS_Result query = drms_application_record_snapshot(get64(fields[0].value), &record);
+          result = (uint16_t)query;
+          if (query == DRMS_OK) { result = (uint16_t)record.result; have_record = 1; }
         }
       }
       else if (opcode == 32u)
@@ -202,9 +217,9 @@ static void received(void *user, const uint8_t *request, size_t length)
     for (unsigned i = 0; i < 3; ++i) put32(temp + i * 4, ctx->uid[i]);
     tlv(out, &pos, 3, temp, 12);
     put64(temp, ctx->session.boot); tlv(out, &pos, 4, temp, 8);
-    put16(temp, 1); put16(temp + 2, 2); put16(temp + 4, 3);
-    put16(temp + 6, 18); put16(temp + 8, 19); put16(temp + 10, 32); put16(temp + 12, 33);
-    put16(temp + 14, 34); put16(temp + 16, 35); put16(temp + 18, 48); put16(temp + 20, 49); tlv(out, &pos, 5, temp, 22);
+    put16(temp, 1); put16(temp + 2, 2); put16(temp + 4, 3); put16(temp + 6, 4);
+    put16(temp + 8, 18); put16(temp + 10, 19); put16(temp + 12, 32); put16(temp + 14, 33);
+    put16(temp + 16, 34); put16(temp + 18, 35); put16(temp + 20, 48); put16(temp + 22, 49); tlv(out, &pos, 5, temp, 24);
     put16(temp, 1024); tlv(out, &pos, 6, temp, 2);
     put32(temp, 4000); tlv(out, &pos, 7, temp, 4);
     tlv(out, &pos, 8, temp, 0); /* no recording capability is exposed yet */
@@ -220,6 +235,15 @@ static void received(void *user, const uint8_t *request, size_t length)
     put64(temp, config_view.saved); tlv(out, &pos, 32, temp, 8);
     drms_config_snapshot_release(&config_view);
   }
+  else if (have_record)
+  {
+    put64(temp, record.record); tlv(out, &pos, 12, temp, 8);
+    temp[0] = record.phase; tlv(out, &pos, 45, temp, 1);
+    temp[0] = record.clean_end; tlv(out, &pos, 41, temp, 1);
+    put64(temp, record.capture_lost); tlv(out, &pos, 38, temp, 8);
+    put64(temp, record.log_dropped); tlv(out, &pos, 39, temp, 8);
+    temp[0] = record.unknown_loss; tlv(out, &pos, 40, temp, 1);
+  }
   else if (have_snapshot)
   {
 #define T8(tag, value) do { temp[0] = (uint8_t)(value); tlv(out, &pos, tag, temp, 1); } while (0)
@@ -232,6 +256,11 @@ static void received(void *user, const uint8_t *request, size_t length)
     T32(29, snapshot.quality); T64(31, snapshot.running_version); T64(32, snapshot.saved_version);
     T64(33, snapshot.baseline_version); T64(34, snapshot.calibration_version);
     T32(35, snapshot.fault); T8(42, snapshot.rtc_valid); T32(85, snapshot.media_generation);
+    if (snapshot.record_id)
+    {
+      if (snapshot.record_phase != 2u) T64(12, snapshot.record_id);
+      else { T64(36, snapshot.record_id); put16(temp, (uint16_t)snapshot.record_result); tlv(out, &pos, 37, temp, 2); }
+    }
     if (snapshot.fresh) T64(22, snapshot.sample_index);
     if (snapshot.ohms_valid)
     {

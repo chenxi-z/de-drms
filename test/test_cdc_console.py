@@ -81,6 +81,11 @@ uint32_t drms_application_snapshot(DRMS_ApplicationSnapshot *out) {
  out->rate=4000;out->fresh=1;out->classification=2;out->ohms_valid=1;out->ohms=10000;
  return 1;
 }
+DRMS_Result drms_application_record_snapshot(uint64_t id, DRMS_ApplicationRecord *out) {
+ if (id && id != 7) return DRMS_INVALID;
+ *out=(DRMS_ApplicationRecord){.record=7,.phase=1,.result=DRMS_ACCEPTED,.capture_lost=2,.log_dropped=3};
+ return DRMS_OK;
+}
 UINT ux_device_class_cdc_acm_ioctl(void *a,UINT b,VOID *c) { if(c==(void *)UX_WAIT_FOREVER) ++indefinite_io;if(b==4) ++abort_calls;return 0; }
 UINT ux_device_class_cdc_acm_read(void *a,UCHAR *b,ULONG n,ULONG *actual) {
  ++read_calls; *actual=incoming_len;memcpy(b,incoming,*actual);incoming_len=0;
@@ -455,6 +460,35 @@ class CDCConsoleTest(unittest.TestCase):
         self.assertEqual(self.lib.control_queued(), 1)
         self.lib.process_one()
         self.assertEqual(ctypes.c_uint64.in_dll(self.lib, 'observed_version').value, 0x100000001)
+
+    def test_v2_get_record_reports_active_record_and_counters(self):
+        import struct, zlib
+        self.send(bytes.fromhex('040201010101010102010101010101010101010105d7970e6600'))
+        payload = struct.pack('<HHQ', 0x800c, 8, 7)
+        raw = struct.pack('<BBHIQHH', 2, 1, 4, 1, 2, len(payload), 0) + payload
+        raw += struct.pack('<I', zlib.crc32(raw))
+        wire = bytearray(b'\0'); start = 0; code = 1
+        for byte in raw:
+            if byte == 0:
+                wire[start] = code; start = len(wire); wire.append(0); code = 1
+            else:
+                wire.append(byte); code += 1
+        wire[start] = code; wire.append(0)
+        self.send(bytes(wire))
+        n = self.value('written_len').value
+        encoded = bytes((ctypes.c_ubyte * 1056).in_dll(self.lib, 'written')[:n])
+        decoded = bytearray(); i = 0
+        while i < len(encoded)-1:
+            count = encoded[i]; i += 1; decoded += encoded[i:i+count-1]; i += count-1
+            if count != 255 and i < len(encoded)-1: decoded.append(0)
+        fields = {}; i = 20
+        while i < len(decoded)-4:
+            tag, length = struct.unpack_from('<HH', decoded, i); i += 4
+            fields[tag & 0x7fff] = decoded[i:i+length]; i += length
+        self.assertEqual(int.from_bytes(fields[1], 'little'), 1)
+        self.assertEqual(int.from_bytes(fields[12], 'little'), 7)
+        self.assertEqual((fields[45][0], fields[41][0], fields[40][0]), (1, 0, 0))
+        self.assertEqual((int.from_bytes(fields[38], 'little'), int.from_bytes(fields[39], 'little')), (2, 3))
 
     def test_v2_apply_owns_nested_payload_through_disconnect(self):
         import struct, zlib

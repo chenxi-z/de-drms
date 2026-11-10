@@ -28,6 +28,12 @@ class ControlRequest(ctypes.Structure):
 class Token(ctypes.Structure):
     _fields_ = [('operation_id', ctypes.c_uint64), ('generation', ctypes.c_uint32)]
 
+class RecordView(ctypes.Structure):
+    _fields_ = [('record', ctypes.c_uint64), ('capture_lost', ctypes.c_uint64),
+                ('log_dropped', ctypes.c_uint64), ('result', ctypes.c_uint32),
+                ('phase', ctypes.c_uint8), ('clean_end', ctypes.c_uint8),
+                ('unknown_loss', ctypes.c_uint8)]
+
 class StatusSnapshot(ctypes.Structure):
     _fields_ = [('revision', ctypes.c_uint64), ('mono_us', ctypes.c_uint64),
                 ('running_version', ctypes.c_uint64), ('saved_version', ctypes.c_uint64),
@@ -39,7 +45,8 @@ class StatusSnapshot(ctypes.Structure):
                 ('owner', ctypes.c_uint8), ('maintenance', ctypes.c_uint8), ('fresh', ctypes.c_uint8),
                 ('classification', ctypes.c_uint8), ('rtc_valid', ctypes.c_uint8),
                 ('ohms_valid', ctypes.c_uint8), ('ratio_valid', ctypes.c_uint8),
-                ('level_valid', ctypes.c_uint8), ('level', ctypes.c_uint8), ('interval', ctypes.c_uint16)]
+                ('level_valid', ctypes.c_uint8), ('level', ctypes.c_uint8), ('interval', ctypes.c_uint16),
+                ('record_id', ctypes.c_uint64), ('record_result', ctypes.c_uint32), ('record_phase', ctypes.c_uint8)]
 TX_HEADER = r'''
 #ifndef TEST_TX_H
 #define TEST_TX_H
@@ -793,6 +800,43 @@ uint32_t HAL_GetUIDw2(void);
             self.lib.drms_application_poll()
             self.lib.drms_log_poll()
         self.assertEqual((self.status()['running'],self.status()['log_state']), (1,0))
+
+    def test_record_query_tracks_start_active_and_storage_finalization(self):
+        self.lib.drms_application_record_snapshot.argtypes = [ctypes.c_uint64, ctypes.POINTER(RecordView)]
+        view = RecordView()
+        self.assertEqual(self.lib.drms_application_record_snapshot(1, ctypes.byref(view)), 3)
+        self.insert_card()
+        self.press_measure()
+        self.assertEqual(self.lib.drms_application_record_snapshot(1, ctypes.byref(view)), 0)
+        self.assertEqual((view.phase, view.result, view.clean_end), (0, 1, 0))
+        self.lib.drms_log_poll()
+        self.lib.drms_application_poll()
+        self.assertEqual(self.lib.drms_application_record_snapshot(1, ctypes.byref(view)), 0)
+        self.assertEqual((view.phase, view.result, view.clean_end), (1, 1, 0))
+        for _ in range(3):
+            self.lib.advance_ms(100)
+            self.frames(2, 280000, 4200000)
+        self.press_measure()
+        for _ in range(5):
+            self.lib.drms_application_poll(); self.lib.drms_log_poll()
+        self.lib.drms_application_poll()
+        self.assertEqual(self.lib.drms_application_record_snapshot(1, ctypes.byref(view)), 0)
+        self.assertEqual((view.phase, view.result, view.clean_end, view.unknown_loss), (2, 0, 1, 0))
+
+    def test_record_query_does_not_call_emergency_stop_a_clean_end(self):
+        self.lib.drms_application_record_snapshot.argtypes = [ctypes.c_uint64, ctypes.POINTER(RecordView)]
+        self.insert_card()
+        self.press_measure()
+        self.lib.drms_log_poll(); self.lib.drms_application_poll()
+        self.frames(2, 280000, 4200000)
+        self.command('STOP')
+        for _ in range(5):
+            self.lib.drms_log_poll(); self.lib.drms_application_poll()
+        view = RecordView()
+        self.assertEqual(self.lib.drms_application_record_snapshot(1, ctypes.byref(view)), 0)
+        self.assertEqual(view.phase, 2)
+        self.assertNotEqual(view.result, 0)
+        self.assertEqual(view.clean_end, 0)
 
     def test_recording_writes_v2_header_data_and_final_boundary(self):
         import zlib
