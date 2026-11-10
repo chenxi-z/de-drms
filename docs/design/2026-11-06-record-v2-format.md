@@ -34,7 +34,7 @@ v1（`shared/protocol/de-drms-v1.json`）只读兼容；v2 写入不改动 v1 �
 载荷偏移  长度  字段
 0         2     uint16 format_version = 2
 2         2     uint16 record_size = 16（冻结；不扩大 16B 帧）
-4         4     uint32 flags        bit0 = NOMINAL 时间质量；bit1 = config 仅含记录元数据、没有用户配置
+4         4     uint32 flags        bit0 = NOMINAL 时间质量；bit1 = config 仅含记录元数据、没有用户配置；bit2 = 使用分段规则；bit3 = 非首段
 8         4     uint32 rate_hz      采样率（Hz，>0）
 12        4     uint32 uid_w0       96-bit 出厂 UID（HAL_GetUIDw0/1/2 顺序）
 16        4     uint32 uid_w1
@@ -88,7 +88,9 @@ v1（`shared/protocol/de-drms-v1.json`）只读兼容；v2 写入不改动 v1 �
 
 - `end_known=0` 时 `end_exclusive_index` 必须为 0——**未知末边界不写伪精确值**。
 - `unknown_loss=1` 或 `end_known=0` 或 `reason∈{INCOMPLETE,TIMEOUT,CANCELLED}` → 文件**不完整**。
-- 单文件若要判为无丢失，DATA 的首末序号和帧数必须覆盖 `[first_index, end_exclusive_index)`；空记录还必须为 `EMPTY`。CRC 正确和 END 存在本身不能证明采样完整。分段文件不得各自假称满足整场记录边界，分段格式尚待完成。
+- 单文件若要判为无丢失，DATA 的首末序号和帧数必须覆盖 `[first_index, end_exclusive_index)`；空记录还必须为 `EMPTY`。CRC 正确和 END 存在本身不能证明采样完整。
+- 采用分段规则时，每个文件均独立包含 HEADER/DATA/END；首段 bit3=0，后续段 bit3=1。中间段 END 的 `end_known=0`、`unknown_loss=1`、`reason=INCOMPLETE`，只记录该段已确认的首末样本及记录环已写水位，不冒充整场结束。最终段 END 保存整场 `[B,E)` 和累计损失。按文件创建顺序提供全部分段给解码器后，必须核对设备 UID、record_id、采集锚点、配置、段顺序、跨段序号、总帧数和最终 END；缺段、乱序或不一致不得判完整。
+- 当前 record_id 在每次启动后重新编号；UID、record_id 与时间锚点用于核对，但不能作为跨多次启动的全局唯一标识。用户应保留同一次记录的全部原始文件和顺序，不应仅凭编号拼接来自不同启动的文件。
 
 ## 错误处理（解码器必须全部实现）
 

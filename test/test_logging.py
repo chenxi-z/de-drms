@@ -59,6 +59,11 @@ int test_finish_v2(int reason) {
    .end_exclusive={.generation=3,.index=102},.end_known=1,.reason=reason};
  return drms_log_finish_v2(&e);
 }
+int test_finish_v2_three(void) {
+ DRMS_End e={.record_id=7,.ring_end=3,.first={.generation=3,.index=100},
+   .end_exclusive={.generation=3,.index=103},.end_known=1,.reason=DRMS_OK};
+ return drms_log_finish_v2(&e);
+}
 '''
 
 
@@ -228,6 +233,89 @@ class LoggingTest(unittest.TestCase):
         data = bytes((ctypes.c_ubyte * 1048576).in_dll(lib, 'file_bytes'))
         self.assertEqual(data[160:164], b'DRMS')
         self.assertEqual(struct.unpack_from('<I', data, 236)[0], 99)
+
+    def test_v2_rollover_retains_all_frames_and_session_end(self):
+        lib = self.roll
+        lib.drms_log_init()
+        for name in ('written_bytes', 'writes', 'closes', 'flushes', 'invalidates', 'creates', 'fail_at'):
+            ctypes.c_uint32.in_dll(lib, name).value = 0
+        ctypes.c_uint32.in_dll(lib, 'drms_storage_mounted').value = 1
+        self.assertEqual(lib.test_start_v2(), 1)
+        lib.drms_log_poll()
+        from test_log_v2_codec import hand_valid_data
+        valid_frame = hand_valid_data([100])[4:16]
+        for seq in (100, 101, 102):
+            frame = Raw(sequence=seq)
+            frame.bytes[:] = valid_frame
+            self.assertEqual(lib.drms_log_enqueue(ctypes.byref(frame)), 1)
+        lib.drms_log_poll()
+        self.assertEqual(ctypes.c_uint32.in_dll(lib, 'drms_log_running').value, 1)
+        self.assertEqual(ctypes.c_uint32.in_dll(lib, 'creates').value, 2)
+        self.assertEqual(lib.test_finish_v2_three(), 1)
+        lib.drms_log_poll()
+        self.assertEqual(ctypes.c_uint32.in_dll(lib, 'drms_log_state').value, 0)
+        n = ctypes.c_uint32.in_dll(lib, 'written_bytes').value
+        data = bytes((ctypes.c_ubyte * 1048576).in_dll(lib, 'file_bytes')[:n])
+        chunks = []; offset = 0
+        while offset < len(data):
+            kind, length = struct.unpack_from('<HH', data, offset)
+            body = data[offset+4:offset+4+length]
+            self.assertEqual(zlib.crc32(body[:-4]), struct.unpack_from('<I', body, len(body)-4)[0])
+            chunks.append((kind, body)); offset += 4+length
+        self.assertEqual([kind for kind, _ in chunks], [1, 2, 3, 1, 2, 3])
+        self.assertEqual([struct.unpack_from('<I', chunks[1][1], i+12)[0] for i in (0, 16)], [100, 101])
+        self.assertEqual(struct.unpack_from('<I', chunks[4][1], 12)[0], 102)
+        self.assertEqual((chunks[2][1][52], chunks[2][1][77]), (0, 1))
+        self.assertEqual(struct.unpack_from('<I', chunks[5][1], 79)[0], 0)
+        import io
+        from tools.de_drms_log import LogReaderV2Segments
+        split = sum(4 + len(body) for _, body in chunks[:3])
+        first, last = data[:split], data[split:]
+        self.assertTrue(LogReaderV2Segments([io.BytesIO(first), io.BytesIO(last)]).summary()['no_reported_loss'])
+        self.assertFalse(LogReaderV2Segments([io.BytesIO(last)]).summary()['no_reported_loss'])
+        self.assertFalse(LogReaderV2Segments([io.BytesIO(last), io.BytesIO(first)]).summary()['no_reported_loss'])
+        with tempfile.TemporaryDirectory() as directory:
+            a, b = Path(directory)/'a.bin', Path(directory)/'b.bin'
+            a.write_bytes(first); b.write_bytes(last)
+            result = subprocess.run(['python3', str(ROOT/'tools/de_drms_log.py'), str(a), str(b)],
+                                    capture_output=True, text=True)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn('102,', result.stdout)
+
+    def test_v2_finalization_crosses_segment_boundary_without_reopening_producer(self):
+        lib = self.roll
+        lib.drms_log_init()
+        for name in ('written_bytes', 'writes', 'closes', 'flushes', 'invalidates', 'creates', 'fail_at'):
+            ctypes.c_uint32.in_dll(lib, name).value = 0
+        ctypes.c_uint32.in_dll(lib, 'drms_storage_mounted').value = 1
+        self.assertEqual(lib.test_start_v2(), 1)
+        lib.drms_log_poll()
+        for seq in (100, 101, 102):
+            self.assertEqual(lib.drms_log_enqueue(ctypes.byref(Raw(sequence=seq))), 1)
+        self.assertEqual(lib.test_finish_v2_three(), 1)
+        lib.drms_log_poll()
+        self.assertEqual(ctypes.c_uint32.in_dll(lib, 'drms_log_running').value, 0)
+        self.assertEqual(ctypes.c_uint32.in_dll(lib, 'drms_log_state').value, 3)
+        self.assertEqual(lib.drms_log_enqueue(ctypes.byref(Raw(sequence=103))), 0)
+        lib.drms_log_poll()
+        self.assertEqual(ctypes.c_uint32.in_dll(lib, 'drms_log_state').value, 0)
+        self.assertEqual(ctypes.c_uint32.in_dll(lib, 'drms_log_records').value, 3)
+
+    def test_v2_segment_end_write_failure_does_not_open_continuation(self):
+        lib = self.roll
+        lib.drms_log_init()
+        for name in ('written_bytes', 'writes', 'closes', 'flushes', 'invalidates', 'creates', 'fail_at'):
+            ctypes.c_uint32.in_dll(lib, name).value = 0
+        ctypes.c_uint32.in_dll(lib, 'drms_storage_mounted').value = 1
+        self.assertEqual(lib.test_start_v2(), 1)
+        lib.drms_log_poll()
+        for seq in (100, 101, 102):
+            self.assertEqual(lib.drms_log_enqueue(ctypes.byref(Raw(sequence=seq))), 1)
+        ctypes.c_uint32.in_dll(lib, 'fail_at').value = 3  # intermediate END write
+        lib.drms_log_poll()
+        self.assertEqual(ctypes.c_uint32.in_dll(lib, 'drms_log_running').value, 0)
+        self.assertEqual(ctypes.c_uint32.in_dll(lib, 'creates').value, 1)
+        self.assertNotEqual(ctypes.c_uint32.in_dll(lib, 'drms_log_status').value, 0)
 
     def test_periodic_flush_and_full_queue_are_observable(self):
         self.start()

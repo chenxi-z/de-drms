@@ -3,6 +3,7 @@
 import argparse
 import binascii
 import csv
+from contextlib import ExitStack
 import json
 import math
 from pathlib import Path
@@ -365,22 +366,80 @@ class LogReaderV2:
                 'no_reported_loss': bool(self.complete() and not incomplete)}
 
 
+class LogReaderV2Segments:
+    """Validate an explicitly ordered collection of v2 recording segments."""
+
+    def __init__(self, streams):
+        self.readers = [LogReaderV2(stream) for stream in streams]
+        if not self.readers:
+            raise ValueError('at least one segment is required')
+
+    def __iter__(self):
+        for reader in self.readers:
+            yield from reader
+
+    def summary(self):
+        first = self.readers[0]
+        last = self.readers[-1]
+        errors = []
+        if not first.header or not (first.header['flags'] & 4) or first.header['flags'] & 8:
+            errors.append('missing first segment')
+        reference = first.header or {}
+        identity = tuple(reference.get(k) for k in ('uid', 'record_id', 'rate', 'anchor', 'config'))
+        total = 0
+        previous = None
+        first_sequence = None
+        for index, reader in enumerate(self.readers):
+            header = reader.header or {}
+            if not reader.complete() or tuple(header.get(k) for k in ('uid', 'record_id', 'rate', 'anchor', 'config')) != identity:
+                errors.append('incomplete or mismatched segment')
+            if not (header.get('flags', 0) & 4) or bool(header.get('flags', 0) & 8) != bool(index):
+                errors.append('invalid segment order')
+            if reader.crc_errors or reader.format_errors or reader.adc_faults or reader.sequence_gaps or reader.sequence_disorder:
+                errors.append('frame error or sequence gap')
+            if index < len(self.readers)-1:
+                end = reader.end or {}
+                if not reader.records or end.get('end_known') or not end.get('unknown_loss') or end.get('reason') != 9:
+                    errors.append('invalid intermediate END')
+            if reader.records:
+                if first_sequence is None:
+                    first_sequence = reader.first_sequence
+                if previous is not None and ((reader.first_sequence - previous) & 0xffffffff) != 1:
+                    errors.append('missing or overlapping segment')
+                previous = reader.previous_sequence
+            total += reader.records
+        end = last.end or {}
+        start, stop = end.get('first_index', 0), end.get('end_exclusive_index', 0)
+        if (not end.get('end_known') or end.get('unknown_loss') or end.get('storage_error') or
+                end.get('reason') not in (0, 12) or end.get('capture_lost') or end.get('log_dropped') or
+                end.get('quality_bad') or stop < start or stop - start >= 0x80000000 or stop - start != total or
+                (total and (first_sequence != (start & 0xffffffff) or previous != ((stop-1) & 0xffffffff))) or
+                (not total and end.get('reason') != 12)):
+            errors.append('final session boundary or loss mismatch')
+        return {'complete': not errors, 'no_reported_loss': not errors, 'errors': errors,
+                'records': total, 'segments': len(self.readers), 'header': first.header, 'end': last.end}
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('input', type=Path)
+    parser.add_argument('input', type=Path, nargs='+', help='ordered segment files (or one v1/v2 file)')
     parser.add_argument('--csv', type=Path, help='CSV path; defaults to stdout')
     parser.add_argument('--allow-incomplete', action='store_true', help='allow diagnostic recovery of an unclean/lossy prefix')
     args = parser.parse_args()
     output = None
     try:
-        if args.csv and (args.csv.resolve() == args.input.resolve() or
-                         (args.csv.exists() and args.input.samefile(args.csv))):
+        if args.csv and any(args.csv.resolve() == path.resolve() or
+                            (args.csv.exists() and path.samefile(args.csv)) for path in args.input):
             raise ValueError('CSV output must not overwrite the source log')
-        with args.input.open('rb') as stream:
-            probe = stream.read(8)
-            stream.seek(0)
+        with ExitStack() as stack:
+            streams = [stack.enter_context(path.open('rb')) for path in args.input]
+            stream = streams[0]
+            probe = stream.read(8); stream.seek(0)
             # v1 以 'DRMS' 魔数开始；v2 为 chunk 流（首块 type=1 HEADER）
-            reader = LogReader(stream) if probe[:4] == b'DRMS' else LogReaderV2(stream)
+            if len(streams) > 1:
+                reader = LogReaderV2Segments(streams)
+            else:
+                reader = LogReader(stream) if probe[:4] == b'DRMS' else LogReaderV2(stream)
             output = args.csv.open('w', newline='') if args.csv else sys.stdout
             writer = None
             for row in reader:

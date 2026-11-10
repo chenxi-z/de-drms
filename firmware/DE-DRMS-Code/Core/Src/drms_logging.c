@@ -25,6 +25,8 @@ static uint32_t use_v2, v2_end_valid;
 static uint32_t action, file_open, pending_records, filename_index, last_flush, segment_records;
 static uint32_t incomplete;
 static uint64_t log_ticket_next;
+static uint64_t v2_written_total, v2_segment_first, v2_segment_last;
+static uint32_t v2_sequence_known, v2_last_low, v2_segment_has_frame;
 volatile uint32_t drms_log_running, drms_log_state, drms_log_status;
 volatile uint32_t drms_log_records, drms_log_dropped;
 char drms_log_filename[16];
@@ -83,6 +85,11 @@ int drms_log_start_v2(const DRMS_LogV2Meta *request)
   }
   use_v2 = 1;
   v2_end_valid = 0;
+  v2_written_total = 0;
+  v2_sequence_known = 1;
+  v2_last_low = (uint32_t)request->anchor.sample_seq0;
+  v2_segment_last = request->anchor.sample_seq0;
+  v2_segment_has_frame = 0;
   __atomic_store_n(&action, 1U, __ATOMIC_RELEASE);
   return 1;
 }
@@ -188,9 +195,15 @@ static int open_file(unsigned int continuation)
     log_ticket_next = 0;
   }
   segment_records = 0;
+  v2_segment_has_frame = 0;
   uint32_t header_size;
   if (use_v2)
-    header_size = drms_log_v2_pack_header(staging, sizeof(staging), &v2_metadata);
+  {
+    DRMS_LogV2Meta segment_meta = v2_metadata;
+    segment_meta.flags = (segment_meta.flags & ~12u) | 4u; /* segmented-file semantics */
+    if (continuation) segment_meta.flags |= 8u;
+    header_size = drms_log_v2_pack_header(staging, sizeof(staging), &segment_meta);
+  }
   else
   {
     drms_log_pack_header(staging, &metadata);
@@ -241,10 +254,27 @@ void drms_log_poll(void)
   uint32_t output_size = 0;
   if (use_v2)
   {
-    while (sizeof(staging) - output_size >= 4104u)
+    while (sizeof(staging) - output_size >= 4104u &&
+           segment_records + pending_records < DRMS_LOG_SEGMENT_RECORDS)
     {
       uint32_t count = 0;
-      while (count < 256u && drms_fifo_pop(&queue, &v2_frames[count])) ++count;
+      uint32_t remaining = DRMS_LOG_SEGMENT_RECORDS - segment_records - pending_records;
+      while (count < 256u && count < remaining && drms_fifo_pop(&queue, &v2_frames[count]))
+      {
+        uint32_t low = v2_frames[count].sequence;
+        uint32_t delta = low - v2_last_low;
+        if (delta >= 0x80000000u || (v2_written_total + pending_records + count && !delta))
+          v2_sequence_known = 0;
+        else if (v2_sequence_known)
+          v2_segment_last += delta;
+        v2_last_low = low;
+        if (!v2_segment_has_frame)
+        {
+          v2_segment_first = v2_segment_last;
+          v2_segment_has_frame = 1;
+        }
+        ++count;
+      }
       if (!count) break;
       uint32_t size = drms_log_v2_pack_data(staging + output_size, sizeof(staging) - output_size,
                                             v2_frames, count);
@@ -273,6 +303,7 @@ void drms_log_poll(void)
     }
     drms_log_records += pending_records;
     segment_records += pending_records;
+    if (use_v2) v2_written_total += pending_records;
     pending_records = 0;
   }
   if (drms_log_state == 2 && (uint32_t)(HAL_GetTick() - last_flush) >= 1000U)
@@ -285,21 +316,32 @@ void drms_log_poll(void)
     }
     last_flush = HAL_GetTick();
   }
-  unsigned int rollover = drms_log_state == 2 && segment_records >= DRMS_LOG_SEGMENT_RECORDS;
+  unsigned int rollover = use_v2 ?
+      (segment_records >= DRMS_LOG_SEGMENT_RECORDS && drms_fifo_count(&queue)) :
+      (drms_log_state == 2 && segment_records >= DRMS_LOG_SEGMENT_RECORDS);
   if (rollover || (drms_log_state == 3 && !drms_fifo_count(&queue)))
   {
-    if (rollover && use_v2)
-    {
-      /* A segment boundary needs its own accurate END; never invent one. */
-      failed(FX_IO_ERROR);
-      return;
-    }
+    uint32_t was_finalizing = drms_log_state == 3;
     /* Keep the producer enabled during a rollover: its queue bridges close/open
        latency, and any full-queue loss is counted rather than silently skipped. */
     if (rollover)
       drms_log_state = 1;
     UINT status = FX_SUCCESS;
-    if (use_v2 && v2_end_valid)
+    if (use_v2 && rollover)
+    {
+      DRMS_End partial = {0};
+      partial.record_id = v2_metadata.record_id;
+      partial.first.generation = v2_metadata.anchor.acquisition_generation;
+      partial.first.index = v2_sequence_known && v2_segment_has_frame ? v2_segment_first : 0;
+      partial.last_confirmed_position.generation = partial.first.generation;
+      partial.last_confirmed_position.index = v2_sequence_known && v2_segment_has_frame ? v2_segment_last : 0;
+      partial.ring_end = v2_written_total;
+      partial.unknown_loss = true;
+      partial.reason = DRMS_INCOMPLETE; /* final session accounting belongs only to the last file */
+      uint32_t end_size = drms_log_v2_pack_end(staging, sizeof(staging), &partial);
+      status = end_size ? fx_file_write(&file, staging, end_size) : FX_IO_ERROR;
+    }
+    else if (use_v2 && v2_end_valid)
     {
       uint32_t end_size = drms_log_v2_pack_end(staging, sizeof(staging), &v2_end);
       status = end_size ? fx_file_write(&file, staging, end_size) : FX_IO_ERROR;
@@ -322,7 +364,13 @@ void drms_log_poll(void)
     file_open = 0;
     drms_log_status = FX_SUCCESS;
     if (rollover)
-      (void)open_file(1);
+    {
+      if (open_file(1) && was_finalizing)
+      {
+        drms_log_running = 0;
+        drms_log_state = 3;
+      }
+    }
     else
       __atomic_store_n(&drms_log_state, 0U, __ATOMIC_RELEASE);
   }
