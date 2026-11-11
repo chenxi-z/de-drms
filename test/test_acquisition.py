@@ -79,6 +79,7 @@ int HAL_SPI_TransmitReceive(SPI_HandleTypeDef *s,uint8_t *tx,uint8_t *rx,uint16_
  if(command==0x0655) {unlocked=1;response=command;}
  else if((command&0xe000)==0x4000) {
    response=command-0x2000;
+   if(command==0x4f0f) response=0x2f03; /* A02 has two implemented channel bits. */
    if((command&0xff00)==0x4c00) fixed=1;
  } else if(command) response=command;
  else response=unlocked?0x2200:0xff02;

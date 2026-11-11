@@ -48,6 +48,11 @@ void MX_SPI1_Init(void)
   hspi1.Init.CLKPolarity = SPI_POLARITY_LOW;
   hspi1.Init.CLKPhase = SPI_PHASE_2EDGE;
   hspi1.Init.NSS = SPI_NSS_SOFT;
+  /* SPI1 kernel clock is SYSCLK (160 MHz). ADS131A02 allows tc(SC) >= 32 ns for
+     a single device in asynchronous interrupt mode (SBAS590E timing table), so
+     SCLK may go up to 31.25 MHz. /8 gives 20 MHz; /6 would not divide evenly on
+     this tree, so the usable steps are /8 (20 MHz), /4 (40 MHz - too fast) and
+     /16 (10 MHz). Keep /8 unless the divider is reworked. */
   hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_8;
   hspi1.Init.FirstBit = SPI_FIRSTBIT_MSB;
   hspi1.Init.TIMode = SPI_TIMODE_DISABLE;

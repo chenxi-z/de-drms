@@ -108,6 +108,13 @@ class Snapshot(ctypes.Structure):
 
 
 class ControlContractTest(unittest.TestCase):
+    def test_stopped_acquisition_allows_read_only_msc_without_resuming(self):
+        self.lib.drms_control_stop()
+        self.assertEqual(self.submit(MSC_EXPORT), ACCEPTED)
+        self.lib.drms_control_poll(1)
+        self.assertEqual(self.snapshot().stopping, 1)
+        self.assertEqual(self.snapshot().reserved_mask, TF)
+
     @classmethod
     def setUpClass(cls):
         cls.tmp = tempfile.TemporaryDirectory()
