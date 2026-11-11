@@ -38,7 +38,7 @@
    - 附录 E = 硬件实现定稿（E.1–E.11；**硬件以 E 为准**；与 D 冲突时以 E 为准）
    - **E.11 = TF 卡数据记录子系统（2026-10-14 新增）**
 3. 同目录 pin-assignment.md                                  ← 引脚分配总表（2026-10-14 重排定稿）
-4. /media/anning/data/Project/DE-DRMS/firmware/DE-DRM/CUBEMX_SETUP.md ← CubeMX GUI 配置清单
+4. /media/anning/data/Project/DE-DRMS/firmware/DE-DRMS-Code/CUBEMX_SETUP.md ← CubeMX GUI 配置清单 + 无 UI 实测边界
 5. 仓库根 AGENTS.md                                          ← 工作规约、硬约束、被否方案清单
 
 ## 项目背景
@@ -58,7 +58,7 @@
   T 点顶端偏置 R_top 10 kΩ / R_b 150 kΩ（E.2）；保护 BAV199（默认）/ 低漏电 ESD 阵列（备选焊盘）；
   抗混叠 = 每线 **B 案三级阶梯** 6.19 Ω+68 nF → 6.04 Ω+68 nF → 13.7 Ω+27 nF（对地）+ 末级 12 nF 差分，
   fc≈80 kHz（E.4.4，2026-10-19 定版；旧 1 kΩ+10 nF 已于同日作废：与 16 kHz 扫频带重叠）
-- 自校准：0.1% Rsense 打底 + 板上 R_ref（100 kΩ 0.01%）自检，**单颗 TMUX1134 切换**（SEL1/2/3=PB1、SEL4=PB0）：
+- 自校准：0.1% Rsense 打底 + 板上 R_ref（100 kΩ ±0.02%，R33 = PTFR0805Q100KN9）自检，**单颗 TMUX1134 切换**（SEL1/2/3=PB1、SEL4=PB0）：
   **零点模式**消 ADC 失调（**SEL_SENSE=PB1、SEL_K2=PB0**，2026-10-28 按 575 命名；2026-10-18 TMUX1134 整合）；
   δ0 只存 RAM，k 只由上位机写 Flash（电路见 E.3 + diagram/模拟前端与自校准）
 - **MCU：STM32U575RGT6**（2026-10-28 换型；M33 160 MHz、**1 MB Flash**、**786 KB SRAM**、
@@ -182,7 +182,7 @@
 1. 清 **E.10 #16**（CubeMX 里 PLL 源改 MSIS/MSI）与 **#17②**（查 RM0456 定 VLXSMPS/VDDSMPS 接法）；
    顺带把 **PB4 复位态**（Table 27 注 4）在原理图上落实成"外部下拉或反相驱动"，否则默认充电档不确定
 2. 原理图 → PCB → BOM（EasyEDA / eda-toolkit 可用；**TF 卡座料号与卡型号由用户核实**，E.10 #6）
-3. CubeMX 按 `firmware/DE-DRM/CUBEMX_SETUP.md` 在 **GUI 里**补齐 IP（SPI1/**LPUART1**/USB(DRD_FS)/ADC1/SDMMC1/CRS/PWR WKUP），
+3. CubeMX 按 `firmware/DE-DRMS-Code/CUBEMX_SETUP.md` 在 **GUI 里**补齐 IP（SPI1/**USART1**/USB(**OTG_FS**)/ADC1/SDMMC1/CRS/PWR WKUP），
    Save 后让 CubeMX 重写 IOC；生成代码后**人工核对 `PWR_LDO_SUPPLY` 与 PLL 源**
 4. 固件（测量流程、数字滤波/平均、分档判定、USB、电池+VBUS 监测、**FatFS 记录 + 卡不在位降级策略**）与上位机
 

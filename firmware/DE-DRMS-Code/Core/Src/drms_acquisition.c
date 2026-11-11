@@ -497,16 +497,24 @@ int drms_acq_start(uint32_t rate, unsigned int reference)
   boundary_pending.armed = 0;
   boundary_reply.valid = 0;
   (void)drms_fifo_init(&queue, frames, 4096, sizeof(frames[0]));
-  /* Inhibit first. Never pass through forbidden SENSE=0,K2=1, even briefly. */
+  /* Set the switch pair for this mode. The mapping is inverted from what it
+   * looks like: SEL_SENSE low puts K4 on F, i.e. the reference leg, so LOW is
+   * the calibration state and HIGH is the sample state. Driving both lines the
+   * other way round made MEASURE select R_ref and REF leave only the (open)
+   * sample leg connected, which is why the reference reading showed full-scale
+   * voltage with no current through Rsense.
+   *
+   * Both lines always move together: SEL_SENSE high with SEL_K2 low would put
+   * the sample and R_ref in parallel through X, which the design forbids. */
   if (reference)
   {
-    HAL_GPIO_WritePin(SEL_SENSE_GPIO_Port, SEL_SENSE_Pin, GPIO_PIN_SET);
-    HAL_GPIO_WritePin(SEL_K2_GPIO_Port, SEL_K2_Pin, GPIO_PIN_SET);
+    HAL_GPIO_WritePin(SEL_SENSE_GPIO_Port, SEL_SENSE_Pin, GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(SEL_K2_GPIO_Port, SEL_K2_Pin, GPIO_PIN_RESET);
   }
   else
   {
-    HAL_GPIO_WritePin(SEL_K2_GPIO_Port, SEL_K2_Pin, GPIO_PIN_RESET);
-    HAL_GPIO_WritePin(SEL_SENSE_GPIO_Port, SEL_SENSE_Pin, GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(SEL_K2_GPIO_Port, SEL_K2_Pin, GPIO_PIN_SET);
+    HAL_GPIO_WritePin(SEL_SENSE_GPIO_Port, SEL_SENSE_Pin, GPIO_PIN_SET);
   }
   drms_acq_reference = reference;
   HAL_GPIO_WritePin(ANA_EN_GPIO_Port, ANA_EN_Pin, GPIO_PIN_SET);

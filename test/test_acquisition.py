@@ -137,7 +137,11 @@ static int fixed,unlocked;
 static uint8_t *rx_buffer;
 void HAL_GPIO_WritePin(int port,int pin,int state) {
  pins[pin]=state;
- if(!pins[6] && pins[7]) ++forbidden;
+ /* The switch pair must never disagree. On this board SEL_K2 is PB0 and
+   SEL_SENSE is PB1 (the 545-era PB2/PB10 mapping in the old mock no longer
+   applies), and a sample/reference mismatch would put the two legs in parallel
+   through X. Driving them together in either direction is fine. */
+ if(pin<=1 && pins[0]!=pins[1]) ++forbidden;
  if(pin==2 && !state) { fixed=0;unlocked=0;response=0xff02; }
 }
 uint32_t HAL_GetTick(void) { return ticks; }
