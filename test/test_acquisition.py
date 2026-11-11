@@ -293,7 +293,9 @@ class AcquisitionTest(unittest.TestCase):
                 self.assertEqual(self.lib.pin(3), 0)
 
     def test_raw_queue_overload_stops_irq_work_instead_of_starving_supervisor(self):
-        self.assertEqual(self.lib.drms_acq_start(128000, 0), 1)
+        # Uses the highest rate the firmware accepts; 128 kSPS is refused at the
+        # entry point now that it is known to be unreachable (see README).
+        self.assertEqual(self.lib.drms_acq_start(64000, 0), 1)
         for _ in range(4097):
             self.lib.drms_acq_drdy()
             self.lib.complete_frame(280000, 4200000)

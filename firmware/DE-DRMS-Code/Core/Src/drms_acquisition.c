@@ -11,6 +11,9 @@
  * programmed at start-up both use this. */
 #define EXCHANGE_BYTES (12u)
 
+/* Highest sample rate proven lossless on hardware. */
+#define DRMS_ACQ_MAX_RATE (64000u)
+
 static DRMS_RawFrame frames[4096];
 static DRMS_FIFO queue;
 /* Double-buffered receive. A single buffer serialises the whole loop: the next
@@ -383,9 +386,12 @@ static void spi_release_to_idle(void)
   __HAL_SPI_DISABLE(&hspi1);
   SET_BIT(hspi1.Instance->IFCR, SPI_IFCR_OVRC | SPI_IFCR_UDRC | SPI_IFCR_EOTC |
                                   SPI_IFCR_TXTFC | SPI_IFCR_SUSPC | SPI_IFCR_MODFC);
-  /* TSIZE back to zero: a non-zero length is what makes the HAL believe a
-   * transaction is still defined. */
-  MODIFY_REG(hspi1.Instance->CR2, SPI_CR2_TSIZE, 0u);
+  /* Do NOT zero TSIZE. RM0456 states that CSTART with TSIZE = 0 opens an
+   * *infinite* transaction, so clearing it here left the peripheral in a mode
+   * where the blocking HAL_SPI_TransmitReceive that reprogramms the ADC timed
+   * out on its very first exchange (init trace showed HAL_TIMEOUT). HAL sets
+   * the length it needs on each call; leaving the last value alone is both
+   * harmless and necessary. */
 
   fast_path_active = 0;
   hspi1.State = HAL_SPI_STATE_READY;
@@ -416,8 +422,24 @@ void drms_acq_stop(void)
   spi_release_to_idle();
   busy = 0;
   cs(1);
+  /* Assert RESET before cutting the analog rail, and hold it a while. The
+   * previous order dropped both at once with no delay, which is enough for a
+   * healthy stop but does not reset an ADC that was left mid-frame: after a
+   * failed 128 kSPS run the device kept reporting data timeouts across a
+   * STOP/START and only a full MCU reset cleared it. SBAS590E requires RESET
+   * low for at least 800 ns; the extra margin here also lets the analog rail
+   * discharge so the next start really is a power-on. */
   HAL_GPIO_WritePin(ADS_RESET_GPIO_Port, ADS_RESET_Pin, GPIO_PIN_RESET);
+  HAL_Delay(2);
   HAL_GPIO_WritePin(ANA_EN_GPIO_Port, ANA_EN_Pin, GPIO_PIN_RESET);
+  /* Hold the analog rail off long enough for it to actually collapse. An ADC
+   * that stopped mid-frame at a high rate (STAT_1 showed F_DRDY, i.e. its
+   * output register was never read out) does not come back from a short blip:
+   * with only a few milliseconds the following START reprogrammed the device
+   * successfully yet it never produced another DRDY, and only an MCU reset
+   * cleared it. The rail's output capacitor dominates this, so the margin is
+   * deliberately generous. */
+  HAL_Delay(50);
   powered = 0;
 }
 
@@ -426,8 +448,32 @@ int drms_acq_start(uint32_t rate, unsigned int reference)
   drms_acq_init_trace_count = 0;
   uint8_t clk2;
   uint16_t ready = 0, ignored;
+  /* Reject rates above the measured capability envelope. 128 kSPS is not
+   * reachable on this board: the ADC ends up reporting F_DRDY (its output
+   * register was never read out in time) and, once it has been pushed there,
+   * it stops producing DRDY altogether - a later START reprograms it
+   * successfully but no further frames arrive, and only an MCU reset brings it
+   * back. Refusing the rate keeps the device usable instead of deadlocking it,
+   * and the caller gets cmd_result=2 rather than a silent fake success.
+   * See firmware/DE-DRMS-Code/README.md for the full measurement. */
+  if (rate > DRMS_ACQ_MAX_RATE)
+  {
+    /* Do not leave the previous (too-high) rate visible in STATUS: the next
+     * bare START would otherwise retry it. */
+    drms_acq_stop();
+    drms_acq_rate = DRMS_ACQ_MAX_RATE;
+    drms_acq_error = 2;
+    return 0;
+  }
   if (!drms_rate_register(rate, &clk2) || reference > 1)
     return 0;
+  /* Release the peripheral before anything else. A high-rate run that stopped
+   * itself (queue overrun sets adc_error=6 and clears running) never passes
+   * through drms_acq_stop, so the fast path's transaction state survived into
+   * the next start and the blocking exchange() could not read the ADC's READY
+   * response from it. Unwinding unconditionally here makes start independent of
+   * how the previous run ended. */
+  spi_release_to_idle();
   /* HAL Size counts DATA WORDS, not bytes. Reject incompatible regeneration
      before a blocking/DMA transfer can write past a 12-byte frame buffer. */
   if (hspi1.Init.DataSize != SPI_DATASIZE_8BIT || hspi1.Init.Mode != SPI_MODE_MASTER ||
