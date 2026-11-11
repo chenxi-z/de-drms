@@ -49,6 +49,12 @@ static uint64_t completions_overflow, completions_consumed;
 static QueuedRequest safe_stop;
 static uint32_t safe_stop_phase; /* 0 empty, 1 pending, 2 active */
 
+static uint32_t allowed_while_stopped(DRMS_Operation operation)
+{
+  return operation == DRMS_OP_RESUME_MONITOR || operation == DRMS_OP_MSC_EXPORT ||
+         operation == DRMS_OP_MSC_RELEASE;
+}
+
 static uint32_t crit_enter(void)
 {
   uint32_t mask = __get_PRIMASK();
@@ -289,7 +295,7 @@ static DRMS_Result submit_identified(const DRMS_ControlRequest *request, uint64_
     crit_exit(mask);
     return DRMS_CANCELLED;
   }
-  if (stopping && request->operation != DRMS_OP_RESUME_MONITOR)
+  if (stopping && !allowed_while_stopped(request->operation))
   {
     if (owns_payload) config_payload_in_use = 0;
     crit_exit(mask);
@@ -627,7 +633,7 @@ void drms_control_poll(uint32_t max_requests)
     DRMS_Token token;
     DRMS_Result result;
     uint32_t mask = crit_enter();
-    if (!request_count || (stopping && requests[request_tail].request.operation != DRMS_OP_RESUME_MONITOR))
+    if (!request_count || (stopping && !allowed_while_stopped(requests[request_tail].request.operation)))
     {
       crit_exit(mask);
       return;
@@ -637,7 +643,7 @@ void drms_control_poll(uint32_t max_requests)
     result = reserve_assigned(drms_control_resources_for(request.operation), &token, queued.operation_id,
                               request.operation == DRMS_OP_MSC_RELEASE || request.operation == DRMS_OP_RESUME_MONITOR ||
                               request.operation == DRMS_OP_SET_UTC || request.operation == DRMS_OP_END_RECORD,
-                              request.operation == DRMS_OP_RESUME_MONITOR);
+                              allowed_while_stopped(request.operation));
     request_tail = (request_tail + 1U) % DRMS_CONTROL_REQUESTS;
     --request_count;
     if (result != DRMS_ACCEPTED)

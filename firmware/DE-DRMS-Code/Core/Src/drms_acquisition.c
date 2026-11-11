@@ -20,6 +20,10 @@ volatile uint32_t drms_acq_running, drms_acq_rate, drms_acq_reference;
 volatile uint32_t drms_acq_last_push_ms; /* 最近帧入环时刻（过渡用；T8 换 DRDY 实测） */
 volatile uint32_t drms_acq_edges, drms_acq_overruns, drms_acq_queue_drops;
 volatile uint32_t drms_acq_error;
+/* Bring-up trace: initialization only, inspected through SWD without stopping
+ * every SPI frame. word0=command|length<<16|HAL_status<<24, words1..3=RX. */
+volatile uint32_t drms_acq_init_trace[24][4];
+volatile uint32_t drms_acq_init_trace_count;
 
 /* 64 位流记账（C1）。生产端唯一写者：DRDY ISR / DMA 完成 ISR / 启停路径。
  * 跨上下文一致读取仅在边界快照的短临界区内进行。 */
@@ -157,6 +161,15 @@ static int exchange(uint16_t command, uint16_t *response)
   cs(0);
   HAL_StatusTypeDef status = HAL_SPI_TransmitReceive(&hspi1, tx, rx, (uint16_t)frame_size, 20);
   cs(1);
+  if (drms_acq_init_trace_count < 24u)
+  {
+    uint32_t index = drms_acq_init_trace_count;
+    drms_acq_init_trace[index][0] = command | (frame_size << 16) | ((uint32_t)status << 24);
+    for (unsigned int i = 0; i < 3u; ++i)
+      drms_acq_init_trace[index][i + 1u] = (uint32_t)rx[4u*i] | ((uint32_t)rx[4u*i+1u] << 8) |
+          ((uint32_t)rx[4u*i+2u] << 16) | ((uint32_t)rx[4u*i+3u] << 24);
+    drms_acq_init_trace_count = index + 1u;
+  }
   if (status != HAL_OK || rx[2] != 0)
     return 0;
   if (frame_size == 12 &&
@@ -180,8 +193,13 @@ static int write_register(uint8_t address, uint8_t value)
   /* This write takes effect at the end of its OLD frame. */
   if (address == 0x0c)
     frame_size = 12;
-  return exchange(0, &response) &&
-      response == (uint16_t)(0x2000U | ((uint16_t)address << 8) | value);
+  if (!exchange(0, &response))
+    return 0;
+  /* Keep the datasheet's global enable write (0Fh). The two-channel A02 on
+   * the first board acknowledges its implemented channels as 2F03h. */
+  if (address == 0x0f && value == 0x0f && response == 0x2f03)
+    return 1;
+  return response == (uint16_t)(0x2000U | ((uint16_t)address << 8) | value);
 }
 
 void drms_acq_stop(void)
@@ -208,6 +226,7 @@ void drms_acq_stop(void)
 
 int drms_acq_start(uint32_t rate, unsigned int reference)
 {
+  drms_acq_init_trace_count = 0;
   uint8_t clk2;
   uint16_t ready = 0, ignored;
   if (!drms_rate_register(rate, &clk2) || reference > 1)

@@ -103,6 +103,8 @@ void Error_Handler(void);
 #define BQ_PG_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
+/* Temporary first-board diagnostic: card physically inserted, ignore CD only. */
+#define DRMS_SD_DIAGNOSTIC_IGNORE_CD 1
 
 /* USER CODE END Private defines */
 

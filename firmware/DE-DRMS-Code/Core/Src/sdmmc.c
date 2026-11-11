@@ -44,10 +44,12 @@ void MX_SDMMC1_SD_Init(void)
 
   /* USER CODE BEGIN SDMMC1_Init 0 */
   sd_init_status = HAL_ERROR;
+  #if !DRMS_SD_DIAGNOSTIC_IGNORE_CD
   if (HAL_GPIO_ReadPin(SD_CD_GPIO_Port, SD_CD_Pin) != GPIO_PIN_RESET)
   {
     return;
   }
+  #endif
 
   /* USER CODE END SDMMC1_Init 0 */
 
