@@ -82,14 +82,16 @@ ULONG USBD_STORAGE_GetMediaBlocklength(VOID);
 #endif
 
 #ifndef STORAGE_READ_ONLY
-/* Export is strictly read-only: USBD_STORAGE_Write rejects every write with
- * DATA PROTECT, so the LUN must advertise itself as write-protected too.
- * Advertising UX_FALSE made hosts treat the disk as writable and issue writes
- * that could never succeed. */
-#define STORAGE_READ_ONLY    UX_TRUE
+#define STORAGE_READ_ONLY    UX_FALSE
 #endif
 /* USER CODE BEGIN 1 */
-
+/* Export is strictly read-only: USBD_STORAGE_Write rejects every write with
+ * DATA PROTECT, so the LUN must advertise itself as write-protected too.
+ * Advertising UX_FALSE makes hosts treat the disk as writable and issue writes
+ * that can never succeed. Redefined here rather than in the generated block
+ * above so a CubeMX regeneration cannot silently drop it. */
+#undef STORAGE_READ_ONLY
+#define STORAGE_READ_ONLY    UX_TRUE
 /* USER CODE END 1 */
 
 #ifdef __cplusplus
