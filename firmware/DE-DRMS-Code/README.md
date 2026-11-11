@@ -7,25 +7,35 @@
 
 - ADS131A02 上电、READY/命令/寄存器回读、内部 2.442 V 基准、24-bit 固定四字帧、双向 CRC16。
   `VNCPEN=0`，匹配 VNCP 接 AGND；`M0/M1/M2` 继续使用板上既定绑接。
-- DRDY 触发 SPI1 全双工 DMA；ISR 只搬帧，主线程校验、计算和统计。默认 4 kSPS，提供
-  1/4/8/16/32/64/128 kSPS 档；高档是否无损必须实测，不能由配置成功推断。
-  **2026-11-11 实板结果**：4/8/16 kSPS 持续无损（16 kSPS 连跑 125 s，速率稳定在
-  15.97–16.00 kSPS，`spi_overrun`/`frame_drop`/`crc_bad` 全程为 0，读数 99.98–100.02 kΩ）。
-  32 kSPS 及以上**不达标**：主线程每帧要跑监控、解码与激励检查，实测消费能力约
-  25 k 帧/秒，低于 32 kSPS 的产帧速率，4096 帧队列约 0.6 s 填满后按设计主动停采并报
-  `adc_error=6`（不是通信故障，`spi_overrun` 仍为 0）。上报能力因此只应声称 ≤16 kSPS。
+- DRDY 触发 SPI1 全双工 DMA。默认 4 kSPS，提供 1/4/8/16/32/64/128 kSPS 档；
+  高档是否无损必须实测，不能由配置成功推断。
+  **2026-11-12 实板结论：64 kSPS 是无损上限。**
+  实测（每次数秒、`spi_overrun`/`frame_drop`/`crc_bad` 全为 0）：16 kSPS 15,988 Hz、
+  32 kSPS 31,899 Hz、64 kSPS 63,955 Hz，4 kSPS 读数正常（≈100 kΩ）。
+  128 kSPS **不达标**，见下条。
+- **128 kSPS 为何不可达（ADC 自己给出的证据）**：把 128 kSPS 的一批帧从卡上读出后，
+  状态字节 `STAT_1 = 0x12`，即 `F_DRDY | F_ADCIN`。`F_ADCIN` 按设计忽略（AIN2N 接 AVSS），
+  触发 `DRMS_SAMPLE_ADC_FAULT` 的是 **`F_DRDY`**。SBAS590E 对该位的定义是
+  “data are not completely shifted out when new data are ready … the DOUT output shift
+  register is not updated with the new conversion result”，即**上一帧没读完，ADC 已丢弃新结果**。
+  也就是说 128 kSPS 的失败源于读取速度不足，而不是通信出错——同一批帧 `crc_bad = 0`，
+  字节完整，ADC 只是没等我们读完。据此 `r_valid = 0` 是正确判定，不得放宽。
+  时间预算：128 kSPS 每帧 7.81 µs，SPI 传 12 字节 @24 MHz 占 4.00 µs，只剩 3.81 µs 给
+  DRDY 中断进入、DMA 重装与完成处理，闭环实测平均略超预算，约 10% 的帧被 ADC 判定丢弃。
+  要突破需更高的 SCLK：24 MHz 已是 MSIK/2 上限（48 MHz MSIK / 2），而 ADS131A02 允许的最快
+  SCLK 是 31.25 MHz（tc(SC) ≥ 32 ns），SYSCLK 分频只能给出 20 MHz 或超规格的 40 MHz。
+  提高主频没有空间（U575 上限 160 MHz）。**因此 128 kSPS 受硬件时序限制，当前不可用。**
+- 采集期末帧传输改为直接操作 SPI1 与两路 GPDMA，不再走每帧一次的
+  `HAL_SPI_TransmitReceive_DMA`（该路径每帧重算传输量、重挂四个 DMA 回调、调用两次
+  `HAL_DMA_Start_IT`，在高速档放不进帧预算）。实测传输结束后 SPI 保持使能且 TSIZE 不变，
+  故每帧只需换接收缓冲、重装两路通道、清 DMA/SPI 错误标志、置 SPE 与 CSTART；
+  完成由 `GPDMA1_Channel1_IRQHandler` 接管，帧的 CRC、序号与安全停采语义与原先一致。
+  四个配套修正：完成时两路通道都要关（只关发送侧会让下一帧的占用检查必然失败）；
+  DRDY(EXTI3) 优先级须低于 GPDMA（否则新转换会抢占上一帧的重装，实测重装被拉长到 16 µs）；
+  CS 用 BSRR 直写并去掉每帧两次的 volatile NOP 延时；高速档时间戳每 8 帧取一次
+  （时间轴本就由样本序号重建）。
 - 高速档失败会停在 `adc_error=6` 并关闭激励；此时 `START` 仍回 `OK queued` 但不会真正起采，
   需复位后恢复。该降级行为本身是预期的安全设计，但恢复路径需改进（见下）。
-- **纯直录模式实测上限（2026-11-11，对照实验，非当前固件配置）**：把记录窗口内的解码/激励
-  校验/监测全部跳过，只做入环，得到两条不同的天花板。
-  - **软件天花板已消除**：32 kSPS 连跑 13.5 s 实测 32.1 kSPS，`spi_overrun`/`frame_drop` 全 0，
-    不再触发 `adc_error=6`。说明先前的 25 k 帧/秒限制来自逐帧解码与监测，去掉即达标。
-  - **64/128 kSPS 卡在 SPI/DMA 层**：`edges` 计数仍达标（实测 63.3 / 128.0 kSPS），但
-    `spi_overrun` 分别达到帧数的 68% 和 91%，即 SPI 传输本身来不及完成，与主线程无关。
-    因此 64/128 kSPS 不是“改软件结构”能解决的，需要降低 SPI 事务开销或提高 SPI 时钟后再评估。
-  - 结论：**32 kSPS 可作纯直录工作档**（此时无实时读数，`quality_bad` 不统计）；
-    64/128 kSPS 暂不能声称可用，需先解决 SPI 溢出。
-  - 该实验通过临时宏 `DRMS_RAW_STREAM_EXPERIMENT` 完成，仅用于测量，未提交。
 - 按 `SEL_SENSE/SEL_K2` 的 `00` 样品、`11` 参考切换；先抑制激励，通过 `10` 中间态，
   不经过禁止的 `01`。切换复位 ADC，等待模拟和数字滤波建立后才接收数据。
 - 4096 个有效参考样本计算 `k=Rref*sum(CH2)/sum(CH1)`，测量 `R=k*CH1/CH2`。

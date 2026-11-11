@@ -7,10 +7,16 @@
 1. [主设计文档附录 F](2026-10-10-universal-signal-chain.md#dc-prototype)：当前实施基线、改图电阻电容清单、证据与未决项。
 2. [引脚分配](pin-assignment.md)：**2026-10-28 按 STM32U575RGT6 PCB 焊盘实测重写**——PA4片选、
    PC4=激励抑制、PC5=电源键、PB0/PB1=TMUX切换；NC 脚清单与 VCAP 要求同页。
-3. [CubeMX操作清单](../../firmware/DE-DRM/CUBEMX_SETUP.md)：旧IOC必须GUI复存，防止重新生成覆盖代码修复。
+3. [CubeMX操作清单](../../firmware/DE-DRMS-Code/CUBEMX_SETUP.md)：硬件外设勾选只能 GUI 做；参数与引脚标签可脚本改后 `config saveext` 复存。
 4. [说明图](diagram/)：七张无历史后缀的拓扑图及其同名PNG；生成器在`diagram/_lib/`。
 5. [器件选型历史](component-selection.md)、[专题历史](spec/)、[交接记录](HANDOFF.md)。
 6. [AAF六方案报告](../../hardware/sim/signalchain/aaf_pkg_review/REPORT.md)：保留原始门槛与失败项，T2只是首板折中候选。
+7. [当前固件与上板流程](../../firmware/DE-DRMS-Code/README.md)、[控制/记录协议](../protocol/de-drms-v1.md)、
+   [2026-11-04 实施记录](2026-11-04-firmware-implementation.md)：测量、参考校准、Flash、SD、USB/串口、RTC/电池和软关机的源码与本机验证。
+8. [固件任务架构讨论图](diagram/固件任务架构.svg)：2026-11-05 按冻结硬件讨论的任务职责、控制事件与两级数据环形缓冲；是目标设计，不是当前源码完成状态。
+9. [固件整体架构与后续规划](2026-11-05-firmware-architecture.md)：已讨论的交互/业务/驱动分层、任务与消息契约、配置区，以及 CDC + 独立 Bootloader 升级规划；升级仅规划，尚未实现。
+
+10. [架构收敛实施计划](2026-11-06-firmware-architecture-plan.md)：八项复核修正的任务、接口、故障注入、自检与历史执行记录；当前完成情况以固件源码和协议现状为准。
 
 当前规则：用户本轮确认 > 主文档附录F与当前引脚表 > 历史正文/附录D/E。
 **2026-10-28 换型决定**：MCU 改 STM32U575RGT6（原 545 缺货）；**不做 I²C/TMP117**；
@@ -18,5 +24,15 @@
 历史三/四级AAF、一机全量程、TMP117、TF电源开关、BQ24040和VBUS ADC均不能直接沿用。
 历史后缀图（旧版、一阶、k3b、旧B案、频响比较）只用于追溯，不是当前改图依据。
 
-已核查提交`9aa1a5f`只有新仿真/文档，没有新版EDA。上次上板性能承诺未验证；
-仍须解决最终网表与台架三颗补偿电容差异、USB取电与描述符、Rref公差、真实布局和连续采集固件。
+**2026-11-04 固件进展**：应用层已接通，默认 4 kSPS；软件实现与实板性能必须分开。
+原快照`9aa1a5f`只含仿真/文档的描述不再代表工作区现状。
+
+**2026-11-12 采样率能力定界（实板实测）**：**64 kSPS 是无损上限**——16/32/64 kSPS 均实测
+零 `spi_overrun`、零 `frame_drop`、零 CRC 错误（15,988 / 31,899 / 63,955 Hz）。
+**128 kSPS 受硬件时序限制不可用**：该档下 ADC 返回 `STAT_1` 的 `F_DRDY` 位置位，手册定义为
+“上一帧未读完、新转换结果未装入输出寄存器”，即读取速度不足而非通信出错（同批帧 CRC 全对）。
+预算 7.81 µs/帧，SPI 传 12 字节占 4.00 µs，余量不足以覆盖中断与 DMA 重装；24 MHz 已是
+MSIK/2 上限，而 ADC 允许的最快 SCLK 为 31.25 MHz，U575 主频上限 160 MHz 也无空间。
+详见 `firmware/DE-DRMS-Code/README.md`。原“128 kSPS 待上板验收”一项据此关闭。
+
+最终网表与台架补偿差异、实际布局、精度/温度、晶振裕量、USB挂起取电和实物卡持续记录仍需硬件验收。
