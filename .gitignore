@@ -218,26 +218,15 @@ adc_ds/
 # LTspice 仿真产物（波形/工作点，不入库）
 *.raw
 *.op.raw
-hardware/sim/**/*.net
-hardware/sim/aaf/lib/
-hardware/sim/aaf/nul
 nul
+
+# hardware/sim：整个仿真工作区不再跟踪（2026-11-12 用户定）。
+# 该目录已膨胀到 17 GB，且全部内容可由各套件的 gen_*.py / run_all.py 重跑再生；
+# 结论保留在 hardware/sim 之外的文档与本机工作区中。
+/hardware/sim/
 
 # ZCode 会话元数据（agent 工具目录，不入库）
 .zcode/
-
-# 仿真产物（LTspice 输出，可由各套件 gen_*.py 重跑再生）
-*.db
-*.runlog
-hardware/sim/**/*.op.raw
-
-# 仿真复核工作区产物（2026-10-24 定）：netlists/*.net、raw/*.raw、logs/*.log
-# 已由上方规则覆盖；以下补齐曲线图、模型本地件与超限的 MC 逐样本明细——
-# 均可由各目录 run_all.py / t06_t11.py 重跑再生，只入库报告 md + 脚本 + csv 汇总证据
-hardware/sim/**/plots/
-hardware/sim/**/models/
-hardware/sim/_candidate_models/
-hardware/sim/**/t06_mc_all.csv
 
 # ---------- 论文独立仓库（2026-10-29 拆分） ----------
 # paper/ 已拆为自带 .git 的独立本地仓库，主仓库不再跟踪，也不应看到它的工作区
