@@ -2,6 +2,7 @@
 #define DRMS_CDC_V2_H
 #include "drms_cdc_frame.h"
 #include "drms_file_service.h"
+#include "drms_application.h"
 typedef void (*DRMS_CDCV2Send)(void *context, const uint8_t *data, size_t size, uint32_t priority);
 typedef int (*DRMS_CDCV2CanSend)(void *context, uint32_t priority);
 typedef struct {
@@ -32,4 +33,7 @@ void drms_cdc_v2_init(DRMS_CDCV2 *ctx, DRMS_CDCEntropy entropy, void *entropy_co
                       void *send_context);
 void drms_cdc_v2_disconnect(DRMS_CDCV2 *ctx);
 void drms_cdc_v2_feed(DRMS_CDCV2 *ctx, uint8_t byte, uint32_t now);
+/* Stateless: safe for the single TX owner to encode into its own buffer. */
+size_t drms_cdc_v2_encode_measurement(uint32_t session, uint64_t sequence, uint64_t lost,
+    const DRMS_ApplicationSnapshot *snapshot, uint8_t *wire, size_t capacity);
 #endif

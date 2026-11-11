@@ -1485,6 +1485,28 @@ uint32_t HAL_GetUIDw2(void);
         finished = self.cdc_exchange(4, 5, record_field)
         self.assertEqual((int.from_bytes(finished[1], 'little'), finished[45][0], finished[41][0]), (6, 2, 0))
 
+    def test_measurement_event_encodes_snapshot_and_omits_invalid_values(self):
+        self.lib.drms_cdc_v2_encode_measurement.argtypes = [ctypes.c_uint32, ctypes.c_uint64, ctypes.c_uint64,
+            ctypes.POINTER(StatusSnapshot), ctypes.c_void_p, ctypes.c_size_t]
+        self.lib.drms_cdc_v2_encode_measurement.restype = ctypes.c_size_t
+        snapshot = StatusSnapshot(mono_us=123456, fresh=1, classification=5, quality=3,
+                                  ohms_valid=1, ohms=1234.5, ratio_valid=0, level_valid=0)
+        wire = ctypes.create_string_buffer(256)
+        length = self.lib.drms_cdc_v2_encode_measurement(7, 4, 2, ctypes.byref(snapshot), wire, len(wire))
+        self.assertGreater(length, 0)
+        encoded = wire.raw[:length]; decoded = bytearray(); i = 0
+        while i < len(encoded) - 1:
+            count = encoded[i]; i += 1; decoded += encoded[i:i + count - 1]; i += count - 1
+            if count != 255 and i < len(encoded) - 1: decoded.append(0)
+        self.assertEqual(struct.unpack_from('<BBHIQ', decoded), (2, 3, 130, 7, 0))
+        fields = {}; i = 20
+        while i < len(decoded) - 4:
+            tag, size = struct.unpack_from('<HH', decoded, i); i += 4
+            fields[tag & 0x7fff] = decoded[i:i + size]; i += size
+        self.assertEqual((int.from_bytes(fields[62], 'little'), int.from_bytes(fields[63], 'little')), (4, 2))
+        self.assertEqual(struct.unpack('<d', fields[23])[0], 1234.5)
+        self.assertNotIn(24, fields); self.assertNotIn(27, fields); self.assertNotIn(28, fields)
+
     def test_cdc_safe_stop_during_record_end_completes_both_operations(self):
         self.insert_card()
         self.lib.test_cdc_init()

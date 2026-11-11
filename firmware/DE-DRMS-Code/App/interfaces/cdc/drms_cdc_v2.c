@@ -22,6 +22,39 @@ static void optional_tlv(uint8_t *raw, size_t *pos, uint16_t tag, const uint8_t 
   size_t start=*pos; tlv(raw,pos,tag,data,size); put16(raw+start,tag);
 }
 
+size_t drms_cdc_v2_encode_measurement(uint32_t session, uint64_t sequence, uint64_t lost,
+    const DRMS_ApplicationSnapshot *snapshot, uint8_t *wire, size_t capacity)
+{
+  if (!session || !sequence || !snapshot || !wire) return 0;
+  uint8_t raw[192] = {0}, value[8];
+  raw[0] = 2; raw[1] = 3; put16(raw + 2, 130); put32(raw + 4, session);
+  size_t pos = 20;
+  put64(value, sequence); tlv(raw, &pos, 62, value, 8);
+  put64(value, snapshot->mono_us); tlv(raw, &pos, 10, value, 8);
+  value[0] = snapshot->fresh; tlv(raw, &pos, 25, value, 1);
+  value[0] = snapshot->classification; tlv(raw, &pos, 26, value, 1);
+  put32(value, snapshot->quality); tlv(raw, &pos, 29, value, 4);
+  if (snapshot->ohms_valid)
+  {
+    uint64_t bits; memcpy(&bits, &snapshot->ohms, sizeof(bits));
+    put64(value, bits); optional_tlv(raw, &pos, 23, value, 8);
+  }
+  if (snapshot->ratio_valid)
+  {
+    uint64_t bits; memcpy(&bits, &snapshot->ratio, sizeof(bits));
+    put64(value, bits); optional_tlv(raw, &pos, 24, value, 8);
+  }
+  if (snapshot->level_valid)
+  {
+    value[0] = snapshot->level; optional_tlv(raw, &pos, 27, value, 1);
+    put16(value, snapshot->interval); optional_tlv(raw, &pos, 28, value, 2);
+  }
+  put64(value, lost); tlv(raw, &pos, 63, value, 8);
+  put16(raw + 16, (uint16_t)(pos - 20u));
+  put32(raw + pos, drms_crc32(raw, pos)); pos += 4;
+  return drms_cdc_frame_encode(raw, pos, wire, capacity);
+}
+
 static DRMS_CDCMutation *mutation_slot(DRMS_CDCV2 *ctx)
 {
   DRMS_CDCMutation *oldest = NULL;
