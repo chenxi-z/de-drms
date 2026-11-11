@@ -15,6 +15,10 @@ void drms_acq_stop(void);
 uint32_t drms_acq_is_quiescent(void);
 void drms_acq_poll(void);
 void drms_acq_drdy(void);
+/* Called first from GPDMA1_Channel1_IRQHandler. Returns non-zero when the
+ * acquisition fast path owned this transfer and already completed it, in which
+ * case the caller must not also run HAL_DMA_IRQHandler on that channel. */
+int drms_acq_fast_dma_irq(void);
 int drms_acq_pop(DRMS_RawFrame *frame);
 int drms_acq_pop_timed(DRMS_RawFrame *frame, uint64_t *capture_lower_us);
 uint64_t drms_acq_now_us(void);

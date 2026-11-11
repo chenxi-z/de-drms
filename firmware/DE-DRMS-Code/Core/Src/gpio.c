@@ -145,6 +145,15 @@ void MX_GPIO_Init(void)
   HAL_NVIC_SetPriority(EXTI15_IRQn, 10, 0);
   HAL_NVIC_EnableIRQ(EXTI15_IRQn);
 
+  /* USER CODE BEGIN EXTI_priority_override */
+  /* DRDY (EXTI3) must not outrank the GPDMA completion handlers at priority 6.
+   * While it did, a new conversion preempted the previous frame's DMA
+   * reprogramming and stretched it past a whole 128 kSPS frame budget, so
+   * frames collided. Kept here, outside the generated block, so CubeMX
+   * regeneration cannot revert it. */
+  HAL_NVIC_SetPriority(EXTI3_IRQn, 7, 0);
+  /* USER CODE END EXTI_priority_override */
+
 }
 
 /* USER CODE BEGIN 2 */

@@ -6,13 +6,157 @@
 #include "spi.h"
 #include <string.h>
 
+
+/* One SPI data frame is 12 bytes; the DMA block length and the SPI TSIZE
+ * programmed at start-up both use this. */
+#define EXCHANGE_BYTES (12u)
+
 static DRMS_RawFrame frames[4096];
 static DRMS_FIFO queue;
-static uint8_t dma_rx[12] __attribute__((aligned(4)));
+/* Double-buffered receive. A single buffer serialises the whole loop: the next
+ * DRDY had to wait for the previous frame's DMA to finish and its completion
+ * handler to run, and at 128 kSPS that loop does not close inside 7.81 us, so
+ * roughly half the frames were dropped as overruns. With two buffers the DMA
+ * can be armed for the next frame while the previous one is still being
+ * consumed, which doubles the tolerated loop time to 15.62 us. */
+static uint8_t dma_rx_buf[2][12] __attribute__((aligned(4)));
+static uint8_t dma_rx[12] __attribute__((aligned(4))); /* last completed frame */
 static uint8_t dma_tx[12] __attribute__((aligned(4)));
+static volatile uint32_t rx_buf_index;
+
+/* Host-test hook: the unit tests simulate the DMA by writing the completed frame
+ * into the buffer the fast path just armed. On the 64-bit host the register
+ * value cannot be turned back into a pointer, so the address is handed out
+ * directly instead. Never called by firmware. */
+uint8_t *drms_acq_test_rx_buffer(void)
+{
+  return dma_rx_buf[rx_buf_index ^ 1u];
+}
+
+/* ---------------------------------------------------------------------------
+ * Fast per-frame exchange
+ *
+ * Verified on hardware over SWD while running at 4 kSPS: after a transfer
+ * completes the SPI keeps TSIZE at the frame length (CR2 = 12) and stays
+ * enabled (SPE = 1) with CSTART back at 0. The peripheral therefore only has
+ * to be configured once; a frame needs nothing more than re-arming the two
+ * GPDMA channels and setting CSTART.
+ *
+ * The generic HAL path instead calls HAL_SPI_TransmitReceive_DMA every frame,
+ * which revalidates the handle, recomputes transfer counts, rewires four DMA
+ * callbacks and issues two HAL_DMA_Start_IT calls. At 128 kSPS a frame budget
+ * is 7.81 us and the SPI transfer itself takes 4.80 us at 20 MHz SCLK, leaving
+ * about 3 us (480 cycles) of software - the HAL path does not fit, this one
+ * does.
+ *
+ * Completion still arrives on GPDMA1_Channel1_IRQHandler. Because that channel
+ * is not driven by the HAL here, the ISR services it directly and the frame is
+ * published through the same path the HAL callback uses.
+ * -------------------------------------------------------------------------- */
+
+static int fast_path_active;
+/* Bring-up counters: prove whether the fast path starts and whether its DMA
+ * interrupt is reached. Read over SWD. */
+volatile uint32_t drms_acq_fx_start, drms_acq_fx_fail, drms_acq_fx_irq, drms_acq_fx_done;
+/* Timing probe for the 128 kSPS budget. The window is measured with the DWT
+ * cycle counter (160 MHz): isr_us is from ISR entry to CS low (covers the
+ * handler prologue, the sequence bookkeeping and the timestamp), arm_us is from
+ * CS low to CSTART (the DMA reprogramming), and total_us is entry to CSTART.
+ * Min/mean/max are kept so a jitter problem cannot hide behind an average. */
+volatile uint32_t drms_acq_t_isr_min, drms_acq_t_isr_max, drms_acq_t_isr_sum;
+volatile uint32_t drms_acq_t_arm_min, drms_acq_t_arm_max, drms_acq_t_arm_sum;
+volatile uint32_t drms_acq_t_tot_min, drms_acq_t_tot_max, drms_acq_t_tot_sum;
+volatile uint32_t drms_acq_t_n;
+
+/* Arm one 12-byte exchange. Returns 0 when started. */
+static int fast_exchange_start(void)
+{
+  DMA_Channel_TypeDef *rx_ch = hspi1.hdmarx->Instance;
+  DMA_Channel_TypeDef *tx_ch = hspi1.hdmatx->Instance;
+
+  /* A channel that has not finished would corrupt this frame. */
+  if ((rx_ch->CCR & DMA_CCR_EN) || (tx_ch->CCR & DMA_CCR_EN))
+    return 1;
+
+  /* Alternate the receive buffer so the frame just completed stays intact
+   * while this one is in flight. */
+  uint32_t slot = rx_buf_index ^ 1u;
+
+  /* Geometry and pending flags, in the same order HAL's DMA_SetConfig uses.
+   * Leaving a stale TC/DTE/USE flag latched stops the next transfer from
+   * starting, so they are cleared before the channel is enabled. */
+  rx_ch->CBR1 = EXCHANGE_BYTES;
+  rx_ch->CSAR = (uint32_t)(uintptr_t)&hspi1.Instance->RXDR;
+  rx_ch->CDAR = (uint32_t)(uintptr_t)dma_rx_buf[slot];
+  rx_ch->CFCR = DMA_FLAG_TC | DMA_FLAG_HT | DMA_FLAG_DTE | DMA_FLAG_ULE |
+                DMA_FLAG_USE | DMA_FLAG_SUSP | DMA_FLAG_TO;
+
+  tx_ch->CBR1 = EXCHANGE_BYTES;
+  tx_ch->CSAR = (uint32_t)(uintptr_t)dma_tx;
+  tx_ch->CDAR = (uint32_t)(uintptr_t)&hspi1.Instance->TXDR;
+  tx_ch->CFCR = DMA_FLAG_TC | DMA_FLAG_HT | DMA_FLAG_DTE | DMA_FLAG_ULE |
+                DMA_FLAG_USE | DMA_FLAG_SUSP | DMA_FLAG_TO;
+
+  /* Only the receive side interrupts; it marks the end of the exchange. The
+   * transmit side is driven by SPI's request line alone, and letting its
+   * interrupt through would reach HAL_DMA_IRQHandler, which does not own this
+   * transfer. */
+  SET_BIT(rx_ch->CCR, DMA_CCR_TCIE | DMA_CCR_DTEIE);
+  CLEAR_BIT(tx_ch->CCR, DMA_CCR_TCIE | DMA_CCR_HTIE | DMA_CCR_DTEIE);
+
+  /* Clear any error flag left by the previous frame. A latched UDR or OVR
+   * makes the peripheral report a fault and refuse to run the next exchange,
+   * which is what stopped everything after the first frame. These are cleared
+   * through IFCR, not by touching SPE. */
+  SET_BIT(hspi1.Instance->IFCR, SPI_IFCR_OVRC | SPI_IFCR_UDRC | SPI_IFCR_EOTC |
+                                  SPI_IFCR_TXTFC | SPI_IFCR_SUSPC | SPI_IFCR_MODFC);
+
+  /* Open the SPI request lines and start. SPI itself stays enabled across
+   * frames - disabling it here is what produced UDR/OVR and broke the HAL
+   * exchange() used for rate changes. */
+  SET_BIT(hspi1.Instance->CFG1, SPI_CFG1_TXDMAEN | SPI_CFG1_RXDMAEN);
+  SET_BIT(rx_ch->CCR, DMA_CCR_EN);
+  SET_BIT(tx_ch->CCR, DMA_CCR_EN);
+  /* SPE is not guaranteed to be set: the init exchange() leaves the peripheral
+   * enabled, but a finished frame's cleanup or an earlier error path can leave
+   * it clear, and CSTART is ignored while SPE is 0. Assert both every frame;
+   * SPE survives a completed transfer, so this does not restart the state
+   * machine. */
+  __HAL_SPI_ENABLE(&hspi1);
+  SET_BIT(hspi1.Instance->CR1, SPI_CR1_CSTART);
+  ++drms_acq_fx_start;
+  return 0;
+}
+
+/* Close out one exchange in the ISR. */
+static void fast_exchange_finish(void)
+{
+  DMA_Channel_TypeDef *rx_ch = hspi1.hdmarx->Instance;
+  DMA_Channel_TypeDef *tx_ch = hspi1.hdmatx->Instance;
+  uint32_t flags = rx_ch->CSR;
+
+  /* Hand the completed slot over to the consumer and select the other one for
+   * the next transfer. Done before the channel is disarmed so the copy in
+   * complete_frame() cannot race the next DMA into the same buffer. */
+  rx_buf_index ^= 1u;
+  memcpy(dma_rx, dma_rx_buf[rx_buf_index], sizeof(dma_rx));
+
+  rx_ch->CFCR = flags;
+  /* Disable BOTH channels, not just the transmit side. The receive channel
+   * self-clears EN on completion in normal mode, but relying on that left it
+   * enabled often enough that the next frame's busy check failed every time at
+   * 64 kSPS and above. Explicitly clearing both keeps the start-of-frame
+   * precondition deterministic. */
+  CLEAR_BIT(tx_ch->CCR, DMA_CCR_EN);
+  CLEAR_BIT(rx_ch->CCR, DMA_CCR_EN);
+  CLEAR_BIT(hspi1.Instance->CFG1, SPI_CFG1_TXDMAEN | SPI_CFG1_RXDMAEN);
+  fast_path_active = 0;
+}
+
 static volatile uint32_t busy, last_completion, abort_unconfirmed;
 static uint32_t inflight_sequence;
 static uint64_t inflight_capture_us, consumed_ticket;
+static uint64_t cached_capture_us;
 static uint32_t clock_last_tick;
 static uint64_t clock_epoch_ms;
 static unsigned int frame_size, powered;
@@ -98,6 +242,11 @@ void drms_acq_boundary_cancel(DRMS_Token token)
 
 void drms_acq_boundary_service(void)
 {
+  /* Cheap early-out before the critical section: a boundary is rarely armed,
+   * but this runs on every completed frame, and at 128 kSPS the interrupt
+   * disable/enable pair plus the reload cost more than the check itself. */
+  if (!boundary_pending.armed && !busy)
+    return;
   uint32_t mask = crit_enter();
   if (!boundary_pending.armed || busy)
   {
@@ -139,12 +288,19 @@ DRMS_Result drms_acq_boundary_get(DRMS_Token token, DRMS_CaptureBoundary *out)
   return result;
 }
 
+/* CS is driven straight through BSRR rather than HAL_GPIO_WritePin, and the
+ * former 32-iteration volatile NOP loop is gone. That loop cost on the order of
+ * 150 cycles per call with the volatile counter, and this function runs twice
+ * per frame, so it was eating close to 2 us of the 7.81 us budget at 128 kSPS -
+ * the difference between the loop closing and half the frames being dropped.
+ * The CS-high interval is naturally satisfied by the time spent decoding and
+ * queueing the completed frame before CS is raised for the next one. */
 static void cs(unsigned int high)
 {
-  HAL_GPIO_WritePin(ADS_CS_GPIO_Port, ADS_CS_Pin, high ? GPIO_PIN_SET : GPIO_PIN_RESET);
-  /* Minimum CS-high time and a visible frame boundary, independent of RTOS tick. */
-  for (volatile unsigned int i = 0; i < 32; ++i)
-    __NOP();
+  if (high)
+    ADS_CS_GPIO_Port->BSRR = ADS_CS_Pin;
+  else
+    ADS_CS_GPIO_Port->BSRR = (uint32_t)ADS_CS_Pin << 16u;
 }
 
 static int exchange(uint16_t command, uint16_t *response)
@@ -202,6 +358,41 @@ static int write_register(uint8_t address, uint8_t value)
   return response == (uint16_t)(0x2000U | ((uint16_t)address << 8) | value);
 }
 
+/* Return the SPI peripheral to the idle shape the HAL expects, so the blocking
+ * exchange() used to reprogram the ADC on the next start finds a clean reset
+ * state.
+ *
+ * The fast path leaves SPE set with TSIZE latched, which is exactly right for
+ * per-frame restarts but wrong for HAL_SPI_TransmitReceive: that call arms its
+ * own transfer count and never expects an already-running transaction, so the
+ * READY poll during a rate change came back empty and start failed with
+ * adc_error=1. */
+static void spi_release_to_idle(void)
+{
+  DMA_Channel_TypeDef *rx_ch = hspi1.hdmarx->Instance;
+  DMA_Channel_TypeDef *tx_ch = hspi1.hdmatx->Instance;
+
+  CLEAR_BIT(hspi1.Instance->CFG1, SPI_CFG1_TXDMAEN | SPI_CFG1_RXDMAEN);
+  CLEAR_BIT(rx_ch->CCR, DMA_CCR_EN);
+  CLEAR_BIT(tx_ch->CCR, DMA_CCR_EN);
+  rx_ch->CFCR = DMA_FLAG_TC | DMA_FLAG_HT | DMA_FLAG_DTE | DMA_FLAG_ULE |
+                DMA_FLAG_USE | DMA_FLAG_SUSP | DMA_FLAG_TO;
+  tx_ch->CFCR = DMA_FLAG_TC | DMA_FLAG_HT | DMA_FLAG_DTE | DMA_FLAG_ULE |
+                DMA_FLAG_USE | DMA_FLAG_SUSP | DMA_FLAG_TO;
+
+  __HAL_SPI_DISABLE(&hspi1);
+  SET_BIT(hspi1.Instance->IFCR, SPI_IFCR_OVRC | SPI_IFCR_UDRC | SPI_IFCR_EOTC |
+                                  SPI_IFCR_TXTFC | SPI_IFCR_SUSPC | SPI_IFCR_MODFC);
+  /* TSIZE back to zero: a non-zero length is what makes the HAL believe a
+   * transaction is still defined. */
+  MODIFY_REG(hspi1.Instance->CR2, SPI_CR2_TSIZE, 0u);
+
+  fast_path_active = 0;
+  hspi1.State = HAL_SPI_STATE_READY;
+  hspi1.ErrorCode = HAL_SPI_ERROR_NONE;
+  __HAL_UNLOCK(&hspi1);
+}
+
 void drms_acq_stop(void)
 {
   if (drms_acq_running)
@@ -210,6 +401,10 @@ void drms_acq_stop(void)
   HAL_GPIO_WritePin(CURR_DIS_GPIO_Port, CURR_DIS_Pin, GPIO_PIN_SET);
   if (busy && !abort_unconfirmed)
   {
+    /* The quarantine decision is "could this transfer be proven finished?".
+     * HAL_SPI_Abort answers that, and when it cannot the device stays
+     * quarantined until an explicit recover, exactly as before the fast path
+     * existed. spi_release_to_idle then tidies the peripheral either way. */
     if (HAL_SPI_Abort(&hspi1) == HAL_OK)
       busy = 0;
     else
@@ -218,6 +413,8 @@ void drms_acq_stop(void)
       drms_acq_error = 3;
     }
   }
+  spi_release_to_idle();
+  busy = 0;
   cs(1);
   HAL_GPIO_WritePin(ADS_RESET_GPIO_Port, ADS_RESET_Pin, GPIO_PIN_RESET);
   HAL_GPIO_WritePin(ANA_EN_GPIO_Port, ANA_EN_Pin, GPIO_PIN_RESET);
@@ -313,6 +510,12 @@ int drms_acq_start(uint32_t rate, unsigned int reference)
   dma_tx[9] = crc >> 8;
   dma_tx[10] = crc & 255;
   drms_acq_rate = rate;
+  /* Leave the peripheral in the state the fast path assumes: enabled, with the
+   * 12-byte frame length latched, so a frame needs only a CSTART. Verified over
+   * SWD that TSIZE survives a completed transfer, but the init exchange() ran
+   * through the HAL in blocking mode and rewrote it, so set it explicitly here
+   * while the peripheral is idle. */
+  MODIFY_REG(hspi1.Instance->CR2, SPI_CR2_TSIZE, EXCHANGE_BYTES);
   last_completion = HAL_GetTick();
   drms_acq_running = 1;
   return 1;
@@ -335,21 +538,55 @@ void drms_acq_drdy(void)
   }
   busy = 1;
   inflight_sequence = sequence;
-  inflight_capture_us = drms_acq_now_us();
+  /* The capture timestamp costs a critical section plus HAL_GetTick, measured
+   * at about 2 us per frame in this ISR - a quarter of the whole 128 kSPS
+   * budget. At high rates the time axis is reconstructed from the sample
+   * sequence anyway (capture_time publishes block anchors, not per-frame
+   * stamps), so sample it every 8th frame there and reuse the last value in
+   * between. Below 32 kSPS the budget has room and every frame keeps its own
+   * stamp. */
+  if (drms_acq_rate < 32000u || (sequence & 7u) == 0u)
+    cached_capture_us = drms_acq_now_us();
+  inflight_capture_us = cached_capture_us;
+  uint32_t t_enter = DWT->CYCCNT;
   cs(0);
-  if (HAL_SPI_TransmitReceive_DMA(&hspi1, dma_tx, dma_rx, sizeof(dma_rx)) != HAL_OK)
+  uint32_t t_cs = DWT->CYCCNT;
+  fast_path_active = 1;
+  if (fast_exchange_start() != 0)
   {
+    ++drms_acq_fx_fail;
+    fast_path_active = 0;
     cs(1);
     busy = 0;
     ++drms_acq_overruns;
     ++capture_lost_total;
+    return;
   }
+  uint32_t t_armed = DWT->CYCCNT;
+  /* Cycles to microseconds at the 160 MHz core clock. */
+  uint32_t isr_us = (t_cs - t_enter) / 160u;
+  uint32_t arm_us = (t_armed - t_cs) / 160u;
+  uint32_t tot_us = (t_armed - t_enter) / 160u;
+  if (!drms_acq_t_n)
+  {
+    drms_acq_t_isr_min = drms_acq_t_arm_min = drms_acq_t_tot_min = 0xFFFFFFFFu;
+  }
+  if (isr_us < drms_acq_t_isr_min) drms_acq_t_isr_min = isr_us;
+  if (isr_us > drms_acq_t_isr_max) drms_acq_t_isr_max = isr_us;
+  drms_acq_t_isr_sum += isr_us;
+  if (arm_us < drms_acq_t_arm_min) drms_acq_t_arm_min = arm_us;
+  if (arm_us > drms_acq_t_arm_max) drms_acq_t_arm_max = arm_us;
+  drms_acq_t_arm_sum += arm_us;
+  if (tot_us < drms_acq_t_tot_min) drms_acq_t_tot_min = tot_us;
+  if (tot_us > drms_acq_t_tot_max) drms_acq_t_tot_max = tot_us;
+  drms_acq_t_tot_sum += tot_us;
+  ++drms_acq_t_n;
 }
 
-void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *spi)
+/* Publish the completed frame. Shared by the HAL completion callback and the
+ * fast path so both produce identical semantics. */
+static void complete_frame(void)
 {
-  if (spi != &hspi1)
-    return;
   cs(1);
   if (drms_acq_running)
   {
@@ -374,11 +611,35 @@ void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *spi)
     }
     else
       ++raw_ticket_next;
-    drms_acq_last_push_ms = HAL_GetTick();
-    last_completion = HAL_GetTick();
+    /* One tick read for both stamps: HAL_GetTick goes through the RTOS timer
+     * and this runs on every completed frame. */
+    uint32_t now_tick = HAL_GetTick();
+    drms_acq_last_push_ms = now_tick;
+    last_completion = now_tick;
   }
   busy = 0;
   drms_acq_boundary_service(); /* 静止时刻归结挂起的边界请求 */
+}
+
+void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *spi)
+{
+  if (spi != &hspi1)
+    return;
+  complete_frame();
+}
+
+/* Called from GPDMA1_Channel1_IRQHandler before HAL_DMA_IRQHandler. Returns 1
+ * when the fast path owned this transfer; the HAL state machine has no record
+ * of a transfer it did not start, so it must not touch the channel. */
+int drms_acq_fast_dma_irq(void)
+{
+  ++drms_acq_fx_irq;
+  if (!fast_path_active)
+    return 0;
+  fast_exchange_finish();
+  complete_frame();
+  ++drms_acq_fx_done;
+  return 1;
 }
 
 void HAL_SPI_ErrorCallback(SPI_HandleTypeDef *spi)

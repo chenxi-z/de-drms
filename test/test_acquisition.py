@@ -12,7 +12,73 @@ HEADER = r'''
 #include <stdint.h>
 #include <stddef.h>
 typedef int HAL_StatusTypeDef;
-typedef struct { int Instance; struct { unsigned int DataSize,CLKPolarity,CLKPhase,FirstBit,Mode,NSS; } Init; } SPI_HandleTypeDef;
+/* The acquisition fast path programs the GPDMA channels and SPI registers
+ * directly, so the stub has to model them: a DMA channel register block the
+ * code can read and write, plus SPI registers with real bit positions so the
+ * enable/CSTART/IFCR bookkeeping behaves like silicon. */
+/* CSAR/CDAR hold addresses; on the 64-bit host used by the tests they must be
+ * pointer-sized or the arming step truncates them and the mock crashes. */
+/* CSAR/CDAR hold addresses; the target is 32-bit but this host is 64-bit, so
+ * they are pointer-sized here or the armed buffer address is truncated. */
+/* The target is 32-bit and the firmware stores addresses as uint32_t, so this
+ * host cannot recover a pointer from the register value. The stub keeps a small
+ * registry mapping the truncated value back to the real buffer. */
+#define DMA_ADDR_SLOTS 8
+typedef struct { volatile uint32_t CCR,CBR1,CSAR,CDAR,CSR,CFCR; } DMA_Channel_TypeDef;
+extern uint8_t *dma_addr_map[DMA_ADDR_SLOTS];
+static inline uint8_t *dma_addr_lookup(uint32_t v) {
+  for (int i = 0; i < DMA_ADDR_SLOTS; ++i)
+    if (dma_addr_map[i] && (uint32_t)(uintptr_t)dma_addr_map[i] == v) return dma_addr_map[i];
+  return (uint8_t *)0;
+}
+typedef struct {
+  volatile uint32_t CR1,CR2,CFG1,SR,IFCR;
+  volatile uint32_t TXDR,RXDR;
+} SPI_TypeDef;
+typedef struct { DMA_Channel_TypeDef *Instance; } mock_dma_link_t;
+typedef struct {
+  SPI_TypeDef *Instance;
+  struct { unsigned int DataSize,CLKPolarity,CLKPhase,FirstBit,Mode,NSS; } Init;
+  mock_dma_link_t *hdmarx, *hdmatx;
+  unsigned long State;
+  uint32_t ErrorCode;
+} SPI_HandleTypeDef;
+#define DMA_CCR_EN 0x00000001UL
+#define DMA_CCR_TCIE 0x00000002UL
+#define DMA_CCR_HTIE 0x00000004UL
+#define DMA_CCR_DTEIE 0x00000008UL
+#define SPI_CR1_SPE 0x00000001UL
+#define SPI_CR1_CSTART 0x00000200UL
+#define SPI_CR2_TSIZE 0x0000FFFFUL
+#define SPI_CFG1_TXDMAEN 0x00008000UL
+#define SPI_CFG1_RXDMAEN 0x00004000UL
+#define SPI_IFCR_OVRC 0x00000040UL
+#define SPI_IFCR_UDRC 0x00000020UL
+#define SPI_IFCR_EOTC 0x00000008UL
+#define SPI_IFCR_TXTFC 0x00000010UL
+#define SPI_IFCR_SUSPC 0x00000400UL
+#define SPI_IFCR_MODFC 0x00000080UL
+#define DMA_FLAG_TC 0x00000001UL
+#define DMA_FLAG_HT 0x00000002UL
+#define DMA_FLAG_DTE 0x00000004UL
+#define DMA_FLAG_ULE 0x00000008UL
+#define DMA_FLAG_USE 0x00000010UL
+#define DMA_FLAG_SUSP 0x00000020UL
+#define DMA_FLAG_TO 0x00000040UL
+#define __HAL_SPI_ENABLE(h) ((h)->Instance->CR1 |= SPI_CR1_SPE)
+#define __HAL_SPI_DISABLE(h) ((h)->Instance->CR1 &= ~SPI_CR1_SPE)
+#define __HAL_SPI_CLEAR_SUSPFLAG(h) ((h)->Instance->IFCR |= SPI_IFCR_SUSPC)
+#define __HAL_UNLOCK(h) ((void)0)
+/* The timing probe reads DWT->CYCCNT; a plain counter is enough here. */
+typedef struct { volatile uint32_t CYCCNT; } DWT_TypeDef;
+extern DWT_TypeDef mock_dwt;
+#define DWT (&mock_dwt)
+#define HAL_SPI_STATE_READY 0x01UL
+#define HAL_SPI_STATE_BUSY_TX_RX 0x05UL
+#define HAL_SPI_ERROR_NONE 0
+#define SET_BIT(r,m) ((r) |= (m))
+#define CLEAR_BIT(r,m) ((r) &= ~(m))
+#define MODIFY_REG(reg,clr,set) ((reg) = (((reg) & ~(clr)) | (set)))
 #define SPI_DATASIZE_8BIT 7
 #define SPI_POLARITY_LOW 0
 #define SPI_PHASE_2EDGE 1
@@ -23,8 +89,11 @@ extern SPI_HandleTypeDef hspi1;
 #define HAL_OK 0
 #define GPIO_PIN_RESET 0
 #define GPIO_PIN_SET 1
-#define ADS_CS_GPIO_Port 0
-#define ADS_CS_Pin 4
+/* cs() drives BSRR directly, so the port has to be a register block. */
+typedef struct { volatile uint32_t BSRR; } mock_gpio_t;
+extern mock_gpio_t mock_gpio_a;
+#define ADS_CS_GPIO_Port (&mock_gpio_a)
+#define ADS_CS_Pin 0x0020UL
 #define CURR_DIS_GPIO_Port 0
 #define CURR_DIS_Pin 5
 #define ADS_RESET_GPIO_Port 0
@@ -51,7 +120,14 @@ MOCK = r'''
 #include "main.h"
 #include "drms_measurement.h"
 #include <string.h>
-SPI_HandleTypeDef hspi1={.Instance=1,.Init={SPI_DATASIZE_8BIT,SPI_POLARITY_LOW,SPI_PHASE_2EDGE,SPI_FIRSTBIT_MSB,SPI_MODE_MASTER,SPI_NSS_SOFT}};
+int drms_acq_fast_dma_irq(void);
+static SPI_TypeDef mock_spi1;
+static DMA_Channel_TypeDef mock_rx_ch, mock_tx_ch;
+static mock_dma_link_t rx_link={&mock_rx_ch}, tx_link={&mock_tx_ch};
+SPI_HandleTypeDef hspi1={.Instance=&mock_spi1,.Init={SPI_DATASIZE_8BIT,SPI_POLARITY_LOW,SPI_PHASE_2EDGE,SPI_FIRSTBIT_MSB,SPI_MODE_MASTER,SPI_NSS_SOFT},.hdmarx=&rx_link,.hdmatx=&tx_link};
+DWT_TypeDef mock_dwt;
+mock_gpio_t mock_gpio_a;
+uint8_t *dma_addr_map[DMA_ADDR_SLOTS];
 void set_spi_size(unsigned int size) { hspi1.Init.DataSize=size; }
 unsigned int pins[8],forbidden,wrong_frame,commands[64],command_count,dma_starts;
 int bad_ready,bad_crc,dma_error;
@@ -92,12 +168,27 @@ int HAL_SPI_TransmitReceive_DMA(SPI_HandleTypeDef *s,uint8_t *tx,uint8_t *rx,uin
 }
 int HAL_SPI_Abort(SPI_HandleTypeDef *s) { return 0; }
 void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *);
+/* Drive one completed exchange the way silicon would: the DMA has already put
+ * the frame in whatever receive buffer the fast path armed, the receive channel
+ * reports TC, and the GPDMA1 channel 1 interrupt picks it up. */
+/* The firmware stores the receive buffer address in CDAR. On the 32-bit target
+ * that is exact; on this 64-bit host the field is pointer-sized so the address
+ * survives. */
+/* Resolve the armed receive buffer. The firmware writes only the low 32 bits of
+ * the address, so the test registers the buffers it hands out by watching CSAR
+ * drop right after each DRDY. */
+extern uint8_t *drms_acq_test_rx_buffer(void);
 void complete_frame(int a,int b) {
- memset(rx_buffer,0,12);rx_buffer[0]=0x22;
- rx_buffer[3]=(a>>16)&255;rx_buffer[4]=(a>>8)&255;rx_buffer[5]=a&255;
- rx_buffer[6]=(b>>16)&255;rx_buffer[7]=(b>>8)&255;rx_buffer[8]=b&255;
- uint16_t crc=drms_crc16(rx_buffer,9);rx_buffer[9]=crc>>8;rx_buffer[10]=crc&255;
- HAL_SPI_TxRxCpltCallback(&hspi1);
+ uint8_t *dst=drms_acq_test_rx_buffer();
+ if(!dst) return;
+ memset(dst,0,12);dst[0]=0x22;
+ dst[3]=(a>>16)&255;dst[4]=(a>>8)&255;dst[5]=a&255;
+ dst[6]=(b>>16)&255;dst[7]=(b>>8)&255;dst[8]=b&255;
+ uint16_t crc=drms_crc16(dst,9);dst[9]=crc>>8;dst[10]=crc&255;
+ mock_rx_ch.CSR|=DMA_FLAG_TC;
+ /* Only the fast path is exercised here: when it declines the interrupt the
+    HAL callback would re-enter complete_frame() and recurse forever. */
+ (void)drms_acq_fast_dma_irq();
 }
 int pin(unsigned int n) { return pins[n]; }
 '''

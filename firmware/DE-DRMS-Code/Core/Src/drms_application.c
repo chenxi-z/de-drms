@@ -866,6 +866,22 @@ static void pipeline_step_frame(const DRMS_RawFrame *frame, uint64_t ticket,
   DRMS_RecordVerdict verdict = session_active
                                    ? drms_record_session_classify(ticket)
                                    : DRMS_RECORD_MONITOR;
+  /* Raw streaming mode. Above 32 kSPS the per-frame decode + monitor work does
+   * not fit the frame budget, so a record window becomes a pure capture: the
+   * frame goes straight to the record ring and nothing else runs. Live readings
+   * stop while such a record is open (the data is analysed afterwards), and
+   * quality_bad is not accumulated because no CRC check is performed here.
+   * Monitoring below 32 kSPS is unchanged. */
+  if (drms_acq_rate > 32000u)
+  {
+    if (verdict == DRMS_RECORD_RECORD)
+    {
+      int ok = drms_log_enqueue(frame);
+      drms_record_session_note_recorded(frame->sequence, 0u, ok ? 1u : 0u);
+      drms_record_session_note_log_ticket(drms_log_ticket_next());
+    }
+    return;
+  }
   if (verdict == DRMS_RECORD_RECORD)
   {
     int ok = drms_log_enqueue(frame);

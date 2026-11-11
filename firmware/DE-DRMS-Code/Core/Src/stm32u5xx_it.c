@@ -23,6 +23,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "drms_calibration.h"
+#include "drms_acquisition.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -246,7 +247,10 @@ void GPDMA1_Channel0_IRQHandler(void)
 void GPDMA1_Channel1_IRQHandler(void)
 {
   /* USER CODE BEGIN GPDMA1_Channel1_IRQn 0 */
-
+  /* The acquisition fast path owns this channel for the SPI1 receive transfer
+     and completes it itself. Anything not claimed falls through to the HAL. */
+  if (drms_acq_fast_dma_irq())
+    return;
   /* USER CODE END GPDMA1_Channel1_IRQn 0 */
   HAL_DMA_IRQHandler(&handle_GPDMA1_Channel1);
   /* USER CODE BEGIN GPDMA1_Channel1_IRQn 1 */
