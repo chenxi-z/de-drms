@@ -102,6 +102,9 @@ int main(void)
   MX_RTC_Init();
   MX_ICACHE_Init();
   /* USER CODE BEGIN 2 */
+  /* Early board bring-up marker, sent before ThreadX starts. */
+  static const uint8_t boot_banner[] = "\r\nDE-DRMS: USART1 initialized; starting RTOS\r\n";
+  (void)HAL_UART_Transmit(&huart1, boot_banner, sizeof(boot_banner) - 1u, 100u);
   HAL_PWR_EnableWakeUpPin(PWR_WAKEUP_PIN1_LOW_0);
   HAL_PWR_EnableWakeUpPin(PWR_WAKEUP_PIN5_LOW_0);
   /* USER CODE END 2 */
@@ -141,7 +144,7 @@ void SystemClock_Config(void)
   /** Configure LSE Drive Capability
   */
   HAL_PWR_EnableBkUpAccess();
-  __HAL_RCC_LSEDRIVE_CONFIG(RCC_LSEDRIVE_LOW);
+  __HAL_RCC_LSEDRIVE_CONFIG(RCC_LSEDRIVE_MEDIUMLOW);
 
   /** Initializes the CPU, AHB and APB buses clocks
   */

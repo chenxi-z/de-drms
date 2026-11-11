@@ -46,6 +46,11 @@ def replace_known(text, old, new, name):
 
 
 def repaired(relative, text):
+    if relative == 'Core/Src/main.c':
+        return replace_known(text,
+            '__HAL_RCC_LSEDRIVE_CONFIG(RCC_LSEDRIVE_LOW);',
+            '__HAL_RCC_LSEDRIVE_CONFIG(RCC_LSEDRIVE_MEDIUMLOW);',
+            'LSE drive: first-board startup requires medium-low')
     if relative == 'STM32U575xx_FLASH.ld':
         match = re.search(r'(ROM\s*\(rx\)\s*:\s*ORIGIN = 0x08000000,\s*LENGTH = )(\d+)K', text)
         if not match or match[2] not in ('992', '1008', '1024', '2048'):
@@ -156,7 +161,7 @@ def repaired(relative, text):
     raise ValueError(relative)
 
 
-FILES = ('Core/Src/sdmmc.c', 'USBX/App/app_usbx_device.c', 'STM32U575xx_FLASH.ld',
+FILES = ('Core/Src/main.c', 'Core/Src/sdmmc.c', 'USBX/App/app_usbx_device.c', 'STM32U575xx_FLASH.ld',
          'Makefile',
          'Middlewares/ST/usbx/common/usbx_stm32_device_controllers/ux_dcd_stm32_transfer_request.c',
          'Middlewares/ST/filex/common/drivers/fx_stm32_sd_driver.c')

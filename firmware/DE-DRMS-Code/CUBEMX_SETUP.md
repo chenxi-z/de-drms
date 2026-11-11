@@ -170,6 +170,7 @@ ADC采集/DMA/校准/TF连续记录尚缺，编译成功不等于整机已可测
 - [ ] MSI：**ON**（现作 SYSCLK 主路径）
 - [ ] HSI48：**ON**（USB / CRS 用）
 - [x] LSE：**Crystal/Ceramic Resonator**（PC14/PC15 已配，给 RTC）
+- **2026-11-11 首板实测：LSE Drive Capability 设 Medium Low。** Low 档导致 LSE 等待就绪超时，启动在 USART1 初始化前退出；Medium Low 已在本板读到 LSERDY。GUI 复存时同步该档位，后生成脚本也会恢复此设置。
 - [x] LSI：**ON**
 - [x] ✅ **2026-10-28 已按"贴晶振走 HSE"落定**：E.7 已改写，E.10 #16 关闭。
   ⚠️ 负载电容待优化：X4 负载 12 pF，板上 C1/C2 = 20 pF（实载 ≈13–15 pF，频偏 +10~30 ppm），

@@ -49,6 +49,7 @@ class PostgenerateTest(unittest.TestCase):
         p.write_text(change(p.read_text()))
 
     def simulate_regeneration(self):
+        self.edit('Core/Src/main.c', lambda text: text.replace('RCC_LSEDRIVE_MEDIUMLOW', 'RCC_LSEDRIVE_LOW'))
         self.edit('STM32U575xx_FLASH.ld', lambda text: re.sub(r'^.*CALDATA.*\n', '', text.replace('LENGTH = 1008K', 'LENGTH = 2048K'), flags=re.M))
         def generated_makefile(text):
             text = text.replace('include drms_sources.mk\n', '')
