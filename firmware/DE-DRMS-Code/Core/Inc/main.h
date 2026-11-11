@@ -103,7 +103,24 @@ void Error_Handler(void);
 #define BQ_PG_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
-/* Temporary first-board diagnostic: card physically inserted, ignore CD only. */
+/* First-board card detect is unusable and stays bypassed.
+
+ * PA15 itself is configured correctly (GPIOA MODER=00 input, PUPDR=01 pull-up,
+ * confirmed over SWD) but reads high with the card fully inserted, so the
+ * socket's CD contact never closes the R46 path to ground. Users decided to
+ * keep the bypass rather than rework the socket, so treat the TF card as
+ * permanently present.
+
+ * Consequences to keep in mind:
+ *  - Card removal is no longer detected. Pulling the card while recording
+ *    only fails at the next I/O, and MSC export will not revoke on removal.
+ *  - SD initialization is attempted even with no card; a missing or bad card
+ *    surfaces as a mount failure (sd=0) instead of "no card".
+ *  - An empty socket raises the standby current draw slightly.
+
+ * Revisit this if the socket is ever reworked: set to 0 and the original
+ * PA15-gated paths in sdmmc.c and drms_storage.c come back unchanged.
+ */
 #define DRMS_SD_DIAGNOSTIC_IGNORE_CD 1
 
 /* USER CODE END Private defines */

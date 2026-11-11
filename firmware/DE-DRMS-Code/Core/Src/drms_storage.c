@@ -121,6 +121,11 @@ uint32_t drms_storage_capacity_sectors(void)
   return capacity_cache;
 }
 
+/* Presence is a policy decision, not a measurement, while the first-board CD
+ * contact is bypassed: every caller below (mount gating, raw-access gating,
+ * removal-based export revocation) treats the card as always present. Missing
+ * media therefore surfaces as an I/O error at the next real access rather than
+ * as an early "no card" verdict. See DRMS_SD_DIAGNOSTIC_IGNORE_CD in main.h. */
 uint32_t drms_storage_card_present(void)
 {
   #if DRMS_SD_DIAGNOSTIC_IGNORE_CD
