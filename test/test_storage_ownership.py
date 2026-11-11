@@ -20,6 +20,7 @@ typedef struct {
   void *fx_media_driver_buffer;
   unsigned int fx_media_driver_status;
   unsigned int fx_media_total_sectors;
+  unsigned int fx_media_hidden_sectors;
 } FX_MEDIA;
 #define FX_SUCCESS 0
 #define FX_IO_ERROR 1
@@ -54,6 +55,7 @@ void drms_log_removed(void) { drms_log_state=0; }
 FX_MEDIA sdio_disk;
 uint32_t fx_sd_media_memory[128];
 int card_absent=1, opens, aborts, uninits, sd_inits, open_result, flushes, closes, flush_result, close_result, cancel_on_flush, raw_init_result, cancel_on_raw_init;
+unsigned int last_physical_sector;
 uint8_t disk_image[64 * 512];
 int HAL_GPIO_ReadPin(int p,int n) { return card_absent; }
 UINT fx_media_open(FX_MEDIA *m,const char *n,void (*f)(FX_MEDIA *),void *d,void *b,unsigned long z)
@@ -66,7 +68,10 @@ void fx_stm32_sd_driver(FX_MEDIA *m) {
   if(m->fx_media_driver_request==4) { ++sd_inits; if(cancel_on_raw_init) { cancel_on_raw_init=0; drms_msc_cancel(); } m->fx_media_driver_status=raw_init_result; return; }
   if(m->fx_media_driver_request==2) { /* FX_DRIVER_READ */
     if(card_absent) { m->fx_media_driver_status=1; return; }
-    unsigned int sector=m->fx_media_driver_logical_sector;
+    /* 与生产驱动一致：FileX SD 驱动把 hidden_sectors 加到调用者给的地址上。
+       drive_read_sectors 记录真正落到物理介质的扇区号，供回归断言。 */
+    last_physical_sector = m->fx_media_driver_logical_sector + m->fx_media_hidden_sectors;
+    unsigned int sector=last_physical_sector;
     if(sector>=64) { m->fx_media_driver_status=1; return; }
     memcpy(m->fx_media_driver_buffer, disk_image + sector*512, 512);
     m->fx_media_driver_status=0;
@@ -334,6 +339,41 @@ class StorageOwnershipTest(unittest.TestCase):
         out = (ctypes.c_ubyte * 1024)()
         self.assertEqual(self.lib.drms_msc_read(0, 2, out), 0)
         self.assertEqual(bytes(out), bytes(image[:1024]))
+
+    def test_host_lba_is_not_shifted_by_partition_offset(self):
+        # 实机缺陷回归：分区卷的 boot sector 记录 2048 隐藏扇区，FileX 的 SD 驱动
+        # 会把 hidden_sectors 加到每次读的地址上。MSC 寻址整块介质，主机要 LBA 0
+        #（MBR）时必须落在物理扇区 0。原先直接传 lba 导致读到 2048 号扇区，
+        # 分区表读不出来——表现为容量可见但文件系统探测不返回。
+        self.export()
+        ctypes.c_uint.in_dll(self.lib, 'sdio_disk').fx_media_hidden_sectors = 2048
+        try:
+            out = (ctypes.c_ubyte * 512)()
+            self.assertEqual(self.lib.drms_msc_read(0, 1, out), 0)
+            self.assertEqual(ctypes.c_uint.in_dll(self.lib, 'last_physical_sector').value, 0)
+            self.assertEqual(self.lib.drms_msc_read(7, 1, out), 0)
+            self.assertEqual(ctypes.c_uint.in_dll(self.lib, 'last_physical_sector').value, 7)
+            # 多扇区：逐扇区提交，每个都不得偏移
+            self.assertEqual(self.lib.drms_msc_read(10, 3, out), 0)
+            self.assertEqual(ctypes.c_uint.in_dll(self.lib, 'last_physical_sector').value, 12)
+        finally:
+            ctypes.c_uint.in_dll(self.lib, 'sdio_disk').fx_media_hidden_sectors = 0
+
+    def test_host_lba_zero_reads_mbr_not_volume_boot_sector(self):
+        # 行为断言：LBA 0 必须返回介质第 0 扇区的字节，而不是被分区偏移推到的
+        # 第 8 扇区（模拟隐藏扇区为 8 的卷）。
+        self.export()
+        image = (ctypes.c_ubyte * (64 * 512)).in_dll(self.lib, 'disk_image')
+        image[0] = 0xEB
+        image[1] = 0x3C
+        image[8 * 512] = 0x99  # 若偏移被叠加，LBA 0 会读到这个标记
+        ctypes.c_uint.in_dll(self.lib, 'sdio_disk').fx_media_hidden_sectors = 8
+        try:
+            out = (ctypes.c_ubyte * 512)()
+            self.assertEqual(self.lib.drms_msc_read(0, 1, out), 0)
+            self.assertEqual(bytes(out[:2]), b'\xEB\x3C')
+        finally:
+            ctypes.c_uint.in_dll(self.lib, 'sdio_disk').fx_media_hidden_sectors = 0
 
     def test_read_request_and_cancel_are_mutually_exclusive(self):
         # 自查修复回归：所有权检查与槽占用必须在同一临界区——

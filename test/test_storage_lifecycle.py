@@ -17,6 +17,7 @@ typedef struct {
   void *fx_media_driver_buffer;
   unsigned int fx_media_driver_status;
   unsigned int fx_media_total_sectors;
+  unsigned int fx_media_hidden_sectors;
 } FX_MEDIA;
 #define FX_SUCCESS 0
 #define FX_IO_ERROR 1

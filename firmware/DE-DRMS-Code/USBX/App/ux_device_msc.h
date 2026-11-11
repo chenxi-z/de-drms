@@ -82,7 +82,11 @@ ULONG USBD_STORAGE_GetMediaBlocklength(VOID);
 #endif
 
 #ifndef STORAGE_READ_ONLY
-#define STORAGE_READ_ONLY    UX_FALSE
+/* Export is strictly read-only: USBD_STORAGE_Write rejects every write with
+ * DATA PROTECT, so the LUN must advertise itself as write-protected too.
+ * Advertising UX_FALSE made hosts treat the disk as writable and issue writes
+ * that could never succeed. */
+#define STORAGE_READ_ONLY    UX_TRUE
 #endif
 /* USER CODE BEGIN 1 */
 

@@ -85,7 +85,7 @@ void drms_storage_poll(void)
   drms_storage_observe();
   if (drms_msc_owner() != DRMS_OWNER_LOCAL)
     return;
-  if (HAL_GPIO_ReadPin(SD_CD_GPIO_Port, SD_CD_Pin) != GPIO_PIN_RESET)
+  if (!drms_storage_card_present())
   {
     if (drms_storage_mounted)
     {
@@ -123,7 +123,11 @@ uint32_t drms_storage_capacity_sectors(void)
 
 uint32_t drms_storage_card_present(void)
 {
+  #if DRMS_SD_DIAGNOSTIC_IGNORE_CD
+  return 1;
+  #else
   return HAL_GPIO_ReadPin(SD_CD_GPIO_Port, SD_CD_Pin) == GPIO_PIN_RESET;
+  #endif
 }
 
 void drms_storage_release_driver(void)
@@ -144,8 +148,14 @@ DRMS_Result drms_storage_raw_read(uint32_t lba, uint32_t blocks, uint8_t *out)
 {
   if (!drms_storage_card_present())
     return DRMS_IO_ERROR;
+  /* The FileX SD driver adds fx_media_hidden_sectors to every sector address it
+     is given (fx_stm32_sd_driver.c, FX_DRIVER_READ). MSC addresses the whole
+     physical medium, so a host request for LBA 0 (the MBR) must not be shifted
+     onto the volume's first sector. Pre-subtract the accumulated offset with
+     unsigned wraparound so the driver's addition lands exactly on `lba`; this
+     keeps every host LBA byte-identical to the card. */
   sdio_disk.fx_media_driver_request = FX_DRIVER_READ;
-  sdio_disk.fx_media_driver_logical_sector = lba;
+  sdio_disk.fx_media_driver_logical_sector = lba - sdio_disk.fx_media_hidden_sectors;
   sdio_disk.fx_media_driver_sectors = blocks;
   sdio_disk.fx_media_driver_buffer = out;
   fx_stm32_sd_driver(&sdio_disk);

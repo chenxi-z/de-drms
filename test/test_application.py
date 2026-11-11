@@ -210,7 +210,8 @@ uint32_t HAL_GetUIDw2(void);
             '    unsigned int fx_media_driver_sectors;\n'
             '    void *fx_media_driver_buffer;\n'
             '    unsigned int fx_media_driver_status;\n'
-            '    unsigned int fx_media_total_sectors; } FX_MEDIA;')
+            '    unsigned int fx_media_total_sectors;\n'
+            '    unsigned int fx_media_hidden_sectors; } FX_MEDIA;')
         fxh = fxh.replace('#define FX_IO_ERROR 1',
             '#define FX_IO_ERROR 1\n'
             '#define FX_DRIVER_UNINIT 9\n#define FX_DRIVER_INIT 4\n'
