@@ -22,7 +22,7 @@ TARGET = DE-DRMS-Code
 # debug build?
 DEBUG = 1
 # optimization
-OPT = -Og
+OPT = -O3 -flto
 
 
 #######################################

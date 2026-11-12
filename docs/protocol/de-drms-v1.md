@@ -33,6 +33,8 @@ LF 结束，兼容 CRLF；破损、溢出行丢弃至下一分隔符。串口发
 `log_state=0` 空闲、1 正在开/换文件、2 正在记录、3 排空关闭。
 `adc_error=1` READY 失败、2 配置/应答失败、3 SPI DMA 错误、4 数据超时、5 连续帧完整性失败、
 6 采集队列满而主动停采。
+`record_result/record_phase/record_clean_end/record_unknown_loss` 是当前或最近一次记录的业务结果（与 CDC v2 GET_RECORD 相同）：`record_result=9` 表示不完整，`record_phase=2` 表示结束，只有终态且 `record_result=0 record_clean_end=1` 才代表完整收尾。新记录前结果可能为初始值；不可仅凭 `sd_status/log_status=0` 判断记录完整。
+
 `sd_status/log_status` 是底层 FileX 状态码，0 为成功；`flash_status=1` 布局不支持/忙，2 写入或校验失败。
 
 `shutdown=1` 请求软关机并等待 FileX；`power_status=0` 正常，1 正在等关闭，2 待机入口返回（可能被调试器阻止）；

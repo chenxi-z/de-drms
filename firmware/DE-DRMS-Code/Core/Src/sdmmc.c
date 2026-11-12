@@ -24,11 +24,29 @@
 /* Removable media failure is recoverable; exported to the FileX glue. */
 HAL_StatusTypeDef sd_init_status = HAL_ERROR;
 
+volatile uint32_t sd_bus_high_speed;
+
 static HAL_StatusTypeDef sd_startup_init(SD_HandleTypeDef *sd)
 {
-  /* Kernel clock is CLK48/HSI48. CLKDIV=0 bypasses division (48 MHz), but
-     HAL_SD_Init does not explicitly negotiate CMD6 High Speed. Start at the
-     universally valid default-speed clock: 48 MHz / (2 * 1) = 24 MHz. */
+  /* CLK48 starts at the default-speed limit. Never clock an unnegotiated
+   * card at 48 MHz; CMD6 must succeed before CLKDIV=0 is allowed. */
+  sd_bus_high_speed = 0;
+  sd->Init.ClockDiv = 1;
+  HAL_StatusTypeDef status = HAL_SD_Init(sd);
+  if (status != HAL_OK)
+    return status;
+  if (HAL_SD_ConfigSpeedBusOperation(sd, SDMMC_SPEED_MODE_HIGH) == HAL_OK)
+  {
+    sd->Init.ClockDiv = 0;
+    if (HAL_SD_ConfigWideBusOperation(sd, SDMMC_BUS_WIDE_4B) == HAL_OK)
+    {
+      sd_bus_high_speed = 1;
+      return HAL_OK;
+    }
+  }
+  /* Unsupported/failed negotiation is recoverable. Reinitialize completely
+   * at 24 MHz so no partial switch or HAL error state leaks into FileX. */
+  (void)HAL_SD_DeInit(sd);
   sd->Init.ClockDiv = 1;
   return HAL_SD_Init(sd);
 }
@@ -44,6 +62,7 @@ void MX_SDMMC1_SD_Init(void)
 
   /* USER CODE BEGIN SDMMC1_Init 0 */
   sd_init_status = HAL_ERROR;
+  sd_bus_high_speed = 0;
   #if !DRMS_SD_DIAGNOSTIC_IGNORE_CD
   if (HAL_GPIO_ReadPin(SD_CD_GPIO_Port, SD_CD_Pin) != GPIO_PIN_RESET)
   {

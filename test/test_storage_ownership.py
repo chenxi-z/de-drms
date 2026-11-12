@@ -56,10 +56,12 @@ FX_MEDIA sdio_disk;
 uint32_t fx_sd_media_memory[128];
 int card_absent=1, opens, aborts, uninits, sd_inits, open_result, flushes, closes, flush_result, close_result, cancel_on_flush, raw_init_result, cancel_on_raw_init;
 unsigned int last_physical_sector;
+int owner_during_open, record_blocked_during_open;
 uint8_t disk_image[64 * 512];
+void test_set_hidden_sectors(unsigned int n) { sdio_disk.fx_media_hidden_sectors=n; }
 int HAL_GPIO_ReadPin(int p,int n) { return card_absent; }
 UINT fx_media_open(FX_MEDIA *m,const char *n,void (*f)(FX_MEDIA *),void *d,void *b,unsigned long z)
-{ ++opens; if(open_result==0) m->fx_media_total_sectors=64; return open_result; }
+{ ++opens; owner_during_open=drms_msc_owner(); record_blocked_during_open=drms_msc_blocks_recording(); if(open_result==0) m->fx_media_total_sectors=64; return open_result; }
 UINT fx_media_abort(FX_MEDIA *m) { ++aborts; return 0; }
 UINT fx_media_flush(FX_MEDIA *m) { ++flushes; if(cancel_on_flush) { cancel_on_flush=0; drms_msc_cancel(); } return flush_result; }
 UINT fx_media_close(FX_MEDIA *m) { ++closes; return close_result; }
@@ -124,6 +126,11 @@ class StorageOwnershipTest(unittest.TestCase):
         self._keep_wait = WAIT
         lib.drms_msc_set_wait_hook(ctypes.cast(WAIT, ctypes.c_void_p))
 
+    def tearDown(self):
+        # The C module must not retain a Python callback after its test ends.
+        self.lib.drms_msc_set_wait_hook(ctypes.c_void_p())
+        self._keep_wait = None
+
     def mount(self):
         ctypes.c_int.in_dll(self.lib, 'card_absent').value = 0
         self.lib.drms_storage_poll()
@@ -187,6 +194,15 @@ class StorageOwnershipTest(unittest.TestCase):
         self.lib.drms_msc_service()
         self.assertEqual(self.owner(), 0)
         self.assertEqual(self.u32('drms_storage_mounted').value, 0)  # 已 invalidate
+
+    def test_release_keeps_transitional_owner_until_filex_open_returns(self):
+        self.export()
+        self.assertEqual(self.lib.drms_msc_request_release(), 1)
+        self.lib.drms_msc_service()
+        self.assertEqual(ctypes.c_int.in_dll(self.lib, 'owner_during_open').value, 3)
+        self.assertEqual(ctypes.c_int.in_dll(self.lib, 'record_blocked_during_open').value, 1)
+        self.assertEqual(self.owner(), 0)
+        self.assertEqual(self.u32('drms_storage_mounted').value, 1)
 
     def test_export_release_round_trip_and_real_content(self):
         gen = self.export()
@@ -346,18 +362,20 @@ class StorageOwnershipTest(unittest.TestCase):
         #（MBR）时必须落在物理扇区 0。原先直接传 lba 导致读到 2048 号扇区，
         # 分区表读不出来——表现为容量可见但文件系统探测不返回。
         self.export()
-        ctypes.c_uint.in_dll(self.lib, 'sdio_disk').fx_media_hidden_sectors = 2048
+        self.lib.test_set_hidden_sectors(2048)
         try:
             out = (ctypes.c_ubyte * 512)()
             self.assertEqual(self.lib.drms_msc_read(0, 1, out), 0)
             self.assertEqual(ctypes.c_uint.in_dll(self.lib, 'last_physical_sector').value, 0)
             self.assertEqual(self.lib.drms_msc_read(7, 1, out), 0)
             self.assertEqual(ctypes.c_uint.in_dll(self.lib, 'last_physical_sector').value, 7)
+            # Three sectors require three sectors of output storage.
+            out = (ctypes.c_ubyte * (3 * 512))()
             # 多扇区：逐扇区提交，每个都不得偏移
             self.assertEqual(self.lib.drms_msc_read(10, 3, out), 0)
             self.assertEqual(ctypes.c_uint.in_dll(self.lib, 'last_physical_sector').value, 12)
         finally:
-            ctypes.c_uint.in_dll(self.lib, 'sdio_disk').fx_media_hidden_sectors = 0
+            self.lib.test_set_hidden_sectors(0)
 
     def test_host_lba_zero_reads_mbr_not_volume_boot_sector(self):
         # 行为断言：LBA 0 必须返回介质第 0 扇区的字节，而不是被分区偏移推到的
@@ -367,13 +385,13 @@ class StorageOwnershipTest(unittest.TestCase):
         image[0] = 0xEB
         image[1] = 0x3C
         image[8 * 512] = 0x99  # 若偏移被叠加，LBA 0 会读到这个标记
-        ctypes.c_uint.in_dll(self.lib, 'sdio_disk').fx_media_hidden_sectors = 8
+        self.lib.test_set_hidden_sectors(8)
         try:
             out = (ctypes.c_ubyte * 512)()
             self.assertEqual(self.lib.drms_msc_read(0, 1, out), 0)
             self.assertEqual(bytes(out[:2]), b'\xEB\x3C')
         finally:
-            ctypes.c_uint.in_dll(self.lib, 'sdio_disk').fx_media_hidden_sectors = 0
+            self.lib.test_set_hidden_sectors(0)
 
     def test_read_request_and_cancel_are_mutually_exclusive(self):
         # 自查修复回归：所有权检查与槽占用必须在同一临界区——

@@ -20,6 +20,7 @@ typedef struct { int Pin,Mode,Pull,Speed,Alternate; } GPIO_InitTypeDef;
 typedef struct { int PeriphClockSelection,IclkClockSelection,SdmmcClockSelection; } RCC_PeriphCLKInitTypeDef;
 #define HAL_OK 0
 #define HAL_ERROR 1
+#define SDMMC_SPEED_MODE_HIGH 1
 #define GPIO_PIN_RESET 0
 #define SD_CD_GPIO_Port 1
 #define SD_CD_Pin 32768
@@ -53,6 +54,8 @@ extern int card_absent,init_result,init_calls,deinit_calls,fatal_calls,init_divi
 int HAL_GPIO_ReadPin(int port,int pin);
 int HAL_SD_Init(SD_HandleTypeDef *h);
 int HAL_SD_DeInit(SD_HandleTypeDef *h);
+int HAL_SD_ConfigSpeedBusOperation(SD_HandleTypeDef *,unsigned int);
+int HAL_SD_ConfigWideBusOperation(SD_HandleTypeDef *,unsigned int);
 int HAL_RCCEx_PeriphCLKConfig(RCC_PeriphCLKInitTypeDef *p);
 void HAL_GPIO_Init(int port,GPIO_InitTypeDef *p);
 void HAL_GPIO_DeInit(int port,int pins);
@@ -64,6 +67,9 @@ void Error_Handler(void);
 MOCK = r'''
 #include "sdmmc.h"
 int card_absent,init_result,init_calls,deinit_calls,fatal_calls,init_divider;
+int speed_calls,speed_result,wide_calls,wide_result,wide_divider;
+int HAL_SD_ConfigSpeedBusOperation(SD_HandleTypeDef *h,unsigned int m) { ++speed_calls; return speed_result; }
+int HAL_SD_ConfigWideBusOperation(SD_HandleTypeDef *h,unsigned int m) { ++wide_calls; wide_divider=h->Init.ClockDiv; return wide_result; }
 int HAL_GPIO_ReadPin(int p,int n) { return card_absent; }
 int HAL_SD_Init(SD_HandleTypeDef *h) { ++init_calls;init_divider=h->Init.ClockDiv; return init_result; }
 int HAL_SD_DeInit(SD_HandleTypeDef *h) { ++deinit_calls; return 0; }
@@ -98,12 +104,37 @@ class SDStartupTest(unittest.TestCase):
         return ctypes.c_int.in_dll(self.lib, name)
 
     def setUp(self):
-        for name in ('card_absent', 'init_result', 'init_calls', 'deinit_calls', 'fatal_calls', 'init_divider'):
+        for name in ('card_absent', 'init_result', 'init_calls', 'deinit_calls', 'fatal_calls', 'init_divider', 'speed_calls', 'speed_result', 'wide_calls', 'wide_result', 'wide_divider'):
             self.value(name).value = 0
 
     def test_default_bus_stays_under_25mhz_without_high_speed_negotiation(self):
+        self.value('speed_result').value = 1
         self.lib.MX_SDMMC1_SD_Init()
         self.assertEqual(self.value('init_divider').value, 1)  # CLK48 / (2 * 1) = 24 MHz
+
+    def test_successful_high_speed_negotiation_precedes_48mhz(self):
+        self.lib.MX_SDMMC1_SD_Init()
+        self.assertEqual(self.value('init_divider').value, 1)
+        self.assertEqual(self.value('speed_calls').value, 1)
+        self.assertEqual(self.value('wide_calls').value, 1)
+        self.assertEqual(self.value('wide_divider').value, 0)
+        self.assertEqual(self.value('sd_bus_high_speed').value, 1)
+
+    def test_high_speed_failure_reinitializes_at_default_clock(self):
+        self.value('speed_result').value = 1
+        self.lib.MX_SDMMC1_SD_Init()
+        self.assertEqual(self.value('wide_calls').value, 0)
+        self.assertEqual(self.value('init_calls').value, 2)
+        self.assertEqual(self.value('init_divider').value, 1)
+        self.assertEqual(self.value('sd_init_status').value, 0)
+        self.assertEqual(self.value('sd_bus_high_speed').value, 0)
+
+    def test_clock_reconfiguration_failure_reinitializes_at_default_clock(self):
+        self.value('wide_result').value = 1
+        self.lib.MX_SDMMC1_SD_Init()
+        self.assertEqual(self.value('init_calls').value, 2)
+        self.assertEqual(self.value('init_divider').value, 1)
+        self.assertEqual(self.value('sd_bus_high_speed').value, 0)
 
     def test_absent_card_never_calls_hal_or_reports_success(self):
         # Previous successful status must not leak into a later absent-card attempt.

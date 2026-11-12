@@ -36,7 +36,7 @@ typedef struct {
 #define FX_STM32_SD_DMA_API 0
 #define FX_STM32_SD_CACHE_MAINTENANCE 0
 #define FX_STM32_SD_DEFAULT_SECTOR_SIZE 512
-#define FX_STM32_SD_DEFAULT_TIMEOUT 3
+#define FX_STM32_SD_DEFAULT_TIMEOUT 30
 #define FX_STM32_SD_INSTANCE 0
 #define FX_STM32_SD_CURRENT_TIME() fake_time()
 unsigned int fake_time(void);
@@ -46,14 +46,16 @@ int fx_stm32_sd_deinit(UINT);
 int fx_stm32_sd_read_blocks(UINT,UINT *,UINT,UINT);
 int fx_stm32_sd_write_blocks(UINT,UINT *,UINT,UINT);
 void tx_thread_sleep(ULONG);
+uint32_t HAL_GetTick(void);
 #define _fx_utility_memory_copy(a,b,n) memcpy(b,a,n)
 '''
 MOCK = r'''
 #include "fx_stm32_sd_driver.h"
-int busy,init_calls,deinit_calls,deinit_result,sleeps;
+int busy,init_calls,deinit_calls,deinit_result,sleeps,transient_busy;
+uint32_t HAL_GetTick(void) { static uint32_t calls; return calls++ / 8u; }
 static unsigned int ticks;
 unsigned int fake_time(void) { return ticks++; }
-int fx_stm32_sd_get_status(UINT n) { return busy; }
+int fx_stm32_sd_get_status(UINT n) { if(transient_busy>0) { --transient_busy; return 1; } return busy; }
 int fx_stm32_sd_init(UINT n) { ++init_calls; return 0; }
 int fx_stm32_sd_deinit(UINT n) { ++deinit_calls; return deinit_result; }
 int fx_stm32_sd_read_blocks(UINT a,UINT *b,UINT c,UINT d) { return 0; }
@@ -110,6 +112,11 @@ class SDDriverRecoveryTest(unittest.TestCase):
         self.value('deinit_result').value = 0
         self.assertEqual(self.lib.request(1), 0)
         self.assertEqual(self.value('init_calls').value, 2)
+
+    def test_short_card_busy_does_not_force_a_ten_ms_sleep(self):
+        self.value('transient_busy').value = 2
+        self.assertEqual(self.lib.request(4), 0)
+        self.assertEqual(self.value('sleeps').value, 0)
 
     def test_busy_card_wait_yields_cpu(self):
         self.value('busy').value = 1

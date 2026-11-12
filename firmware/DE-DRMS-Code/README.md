@@ -164,49 +164,65 @@ python3 tools/de_drms_log.py /path/to/DRMS0000.BIN --csv /path/to/result.csv
 `no_reported_loss` 也只是软件未报告丢失，仍须物理时序对照。
 协议见 [人读说明](../../docs/protocol/de-drms-v1.md) 和 [机器定义](../../shared/protocol/de-drms-v1.json)。
 
-## 已知未解决：高速档记录写卡吞吐不足（2026-11-12 实测）
+## 高速记录吞吐排查与修复（2026-11-12）
 
-**症状**：`START <高速档>` + `RECORD` 后，记录只写一小段就自行终止。
-`records` 停在一个固定值（36k–38k 量级），`log_state` 归 0，
-`log_drop` 变成 1，会话 END 被标 `DRMS_INCOMPLETE`；而
-`sd=1 sd_status=0 log_status=0` 全部报正常，看起来"没出错"。
+旧版在 16/64 kSPS 录制时填满 32768 帧记录环并以 `DRMS_INCOMPLETE` 结束。
+环满停止是正确保护；实际瓶颈是存储路径与 CPU/调度的叠加，不能靠扩大环来掩盖。
 
-**机制已经查清（不是猜测）**：
-- 记录会话的 `drms_record_session_note_recorded()` 有一条硬规则——
-  `enqueue_ok == 0`（记录环 32768 帧写满）就立即 `fail_session(DRMS_INCOMPLETE)`。
-  这是有意的保守设计：环满意味着后面的数据必然缺失，宁可如实标残缺，
-  也不能给一份看着完整的坏数据。
-- 所以"写一小段就停"= 写卡吞吐跟不上采样率，环在几十毫秒到几百毫秒内填满。
-- 实测吞吐（`records` 增量 ÷ 时长，多次测量）：
-  | 采样率 | 需求 | 实测吞吐 | 结果 |
-  | --- | --- | --- | --- |
-  | 4 kSPS | 62 KB/s | ~81–83 KB/s | 勉强跟上 |
-  | 16 kSPS | 250 KB/s | ~95–97 KB/s | 环满，终止 |
-  | 64 kSPS | 1000 KB/s | ~15–160 KB/s | 环满，终止 |
-  吞吐基本**与采样率无关**，是固定量级 → 瓶颈是固定节拍，不是数据量。
+已修正：
 
-**已经排除的方向（都实机验证过，不要重走）**：
-- **不是** FileX 媒体缓存太小：把 `fx_sd_media_memory` 从 512 B 加到 16 KiB，
-  吞吐没有数量级改善（改动保留，但它不是解药）。
-- **不是** 时基问题：本文件上面那条 TIM7 优先级修复已让 `HAL_GetTick()`
-  与真实时间对齐，与本缺陷无关。
-- **不是** 本次修复引入：用修复前的提交 `2785298` 单独构建烧录跑同样流程，
-  表现完全一致（记录同样写一小段就停）。
-- **不是** 采集侧丢帧：同期 `spi_overrun` / `frame_drop` / `crc_bad` 全为 0，
-  原始环 `raw_used` 长期只有个位到几百（4096 容量），采集与消费都正常。
-- **不是** 卡坏了：同一张卡曾成功写入 151,684 / 167,924 / 70,961 条，
-  `tools/de_drms_log.py` 解出 `crc_errors=0`、`sequence_gaps=0`。
+- **FileX 部分扇区后的 DMA 地址错位**：v2 HEADER 长度为 `66 + config_len`，
+  FileX 先补齐当前扇区后会推进源指针。原来仅对齐 staging 基址，反而让后续
+  整扇区数据落入逐扇区 scratch 写入。现在源指针的模 4 偏移与文件偏移一致，
+  文件字节和 v1/v2 格式不变；每次换文件重新建立偏移。
+- **CRC 与打包预算**：CRC16 按字节查表，CRC32 用 slicing-by-4；保留逐帧 ADC 校验、
+  文件 CRC 和相同校验参数。32 KiB staging 的末尾可容纳短 DATA 块，不再固定浪费约 4 KiB。
+- **调度与批量提交**：普通 FileX 服务优先级仍为 10，仅活动记录的 log poll 临时升为 4，
+  退出后恢复原优先级（处理线程为 5）；启动建文件不提级。约 2000 帧攒一批，
+  50 ms 上限处理小尾批；有整批积压时不额外睡一个 10 ms tick。
+  卡短暂 busy 可在最多 1 ms 内轮询，长期 busy 仍睡眠并保留超时。
+- **启动边界**：文件创建期间尚未请求 BEGIN 边界，继续消费监测帧；文件就绪并开始请求
+  边界后才维持原来的屏障。避免文件名查找或建文件超过原始环约 64 ms 容量时停采。
+- **SD 高速协商**：先用 24 MHz 初始化；只有 CMD6 High Speed 协商成功后才切换
+  48 MHz / 4-bit。协商或切换失败时完整重初始化并回到 24 MHz，保留慢卡兼容性。
+- **构建与内存**：默认 `-O3 -flto`，仍保留调试符号；再生成后由 postgenerate 恢复。
+  `OPT=-Og` 可单独用于低速调试，需使用不同构建目录，不能沿用高速性能结论。
+  DRDY 时序统计由 `DRMS_ACQ_TIMING_PROBE` 显式开启，默认移除统计开销，错误计数仍保留。
+  16 KiB FileX 缓存实验没有解决瓶颈且超出 RAM 门禁，恢复单扇区缓存；互斥格式元数据与
+  CPU 帧暂存共用原有 SRAM4 预算，512 KiB 记录环和 32 KiB DMA staging 不变。
+- **MSC 读出等待**：保留逐扇区内部邮箱、撤销代次和超时隔离，将 USBX/存储线程之间的固定 tick 等待改为请求/完成事件，避免每 512 B 固定等待约 10 ms。交还时保持 RELEASING/QUARANTINED 至 FileX 重挂载返回，随后才发布 LOCAL，防止主线程提前报告失败或释放租约。
+- **可观察的业务失败**：ASCII STATUS 新增 `record_result/record_phase/record_clean_end/record_unknown_loss`。
+  `sd_status/log_status=0` 只表示底层 I/O 成功；`record_result=9` 才是业务上的不完整。
+  `record_clean_end=1` 表示 END 已写出，仍须检查结果和未知损失；CDC v2 继续用 GET_RECORD。
 
-**已经定位到但还需要继续缩小的范围**：
-`fx_file_write()` 单次实测约 **165 ms 写 26.6 KB**（≈161 KB/s），
-用 DWT 周期计量的。26.6 KB 对应 52 个扇区，即约 **3.2 ms/扇区**。
-SDMMC 配成 24 MHz 4-bit（`sd_startup_init` 里 `ClockDiv = 1`），
-理论 12 MB/s，实测量级差两个数量级。下一步应在
-`fx_stm32_sd_write_blocks()` 内部（`HAL_SD_WriteBlocks_DMA` 本体
-与等信号量之间）做分解计时，判断是 DMA 真慢、还是等完成被调度延迟。
+台架对照：停止采集时，同一张卡写 512 KiB 用时 174 ms（约 3 MB/s）。
+24 MHz 下逐步修复后 64 kSPS 能录制约 45 s，仍有溢出，因此这一组合不按持续记录放行。
+48 MHz 已在同一卡上协商成功，实读 SDMMC1 `POWER=0x3`、`CLKCR=0x4000`（4-bit、CLKDIV=0）。
+最终默认优化固件的台架结果：
 
-**影响面**：4 kSPS 及以下可连续记录；16 kSPS 以上记录不可用（测量本身正常）。
-在查清前，不要承诺"高速档 + 记录"的组合。
+| 采样率 | 文件 | 记录数 | 等效记录时长 | 最终结果 |
+| --- | --- | ---: | ---: | --- |
+| 64 kSPS | DRMS0049.BIN（最终固件复测；前一轮为 DRMS0046.BIN） | 4,393,647 | 约 68.65 s | result=0、clean_end=1、unknown_loss=0 |
+| 16 kSPS | DRMS0047.BIN | 426,565 | 约 26.66 s | 同上 |
+| 32 kSPS | DRMS0048.BIN | 852,810 | 约 26.65 s | 同上 |
+
+三档 `log_drop/spi_overrun/frame_drop/crc_bad/adc_fault` 均为 0。
+64 kSPS 中间状态的落盘增长约 63,954 帧/s（约 1.023 MB/s 原始记录负载，不含块头/CRC）。
+当前证据限于这张卡、USB 供电、未接电池和被测物的记录链路，不替代模拟精度验收；
+回退 24 MHz 的卡不沿用 64 kSPS 持续记录结论。
+
+三份最终选取文件（0047/0048/0049）已完整复制并由现有 `tools/de_drms_log.py` 的
+`LogReaderV2` 全量解析：文件/帧 CRC、帧格式、ADC 故障位、序号缺口/乱序、
+HEADER/END 身份与首末边界均通过；记录数与上表一致。
+64 kSPS 的 `no_reported_loss=true`，END 的 `capture_lost/log_dropped/quality_bad` 全为 0，
+`unknown_loss/storage_error=false`。16/32 kSPS 文件的 `quality_bad` 分别为
+426,565/852,810，故 `no_reported_loss=false`；当前台架未接被测物，低速测量质量
+未通过，不可把结构完整、传输无损当作有效电阻测量。
+MSC 只读拷贝实测约 447–477 KiB/s（改动前约 20 KiB/s）；完成后已释放导出并重新挂载本地介质，采集停止。
+
+本轮默认 ARM 构建、postgenerate 只读检查和 454 项软件测试通过；使用本次新生成
+map/ELF 检查主 RAM ≤736 KiB、SRAM4 ≤16 KiB 及 DMA 区域，未放宽门禁。
+本次不改变 128 kSPS 既有不可用结论，不宣称已完成 1 GiB 实物轮转或掉电测试。
 
 ## 上板验收边界
 

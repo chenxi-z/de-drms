@@ -1664,7 +1664,10 @@ void drms_application_poll(void)
   /* 屏障期内不要排空采集环——会话正在等一个一致边界，
    * 此时把帧取走会让边界的样本序号与实际处理的帧对不上。
    * 等边界定下来（barrier 变 0）再继续消费。 */
-  if (!drms_record_session_barrier())
+  /* File creation precedes the BEGIN boundary request. These samples are
+   * monitoring-only and may be consumed; waiting for SD must not fill raw RAM.
+   * Once the file is ready, retain the actual boundary barrier unchanged. */
+  if (!drms_record_session_barrier() || (session_armed && !drms_log_running))
     drain_frames();
   /* 基线与校准都是长流程（数秒到几十秒），每轮推进一点点，
    * 绝不在一次调用里等它们完成——否则整机的响应会卡住。 */
@@ -1923,7 +1926,8 @@ size_t drms_application_status(char *out, size_t capacity)
     HAL_GPIO_ReadPin(BQ_PG_GPIO_Port, BQ_PG_Pin) == GPIO_PIN_RESET,
     HAL_GPIO_ReadPin(BQ_CHG_GPIO_Port, BQ_CHG_Pin) == GPIO_PIN_RESET, drms_usb_can_io(),
     drms_shutdown_requested, drms_power_status, drms_power_low_battery,
-    monitor_state, monitor_fresh, config_state};
+    monitor_state, monitor_fresh, config_state, published_record.result,
+    published_record.phase, published_record.clean_end, published_record.unknown_loss};
   int32_t resistance = r_milliohms;
   __set_PRIMASK(mask);
   int n = snprintf(out, capacity,
@@ -1932,7 +1936,8 @@ size_t drms_application_status(char *out, size_t capacity)
     "log=%lu log_state=%lu log_status=%lu records=%lu log_drop=%lu bat_mv=%lu bat_valid=%lu last_cmd=%lu cmd_result=%lu "
     "flash_status=%lu uart_rx_drop=%lu uart_tx_drop=%lu usb_status=%lu cal_generation=%lu excitation_ok=%lu "
     "rtc_valid=%lu utc_date=%lu utc_time=%lu vbus=%lu bq_pg=%lu bq_chg=%lu usb_io=%lu "
-    "shutdown=%lu power_status=%lu low_battery=%lu monitor=%lu fresh=%lu config_state=%lu\r\n",
+    "shutdown=%lu power_status=%lu low_battery=%lu monitor=%lu fresh=%lu config_state=%lu "
+    "record_result=%lu record_phase=%lu record_clean_end=%lu record_unknown_loss=%lu\r\n",
     (unsigned long)values[0],(unsigned long)values[1],(unsigned long)values[2],(unsigned long)values[3],
     (unsigned long)values[4],(long)resistance,(unsigned long)values[5],(unsigned long)values[6],
     (unsigned long)values[7],(unsigned long)values[8],(unsigned long)values[9],(unsigned long)values[10],
@@ -1945,6 +1950,8 @@ size_t drms_application_status(char *out, size_t capacity)
     (unsigned long)values[35],(unsigned long)values[36],(unsigned long)values[37],(unsigned long)values[38],
     (unsigned long)values[39],(unsigned long)values[40],(unsigned long)values[41],
     (unsigned long)values[42],(unsigned long)values[43],
-    (unsigned long)values[44],(unsigned long)values[45]);
+    (unsigned long)values[44],(unsigned long)values[45],
+    (unsigned long)values[46],(unsigned long)values[47],
+    (unsigned long)values[48],(unsigned long)values[49]);
   return n < 0 ? 0 : ((size_t)n < capacity ? (size_t)n : capacity - 1);
 }

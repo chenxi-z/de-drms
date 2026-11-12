@@ -15,6 +15,12 @@ SPEC.loader.exec_module(PG)
 
 
 class PostgenerateTest(unittest.TestCase):
+    def test_streaming_optimization_is_restored_after_regeneration(self):
+        self.edit('Makefile', lambda text: text.replace('OPT = -O3 -flto', 'OPT = -Og'))
+        self.assertEqual(self.run_script().returncode, 1)
+        self.assertEqual(self.run_script(apply=True).returncode, 0)
+        self.assertIn('OPT = -O3 -flto', (self.project / 'Makefile').read_text())
+
     def test_sram4_workspace_section_is_restored_after_regeneration(self):
         linker = self.project / 'STM32U575xx_FLASH.ld'
         text = linker.read_text()
@@ -71,7 +77,8 @@ class PostgenerateTest(unittest.TestCase):
             return text.replace('    }\n    UX_RESTORE\n}\n', '    }\n}\n', 1)
         self.edit('Middlewares/ST/usbx/common/usbx_stm32_device_controllers/ux_dcd_stm32_transfer_request.c', original_dcd)
         def original_driver(text):
-            text = text.replace('    /* FileX calls this from thread context; do not starve peers while busy. */\n    tx_thread_sleep(1);\n', '')
+            text = text.replace('  uint32_t spin_start = HAL_GetTick();\n', '')
+            text = re.sub(r'    /\* Short card programming busy periods.*?spin_start = HAL_GetTick\(\);\n    }\n', '', text, flags=re.S)
             text = text.replace(
                 '  /* Cleanup must work after card removal and transfer errors. */\n'
                 '  if (is_initialized == 1 &&\n'

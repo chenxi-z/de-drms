@@ -117,6 +117,9 @@ def repaired(relative, text):
         new = old.replace('    }\n}\n', '    }\n    UX_RESTORE\n}\n')
         return replace_known(text, old, new, relative)
     if relative == 'Makefile':
+        # Keep symbols, but the streaming budget requires an optimized image.
+        text = replace_known(text, 'OPT = -Og\n', 'OPT = -O3 -flto\n',
+                             'Makefile streaming optimization')
         include = 'include drms_sources.mk\n'
         anchor = '# ASM sources\n'
         # Earlier generated projects may still contain legacy inline sources.
@@ -143,11 +146,25 @@ def repaired(relative, text):
             'Makefile linker prerequisites')
         return text
     if relative.endswith('fx_stm32_sd_driver.c'):
-        text = replace_known(text,
-            '      return 0;\n    }\n  }\n\n  return 1;',
-            '      return 0;\n    }\n'
-            '    /* FileX calls this from thread context; do not starve peers while busy. */\n'
-            '    tx_thread_sleep(1);\n  }\n\n  return 1;', relative)
+        original = ('static INT check_sd_status(uint32_t instance)\n{\n'
+                    '  uint32_t start = FX_STM32_SD_CURRENT_TIME();\n\n'
+                    '  while (FX_STM32_SD_CURRENT_TIME() - start < FX_STM32_SD_DEFAULT_TIMEOUT)\n  {\n'
+                    '    if (fx_stm32_sd_get_status(instance) == 0)\n    {\n      return 0;\n    }\n'
+                    '  }\n\n  return 1;\n}')
+        legacy = original.replace('    }\n  }',
+            '    }\n    /* FileX calls this from thread context; do not starve peers while busy. */\n'
+            '    tx_thread_sleep(1);\n  }')
+        if legacy in text:
+            text = text.replace(legacy, original, 1)
+        return_wait = original.replace('  uint32_t start = FX_STM32_SD_CURRENT_TIME();',
+            '  uint32_t start = FX_STM32_SD_CURRENT_TIME();\n'
+            '  uint32_t spin_start = HAL_GetTick();').replace('    }\n  }',
+            '    }\n'
+            '    /* Short card programming busy periods must not cost a 10 ms RTOS tick.\n'
+            '     * Bound active polling to 1 ms; a stuck/slow card still yields and times out. */\n'
+            '    if ((uint32_t)(HAL_GetTick() - spin_start) >= 1U)\n'
+            '    {\n      tx_thread_sleep(1);\n      spin_start = HAL_GetTick();\n    }\n  }')
+        text = replace_known(text, original, return_wait, relative)
         text = replace_known(text,
             '  if (is_initialized == 1)\n  {',
             '  /* Cleanup must work after card removal and transfer errors. */\n'
@@ -183,7 +200,9 @@ HOOKS = {
     'USBX/App/app_usbx.h': ('#define USBX_MEMORY_STACK_SIZE (32U * 1024U)',),
     'AZURE_RTOS/App/app_azure_rtos_config.h': ('#define UX_APP_MEM_POOL_SIZE (40U * 1024U)',
         '#define FX_APP_MEM_POOL_SIZE (8U * 1024U)', '#define TX_APP_MEM_POOL_SIZE (8U * 1024U)'),
-    'FileX/App/app_filex.c': ('drms_log_init();', 'drms_log_poll();', 'drms_storage_prepare_shutdown();', 'drms_msc_init();', 'drms_msc_set_wait_hook(',
+    'FileX/App/app_filex.c': ('drms_log_init();', 'drms_log_poll();', 'drms_storage_prepare_shutdown();', 'drms_msc_init();', 'drms_msc_set_wait_hook(', 'tx_event_flags_create(&msc_io_events',
+                                'tx_event_flags_get(&msc_io_events',
+                                'tx_event_flags_set(&msc_io_events',
         'drms_msc_service();', 'drms_storage_observe();', 'drms_file_backend_init();',
         'drms_file_service_init();', 'drms_file_service_poll();', 'drms_file_service_quiescent()',
         '#define FX_APP_THREAD_STACK_SIZE (4U * 1024U)'),

@@ -5,6 +5,9 @@
 /* FileX thread exclusively owns the medium and its lifecycle. */
 void drms_storage_init(void);
 void drms_storage_poll(void);
+/* MSC storage owner only, after revoking raw reads and proving mailbox quiescent.
+ * Keep RELEASING/QUARANTINED published until this mount attempt returns. */
+void drms_storage_remount_after_export(void);
 /* Storage worker: sample the card-detect input even while exported/backing off. */
 void drms_storage_observe(void);
 uint32_t drms_storage_media_generation(void);

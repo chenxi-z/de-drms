@@ -20,6 +20,8 @@ void drms_log_stop_incomplete(void);
  * 处理端另按返回值计入本次会话 log_dropped 并触发 C1 停止追加规则）。 */
 int drms_log_enqueue(const DRMS_RawFrame *frame);
 void drms_log_poll(void);
+/* FileX thread: a full streaming batch is queued (small tails need a deadline). */
+uint32_t drms_log_batch_ready(void);
 void drms_log_removed(void);
 /* 记录环 64 位发布水位（log_ticket）：END.ring_end 与存储消费边界。 */
 uint64_t drms_log_ticket_next(void);

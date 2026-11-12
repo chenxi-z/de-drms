@@ -65,7 +65,11 @@
       "shutdown": "1 means stop/flush requested before Standby",
       "power_status": "0 idle, 1 waiting for storage/release, 2 Standby returned/debug prevented entry",
       "low_battery": "valid battery-only reading <=3650 mV",
-      "config_state": "0 no saved monitoring configuration, 1 usable, 2 saved configuration incompatible"
+      "config_state": "0 no saved monitoring configuration, 1 usable, 2 saved configuration incompatible",
+      "record_result": "latest recording business result, same enum as CDC v2 GET_RECORD; 9 incomplete",
+      "record_phase": "0 accepted, 1 active, 2 terminal; same as CDC v2 GET_RECORD",
+      "record_clean_end": "1 when a valid END footer was written; complete data additionally requires terminal phase, result 0 and unknown_loss 0",
+      "record_unknown_loss": "latest recording contains an unquantified loss; same as CDC v2 GET_RECORD"
     },
     "power_policy": {
       "button_long_press_ms": 2000,

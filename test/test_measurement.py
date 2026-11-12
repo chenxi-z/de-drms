@@ -1,5 +1,7 @@
 """CRC, ADS131A02 word format, nominal/reference ratios and rate validation."""
 import binascii
+import random
+import zlib
 import ctypes
 from pathlib import Path
 import subprocess
@@ -47,6 +49,18 @@ class MeasurementTest(unittest.TestCase):
     def test_standard_crc_vectors(self):
         self.assertEqual(self.lib.drms_crc16(b'123456789', 9), 0x29b1)
         self.assertEqual(self.lib.drms_crc32(b'123456789', 9), 0xcbf43926)
+
+    def test_crc32_matches_zlib_for_record_blocks_and_unaligned_buffers(self):
+        rng = random.Random(20261112)
+        for size in (0, 1, 2, 3, 15, 16, 255, 256, 4096, 28728, 32768):
+            data = rng.randbytes(size)
+            for offset in range(4):
+                with self.subTest(size=size, offset=offset):
+                    buffer = ctypes.create_string_buffer(b'X' * offset + data)
+                    self.assertEqual(self.lib.drms_crc32(ctypes.byref(buffer, offset), size),
+                                     zlib.crc32(data))
+                    self.assertEqual(self.lib.drms_crc16(ctypes.byref(buffer, offset), size),
+                                     binascii.crc_hqx(data, 0xffff))
 
     def test_positive_negative_and_sign_extension(self):
         for a, b in ((1234567, 4000000), (-1, -1234), (-8388608, 8388607)):

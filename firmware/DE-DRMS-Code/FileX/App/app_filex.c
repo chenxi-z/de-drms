@@ -57,26 +57,19 @@
 /* Main thread global data structures.  */
 TX_THREAD       fx_app_thread;
 
-/* Buffer for FileX FX_MEDIA sector cache.
- *
- * 2026-11-12：从 1 个扇区（512 B）加大到 16 KiB（32 扇区）。
- *
- * 动机是把一次大块写摊到更多扇区上一并提交，减少单扇区往返。
- * **实测结论要如实记录：这一改动没有解决记录吞吐问题。**
- * 在 64 kSPS 场景下，把缓存从 512 B 加到 16 KiB 后，
- * 实测记录吞吐仍在 ~90-160 KB/s 量级，没有数量级改善。
- * 也就是说瓶颈不在 FileX 的缓存大小，而在更下层（SD 传输或
- * 每轮 poll 的固定开销），尚未定位。详见 README 的"待查"一节。
- *
- * 保留这个改动的理由：更大的缓存对多扇区写本身是无害且合理的，
- * 且 16 KiB 在 786 KB SRAM 里占比很小。但**不要**把它当成
- * 64 kSPS 记录问题的修复。 */
-#define DRMS_MEDIA_CACHE_SECTORS 32u
+/* One-sector cache is sufficient for the streaming path, which writes whole
+ * sectors directly. The 16 KiB experiment did not fix throughput and exceeded
+ * the 736 KiB main-RAM gate; keep the recording ring and stack reserve intact. */
+#define DRMS_MEDIA_CACHE_SECTORS 1u
 ALIGN_32BYTES (uint32_t fx_sd_media_memory[DRMS_MEDIA_CACHE_SECTORS * FX_STM32_SD_DEFAULT_SECTOR_SIZE / sizeof(uint32_t)]);
 /* Define FileX global data structures.  */
 FX_MEDIA        sdio_disk;
 
 /* USER CODE BEGIN PV */
+/* Request/completion bits retain wakeups across the check-to-wait boundary. */
+static TX_EVENT_FLAGS_GROUP msc_io_events;
+#define DRMS_MSC_IO_REQUEST 1U
+#define DRMS_MSC_IO_COMPLETE 2U
 
 /* USER CODE END PV */
 
@@ -86,7 +79,13 @@ FX_MEDIA        sdio_disk;
 void fx_app_thread_entry(ULONG thread_input);
 
 /* USER CODE BEGIN PFP */
-static void drms_msc_wait(void) { tx_thread_sleep(1); }
+static void drms_msc_wait(void)
+{
+  ULONG actual;
+  (void)tx_event_flags_set(&msc_io_events, DRMS_MSC_IO_REQUEST, TX_OR);
+  (void)tx_event_flags_get(&msc_io_events, DRMS_MSC_IO_COMPLETE,
+                           TX_OR_CLEAR, &actual, 1);
+}
 /* USER CODE END PFP */
 
 /**
@@ -101,6 +100,9 @@ UINT MX_FileX_Init(VOID *memory_ptr)
   VOID *pointer;
 
 /* USER CODE BEGIN MX_FileX_MEM_POOL */
+  ret = tx_event_flags_create(&msc_io_events, "MSC I/O wakeup");
+  if (ret != TX_SUCCESS)
+    return ret;
 
 /* USER CODE END MX_FileX_MEM_POOL */
 
@@ -160,6 +162,7 @@ UINT MX_FileX_Init(VOID *memory_ptr)
   drms_msc_init();
   drms_msc_set_wait_hook(drms_msc_wait);
   ULONG last_attempt = tx_time_get() - TX_TIMER_TICKS_PER_SECOND;
+  ULONG last_log_poll = tx_time_get();
   for (;;)
   {
     ULONG now = tx_time_get();
@@ -170,6 +173,7 @@ UINT MX_FileX_Init(VOID *memory_ptr)
       drms_file_service_cancel_all();
     }
     drms_msc_service();
+    (void)tx_event_flags_set(&msc_io_events, DRMS_MSC_IO_COMPLETE, TX_OR);
     drms_file_service_poll();
     if (drms_shutdown_requested)
     {
@@ -190,10 +194,27 @@ UINT MX_FileX_Init(VOID *memory_ptr)
       drms_storage_poll();
       last_attempt = now;
     }
-    if (drms_storage_mounted)
+    if (drms_storage_mounted &&
+        (drms_log_state != 2U || drms_log_batch_ready() ||
+         (ULONG)(now - last_log_poll) >= (TX_TIMER_TICKS_PER_SECOND + 19U) / 20U))
+    {
+      /* Coalesce small arrivals into full writes; a 50 ms deadline drains tails. */
+      last_log_poll = now;
+      /* Only active logging outranks the processing thread (priority 5).
+       * File creation, mount and other services retain the base priority. */
+      UINT previous, ignored;
+      UINT priority = drms_log_running && drms_log_state == 2U ? 4U : FX_APP_THREAD_PRIO;
+      (void)tx_thread_priority_change(&fx_app_thread, priority, &previous);
       drms_log_poll();
-    /* Ten millisecond service cadence, but one second mount retry backoff. */
-    tx_thread_sleep(1);
+      (void)tx_thread_priority_change(&fx_app_thread, previous, &ignored);
+    }
+    /* DMA waits yield naturally. Do not add an idle tick while records wait. */
+    if (!drms_log_batch_ready())
+    {
+      ULONG actual;
+      (void)tx_event_flags_get(&msc_io_events, DRMS_MSC_IO_REQUEST,
+                               TX_OR_CLEAR, &actual, 1);
+    }
   }
   /* The generated one-shot sample below is intentionally unreachable. */
 

@@ -901,6 +901,20 @@ uint32_t HAL_GetUIDw2(void);
         self.frames(3, 280000, 4200000)
         self.assertNotEqual(self.status()['monitor'], 5)
 
+    def test_waiting_for_file_open_keeps_draining_pre_record_samples(self):
+        self.insert_card()
+        self.command('RECORD')
+        # FileX has not opened the file yet; acquisition must keep monitoring.
+        self.frames(5000, 280000, 4200000)
+        self.assertEqual(self.value('drms_acq_queue_drops').value, 0)
+        self.assertEqual(self.lib.drms_acq_queue_used(), 0)
+        self.assertEqual(self.value('drms_log_records').value, 0)
+        self.lib.drms_log_poll()
+        self.lib.drms_application_poll()
+        self.frames(2, 280000, 4200000)
+        self.lib.drms_log_poll()
+        self.assertEqual(self.value('drms_log_records').value, 2)
+
     def test_nominal_resistance_and_record_mode_interlock(self):
         # T7/C3：开机已在监测；帧即时处理 → 新鲜；101ms 无 DRDY → 过期失效
         self.insert_card()
@@ -1485,6 +1499,8 @@ uint32_t HAL_GetUIDw2(void);
         self.assertEqual((int.from_bytes(result[1], 'little'), result[45][0]), (6, 2))
         finished = self.cdc_exchange(4, 5, record_field)
         self.assertEqual((int.from_bytes(finished[1], 'little'), finished[45][0], finished[41][0]), (6, 2, 0))
+        self.assertEqual(self.status()['record_result'], 6)
+        self.assertEqual(self.status()['record_clean_end'], 0)
 
     def test_measurement_event_encodes_snapshot_and_omits_invalid_values(self):
         self.lib.drms_cdc_v2_encode_measurement.argtypes = [ctypes.c_uint32, ctypes.c_uint64, ctypes.c_uint64,

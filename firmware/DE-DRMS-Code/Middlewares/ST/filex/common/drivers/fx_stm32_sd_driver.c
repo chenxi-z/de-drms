@@ -36,6 +36,7 @@ static UINT is_initialized = 0;
 static INT check_sd_status(uint32_t instance)
 {
   uint32_t start = FX_STM32_SD_CURRENT_TIME();
+  uint32_t spin_start = HAL_GetTick();
 
   while (FX_STM32_SD_CURRENT_TIME() - start < FX_STM32_SD_DEFAULT_TIMEOUT)
   {
@@ -43,8 +44,13 @@ static INT check_sd_status(uint32_t instance)
     {
       return 0;
     }
-    /* FileX calls this from thread context; do not starve peers while busy. */
-    tx_thread_sleep(1);
+    /* Short card programming busy periods must not cost a 10 ms RTOS tick.
+     * Bound active polling to 1 ms; a stuck/slow card still yields and times out. */
+    if ((uint32_t)(HAL_GetTick() - spin_start) >= 1U)
+    {
+      tx_thread_sleep(1);
+      spin_start = HAL_GetTick();
+    }
   }
 
   return 1;

@@ -47,19 +47,27 @@ static FX_FILE file;
 static DRMS_RawFrame records[32768];
 static DRMS_FIFO queue;
 static uint8_t staging[32768] __attribute__((aligned(32)));
-static DRMS_LogMetadata metadata;
-static DRMS_LogV2Meta v2_metadata;
+/* v1 header metadata and v2 END are mutually exclusive for a file. */
+static union { DRMS_LogMetadata legacy; DRMS_End end; } final_metadata
+    __attribute__((section(".drms_sram4_workspace")));
+static DRMS_LogV2Meta v2_metadata
+    __attribute__((section(".drms_sram4_workspace")));
 /* 纯 CPU 用的暂存区，放在 SRAM4。
  * 注意 SDMMC 的 DMA 缓冲永远是主 SRAM 里那块 staging——SRAM4 不能被 DMA 访问。 */
 static uint8_t v2_config[4096] __attribute__((section(".drms_sram4_workspace")));
-static DRMS_RawFrame v2_frames[256] __attribute__((section(".drms_sram4_workspace")));
-static DRMS_End v2_end;
-static uint32_t use_v2, v2_end_valid;
+/* Keep format metadata + CPU frame scratch within the original 4 KiB budget. */
+static DRMS_RawFrame v2_frames[(4096U - sizeof(final_metadata) - sizeof(v2_metadata)) / sizeof(DRMS_RawFrame)]
+    __attribute__((section(".drms_sram4_workspace")));
+static uint32_t use_v2 __attribute__((section(".drms_sram4_workspace")));
+static uint32_t v2_end_valid __attribute__((section(".drms_sram4_workspace")));
 static uint32_t action, file_open, pending_records, filename_index, last_flush, segment_records;
 static uint32_t incomplete;
+static uint32_t file_write_phase;
 static uint64_t log_ticket_next;
 static uint64_t v2_written_total, v2_segment_first, v2_segment_last;
-static uint32_t v2_sequence_known, v2_last_low, v2_segment_has_frame;
+static uint32_t v2_sequence_known __attribute__((section(".drms_sram4_workspace")));
+static uint32_t v2_last_low __attribute__((section(".drms_sram4_workspace")));
+static uint32_t v2_segment_has_frame __attribute__((section(".drms_sram4_workspace")));
 volatile uint32_t drms_log_running, drms_log_state, drms_log_status;
 volatile uint32_t drms_log_records, drms_log_dropped;
 char drms_log_filename[16];
@@ -107,7 +115,7 @@ int drms_log_start(const DRMS_LogMetadata *request)
   if (!request || !reserve_start())
     return 0;
   use_v2 = v2_end_valid = 0;
-  metadata = *request;
+  final_metadata.legacy = *request;
   __atomic_store_n(&action, 1U, __ATOMIC_RELEASE);
   return 1;
 }
@@ -154,7 +162,7 @@ int drms_log_finish_v2(const DRMS_End *end)
     return 0;
   uint32_t mask = __get_PRIMASK();
   __disable_irq();
-  v2_end = *end;
+  final_metadata.end = *end;
   v2_end_valid = 1;
   __atomic_store_n(&action, 4U, __ATOMIC_RELEASE);
   __set_PRIMASK(mask);
@@ -241,6 +249,21 @@ static void failed(UINT status)
  * 这样单独拿任何一个文件都能知道它属于哪次试验。
  *
  * 文件名按序号递增，绝不覆盖已有文件。 */
+/* FileX first consumes a partial sector, then passes the advanced source
+ * pointer to DMA. Match source modulo 4 to file offset modulo 4 so that the
+ * bulk portion stays aligned. No padding is added to the file format. */
+static UINT write_staging(uint32_t size)
+{
+  if (size > sizeof(staging) - file_write_phase)
+    return FX_IO_ERROR;
+  if (file_write_phase)
+    memmove(staging + file_write_phase, staging, size);
+  UINT status = fx_file_write(&file, staging + file_write_phase, size);
+  if (status == FX_SUCCESS)
+    file_write_phase = (file_write_phase + size) & 3u;
+  return status;
+}
+
 static int open_file(unsigned int continuation)
 {
   UINT status = FX_ALREADY_CREATED;
@@ -262,6 +285,7 @@ static int open_file(unsigned int continuation)
     return 0;
   }
   file_open = 1;
+  file_write_phase = 0;
   if (!continuation)
   {
     incomplete = 0;
@@ -281,10 +305,10 @@ static int open_file(unsigned int continuation)
   }
   else
   {
-    drms_log_pack_header(staging, &metadata);
+    drms_log_pack_header(staging, &final_metadata.legacy);
     header_size = 64;
   }
-  status = header_size ? fx_file_write(&file, staging, header_size) : FX_IO_ERROR;
+  status = header_size ? write_staging(header_size) : FX_IO_ERROR;
   if (status != FX_SUCCESS)
   {
     failed(status);
@@ -306,6 +330,11 @@ static int open_file(unsigned int continuation)
  *
  * 批量写入是关键：逐帧写会让卡成为瓶颈；攒成 32 KiB 后写入次数下降三个数量级。
  * 攒块用的暂存区在 DMA 可达的主 SRAM 里，不能放在 SRAM4。 */
+uint32_t drms_log_batch_ready(void)
+{
+  return file_open && drms_storage_mounted && drms_fifo_count(&queue) >= 2000U;
+}
+
 void drms_log_poll(void)
 {
   uint32_t request = __atomic_exchange_n(&action, 0U, __ATOMIC_ACQ_REL);
@@ -340,12 +369,14 @@ void drms_log_poll(void)
   uint32_t output_size = 0;
   if (use_v2)
   {
-    while (sizeof(staging) - output_size >= 4104u &&
+    /* Reserve the source alignment shift; the last DATA chunk may be partial. */
+    while (sizeof(staging) - file_write_phase - output_size >= 24u &&
            segment_records + pending_records < DRMS_LOG_SEGMENT_RECORDS)
     {
       uint32_t count = 0;
       uint32_t remaining = DRMS_LOG_SEGMENT_RECORDS - segment_records - pending_records;
-      while (count < 256u && count < remaining && drms_fifo_pop(&queue, &v2_frames[count]))
+      uint32_t fit = (sizeof(staging) - file_write_phase - output_size - 8u) / 16u;
+      while (count < sizeof(v2_frames) / sizeof(v2_frames[0]) && count < fit && count < remaining && drms_fifo_pop(&queue, &v2_frames[count]))
       {
         uint32_t low = v2_frames[count].sequence;
         uint32_t delta = low - v2_last_low;
@@ -381,7 +412,7 @@ void drms_log_poll(void)
   }
   if (pending_records)
   {
-    UINT status = fx_file_write(&file, staging, output_size);
+    UINT status = write_staging(output_size);
     if (status != FX_SUCCESS)
     {
       failed(status);
@@ -425,18 +456,18 @@ void drms_log_poll(void)
       partial.unknown_loss = true;
       partial.reason = DRMS_INCOMPLETE; /* final session accounting belongs only to the last file */
       uint32_t end_size = drms_log_v2_pack_end(staging, sizeof(staging), &partial);
-      status = end_size ? fx_file_write(&file, staging, end_size) : FX_IO_ERROR;
+      status = end_size ? write_staging(end_size) : FX_IO_ERROR;
     }
     else if (use_v2 && v2_end_valid)
     {
-      uint32_t end_size = drms_log_v2_pack_end(staging, sizeof(staging), &v2_end);
-      status = end_size ? fx_file_write(&file, staging, end_size) : FX_IO_ERROR;
+      uint32_t end_size = drms_log_v2_pack_end(staging, sizeof(staging), &final_metadata.end);
+      status = end_size ? write_staging(end_size) : FX_IO_ERROR;
     }
     else if (!use_v2 && !incomplete)
     {
       drms_log_pack_footer(staging, segment_records, drms_log_dropped,
                            drms_acq_overruns, drms_acq_queue_drops, HAL_GetTick());
-      status = fx_file_write(&file, staging, 64);
+      status = write_staging(64);
     }
     if (status == FX_SUCCESS)
       status = fx_file_close(&file);

@@ -37,13 +37,16 @@ volatile uint32_t drms_acq_overruns,drms_acq_queue_drops;
 uint8_t file_bytes[1048576];
 uint32_t written_bytes,writes,closes,flushes,invalidates,creates,fail_at,ticks;
 uint32_t mock_msc_blocked;
+uint32_t unaligned_bulk_writes, file_position;
 uint32_t drms_msc_blocks_recording(void) { return mock_msc_blocked; }
 UINT fx_file_create(FX_MEDIA *m,char *name) { ++creates;return 0; }
-UINT fx_file_open(FX_MEDIA *m,FX_FILE *f,char *name,UINT mode) { return 0; }
+UINT fx_file_open(FX_MEDIA *m,FX_FILE *f,char *name,UINT mode) { file_position=0;return 0; }
 UINT fx_file_write(FX_FILE *f,void *p,ULONG n) {
  ++writes;if(writes==fail_at) return 1;
+ uint32_t lead=(512u-file_position%512u)%512u;
+ if(n>=lead+512u && (((uintptr_t)p+lead)&3u)) ++unaligned_bulk_writes;
  if(written_bytes+n>sizeof(file_bytes)) return 1;
- memcpy(file_bytes+written_bytes,p,n);written_bytes+=n;return 0;
+ memcpy(file_bytes+written_bytes,p,n);written_bytes+=n;file_position+=n;return 0;
 }
 UINT fx_file_close(FX_FILE *f) { ++closes;return 0; }
 UINT fx_media_flush(FX_MEDIA *m) { ++flushes;return 0; }
@@ -52,6 +55,13 @@ void drms_storage_invalidate(void) { ++invalidates;drms_storage_mounted=0;drms_l
 int test_start_v2(void) {
  DRMS_LogV2Meta m={.flags=1,.rate_hz=4000,.uid_w0=1,.uid_w1=2,.uid_w2=3,.record_id=7,
    .anchor={.acquisition_generation=3,.rate_hz=4000,.sample_seq0=100,.mono_us0=123456}};
+ return drms_log_start_v2(&m);
+}
+int test_start_v2_config(unsigned len) {
+ static const uint8_t config[3]={0x11,0x22,0x33};
+ DRMS_LogV2Meta m={.flags=1,.rate_hz=4000,.uid_w0=1,.uid_w1=2,.uid_w2=3,.record_id=7,
+   .anchor={.acquisition_generation=3,.rate_hz=4000,.sample_seq0=100,.mono_us0=123456},
+   .config=len ? config : 0,.config_len=len};
  return drms_log_start_v2(&m);
 }
 int test_finish_v2(int reason) {
@@ -124,10 +134,59 @@ class LoggingTest(unittest.TestCase):
         self.lib.drms_log_poll()
         self.assertEqual(self.value('drms_log_running').value, 1)
 
+    def test_backlog_tracks_only_open_mounted_record_data(self):
+        self.assertEqual(self.lib.drms_log_batch_ready(), 0)
+        self.start()
+        self.assertEqual(self.lib.drms_log_batch_ready(), 0)
+        self.assertEqual(self.lib.drms_log_enqueue(ctypes.byref(Raw(sequence=0))), 1)
+        self.assertEqual(self.lib.drms_log_batch_ready(), 0)
+        for seq in range(1, 2000):
+            self.assertEqual(self.lib.drms_log_enqueue(ctypes.byref(Raw(sequence=seq))), 1)
+        self.assertNotEqual(self.lib.drms_log_batch_ready(), 0)
+        self.lib.drms_log_poll()
+        self.assertEqual(self.lib.drms_log_batch_ready(), 0)
+
     def test_export_reservation_blocks_record_start(self):
         self.value('mock_msc_blocked').value = 1
         self.assertEqual(self.lib.drms_log_start(ctypes.byref(self.metadata)), 0)
         self.assertEqual(self.value('drms_log_state').value, 0)
+
+    def test_v2_bulk_write_remains_dma_aligned_for_all_header_phases(self):
+        for config_len in range(4):
+            with self.subTest(config_len=config_len):
+                self.setUp()
+                self.value('unaligned_bulk_writes').value = 0
+                self.assertEqual(self.lib.test_start_v2_config(config_len), 1)
+                self.lib.drms_log_poll()
+                for batch in range(3):
+                    for seq in range(100 + batch * 256, 356 + batch * 256):
+                        self.assertEqual(self.lib.drms_log_enqueue(ctypes.byref(Raw(sequence=seq))), 1)
+                    self.lib.drms_log_poll()
+                self.assertEqual(self.value('drms_log_records').value, 768)
+                self.assertEqual(self.value('unaligned_bulk_writes').value, 0)
+                data = bytes((ctypes.c_ubyte * 1048576).in_dll(self.lib, 'file_bytes'))[:self.value('written_bytes').value]
+                offset = 0
+                kinds = []
+                while offset < len(data):
+                    kind, length = struct.unpack_from('<HH', data, offset)
+                    offset += 4
+                    payload = data[offset:offset + length]
+                    self.assertEqual(zlib.crc32(payload[:-4]), struct.unpack_from('<I', payload, length - 4)[0])
+                    kinds.append(kind)
+                    offset += length
+                self.assertEqual(kinds[0], 1)
+                self.assertTrue(all(kind == 2 for kind in kinds[1:]))
+                self.assertEqual((len(data) - (66 + config_len) - 8 * (len(kinds) - 1)) // 16, 768)
+                self.assertEqual(offset, len(data))
+
+    def test_v2_uses_remaining_staging_space_for_a_partial_last_chunk(self):
+        self.assertEqual(self.lib.test_start_v2(), 1)
+        self.lib.drms_log_poll()
+        for seq in range(100, 2100):
+            self.assertEqual(self.lib.drms_log_enqueue(ctypes.byref(Raw(sequence=seq))), 1)
+        self.lib.drms_log_poll()
+        self.assertEqual(self.value('drms_log_records').value, 2000)
+        self.assertEqual(self.lib.drms_log_batch_ready(), 0)
 
     def test_v2_writes_chunks_and_preserves_explicit_end_reason(self):
         self.assertEqual(self.lib.test_start_v2(), 1)

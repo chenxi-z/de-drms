@@ -92,6 +92,12 @@ volatile uint32_t drms_acq_t_arm_min, drms_acq_t_arm_max, drms_acq_t_arm_sum;
 volatile uint32_t drms_acq_t_tot_min, drms_acq_t_tot_max, drms_acq_t_tot_sum;
 volatile uint32_t drms_acq_t_n;
 
+/* Enable explicitly when profiling ISR latency. Keep division/statistics out of
+ * every production DRDY interrupt; this does not disable any integrity checks. */
+#ifndef DRMS_ACQ_TIMING_PROBE
+#define DRMS_ACQ_TIMING_PROBE 0
+#endif
+
 /* 装填并启动一次 12 字节交换。
  *
  * 返回值：0 = 已启动；非 0 = 上一帧的通道还没释放，调用方按丢帧计。
@@ -703,9 +709,13 @@ void drms_acq_drdy(void)
   if (drms_acq_rate < 32000u || (sequence & 7u) == 0u)
     cached_capture_us = drms_acq_now_us();
   inflight_capture_us = cached_capture_us;
+#if DRMS_ACQ_TIMING_PROBE
   uint32_t t_enter = DWT->CYCCNT;
+#endif
   cs(0);
+#if DRMS_ACQ_TIMING_PROBE
   uint32_t t_cs = DWT->CYCCNT;
+#endif
   fast_path_active = 1;
   if (fast_exchange_start() != 0)
   {
@@ -717,6 +727,7 @@ void drms_acq_drdy(void)
     ++capture_lost_total;
     return;
   }
+#if DRMS_ACQ_TIMING_PROBE
   uint32_t t_armed = DWT->CYCCNT;
   /* 周期数换算成微秒（核心 160 MHz，1 µs = 160 周期）。 */
   uint32_t isr_us = (t_cs - t_enter) / 160u;
@@ -736,6 +747,7 @@ void drms_acq_drdy(void)
   if (tot_us > drms_acq_t_tot_max) drms_acq_t_tot_max = tot_us;
   drms_acq_t_tot_sum += tot_us;
   ++drms_acq_t_n;
+#endif
 }
 
 /* 把刚完成的一帧投递到采集环，并做相应的记账。

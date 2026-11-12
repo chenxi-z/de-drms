@@ -132,11 +132,8 @@ int drms_storage_prepare_shutdown(void)
  *
  * 挂载成功后刷新容量缓存并推进代次。失败则释放驱动，留待下次重试，
  * 不在原地反复重试把整个线程卡住。 */
-void drms_storage_poll(void)
+static void mount_owned_media(void)
 {
-  drms_storage_observe();
-  if (drms_msc_owner() != DRMS_OWNER_LOCAL)
-    return;
   if (!drms_storage_card_present())
   {
     if (drms_storage_mounted)
@@ -161,6 +158,21 @@ void drms_storage_poll(void)
     else
       release_driver();
   }
+}
+
+void drms_storage_poll(void)
+{
+  drms_storage_observe();
+  if (drms_msc_owner() == DRMS_OWNER_LOCAL)
+    mount_owned_media();
+}
+
+void drms_storage_remount_after_export(void)
+{
+  drms_storage_observe();
+  DRMS_Owner owner = drms_msc_owner();
+  if (owner == DRMS_OWNER_RELEASING || owner == DRMS_OWNER_QUARANTINED)
+    mount_owned_media();
 }
 
 /* ---------------- T4：所有权双轴与原始读 ---------------- */

@@ -281,17 +281,21 @@ static void finish_release(void)
     return; /* 在途读未归结：不得仅凭状态变量重挂载（缓冲仍由读路径使用） */
   if (!drms_storage_mounted)
     drms_storage_release_driver(); /* 已离开 FileX 后才释放原始驱动 */
-  owner_state = (uint32_t)DRMS_OWNER_LOCAL;
-  request_release = 0;
-  __atomic_add_fetch(&export_generation, 1U, __ATOMIC_ACQ_REL); /* 撤销就绪即换代 */
+  __atomic_add_fetch(&export_generation, 1U, __ATOMIC_ACQ_REL);
   if (!drms_storage_card_present())
+    last_error = DRMS_IO_ERROR;
+  else
   {
-    last_error = DRMS_IO_ERROR;
-    return;
+    /* Mount may block/preempt: do not advertise LOCAL or release the TF lease
+     * until both the actual mount result and health are published. */
+    drms_storage_remount_after_export();
+    if (drms_storage_status != FX_SUCCESS)
+      last_error = DRMS_IO_ERROR;
   }
-  drms_storage_poll(); /* 重新挂载 FileX；失败保持不可记录并报告 */
-  if (drms_storage_status != FX_SUCCESS)
-    last_error = DRMS_IO_ERROR;
+  uint32_t mask = crit_enter();
+  request_release = 0;
+  owner_state = (uint32_t)DRMS_OWNER_LOCAL;
+  crit_exit(mask);
 }
 
 /* 执行读邮箱里的请求。这是主机的读操作真正落到介质上的地方。

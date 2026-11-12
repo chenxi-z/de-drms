@@ -6,7 +6,7 @@ FileX记录、USB/USART控制、RTC/电池与软关机，见[固件说明](READM
 
 正常使用不需要为本轮源码再改 CubeMX GUI。**Keep User Code** 保持开启，
 SDMMC 的 Generate Function Call 继续关闭，由 FileX 初始化卡。
-源码的启动包装将CLK48下卡总线限为24 MHz，不直接沿用未协商高速模式的CLKDIV=0旁路48 MHz；不要求修改IOC。
+源码先在 CLK48 下以 24 MHz 初始化卡；CMD6 High Speed 协商成功后才切到 48 MHz / 4-bit，失败则完整重新初始化回 24 MHz。不直接在未协商时启用 CLKDIV=0；不要求修改 IOC。
 USB 使用 OTG 自身 FIFO/中断，不另开 GPDMA；USART1 已使用 TX DMA，当前低流量命令接收使用 RX 中断。
 ThreadX 当前采用 PRIMASK 端口，中断优先级不能照搬 FreeRTOS 的规则；本轮没有重排 NVIC。
 
@@ -19,7 +19,7 @@ make -C firmware/DE-DRMS-Code -j6 BUILD_DIR=/tmp/de-drms-build
 ```
 
 脚本恢复已知非 USER 区：SD初始化失败不能 Error_Handler、USB DCD 返回值和取消竞态保护、
-Makefile 应用源列表、**1008 KiB程序 + 16 KiB校准**（总1 MiB）链接分区，以及ST SD驱动容错。
+Makefile 应用源列表及 `-O3 -flto` 默认优化、**1008 KiB程序 + 16 KiB校准**（总1 MiB）链接分区，以及ST SD驱动容错。
 它不修改 IOC；未知模板、错误器件、丢失 USER 代码会报错，避免静默覆盖。
 默认不带 `--apply` 时只检查。串口/USB 与实际采样、待机、写卡吞吐量仍需上板验收。
 
