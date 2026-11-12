@@ -1,3 +1,34 @@
+/*****************************************************************************
+ * 文件：drms_msc.c
+ * 职责：把 TF 卡做成只读 U 盘交给主机——导出、收回、以及期间的读请求中继。
+ *
+ * 在整机中的位置：
+ *   USB 主机 → MSC 类（ux_device_msc.c）→ 本模块 → drms_storage 原始扇区读 → TF 卡
+ *
+ * 为什么要走这么绕的一圈：
+ *   导出 U 盘时必须先让 FileX 关闭文件系统、释放 SD 驱动，再由本模块用
+ *   原始扇区读把数据交给主机。绝不能一边让 FileX 写、一边让主机读，
+ *   否则双方都在改同一份介质，必然损坏。
+ *
+ * 状态机（owner_state）：
+ *   LOCAL      文件系统在用卡，正常业务状态
+ *   EXPORTING  已受理导出请求，正在做交接（关 FileX、释放驱动、初始化原始访问）
+ *   EXPORTED   已交给主机，此时只接受原始读
+ *   RELEASING  正在收回（等所有在途读退出，再重新挂载 FileX）
+ *   QUARANTINED 监督者判定"无法证明静止"，隔离待恢复
+ *
+ * 读请求的中继机制（重点）：
+ *   主机的读请求来自 USBX 线程，但操作介质只能是存储线程的事。
+ *   所以这里用"单在途邮箱"：USBX 线程投一个请求进去，然后自旋等待；
+ *   存储线程轮询发现后执行，把结果写回，状态置为已完成。
+ *   同一时刻只允许一个请求在途，超时也不会释放槽位——只有存储线程
+ *   确认收到结果才归还，避免缓冲区被两边同时使用。
+ *
+ * 只读保证：
+ *   写回调在 USB 层直接拒绝（返回 DATA PROTECT），LUN 也声明为只读。
+ *   导出期间介质上不会有任何写操作。
+ *****************************************************************************/
+
 #include "drms_msc.h"
 #include "drms_storage.h"
 #include "drms_logging.h"
@@ -29,6 +60,7 @@ static struct {
 
 static DRMS_MSCWaitHook wait_hook;
 
+/* 初始化导出状态机，回到"介质归文件系统所有"的初始状态。 */
 void drms_msc_init(void)
 {
   owner_state = (uint32_t)DRMS_OWNER_LOCAL;
@@ -40,6 +72,10 @@ void drms_msc_init(void)
   wait_hook = 0;
 }
 
+/* 注册等待钩子。USBX 线程在等读结果时反复调用它，作用是让出 CPU。
+ *
+ * 生产环境传进来的是 tx_thread_sleep(1)。测试环境用它来手动驱动存储线程，
+ * 这就是单元测试能同步验证这套异步流程的原因。 */
 void drms_msc_set_wait_hook(DRMS_MSCWaitHook hook)
 {
   wait_hook = hook;
@@ -54,11 +90,13 @@ static uint32_t crit_enter(void)
 
 static void crit_exit(uint32_t mask) { __set_PRIMASK(mask); }
 
+/* 当前介质归谁：文件系统、导出中、已交给主机，还是释放中。 */
 DRMS_Owner drms_msc_owner(void)
 {
   return (DRMS_Owner)__atomic_load_n(&owner_state, __ATOMIC_ACQUIRE);
 }
 
+/* 介质健康状况（在位/就绪/故障/缺席），由存储层的事实推导而来。 */
 DRMS_Health drms_msc_health(void)
 {
   DRMS_Health health;
@@ -66,17 +104,22 @@ DRMS_Health drms_msc_health(void)
   return health;
 }
 
+/* 导出代次。每次交接与收回都会推进，主机靠它判断"盘还是不是刚才那块"。 */
 uint32_t drms_msc_export_generation(void)
 {
   return __atomic_load_n(&export_generation, __ATOMIC_ACQUIRE);
 }
 
+/* 是否已经可以接受主机的读写（已导出且介质健康）。
+ * MSC 的 Status 回调靠它回答"介质就绪吗"。 */
 uint32_t drms_msc_media_ready(void)
 {
   return drms_msc_owner() == DRMS_OWNER_EXPORTED &&
          drms_msc_health() == DRMS_HEALTH_READY;
 }
 
+/* 取介质总扇区数。导出未完成时返回 BUSY，容量为 0 时报 IO_ERROR——
+ * 两种情况都不能让主机以为看到了一块有效磁盘。 */
 DRMS_Result drms_msc_media_info(uint32_t *blocks)
 {
   if (!blocks)
@@ -90,16 +133,26 @@ DRMS_Result drms_msc_media_info(uint32_t *blocks)
   return DRMS_OK;
 }
 
+/* 最近一次导出相关操作的错误码，供状态查询与诊断。 */
 DRMS_Result drms_msc_last_error(void)
 {
   return last_error;
 }
 
+/* 当前是否有记录在写卡——有的话导出请求必须被拒，
+ * 因为两者要用同一块介质。 */
 uint32_t drms_msc_blocks_recording(void)
 {
   return drms_msc_owner() != DRMS_OWNER_LOCAL;
 }
 
+/* 申请把卡导出为 U 盘。这只是登记意图，真正的交接在存储线程里做。
+ *
+ * 拒绝的三种情况：介质已经在别处使用、已有导出/收回请求在处理、
+ * 当前正在记录。任何一个成立都返回 BUSY，让主机知道"现在不行"。
+ *
+ * 注意：这里先把 owner_state 置为 EXPORTING，是为了让并发的第二请求
+ * 立刻看到"已经有导出在办"，不必等到存储线程才发现。 */
 DRMS_Result drms_msc_request_export(void)
 {
   uint32_t mask = crit_enter();
@@ -116,6 +169,10 @@ DRMS_Result drms_msc_request_export(void)
   return DRMS_ACCEPTED;
 }
 
+/* 申请收回介质（导出结束）。
+ *
+ * 只有处于导出态或正在导出时才受理。收回是异步的——要等在途读全部退出、
+ * 重新挂载文件系统成功，才算真正完成。 */
 DRMS_Result drms_msc_request_release(void)
 {
   uint32_t mask = crit_enter();
@@ -131,6 +188,10 @@ DRMS_Result drms_msc_request_release(void)
   return DRMS_ACCEPTED;
 }
 
+/* 立即撤销导出（IRQ 安全）。用于 USB 断线、关机、拔卡等场合。
+ *
+ * 这个函数刻意只做两件事：推进取消纪元、把所有权原子地转到"释放中"。
+ * 任何介质操作都留给存储线程——中断上下文里绝不能碰 SD 驱动。 */
 void drms_msc_cancel(void)
 {
   /* IRQ 安全：仅标志与原子所有权转移，介质操作留给存储线程。 */
@@ -207,6 +268,13 @@ static void finish_export_request(void)
   crit_exit(mask);
 }
 
+/* 收回介质：确认在途读已退出，然后重新挂载文件系统。
+ *
+ * 关键守卫：只要读邮箱还有在途请求就返回，不许继续。因为那块缓冲区
+ * 可能正被读路径使用，此时重挂载会让 FileX 和原始读同时碰介质。
+ *
+ * 重挂载可能失败（卡被拔了、卡坏了），失败时保持"不可记录"并如实上报，
+ * 不能假装收回成功。 */
 static void finish_release(void)
 {
   if (__atomic_load_n(&read_mailbox.state, __ATOMIC_ACQUIRE) == 1U)
@@ -226,6 +294,16 @@ static void finish_release(void)
     last_error = DRMS_IO_ERROR;
 }
 
+/* 执行读邮箱里的请求。这是主机的读操作真正落到介质上的地方。
+ *
+ * 执行前先校验"这次请求还有效吗"：所有权仍是导出态、且代次没变。
+ * 任何一项不符（收回、换代、取消），立刻把在途请求作废成失败，
+ * 绝不用一块已经不属于导出的介质去回应主机。
+ *
+ * 逐扇区读并在每步之间检查卡与所有权：读 512 字节可能耗时不短，
+ * 期间卡可能被拔掉、导出可能被撤销，只有逐扇区检查才能及时发现。
+ * 数据先读到本模块自己的缓冲区，成功之后才复制给 USBX ——
+ * 这样失败时不会把半份数据交给主机。 */
 static void service_read_mailbox(void)
 {
   if (__atomic_load_n(&read_mailbox.state, __ATOMIC_ACQUIRE) != 1U)
@@ -261,6 +339,14 @@ static void service_read_mailbox(void)
   __atomic_store_n(&read_mailbox.state, 2U, __ATOMIC_RELEASE);
 }
 
+/* 导出状态机的推进函数，由存储线程周期性调用。
+ *
+ * 三件事按序做：
+ *   1. 拔卡检测：已导出但卡不在了，立即撤销（不能等主机自己发现）；
+ *   2. 处理待办的导出请求（做交接）；
+ *   3. 执行读邮箱；最后处理收回。
+ *
+ * 顺序不能随意调整：先处理导出再处理读，否则读请求会打到一个还没交接完的介质上。 */
 void drms_msc_service(void)
 {
   if (owner_state == DRMS_OWNER_EXPORTED && !drms_storage_card_present())

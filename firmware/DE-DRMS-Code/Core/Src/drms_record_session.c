@@ -1,3 +1,35 @@
+/*****************************************************************************
+ * 文件：drms_record_session.c
+ * 职责：记录会话——管一次记录的起止边界、丢样记账与完整性判定。
+ *
+ * 为什么需要单独一层：
+ *   "开始记录"和"结束记录"都不是瞬时动作。文件得先创建好，采集侧得先给出
+ *   一个一致的边界（哪些帧属于这次记录），中间还有积压要跳过。如果把这些
+ *   直接塞进应用线程，状态会散落各处、难以判定完整性。集中到这里之后，
+ *   一次记录的生命周期就是一个清晰的状态机。
+ *
+ * 六阶段状态机（phase）：
+ *   PH_IDLE       空闲
+ *   PH_START_WAIT 已提交开始，等"文件就绪 + 一致边界 B"——屏障期
+ *   PH_ACTIVE     B 已确定：跳过 B 之前的积压，记录 B 之后的新帧
+ *   PH_STOP_WAIT  已请求停止，等"一致边界 E"——屏障期
+ *   PH_DRAINING   E 已确定：把剩余帧消费到 E 之后发布 END
+ *   PH_ENDED      END 已发布，等存储确认收尾
+ *
+ * 一致边界（DRMS_CaptureBoundary）是整套设计的关键：
+ *   它把"采集侧此刻的样本序号、原始票据号、各类丢失计数"打包成一个原子视图。
+ *   开始记录时取一次 B、结束时取一次 E，两次之间的帧就是这次记录的完整内容。
+ *   没有它就无法回答"这条记录里到底该有哪些帧"，也就无从判定有没有丢样。
+ *
+ * 完整性怎么判：
+ *   · 帧序号必须连续；出现缺口且无法证明缺口有多宽 → 标记未知损失并终止；
+ *   · 记录环满导致的丢帧单独计数（log_dropped），与采集侧丢样分开报；
+ *   · 只有正常走到 PH_ENDED 且文件写了合法尾，才算完整（clean_end）。
+ *
+ * 并发模型：状态迁移只在处理线程发生；end_get/end_ack 由存储线程调用，
+ * 但只碰各自的字段；64 位字段跨线程读取统一走 get_snapshot 的短临界区。
+ *****************************************************************************/
+
 #include "drms_record_session.h"
 #include <string.h>
 
@@ -34,11 +66,15 @@ static uint32_t end_pending;
 static DRMS_Result end_reason;
 static DRMS_End end_slot;
 
+/* 判断两个令牌是否指向同一次会话：操作号与代次都相同才算。
+ * 代次用于区分"重启后操作号被复用"的情形。 */
 static uint32_t token_equal(DRMS_Token a, DRMS_Token b)
 {
   return a.operation_id == b.operation_id && a.generation == b.generation;
 }
 
+/* 复位会话状态机到空闲态，清空所有记账。
+ * 只应在启动时调用一次，或在一个会话彻底收尾之后。 */
 void drms_record_session_init(void)
 {
   phase = PH_IDLE;
@@ -60,6 +96,9 @@ void drms_record_session_init(void)
   memset(&end_slot, 0, sizeof(end_slot));
 }
 
+/* 设置等待一致边界的超时时间（毫秒）。
+ * 传 0 表示用默认值 1000 ms。屏障期过长会让启停响应变慢，
+ * 过短则可能在采集繁忙时误判失败，默认值是个折中。 */
 void drms_record_session_configure(uint32_t wait_ms)
 {
   boundary_wait_ms = wait_ms ? wait_ms : DRMS_RECORD_BOUNDARY_WAIT_MS_DEFAULT;
@@ -68,6 +107,18 @@ void drms_record_session_configure(uint32_t wait_ms)
 /* ------------------------------------------------------------------ */
 /* END 发布（处理上下文） */
 /* ------------------------------------------------------------------ */
+
+/* 汇总一次记录的结局，形成要对外发布的 END 记录。
+ *
+ * 这里要回答三个问题：
+ *   1. 结束边界是否已知？不知道 E 就无法划定记录的终点；
+ *   2. 期间是否出现过"无法证明宽度"的缺口？有就标记 unknown_loss，
+ *      因为这时候不能声称数据完整；
+ *   3. 采集侧与记录侧的损失分别是多少？两者要分开报，否则无从定位是
+ *      采集丢样还是写卡跟不上。
+ *
+ * unknown_loss 的判据是"开始与结束时的未知损失纪元不同"——
+ * 纪元一旦推进，说明中间发生过一次无法界定的中断。 */
 static void publish_end(DRMS_Result reason, uint32_t end_known)
 {
   uint32_t unknown = unknown_loss_latched;
@@ -137,6 +188,13 @@ static void fail_session(DRMS_Result reason)
 /* ------------------------------------------------------------------ */
 /* 会话生命周期（处理上下文） */
 /* ------------------------------------------------------------------ */
+/* 准备开始一次记录：登记令牌与记录号，进入等待文件与边界的屏障期。
+ *
+ * 返回 BUSY 的情况值得注意：上一份记录还在等存储确认（end_pending）时，
+ * 不允许覆盖那块槽位——否则上一份的结局会被冲掉，主机再也查不到。
+ *
+ * 这里不创建文件、也不取边界，只做状态登记；真正的启动要等
+ * drms_record_ready 拿到一致边界 B 才算成立。 */
 DRMS_Result drms_record_prepare(DRMS_Token session_token, uint64_t id)
 {
   if (phase != PH_IDLE || end_pending)
@@ -155,6 +213,17 @@ DRMS_Result drms_record_prepare(DRMS_Token session_token, uint64_t id)
   return DRMS_ACCEPTED;
 }
 
+/* 文件已就绪、并取到一致的开始边界 B——记录从此刻正式生效。
+ *
+ * 边界 B 决定了"哪些帧属于这次记录"：B 之前采集到的都是积压，要跳过。
+ *
+ * 两种迟到情形都返回 STALE，不允许把已取消/已收尾的会话重新拉起来：
+ *   · 会话已经在 PH_IDLE 或 PH_ENDED；
+ *   · 令牌对不上，或当前不在等待状态。
+ *
+ * 一个细节：如果等 B 的期间操作者已经请求停止（stop_pending），
+ * B 定格后不进入 ACTIVE 而是直接进 STOP_WAIT——否则会记进一段
+ * 操作者其实已经不要的数据。 */
 DRMS_Result drms_record_ready(DRMS_Token session_token, DRMS_CaptureBoundary boundary)
 {
   if (phase == PH_IDLE || phase == PH_ENDED)
@@ -171,6 +240,11 @@ DRMS_Result drms_record_ready(DRMS_Token session_token, DRMS_CaptureBoundary bou
   return DRMS_OK;
 }
 
+/* 请求停止记录。只置标志，真正的边界 E 要等采集侧给出。
+ *
+ * 若此时还在等开始边界（PH_START_WAIT），只记下 stop_pending，
+ * 等 B 到达后直接转入等 E——这样"刚开就停"也能正确收尾。
+ * 若已在记录中，立刻转入 STOP_WAIT。 */
 void drms_record_session_request_stop(void)
 {
   if (phase == PH_ACTIVE || phase == PH_START_WAIT)
@@ -182,6 +256,14 @@ void drms_record_session_request_stop(void)
   }
 }
 
+/* 拿到一致的结束边界 E，记录进入排空阶段。
+ *
+ * 校验相当严格，每一步失败都返回 STALE 而不修改本次记录：
+ *   · 代次必须与开始时一致——跨代次说明采集重启过，边界不可比；
+ *   · E 的样本序号不能早于 B，否则边界是乱的。
+ *
+ * 重复停止返回 NO_CHANGE 而非报错：保持首次的末边界，
+ * 不让后到的停止把记录的终点往后推。 */
 DRMS_Result drms_record_stop_at(DRMS_Token session_token, DRMS_CaptureBoundary end_exclusive)
 {
   if (phase == PH_DRAINING)
@@ -205,6 +287,8 @@ DRMS_Result drms_record_stop_at(DRMS_Token session_token, DRMS_CaptureBoundary e
   return DRMS_OK;
 }
 
+/* 取消本次记录会话（操作者主动取消，或采集侧出故障）。
+ * 取消同样走失败收尾：没有合法末边界，因此文件会缺尾。 */
 void drms_record_session_cancel(DRMS_Token session_token, DRMS_Result reason)
 {
   if (phase == PH_IDLE || phase == PH_ENDED)
@@ -217,11 +301,26 @@ void drms_record_session_cancel(DRMS_Token session_token, DRMS_Result reason)
 /* ------------------------------------------------------------------ */
 /* 数据通路（处理上下文） */
 /* ------------------------------------------------------------------ */
+/* 是否处于屏障期——即正在等一致边界（B 或 E）。
+ *
+ * 屏障期内不应做别的记录相关动作，调用方据此让出这一轮。
+ * 名义上很短（等采集在一个静止点给出边界），但采集繁忙时可能要等一会儿。 */
 uint32_t drms_record_session_barrier(void)
 {
   return (phase == PH_START_WAIT && !have_begin) || phase == PH_STOP_WAIT;
 }
 
+/* 判定一个帧该归到哪一类——这是记录窗口的核心判据，每帧都要问一次。
+ *
+ * 三种结果：
+ *   SKIP    早于开始边界 B 的积压，不记录（也不监测，因为已经过去了）
+ *   RECORD  落在 [B, E) 窗口内，要记录
+ *   MONITOR 窗口之外、或当前根本没在记录，只需驱动监测
+ *
+ * 排空阶段（PH_DRAINING）特意把窗口上界也拿来判断：E 之后的帧虽然人已经不记录了，
+ * 但还要驱动监测，所以返回 MONITOR 而不是 SKIP。
+ *
+ * 屏障期、失败后、空闲态一律返回 MONITOR——此时没有任何帧属于记录。 */
 DRMS_RecordVerdict drms_record_session_classify(uint64_t raw_ticket)
 {
   if (phase == PH_ACTIVE)
@@ -235,6 +334,26 @@ DRMS_RecordVerdict drms_record_session_classify(uint64_t raw_ticket)
   return DRMS_RECORD_MONITOR; /* 屏障期/失败后/空闲：仅监测 */
 }
 
+/* 登记"这一帧已经处理过"，并据此判断记录是否还能保持完整。
+ *
+ * 这是整条记录链路里最需要小心的一处，因为它决定了最终那份数据能不能信。
+ *
+ * 序号扩展的难点：采集侧给的是 32 位序号，会回绕。这里以一个锚点
+ * （上一帧的 64 位序号，或起始边界）为基准做距离推算，把 32 位扩展成 64 位。
+ * 前提是"两帧之间的跨度足够小、可以证明"——一旦跨度大到无法排除回绕歧义，
+ * 就不能猜，只能判定损失未知并终止。
+ *
+ * 四种必须终止的情形：
+ *   1. 序号重复（distance == 0）：同一帧被处理两次，说明记账已经乱了；
+ *   2. 跨度过大（≥ 2^31）：无法证明是前进还是回绕了一整圈；
+ *   3. 首帧早于起始边界：边界与数据不一致，通路有问题；
+ *   4. 入环失败（enqueue_ok 为 0）：记录环满，后面的数据必然缺失。
+ *
+ * 终止后就把 unknown_loss_latched 立起来，最终发布的 END 会带上这个标记，
+ * 文件保持缺尾。宁可让操作者知道"这次不完整"，也不能给一份看似完整的坏数据。
+ *
+ * 参数：frame_seq_low 采集侧的 32 位帧序号；bad 该帧是否 CRC 坏；
+ *       enqueue_ok 是否成功放进记录环。 */
 void drms_record_session_note_recorded(uint32_t frame_seq_low, uint32_t bad,
                                        uint32_t enqueue_ok)
 {
@@ -279,6 +398,10 @@ void drms_record_session_note_log_ticket(uint64_t ring_end_log_ticket)
   log_ticket_cached = ring_end_log_ticket;
 }
 
+/* 登记消费进度。排空阶段一旦追到结束边界 E，就可以收尾了。
+ *
+ * 这个"追上了才收尾"的判断很重要：它保证 E 之前的所有帧都已经被处理过，
+ * 不会出现"标了结束但还有帧没写进去"的情况。 */
 void drms_record_session_note_consumed(uint64_t next_raw_ticket)
 {
   last_consumed = next_raw_ticket;
@@ -286,6 +409,15 @@ void drms_record_session_note_consumed(uint64_t next_raw_ticket)
     finalize_from_boundaries();
 }
 
+/* 屏障期的超时监督。只在等边界（B 或 E）时有意义。
+ *
+ * 两种放弃等待的情形：
+ *   1. 原始环已经满了——说明消费端跟不上，等下去也不会有结果，
+ *      而且这时候硬猜一个边界只会得到错的数据；
+ *   2. 等待超过期限——同样不生成"伪边界"。
+ *
+ * 两次都走失败收尾（文件缺尾），而不是硬给一个看起来合理的边界。
+ * 第一次调用只登记截止时刻，不判超时，避免把进入的瞬间算作超时。 */
 void drms_record_session_poll(uint64_t now_ms, uint32_t raw_used, uint32_t raw_capacity)
 {
   if (phase != PH_START_WAIT && phase != PH_STOP_WAIT)
@@ -308,6 +440,8 @@ void drms_record_session_poll(uint64_t now_ms, uint32_t raw_used, uint32_t raw_c
 /* ------------------------------------------------------------------ */
 /* 完成槽（存储上下文） */
 /* ------------------------------------------------------------------ */
+/* 存储侧取走待处理的 END 记录。返回 EMPTY 表示当前没有待确认的收尾。
+ * 取走后 END 仍留在槽里，直到 ack 才真正放行——这样存储处理失败时可以重试。 */
 DRMS_Result drms_record_end_get(DRMS_End *out)
 {
   if (!end_pending)
@@ -318,6 +452,10 @@ DRMS_Result drms_record_end_get(DRMS_End *out)
   return DRMS_OK;
 }
 
+/* 存储侧确认收尾完成，会话回到空闲态，槽位可被下一次记录使用。
+ *
+ * 令牌校验防止"旧的 END 确认"把新会话关掉。这里的 result 参数仅作记录，
+ * 真正的结果已经通过控制完成通道上报过了。 */
 DRMS_Result drms_record_end_ack(DRMS_Token session_token, DRMS_Result result)
 {
   (void)result; /* 存储最终结果经控制完成通道上报；此处仅确认释放 */
@@ -330,6 +468,11 @@ DRMS_Result drms_record_end_ack(DRMS_Token session_token, DRMS_Result result)
   return DRMS_OK;
 }
 
+/* 生成对外的会话状态快照，供协议查询与界面显示。
+ *
+ * 六个内部阶段被归并成四个对外状态——操作者不需要知道"在等开始边界"和
+ * "在等结束边界"的区别，只需要知道"正在启动/正在记录/正在收尾/空闲"。
+ * 屏障标志单独给出，用于界面提示"正在切换，请稍候"。 */
 void drms_record_session_get_snapshot(DRMS_RecordSessionSnapshot *out)
 {
   if (!out)
