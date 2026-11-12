@@ -1,3 +1,34 @@
+/*****************************************************************************
+ * 文件：drms_application.c
+ * 职责：应用协调层——把采集、记录、存储、协议、用户交互串成一台仪器的行为。
+ *
+ * 在整机中的位置（自上而下）：
+ *     命令入口（ASCII/CDC 控制台、按键、USB 事件）
+ *        ↓  统一成 DRMS_Command 投进 commands 队列
+ *     本文件的应用线程（唯一消费者，串行处理）
+ *        ↓  资源裁决：drms_control（谁在用 ADC、TF 卡、记录会话）
+ *        ↓  记录会话：drms_record_session（起止边界、丢样记账）
+ *        ↓  监测管线：drms_filter → classifier → baseline（判级）
+ *     采集环 ← drms_acquisition ← DRDY 中断
+ *
+ * 并发模型（改动前必须理解）：
+ *   · 本线程串行处理所有请求，因此状态机不需要为"并发请求"加锁；
+ *   · FileX 线程独占 TF 介质，本线程只通过受控接口交接；
+ *   · 中断侧只做"推送"——把帧塞进采集环并记数，不做解码与判级。
+ *
+ * 一次测量要经过的环节：
+ *   DRDY → 采集环 → drain_frames 取帧 → 解码（CRC/量程/激励检查）
+ *   → 若在记录窗口内则入记录环 → 监测管线算电阻与等级 → 发布快照
+ *
+ * 关键设计取舍：
+ *   · 记录窗口内外的处理不同：窗口内要额外做边界记账与完整性判定，
+ *     窗口外只需驱动监测。这条分支是整机最容易被改错的地方。
+ *   · 高速档（>32 kSPS）走纯直录：跳过逐帧解码与监测，直接把原始帧写盘，
+ *     因为没有足够时间做实时处理。代价是记录期间没有实时读数。
+ *   · `r_valid` 只有在"帧有效 + 激励正常 + 电阻可算"三者同时成立时才置 1；
+ *     任何一项不满足都必须报 0，不能让过期读数冒充当前值。
+ *****************************************************************************/
+
 #include "drms_application.h"
 #include "drms_command.h"
 #include "drms_architecture_contract.h"
@@ -56,7 +87,7 @@ static int32_t r_milliohms;
 /* 记录会话（T2a）与监测管线（T6） */
 static _Alignas(8) uint8_t monitor_store[DRMS_APP_CONTEXT_BYTES];
 static DRMS_MonitorContext *const monitor = (DRMS_MonitorContext *)monitor_store;
-/* Written only by the measurement owner, copied under a short critical section. */
+/* 监测输出：只由应用线程（监测的唯一属主）写入，读者在短临界区内整体拷贝。 */
 static DRMS_MonitorOutput published_monitor;
 static DRMS_ApplicationSnapshot published_status;
 static DRMS_ApplicationRecord published_record;
@@ -107,19 +138,26 @@ static uint32_t baseline_active, baseline_rate, baseline_started, baseline_timeo
 static uint32_t baseline_overruns, baseline_drops, baseline_first_seq, baseline_previous_seq;
 static DRMS_Result baseline_failure;
 static uint32_t priority_stop_active, priority_stop_started, priority_stop_had_record;
-/* Only the serialized application owner uses this scratch buffer. */
+/* 配置编码用的暂存缓冲。只有串行化的应用线程会碰它，因此不需要保护。 */
 static uint8_t config_candidate[DRMS_USER_BODY_MAX];
 static uint64_t config_view_running, config_view_saved;
 static uint32_t config_view_current;
 static uint32_t begin(uint32_t rate, uint32_t reference);
 static void configure_monitor(uint32_t rate);
 
+/* 发布文件操作的当前视图，供协议层读取。
+ *
+ * 这类"发布—快照"成对出现，因为读者在别的线程（CDC 接收线程），而写者只有
+ * 应用线程。用关中断保护一次结构体拷贝，比引入互斥量更轻。
+ * 注意：发布的内容必须是自洽的完整视图，不能让读者看到半更新状态。 */
 static void file_publish(const DRMS_ApplicationFile *view)
 {
   uint32_t mask = __get_PRIMASK(); __disable_irq();
   published_file = *view;
   __set_PRIMASK(mask);
 }
+/* 取文件视图的快照。
+ * 返回非 0 表示当前有活跃的文件操作；out 为 NULL 时只查询有无。 */
 uint32_t drms_application_file_snapshot(DRMS_ApplicationFile *out)
 {
   if (!out) return 0;
@@ -128,16 +166,22 @@ uint32_t drms_application_file_snapshot(DRMS_ApplicationFile *out)
   __set_PRIMASK(mask);
   return out->operation != 0;
 }
+/* 发布文件列表的当前视图，语义同 file_publish。 */
 static void file_list_publish(const DRMS_ApplicationFileList *view)
 {
   uint32_t mask=__get_PRIMASK(); __disable_irq(); published_file_list=*view; __set_PRIMASK(mask);
 }
+/* 取文件列表视图的快照；返回值含义同 file_snapshot。 */
 uint32_t drms_application_file_list_snapshot(DRMS_ApplicationFileList *out)
 {
   if (!out) return 0;
   uint32_t mask=__get_PRIMASK(); __disable_irq(); *out=published_file_list; __set_PRIMASK(mask);
   return out->operation != 0;
 }
+/* USB 断线时撤销该会话的所有文件操作。
+ *
+ * 记录一个"已撤销到的会话号"水位：晚到的、属于旧会话的请求会因低于水位
+ * 而被拒，避免断线后旧请求把新会话的句柄搅乱。 */
 void drms_application_file_disconnect(uint32_t session)
 {
   if (!session) return;
@@ -146,6 +190,11 @@ void drms_application_file_disconnect(uint32_t session)
   __set_PRIMASK(mask);
   drms_file_service_disconnect(session);
 }
+/* 关闭一个文件下载句柄。
+ *
+ * 只允许关"自己的、进行中的"句柄：会话或操作号不符、或会话已被断线撤销，
+ * 一律返回 STALE，避免旧会话的迟到请求动到新会话的资源。
+ * 关闭是异步的——真正关文件要等 FileX 线程做完在途 I/O。 */
 DRMS_Result drms_application_file_close(uint32_t session, uint64_t operation)
 {
   DRMS_ApplicationFile view;
@@ -166,6 +215,11 @@ DRMS_Result drms_application_file_close(uint32_t session, uint64_t operation)
   return result;
 }
 
+/* 发布记录视图，并顺手维护一小段历史。
+ *
+ * 协议允许主机按记录号查询"当前或最近几条"记录。这里在发布新视图前，
+ * 若上一条已经结束（phase=2）就把它推进环形历史（容量 4 条）。
+ * 更早的记录以卡上的文件为准，不再保留在内存里。 */
 static void record_publish(const DRMS_ApplicationRecord *view)
 {
   uint32_t mask = __get_PRIMASK();
@@ -180,6 +234,11 @@ static void record_publish(const DRMS_ApplicationRecord *view)
   __set_PRIMASK(mask);
 }
 
+/* 按记录号取记录摘要。
+ *
+ * id 为 0 时取当前记录。找不到返回 INVALID：可能是编号从未分配，
+ * 也可能是已经超出保留窗口，二者对主机而言都是"查不到"，
+ * 更早的数据应当去读卡上的文件。 */
 DRMS_Result drms_application_record_snapshot(uint64_t id, DRMS_ApplicationRecord *out)
 {
   if (!out) return DRMS_INVALID;
@@ -218,10 +277,14 @@ DRMS_Result drms_application_record_snapshot(uint64_t id, DRMS_ApplicationRecord
   return DRMS_OK;
 }
 
+/* 小端写入辅助：配置编码统一用无填充小端，与协议一致。
+ * 这两个函数只在本文件的配置打包路径里用。 */
 static void config_put32(uint8_t *p, uint32_t n)
 {
   for (unsigned i = 0; i < 4; ++i) p[i] = (uint8_t)(n >> (8u * i));
 }
+/* 小端写入一个 double：先按位重解释成 64 位整数，再逐字节展开。
+ * 不依赖主机浮点表示以外的东西，与协议规定的无填充小端一致。 */
 static void config_put_double(uint8_t *p, double value)
 {
   uint64_t bits;
@@ -229,8 +292,11 @@ static void config_put_double(uint8_t *p, double value)
   for (unsigned i = 0; i < 8; ++i) p[i] = (uint8_t)(bits >> (8u * i));
 }
 
-/* A schema1 unknown TLV carries record-only calibration without changing the
- * user's saved configuration or the frozen v2 chunk layout. */
+/* 把一个"仅记录用"的校准备注塞进配置块，但不动用户已保存的配置，
+ * 也不改 v2 记录块的冻结布局。
+ *
+ * 做法是在 schema1 里追加一个未知 TLV：读取方按长度跳过它，因此向后兼容；
+ * 而需要知道"这条记录是用哪代校准测的"的地方可以解析它。 */
 static uint32_t record_config_with_calibration(uint32_t length, uint64_t boot)
 {
   if (!length)
@@ -270,7 +336,11 @@ static uint32_t record_config_with_calibration(uint32_t length, uint64_t boot)
   return offset + 4u;
 }
 
-/* The application thread is the sole configuration writer and publisher. */
+/* 刷新配置快照。应用线程是配置的唯一写者与发布者，因此这里不需要加锁。
+ *
+ * 只有当运行版或已存版发生变化时才重新编码，避免每轮都做一次 CRC。
+ * 发布失败（读者正持有目标）时把 valid 置 0，留到下一轮重试——
+ * 不在这里忙等。 */
 static void publish_config_view(void)
 {
   uint64_t running = drms_user_config_run_version();
@@ -292,6 +362,8 @@ static void publish_config_view(void)
   config_view_running = running; config_view_saved = saved; config_view_current = 1;
 }
 
+/* 从一段 TLV 载荷里按 tag 取出一个 u32。
+ * 找不到返回 0。用于解析主机通过 APPLY_CONFIG 下发的配置。 */
 static uint32_t config_wire_u32(const uint8_t *payload, size_t length, uint16_t wanted)
 {
   size_t offset = 0;
@@ -309,6 +381,13 @@ static uint32_t config_wire_u32(const uint8_t *payload, size_t length, uint16_t 
   return 0;
 }
 
+/* 控制台命令入口（ASCII v1）。调用者可以是任意线程，本函数只做解析与入队。
+ *
+ * 返回：1 已受理（或 STOP 已置标志）；-2 队列满/未就绪/正在关机；
+ * 其他值来自 drms_command_parse（0 表示命令不认识）。
+ *
+ * STOP 特意走独立标志而不进队列：它是取消屏障，必须能插到所有排队命令之前，
+ * 否则主机先发一串 START 再发 STOP，STOP 会排在它们后面，起不到"立即停"的作用。 */
 int drms_console_dispatch(const char *line)
 {
   DRMS_Command command;
@@ -332,7 +411,8 @@ static void session_cancel_local(DRMS_Result reason)
 {
   if ((session_armed || session_active) && !session_cancelled)
   {
-    /* A finished and closed file cannot be retroactively cancelled. */
+    /* 文件已经正常收尾并关闭的，不能再被追溯成"取消"——那样会让一份
+     * 完整的数据被标成不完整。 */
     if (session_active && session_footer_requested && !drms_log_state)
       return;
     if (session_armed)
@@ -349,6 +429,13 @@ static void session_cancel_local(DRMS_Result reason)
   }
 }
 
+/* 控制请求的实际执行入口。
+ *
+ * 请求已经过 drms_control 的资源裁决与排队，这里按操作类型分派具体动作。
+ * 返回值即该操作的最终结果；需要异步完成的（记录启停、校准、导出）
+ * 先返回 ACCEPTED，最终结果稍后通过 drms_control_complete 归结。
+ *
+ * token 用于把这些异步操作的结果关联回发起方，本函数自身不用它。 */
 static DRMS_Result app_dispatch(const DRMS_Token *token, const DRMS_ControlRequest *request)
 {
   (void)token;
@@ -400,8 +487,9 @@ static DRMS_Result app_dispatch(const DRMS_Token *token, const DRMS_ControlReque
         return rc;
       uint32_t wire_length = drms_user_config_get_wire(config_candidate, sizeof(config_candidate));
       session_duration_ms = wire_length ? config_wire_u32(config_candidate, wire_length, 73u) : 0;
-      /* CDC uses expected_version as a presence flag for its optional duration;
-       * zero duration is an explicit request for manual termination. */
+      /* CDC 把 expected_version 当作"是否带时长"的标志：
+       * 带了就以它为准，其中 0 是明确表示"手动结束"，不是"用默认值"。
+       * ASCII 入口没有这个标志，只能从配置里读默认时长。 */
       if (request->source == DRMS_SOURCE_CDC && request->expected_version == 1u)
         session_duration_ms = request->value;
       session_started_us = 0;
@@ -549,8 +637,9 @@ static DRMS_Result app_dispatch(const DRMS_Token *token, const DRMS_ControlReque
         (void)drms_control_complete(*token, DRMS_QUARANTINED, DRMS_RES_FLASH_MAINTENANCE);
         return DRMS_ACCEPTED;
       }
-      /* Probe the new rate before publishing. On failure the old snapshot is
-       * still authoritative; resume its acquisition if the backend is quiet. */
+      /* 先试跑新速率，成功了才发布配置。
+       * 失败时旧配置仍然有效——只要采集后端是静止的，就按旧速率把采集恢复起来，
+       * 不能让设备停在一个"配置没改成、采集也没了"的状态。 */
       if (was_running && begin(rate, 0) != 0)
       {
         if (!drms_acq_is_quiescent())
@@ -668,7 +757,11 @@ static DRMS_Result app_dispatch(const DRMS_Token *token, const DRMS_ControlReque
   }
 }
 
-/* Hold TF_ACCESS across the entire exported lifetime, not just handoff. */
+/* TF_ACCESS 的租约要跨越整个导出生命期，而不只是交接那一刻。
+ *
+ * U 盘导出期间文件系统已经关闭、介质归原始读使用，如果此时把租约放掉，
+ * 别的路径（记录、文件下载）就会以为卡空闲而插进来，两头都坏。
+ * 只有显式 MSC_RELEASE 完成重挂载后，租约才归还。 */
 static void msc_service_control(void)
 {
   if (msc_release_active && drms_msc_owner() == DRMS_OWNER_LOCAL)
@@ -702,7 +795,8 @@ static void msc_service_control(void)
   }
 }
 
-/* Transfer retains its TF lease through the whole open/read/close lifetime. */
+/* 历史文件下载同样在 open→read→close 整段期间持有 TF 租约，
+ * 原因与导出相同：期间的介质不能被别的路径并发使用。 */
 static void file_service_control(void)
 {
   if (!file_active) return;
@@ -830,8 +924,9 @@ static void session_service(uint32_t now_ms)
   }
   if (session_stopping)
   {
-    /* Consume a completed E before issuing another request. A DMA callback
-     * can publish E between polls while newer DRDY events continue arriving. */
+    /* 先把已经完成的结束边界 E 消费掉，再发新的请求。
+     * 因为两次轮询之间 DMA 回调可能已经发布了 E，而更新的 DRDY 仍在不断到达；
+     * 不先取走就会拿着旧的请求去对新的边界。 */
     DRMS_CaptureBoundary e;
     DRMS_Result eg = drms_acq_boundary_get(session_token, &e);
     if (eg != DRMS_OK)
@@ -860,18 +955,37 @@ static uint64_t nominal_us_of(uint64_t sample_seq)
   return drms_capture_time_nominal_us(&nominal_anchor, sample_seq);
 }
 
+/* 处理一帧：这是整机数据处理的分岔点，改动前务必读完整注释。
+ *
+ * 一帧进来先按 ticket 问"该不该记录"——记录会话给出三种判决：
+ *   记录（落在记录窗口内）／跳过（早于起点）／仅监测（晚于终点或没在记录）。
+ *
+ * 随后按速率分成两条路：
+ *   · 32 kSPS 以上：纯直录。只把原始帧塞进记录环，不解码、不监测、不判级。
+ *     因为高速档没有时间做逐帧处理，强行做只会丢帧；数据事后离线分析。
+ *     代价是记录期间没有实时读数，且不累计坏帧统计（没做 CRC 校验）。
+ *   · 32 kSPS 及以下：完整处理。解码（CRC/量程/激励）→ 边界记账 → 驱动监测管线。
+ *
+ * 为什么记录窗口内外要分开处理：窗口内要额外做边界与完整性记账
+ * （首末样本号、丢样、未知损失），这些在纯监测时不需要，混在一起会让
+ * 两条路径互相干扰。
+ *
+ * 参数：frame 原始帧；ticket 消费端票号（与记录会话的边界对齐）；
+ *       capture_lower_us 该帧捕获时间的下界。 */
 static void pipeline_step_frame(const DRMS_RawFrame *frame, uint64_t ticket,
                                 uint64_t capture_lower_us)
 {
   DRMS_RecordVerdict verdict = session_active
                                    ? drms_record_session_classify(ticket)
                                    : DRMS_RECORD_MONITOR;
-  /* Raw streaming mode. Above 32 kSPS the per-frame decode + monitor work does
-   * not fit the frame budget, so a record window becomes a pure capture: the
-   * frame goes straight to the record ring and nothing else runs. Live readings
-   * stop while such a record is open (the data is analysed afterwards), and
-   * quality_bad is not accumulated because no CRC check is performed here.
-   * Monitoring below 32 kSPS is unchanged. */
+  /* 纯直录模式：32 kSPS 以上，逐帧解码与监测放不进帧预算。
+   *
+   * 此时记录窗口退化成纯粹的捕获：原始帧直接进记录环，别的什么都不做。
+   * 代价有三条，都是明知的选择：
+   *   1. 记录期间没有实时读数——数据留给事后离线分析；
+   *   2. 不累计 quality_bad，因为这里根本没做 CRC 校验；
+   *   3. 记录窗口外的监测同样跳过（速率太高时监测也跟不上）。
+   * 32 kSPS 及以下不走这条分支，行为与以前完全一致。 */
   if (drms_acq_rate > 32000u)
   {
     if (verdict == DRMS_RECORD_RECORD)
@@ -953,6 +1067,13 @@ static void pipeline_step_frame(const DRMS_RawFrame *frame, uint64_t ticket,
   }
 }
 
+/* 把采集环里积压的帧全部处理掉。
+ *
+ * 每次调用最多处理 4096 帧（等于环深），避免在积压很多时长时间不让出 CPU。
+ * 主循环每轮都会调用，正常情况下每轮只有寥寥几帧。
+ *
+ * 注意：这里的上限与采集环容量一致不是巧合——它保证一轮就能排空，
+ * 不会出现"永远追不上生产者"的情况。 */
 static void drain_frames(void)
 {
   DRMS_RawFrame frame;
@@ -1039,6 +1160,14 @@ static void drain_frames(void)
     drms_record_session_note_consumed(consumed_raw);
 }
 
+/* 停止采集并做完整收尾：撤销基线、中止记录会话、停采集、排空、停记录。
+ *
+ * 顺序是有讲究的：
+ *   1. 先作废基线（它依赖连续的采集流，停了就没有意义）；
+ *   2. 让记录会话进入取消态，避免它在收尾时还往记录环里塞数据；
+ *   3. 停采集，再把残留帧排空——这样已采集到的数据不会白丢；
+ *   4. 最后关记录文件。
+ * r_valid 必须清 0，否则界面会拿着已经不更新的读数当当前值。 */
 static void stop_acquisition(void)
 {
   if (baseline_active)
@@ -1060,6 +1189,18 @@ static void stop_acquisition(void)
   r_valid = 0;
 }
 
+/* 按当前采样率配置监测管线。
+ *
+ * 两种来源：
+ *   · 用户保存过监测配置 → 用它，但要检查 rate_hz 是否与当前采样率一致；
+ *     不一致说明配置属于别的速率，基线必须作废（基线与采样率绑定）。
+ *   · 没保存过 → 用一组保守默认值，只保证滤波与 stale 超时可用，不做判级。
+ *
+ * stale_timeout 取"128000 个采样周期"，即约 16 秒下限、更长速率下相应缩短，
+ * 用来判断"当前读数是否已经不新鲜"。
+ *
+ * 注意：monitor_level_count 与对应的 level/id 数组在这里刷新，
+ * 判级展示依赖它们，配置失败时会清 0（表示没有可用区间）。 */
 static void configure_monitor(uint32_t rate)
 {
   DRMS_MonitorConfig cfg;
@@ -1073,7 +1214,8 @@ static void configure_monitor(uint32_t rate)
   }
   else if (cfg.rate_hz != rate)
   {
-    /* The baseline belongs to the saved sampling configuration. */
+    /* 基线是属于"保存时那套采样配置"的。速率变了，基线就不再成立，
+     * 必须显式作废，免得拿旧基准去判新条件下的数据。 */
     cfg.rate_hz = rate;
     cfg.baseline_valid = false;
     cfg.stale_timeout_us = (128000000ULL + rate - 1U) / rate;
@@ -1093,6 +1235,13 @@ static void configure_monitor(uint32_t rate)
   monitor_config_version = drms_user_config_run_version();
 }
 
+/* 启动采集（内部实现，被 START/REF/MEASURE 与开机自动监测调用）。
+ *
+ * 返回给命令层的错误码：0 成功；3 状态不允许（正在记录或校准中、
+ * 或采集资源被隔离）。
+ *
+ * 启动前会先尝试解除"停止中"状态——上一轮操作必须收尾干净，
+ * 否则新采集会和残留清理撞车。 */
 static uint32_t begin(uint32_t rate, uint32_t reference)
 {
   if (drms_log_state || cal_active)
@@ -1119,6 +1268,16 @@ static uint32_t begin(uint32_t rate, uint32_t reference)
   return ok;
 }
 
+/* 基线建立的推进与收尾。
+ *
+ * 基线 R₀ 是判级的参考点，必须在"采集连续、无丢样、无换路"的前提下统计。
+ * 因此任何一项异常都会让本次建立失败：
+ *   · 采集停了、采样率变了、切到了参考支路；
+ *   · 丢帧计数（overruns / queue_drops）比开始时增加了。
+ * 超时也算失败，避免无限期挂着。
+ *
+ * 成功时才真正替换基线；失败一律保留原值——宁可让操作者重试，
+ * 也不能用一个"看起来成立"的坏基线去判级。 */
 static void baseline_service(uint32_t now)
 {
   if (!baseline_active)
@@ -1161,6 +1320,15 @@ static void baseline_service(uint32_t now)
   cmd_result = result == DRMS_OK ? 0 : 1;
 }
 
+/* 参考校准（协议触发的 CALIBRATE）的推进与收尾。
+ *
+ * 校准采 4096 个连续有效样本算比例系数 k，所以前提与建基线类似：
+ * 采集要在跑、必须在参考支路、采样率没变、丢样计数没增加。
+ * 任一条件破坏即判失败，绝不把残缺数据当系数用。
+ *
+ * 成功后还要落盘（drms_calibration_save）。若"系数已写进去但恢复采集失败"，
+ * 结果报 IO_ERROR 但新系数实际已生效——调用方应去查设备状态，
+ * 不能假设 IO_ERROR 就一定意味着系数没变。 */
 static void protocol_cal_service(uint32_t now)
 {
   if (!protocol_cal_active) return;
@@ -1209,6 +1377,14 @@ static void protocol_cal_service(uint32_t now)
   (void)drms_control_complete(protocol_cal_token, protocol_cal_result, quiet_mask);
 }
 
+/* 执行一条已经排到队首的命令。
+ *
+ * 这里是所有业务动作的唯一落地点：ASCII 控制台、CDC v2、按键最终都汇到
+ * commands 队列，由这个函数串行执行，所以状态机不需要为并发加锁。
+ *
+ * 每条命令执行完都会写 last_cmd / cmd_result，主机靠这两个字段判断
+ * "命令受理了吗、结果是什么"。注意 cmd_result=100 表示"已受理、结果待定"，
+ * 不是失败码。 */
 static void execute(const DRMS_Command *command)
 {
   last_cmd = command->id;
@@ -1218,8 +1394,20 @@ static void execute(const DRMS_Command *command)
     cmd_result = 3;
     return;
   }
+  /* 命令分派的约定：
+   *   cmd_result = 0     成功
+   *   cmd_result = 1     状态不允许（例如记录中不允许换路）
+   *   cmd_result = 100   已受理，最终结果待异步归结
+   *   cmd_result = 2..7  具体失败原因（见协议文档）
+   * 主机应当先看 cmd_result 再看别的字段，不要把 100 当成失败。 */
   switch (command->id)
   {
+    /* 三条启动类命令共用 begin()，区别只在支路与速率：
+     *   START [rate]  按指定或默认速率进样品模式
+     *   REF           切到参考支路（校准用），速率沿用当前值
+     *   MEASURE       切回样品支路，速率沿用当前值
+     * 之所以用"当前速率"而不是默认值，是为了让 REF/MEASURE 不打断
+     * 操作者正在用的采样率。 */
     case DRMS_CMD_START: cmd_result = begin(command->value, 0); break;
     case DRMS_CMD_REFERENCE: cmd_result = begin(drms_acq_rate ? drms_acq_rate : DRMS_APP_DEFAULT_RATE, 1); break;
     case DRMS_CMD_MEASURE: cmd_result = begin(drms_acq_rate ? drms_acq_rate : DRMS_APP_DEFAULT_RATE, 0); break;
@@ -1280,6 +1468,10 @@ static void execute(const DRMS_Command *command)
   }
 }
 
+/* 应用层初始化：建命令队列、复位所有状态机、首次发布配置视图。
+ *
+ * 必须在调度器启动前、且其他模块的 init 之后调用（它依赖采集、记录、
+ * 存储、控制几个子系统已经就绪）。 */
 void drms_application_init(void)
 {
   memset(&published_record, 0, sizeof(published_record));
@@ -1337,6 +1529,16 @@ void drms_application_init(void)
   publish_config_view();
 }
 
+/* 应用主循环，由主线程反复调用。每轮做四件事：
+ *
+ *   1. 电源与按键扫描：把按键事件翻译成请求（短按测量键=记录叠加在监测之上，
+ *      长按=建立基线 R₀，短按电源键=安全停采）。
+ *   2. 处理优先级最高的事件：安全停止与关机请求先于一切普通命令。
+ *   3. 按序执行命令队列里的命令，并把每条的受理与结果写进 last_cmd/cmd_result。
+ *   4. 推进各个周期性子服务：排空采集帧、记录会话、基线、校准、MSC 与文件服务。
+ *
+ * 这个函数不能阻塞——它是主线程唯一的推进点，一旦卡住，采集环会溢出、
+ * 记录会断流。任何需要等待的操作都必须异步化（交给 FileX 线程或分轮次完成）。 */
 void drms_application_poll(void)
 {
   drms_power_poll();
@@ -1499,7 +1701,8 @@ void drms_application_poll(void)
     }
     else if ((uint32_t)(now - priority_stop_started) >= 5000u)
     {
-      /* Stopping remains asserted; outstanding resource leases are not released. */
+      /* 超时仍未静止：停止态继续保持，已占用的资源租约**不释放**。
+       * 这与"能证明传输停下来才复用"的原则一致——隔离优先于勉强继续。 */
       (void)drms_control_safe_stop_finish(DRMS_TIMEOUT);
       priority_stop_active = 0;
     }
@@ -1642,6 +1845,11 @@ void drms_application_poll(void)
   publish_config_view();
 }
 
+/* 取一份自洽的整机快照，供 CDC v2 的 GET_STATUS 使用。
+ *
+ * 所有字段在同一把临界区里取出，保证主机看到的是同一时刻的状态，
+ * 而不是"电阻是新的、记录状态是旧的"这种拼接结果。
+ * 返回非 0 表示快照有效。 */
 uint32_t drms_application_snapshot(DRMS_ApplicationSnapshot *out)
 {
   if (!out) return 0;
@@ -1652,12 +1860,22 @@ uint32_t drms_application_snapshot(DRMS_ApplicationSnapshot *out)
   return out->revision != 0;
 }
 
+/* 外部中断的下降沿回调。
+ *
+ * 目前只有 DRDY 走这里——它是采集的节拍源，回调里只做最轻的启动动作，
+ * 解码与判级都留给线程。按键用的是轮询而非中断，所以不在这里处理。 */
 void HAL_GPIO_EXTI_Falling_Callback(uint16_t pin)
 {
   if (pin == ADS_DRDY_Pin)
     drms_acq_drdy();
 }
 
+/* 生成 ASCII v1 的 STATUS 回复文本。
+ *
+ * 这是人读与调试用的输出，字段名一旦发布就不能随意改名——上位机和脚本
+ * 都按这些键名解析。新增字段只能追加在后面。
+ *
+ * 返回：写入的字节数；容量不足时返回 0，调用方应给足缓冲。 */
 size_t drms_application_status(char *out, size_t capacity)
 {
   if (!capacity)
