@@ -1,3 +1,44 @@
+/*****************************************************************************
+ * 文件：drms_cdc_v2.c
+ * 职责：CDC v2 协议实现——帧解析、请求分派、回复编码、事件推送。
+ *
+ * 在整机中的位置：
+ *   USB CDC 端点 → drms_cdc.c（字节流与收发线程）
+ *                    ↓ 逐个字节喂进来
+ *                  drms_cdc_frame.c（COBS 解帧 + CRC 校验）
+ *                    ↓ 一帧完整的请求
+ *                  本文件（解析 TLV、执行业务、组装回复）
+ *                    ↓ 通过 send 回调
+ *                  发送队列 → USB
+ *
+ * 一帧的构成：
+ *   20 字节定长头（major/kind/opcode/session/request_id/payload_length/flags）
+ *   + 若干 TLV 字段
+ *   + 4 字节 CRC32
+ *   整体先做 COBS 编码，再以 0x00 结束。
+ *
+ * TLV 的"必填"标记：
+ *   tag 最高位（0x8000）表示"接收方必须理解这个字段"。发送方对必填字段置位。
+ *   接收方遇到未知且置位的 tag 必须拒绝（返回 UNKNOWN_REQUIRED）；
+ *   未知且未置位的按长度跳过。这是协议向前兼容的基础。
+ *
+ * 会话与幂等：
+ *   HELLO 之后才有 session，同一次连接重复 HELLO 返回同一会话。
+ *   request_id 在会话内严格递增。同一编号重发相同内容视为重试，直接回原结果；
+ *   同编号不同内容则拒绝（REQUEST_ID_REUSED）——否则重试语义会被破坏。
+ *
+ * 异步操作的表达方式：
+ *   很多操作（记录启停、校准、导出、文件下载）不可能在收到请求的瞬间完成。
+ *   这里先回 ACCEPTED 并给出 operation 句柄，主机随后用 GET_OPERATION
+ *   轮询最终结果。这个模式贯穿整个协议，看懂它才能理解为什么有些请求
+ *   只返回一个操作号。
+ *
+ * 事件推送（SUBSCRIBE）：
+ *   订阅是会话级的，断线即清除，重连必须重新订阅。
+ *   目前只支持 CURVE（降速后的最新快照），RAW 明确拒绝而不是假装支持——
+ *   让主机误以为在收原始流，比直接拒绝更糟。
+ *****************************************************************************/
+
 #include "drms_cdc_v2.h"
 #include "drms_measurement.h"
 #include "drms_control.h"
@@ -22,6 +63,24 @@ static void optional_tlv(uint8_t *raw, size_t *pos, uint16_t tag, const uint8_t 
   size_t start=*pos; tlv(raw,pos,tag,data,size); put16(raw+start,tag);
 }
 
+/* 编码一帧测量事件（MEAS_EVENT，opcode 130）。
+ *
+ * 这是 SUBSCRIBE 之后周期性发出去的东西，内容是一次"当前测量的快照"，
+ * 而不是原始采样流——全速数据在记录文件里，这里只给实时观察用。
+ *
+ * 字段的取舍：
+ *   必有：sequence（本流内从 1 递增）、mono_us（设备单调时间）、
+ *         fresh（读数是否新鲜）、classification（等级）、quality（质量位）、
+ *         lost（本次订阅累计漏发条数）
+ *   可选：ohms（电阻）、ratio（R/R₀）、level+interval（命中的区间）
+ * 可选字段的规则是"无效就整个省略，绝不用 0 顶替"——0 Ω 和"测不出来"
+ * 是两件事，主机必须能区分。
+ *
+ * 细节：double 通过 memcpy 按位重解释成 64 位整数再写出，
+ * 不走强制类型转换，避免违反严格别名规则。
+ *
+ * 返回：编码后的线上字节数；0 表示参数非法或容量不足。
+ * 本函数无状态，可以在任意上下文调用。 */
 size_t drms_cdc_v2_encode_measurement(uint32_t session, uint64_t sequence, uint64_t lost,
     const DRMS_ApplicationSnapshot *snapshot, uint8_t *wire, size_t capacity)
 {
@@ -55,6 +114,58 @@ size_t drms_cdc_v2_encode_measurement(uint32_t session, uint64_t sequence, uint6
   return drms_cdc_frame_encode(raw, pos, wire, capacity);
 }
 
+/* 周期性推送 CURVE 事件。由 CDC 接收线程每轮调用一次。
+ *
+ * 规则：
+ *   · 每个订阅周期最多发一条，不到期直接返回，不做忙等；
+ *   · 发送队列没空间时**丢弃并计数**，绝不阻塞——实时观察的价值在于"新"，
+ *     积压的旧数据没有意义，宁可丢也不要让队列越积越多；
+ *   · lost 累计的是"本该发但没发出去"的周期数，主机据此能区分
+ *     "设备安静"和"链路卡住了"；
+ *   · 编码失败时把 sequence 回退，保证序号连续——宁可重发也不要留缺口。
+ *
+ * 注意它是快照而非原始流：全速数据在记录文件里，这里只服务于实时观察。 */
+void drms_cdc_v2_publish(DRMS_CDCV2 *ctx, uint32_t now)
+{
+  if (!ctx || !ctx->curve_subscribed || !ctx->send || !ctx->session.session)
+    return;
+  if ((uint32_t)(now - ctx->curve_last_ms) < ctx->curve_period_ms)
+    return;
+  if (ctx->can_send && !ctx->can_send(ctx->send_context, 0))
+  {
+    ++ctx->curve_lost; /* no room: count and try again next period */
+    ctx->curve_last_ms = now;
+    return;
+  }
+  DRMS_ApplicationSnapshot snapshot;
+  if (!drms_application_snapshot(&snapshot))
+  {
+    ++ctx->curve_lost;
+    ctx->curve_last_ms = now;
+    return;
+  }
+  ++ctx->curve_sequence;
+  size_t len = drms_cdc_v2_encode_measurement(ctx->session.session, ctx->curve_sequence,
+      ctx->curve_lost, &snapshot, ctx->wire, sizeof(ctx->wire));
+  if (!len)
+  {
+    --ctx->curve_sequence;
+    ++ctx->curve_lost;
+    ctx->curve_last_ms = now;
+    return;
+  }
+  ctx->send(ctx->send_context, ctx->wire, len, 0);
+  ctx->curve_last_ms = now;
+}
+
+/* 为一次"会改变状态的请求"找一个缓存槽位。
+ *
+ * 槽位用来存放最近几次修改类请求的原始字节与结果，用途是幂等：
+ * 主机因超时重发同一个 request_id 时，不必重新执行，直接回放原结果。
+ *
+ * 淘汰策略：优先用空槽；都满了就选年龄最老的那个。
+ * 但**执行中的请求不会被淘汰**（有租约占着的那些），
+ * 因为它们的最终结果还没产生，淘汰了就再也查不到了。 */
 static DRMS_CDCMutation *mutation_slot(DRMS_CDCV2 *ctx)
 {
   DRMS_CDCMutation *oldest = NULL;
@@ -72,6 +183,22 @@ static DRMS_CDCMutation *mutation_slot(DRMS_CDCV2 *ctx)
   return oldest;
 }
 
+/* 收到一帧完整请求后的处理入口。
+ *
+ * 这是整个协议层的核心函数，做的事情按顺序是：
+ *   1. 基本校验：主版本为 2、本机随机源健康、flags 为 0；
+ *   2. HELLO 特判：只有它能带 session=0，其余请求必须已有有效会话；
+ *   3. 会话与编号校验：request_id 必须递增，重复编号走幂等回放；
+ *   4. 按 opcode 分派到各业务分支；
+ *   5. 组装回复帧（固定头 + result + 各分支的字段 + CRC）。
+ *
+ * 两个容易忽略的约束：
+ *   · 回复缓冲区拿不到就不受理请求，也不消耗编号——否则会出现
+ *     "设备说受理了、但结果发不出来"的情况；
+ *   · 分派失败时统一返回 UNSUPPORTED，而不是静默丢弃，
+ *     让主机能区分"命令不支持"和"链路丢了"。
+ *
+ * 处理是同步的：这里只做分派与登记，耗时操作都转成异步（返回操作号）。 */
 static void received(void *user, const uint8_t *request, size_t length)
 {
   DRMS_CDCV2 *ctx = user;
@@ -93,6 +220,7 @@ static void received(void *user, const uint8_t *request, size_t length)
   uint32_t have_file_data = 0;
   DRMS_ApplicationFileList file_list;
   uint32_t have_file_list = 0;
+  uint32_t have_subscription = 0, subscribed_stream = 0, subscribed_period = 0;
   DRMS_ConfigView config_view;
   uint32_t have_config = 0;
   uint64_t accepted_operation = 0;
@@ -143,6 +271,14 @@ static void received(void *user, const uint8_t *request, size_t length)
       ctx->last_request = id;
       if (get16(request + 18))
         result = 3u;
+      /* opcode 2 = GET_STATUS：取一次逻辑一致的整机状态快照。
+       *
+       * 没有请求字段。结果来自 drms_application_snapshot，那份快照是在
+       * 一个临界区里整体取出的，所以主机拿到的字段互相自洽
+       * （不会出现"电阻是新的、记录状态是旧的"）。
+       *
+       * 主机应当以它为实时性的唯一依据：status_revision 递增说明有新状态，
+       * fresh 为 0 说明当前读数已经不是最新的。 */
       else if (opcode == 2u)
       {
         if (drms_cdc_fields_validate(request + 20, payload_len, NULL, 0, NULL))
@@ -152,6 +288,15 @@ static void received(void *user, const uint8_t *request, size_t length)
         else
           have_snapshot = 1;
       }
+      /* opcode 3 = GET_OPERATION：按操作号查异步操作的进展。
+       *
+       * 这是"先受理、后查询"模式的核心。绝大多数会改变状态的操作都先回
+       * ACCEPTED + 操作号，主机随后用这个接口轮询。phase 表示阶段
+       * （0 待办 / 1 执行中 / 2 已结束），result 是已知的最终结果。
+       *
+       * 查不到时返回 STALE 或 INVALID，两者含义不同：
+       *   STALE   编号曾经有效，但已超出保留窗口——去读卡上的文件
+       *   INVALID 编号从未分配——可能是主机记错了或连错了会话 */
       else if (opcode == 3u)
       {
         static const DRMS_CDCFieldRule rules[] = {{11, 8, 8, 0, 1}};
@@ -183,6 +328,58 @@ static void received(void *user, const uint8_t *request, size_t length)
           if (query == DRMS_OK) { result = (uint16_t)record.result; have_record = 1; }
         }
       }
+      else if (opcode == 64u || opcode == 65u)
+      {
+        /* SUBSCRIBE / UNSUBSCRIBE. CURVE only: period_ms > 0 is the pushed
+         * interval, RAW (period_ms = 0) is not implemented and is rejected
+         * rather than silently accepted, so a client cannot believe it is
+         * receiving raw frames. */
+        static const DRMS_CDCFieldRule sub_rules[] = {{60,1,1,0,1},{61,4,4,0,1}};
+        uint32_t now_stamp = ctx->feed_now;
+        static const DRMS_CDCFieldRule unsub_rules[] = {{60,1,1,0,1}};
+        DRMS_CDCFieldView fields[2];
+        uint32_t stream, period = 0;
+        int invalid = drms_cdc_fields_validate(request + 20, payload_len,
+            opcode == 64u ? sub_rules : unsub_rules, opcode == 64u ? 2 : 1, fields);
+        if (!invalid)
+        {
+          stream = fields[0].value[0];
+          if (opcode == 64u)
+            period = get32(fields[1].value);
+          if (stream != 0u || (opcode == 64u && (period == 0u || period > 60000u)))
+            invalid = 1;
+        }
+        if (invalid)
+          result = DRMS_INVALID;
+        else if (opcode == 64u)
+        {
+          ctx->curve_subscribed = 1;
+          ctx->curve_period_ms = period;
+          ctx->curve_sequence = 0;
+          ctx->curve_lost = 0;
+          ctx->curve_last_ms = now_stamp;
+          result = DRMS_OK;
+        }
+        else
+        {
+          ctx->curve_subscribed = 0;
+          ctx->curve_period_ms = 0;
+          result = DRMS_OK;
+        }
+        subscribed_stream = stream;
+        subscribed_period = period;
+        have_subscription = 1;
+      }
+      /* opcode 53 = FILE_LIST：列举卡上的记录文件。
+       *
+       * 每次只返回一项，用 cursor 翻页（首次传 0）。不持有跨请求的租约，
+       * 每次列举都重新申请一次 TF 访问权——这样记录、导出等功能不会被
+       * 一个"翻到一半就不动了"的列举长期挡住。
+       *
+       * 第一次调用总是先返回 BUSY 并启动异步枚举，主机换一个新编号重试，
+       * 直到拿到文件条目或空结果。这个"受理后重试"的模式与文件读取一致。
+       *
+       * media_generation 必须回带：换卡之后旧游标失效，主机应从头开始。 */
       else if (opcode == 53u)
       {
         static const DRMS_CDCFieldRule rules[]={{58,4,4,0,1}};
@@ -234,6 +431,13 @@ static void received(void *user, const uint8_t *request, size_t length)
           }
         }
       }
+      /* opcode 51 = FILE_READ：按绝对偏移读一段文件内容（只读）。
+       *
+       * 约束：一次最多 768 字节；用绝对偏移而不是顺序位置，所以允许重读；
+       * offset 等于文件大小时返回空数据并置 eof。
+       *
+       * 同样是异步的：首次受理返回 BUSY，主机用新编号重试同样的
+       * (句柄, 偏移, 长度)，直到拿到数据。上一笔没完成时，换偏移会被拒。 */
       else if (opcode == 51u)
       {
         static const DRMS_CDCFieldRule rules[] = {{11,8,8,0,1},{52,8,8,0,1},{53,2,2,0,1}};
@@ -316,6 +520,11 @@ static void received(void *user, const uint8_t *request, size_t length)
           }
         }
       }
+      /* opcode 32 = GET_CONFIG：取当前完整配置。
+       *
+       * 出厂空配置、或旧配置缺少完整字段时返回 UNSUPPORTED——
+       * 不能给一份"看起来完整、其实缺项"的配置，否则主机保存回去时会覆盖掉
+       * 原本存在的设置。只有执行过一次完整的 APPLY_CONFIG 之后才可读。 */
       else if (opcode == 32u)
       {
         if (drms_cdc_fields_validate(request + 20, payload_len, NULL, 0, NULL))
@@ -330,6 +539,22 @@ static void received(void *user, const uint8_t *request, size_t length)
         else
           have_config = 1;
       }
+      /* 其余都是"会改变状态"的请求，统一走这条路径：
+       *
+       *   16/17  BEGIN_RECORD / END_RECORD
+       *   18/19  SAFE_STOP / RESUME_MONITOR
+       *   33/34  APPLY_CONFIG / SAVE_CONFIG
+       *   35/36  BUILD_R0 / CALIBRATE
+       *   37     SET_UTC
+       *   48/49  MSC_EXPORT / MSC_RELEASE
+       *   50     FILE_OPEN
+       *
+       * 共同点：都要先经 drms_control 做资源裁决（会不会和当前记录、
+       * 校准、导出冲突），批准后才交给应用层 dispatch 执行，
+       * 执行结果通过操作号异步归结。
+       *
+       * 这里的字段规则是逐条声明的（rules 数组），校验失败直接拒绝——
+       * 每种请求必填哪些字段、允许多长，都在规则里写死，不做宽松解释。 */
       else if (opcode == 16u || opcode == 17u || opcode == 18u || opcode == 19u || opcode == 33u || opcode == 34u || opcode == 35u || opcode == 36u || opcode == 37u || opcode == 48u || opcode == 49u || opcode == 50u)
       {
         static const DRMS_CDCFieldRule version_rule[] = {{48, 8, 8, 0, 1}};
@@ -411,7 +636,7 @@ static void received(void *user, const uint8_t *request, size_t length)
   memset(out, 0, 20);
   out[0] = 2; out[1] = 2; put16(out + 2, opcode); put32(out + 4, session); put64(out + 8, id);
   size_t pos = 20;
-  uint8_t temp[40];
+  uint8_t temp[48];
   put16(temp, result); tlv(out, &pos, 1, temp, 2);
   if (opcode == 1u)
   {
@@ -420,10 +645,25 @@ static void received(void *user, const uint8_t *request, size_t length)
     put64(temp, ctx->session.boot); tlv(out, &pos, 4, temp, 8);
     put16(temp, 1); put16(temp + 2, 2); put16(temp + 4, 3); put16(temp + 6, 4);
     put16(temp + 8, 16); put16(temp + 10, 17); put16(temp + 12, 18); put16(temp + 14, 19);
-    put16(temp + 16, 32); put16(temp + 18, 33); put16(temp + 20, 34); put16(temp + 22, 35); put16(temp + 24, 36); put16(temp + 26, 37); put16(temp + 28, 48); put16(temp + 30, 49); put16(temp + 32, 50); put16(temp + 34, 51); put16(temp + 36, 52); put16(temp + 38, 53); tlv(out, &pos, 5, temp, 40);
+    put16(temp + 16, 32); put16(temp + 18, 33); put16(temp + 20, 34); put16(temp + 22, 35); put16(temp + 24, 36); put16(temp + 26, 37); put16(temp + 28, 48); put16(temp + 30, 49); put16(temp + 32, 50); put16(temp + 34, 51); put16(temp + 36, 52); put16(temp + 38, 53);
+    /* Subscription opcodes belong in the same capability list: a second TLV
+     * with tag 5 would be rejected as a duplicate field. */
+    put16(temp + 40, 64); put16(temp + 42, 65);
+    tlv(out, &pos, 5, temp, 44);
     put16(temp, 1024); tlv(out, &pos, 6, temp, 2);
     put32(temp, 4000); tlv(out, &pos, 7, temp, 4);
     tlv(out, &pos, 8, temp, 4); /* conservative default; physical throughput still requires board tests */
+  }
+  else if (have_subscription)
+  {
+    uint8_t sb[1];
+    sb[0] = (uint8_t)subscribed_stream;
+    tlv(out, &pos, 60, sb, 1);
+    if (opcode == 64u)
+    {
+      put32(temp, subscribed_period);
+      tlv(out, &pos, 61, temp, 4);
+    }
   }
   else if (accepted_operation)
   {
@@ -528,6 +768,14 @@ static void received(void *user, const uint8_t *request, size_t length)
   if (encoded && ctx->send) ctx->send(ctx->send_context, ctx->wire, encoded, priority);
 }
 
+/* 初始化协议上下文。
+ *
+ * entropy 是启动标识的随机源。每个启动周期生成一个新的 64 位 boot 标识，
+ * 主机用 (uid, boot, request_id) 三元组来识别"这是不是同一次上电"。
+ * 若随机源不健康，会话不会被启用，设备保持脱机服务并上报诊断——
+ * 宁可不出会话，也不要给一个可预测的标识。
+ *
+ * send / can_send 是发送回调，由 drms_cdc.c 注入，本文件不直接碰 USB。 */
 void drms_cdc_v2_init(DRMS_CDCV2 *ctx, DRMS_CDCEntropy entropy, void *entropy_context,
                       const uint32_t uid[3], DRMS_CDCV2Send send, DRMS_CDCV2CanSend can_send,
                       void *send_context)
@@ -538,6 +786,14 @@ void drms_cdc_v2_init(DRMS_CDCV2 *ctx, DRMS_CDCEntropy entropy, void *entropy_co
   (void)drms_cdc_session_init(&ctx->session, entropy, entropy_context);
 }
 
+/* USB 断线或复位：撤销会话及其所有附属状态。
+ *
+ * 需要清的东西包括：文件句柄与列举操作、幂等缓存、订阅。
+ * 协议规定"断线后旧请求与订阅都不自动重放"——重连必须重新握手、
+ * 重新订阅，这样主机看到的状态永远是从自己这一侧建立的，不会有残留。
+ *
+ * 注意这里不做介质层面的收尾：卡的所有权由 drms_msc 单独管理，
+ * 断线不影响正在进行的记录。 */
 void drms_cdc_v2_disconnect(DRMS_CDCV2 *ctx)
 {
   if (ctx->session.session) drms_application_file_disconnect(ctx->session.session);
@@ -549,9 +805,24 @@ void drms_cdc_v2_disconnect(DRMS_CDCV2 *ctx)
   memset(ctx->mutations, 0, sizeof(ctx->mutations));
   memset(&ctx->stop_mutation, 0, sizeof(ctx->stop_mutation));
   ctx->mutation_age = 0;
+  /* Subscriptions are session-scoped: a reconnect must re-subscribe rather
+   * than inherit a stream the new client never asked for. */
+  ctx->curve_subscribed = 0;
+  ctx->curve_period_ms = 0;
+  ctx->curve_sequence = 0;
+  ctx->curve_lost = 0;
 }
 
+/* 往解帧器里喂一个字节。由 CDC 接收线程逐字节调用。
+ *
+ * 之所以是逐字节而不是整块：COBS 是"以 0 分隔"的流式编码，
+ * 必须按字节扫描才能正确切帧，而且任意拆包/粘包都要能处理。
+ * 解帧完成后解帧器会回调 received()。
+ *
+ * now 用于解帧器的超时逻辑：半帧堆积超过 1000 ms 仍无分隔符就丢弃，
+ * 避免一个坏帧把后续所有数据都堵在缓冲区里。 */
 void drms_cdc_v2_feed(DRMS_CDCV2 *ctx, uint8_t byte, uint32_t now)
 {
+  ctx->feed_now = now;
   drms_cdc_frame_feed(&ctx->frame, byte, now, received, ctx);
 }

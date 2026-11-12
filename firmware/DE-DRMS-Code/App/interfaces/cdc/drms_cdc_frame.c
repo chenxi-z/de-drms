@@ -1,3 +1,25 @@
+/*****************************************************************************
+ * 文件：drms_cdc_frame.c
+ * 职责：CDC v2 的流层——把字节流切成帧（COBS 解码 + CRC 校验），以及反向编码。
+ *
+ * 为什么需要 COBS：
+ *   USB CDC 是纯字节流，没有消息边界。协议用 0x00 作为帧分隔符，
+ *   而帧内容本身可能含 0——COBS（Consistent Overhead Byte Stuffing）
+ *   把所有 0 都编码掉，只留结尾那个真正的分隔符，代价是每 254 字节多 1 字节。
+ *   这样切帧只需要找 0，不需要任何转义状态机。
+ *
+ * 本层的三件事：
+ *   1. 收字节、找分隔符、COBS 解码、校验长度与 CRC，得到一帧完整请求；
+ *   2. 任何拆包/粘包都能正确处理（流式累积，不假设一次收完整帧）；
+ *   3. 半帧超时：从首字节算起满 1000 ms 仍无分隔符就丢弃，
+ *      防止一个坏帧把后续数据永远堵在缓冲区里。
+ *
+ * 错误处理原则：
+ *   畸形帧、CRC 错误、未知主版本一律**静默丢弃并计数**，不做任何回应。
+ *   因为此时连"这是不是本协议的帧"都无法确定，回应反而可能加重混乱。
+ *   上层能观察到的是丢弃计数，而不是错误回复。
+ *****************************************************************************/
+
 #include "drms_cdc_frame.h"
 #include "drms_measurement.h"
 #include <string.h>
@@ -16,14 +38,23 @@ static uint32_t get32(const uint8_t *p)
          ((uint32_t)p[2] << 16) | ((uint32_t)p[3] << 24);
 }
 
+/* 解帧上下文的大小，供调用方分配内存（避免把内部结构暴露出去）。 */
 size_t drms_cdc_frame_size(void) { return sizeof(DRMS_CDCFrame); }
 
+/* 复位解帧器到"等待新帧"状态。断线、复位后都要调用。 */
 void drms_cdc_frame_init(DRMS_CDCFrame *ctx)
 {
   if (ctx)
     memset(ctx, 0, sizeof(*ctx));
 }
 
+/* 对一个完整缓冲做 COBS 解码、长度检查与 CRC 校验。
+ *
+ * 三道关卡的顺序是有意的：先解码（否则连长度都无从谈起），
+ * 再查长度范围，最后验 CRC。CRC 放最后是因为它最贵，
+ * 前面能提前否掉的就不必算了。
+ *
+ * 返回 0 表示这一帧不可用（畸形、超长或 CRC 错），调用方丢弃即可。 */
 static size_t decode(DRMS_CDCFrame *ctx)
 {
   size_t input = 0, output = 0;
@@ -46,6 +77,10 @@ static size_t decode(DRMS_CDCFrame *ctx)
   return output;
 }
 
+/* 半帧超时检查，由上层周期性调用。
+ *
+ * 若缓冲里已经堆了数据、但超过 1000 ms 还没有遇到分隔符，就整段丢弃。
+ * 没有这一步，一个被截断的帧会让后面所有正常帧都排在它后面永远出不去。 */
 void drms_cdc_frame_tick(DRMS_CDCFrame *ctx, uint32_t now_ms)
 {
   if (ctx && ctx->length &&
@@ -57,6 +92,15 @@ void drms_cdc_frame_tick(DRMS_CDCFrame *ctx, uint32_t now_ms)
   }
 }
 
+/* 喂入一个字节。这是流式解帧的主体。
+ *
+ * 逐字节处理的原因：USB CDC 不保证一次读到的就是完整帧，
+ * 可能半个帧、也可能好几个帧粘在一起，只有按字节扫描才能覆盖所有情况。
+ *
+ * 遇到 0 就意味着一帧结束：取出缓冲、解码校验，成功则回调 on_frame。
+ * 连续多个 0 直接忽略（COBS 允许，且线路上可能有多余分隔符）。
+ *
+ * 参数：on_frame 是上层回调，收到一帧完整请求时调用；user 原样传回。 */
 void drms_cdc_frame_feed(DRMS_CDCFrame *ctx, uint8_t byte, uint32_t now_ms,
                          DRMS_CDCFrameHandler handler, void *user)
 {
@@ -105,6 +149,10 @@ void drms_cdc_frame_feed(DRMS_CDCFrame *ctx, uint8_t byte, uint32_t now_ms,
   ctx->encoded[ctx->length++] = byte;
 }
 
+/* 把一帧原始内容做 COBS 编码并追加分隔符，得到可以直接上线的字节。
+ *
+ * 容量不足时返回 0，绝不输出半个帧——半个帧在线上会破坏后续所有帧的同步。
+ * 返回值为实际的线上长度。 */
 size_t drms_cdc_frame_encode(const uint8_t *raw, size_t length, uint8_t *out, size_t capacity)
 {
   if (!raw || !out || length > DRMS_CDC_RAW_MAX || capacity < 2u)
