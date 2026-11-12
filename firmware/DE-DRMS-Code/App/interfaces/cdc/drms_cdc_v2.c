@@ -114,7 +114,7 @@ size_t drms_cdc_v2_encode_measurement(uint32_t session, uint64_t sequence, uint6
   return drms_cdc_frame_encode(raw, pos, wire, capacity);
 }
 
-/* 周期性推送 CURVE 事件。由 CDC 接收线程每轮调用一次。
+/* 周期性推送 CURVE 事件。由 **CDC 发送线程** 每 10 ms 调用一次。
  *
  * 规则：
  *   · 每个订阅周期最多发一条，不到期直接返回，不做忙等；
@@ -123,6 +123,17 @@ size_t drms_cdc_v2_encode_measurement(uint32_t session, uint64_t sequence, uint6
  *   · lost 累计的是"本该发但没发出去"的周期数，主机据此能区分
  *     "设备安静"和"链路卡住了"；
  *   · 编码失败时把 sequence 回退，保证序号连续——宁可重发也不要留缺口。
+ *
+ * 为什么在发送线程而不是接收线程：
+ *   接收线程用 UX_WAIT_FOREVER 阻塞在 cdc_acm_read 上，只有主机发数据才返回。
+ *   订阅成功后主机通常就安静了，接收线程于是长期停在 read 里，
+ *   跟在它后面的 publish 一次都跑不到（实测 3 秒内所有计数器增量为 0）。
+ *   发送线程本来就是 USB 的唯一写入方，且每 10 ms 必醒，放这里最稳。
+ *
+ * 跨线程安全：
+ *   编码用独立的 curve_wire 缓冲，不碰 ctx->wire（那是接收线程回帧用的）。
+ *   epoch 在编码前后比对：订阅若在编码期间被撤销/重建，这一帧直接作废，
+ *   避免撤销后仍漏出一帧旧订阅的数据。
  *
  * 注意它是快照而非原始流：全速数据在记录文件里，这里只服务于实时观察。 */
 void drms_cdc_v2_publish(DRMS_CDCV2 *ctx, uint32_t now)
@@ -133,7 +144,7 @@ void drms_cdc_v2_publish(DRMS_CDCV2 *ctx, uint32_t now)
     return;
   if (ctx->can_send && !ctx->can_send(ctx->send_context, 0))
   {
-    ++ctx->curve_lost; /* no room: count and try again next period */
+    ++ctx->curve_lost;
     ctx->curve_last_ms = now;
     return;
   }
@@ -144,17 +155,24 @@ void drms_cdc_v2_publish(DRMS_CDCV2 *ctx, uint32_t now)
     ctx->curve_last_ms = now;
     return;
   }
-  ++ctx->curve_sequence;
-  size_t len = drms_cdc_v2_encode_measurement(ctx->session.session, ctx->curve_sequence,
-      ctx->curve_lost, &snapshot, ctx->wire, sizeof(ctx->wire));
+  uint32_t epoch = ctx->curve_epoch;
+  uint64_t sequence = ctx->curve_sequence + 1u;
+  size_t len = drms_cdc_v2_encode_measurement(ctx->session.session, sequence,
+      ctx->curve_lost, &snapshot, ctx->curve_wire, sizeof(ctx->curve_wire));
   if (!len)
   {
-    --ctx->curve_sequence;
     ++ctx->curve_lost;
     ctx->curve_last_ms = now;
     return;
   }
-  ctx->send(ctx->send_context, ctx->wire, len, 0);
+  if (epoch != ctx->curve_epoch || !ctx->curve_subscribed)
+  {
+    /* 编码期间订阅被撤销或重建：这一帧属于已经不存在的订阅，丢弃但不计 lost
+     * ——它本来就不该存在，不是链路问题。 */
+    return;
+  }
+  ctx->curve_sequence = sequence;
+  ctx->send(ctx->send_context, ctx->curve_wire, len, 0);
   ctx->curve_last_ms = now;
 }
 
@@ -358,12 +376,14 @@ static void received(void *user, const uint8_t *request, size_t length)
           ctx->curve_sequence = 0;
           ctx->curve_lost = 0;
           ctx->curve_last_ms = now_stamp;
+          ++ctx->curve_epoch; /* 让正在编码的旧帧作废 */
           result = DRMS_OK;
         }
         else
         {
           ctx->curve_subscribed = 0;
           ctx->curve_period_ms = 0;
+          ++ctx->curve_epoch; /* 让正在编码的旧帧作废 */
           result = DRMS_OK;
         }
         subscribed_stream = stream;
@@ -811,6 +831,7 @@ void drms_cdc_v2_disconnect(DRMS_CDCV2 *ctx)
   ctx->curve_period_ms = 0;
   ctx->curve_sequence = 0;
   ctx->curve_lost = 0;
+  ++ctx->curve_epoch; /* 让发送线程手里那一帧作废 */
 }
 
 /* 往解帧器里喂一个字节。由 CDC 接收线程逐字节调用。

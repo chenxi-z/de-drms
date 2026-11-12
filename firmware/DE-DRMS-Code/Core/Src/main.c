@@ -107,6 +107,21 @@ int main(void)
   (void)HAL_UART_Transmit(&huart1, boot_banner, sizeof(boot_banner) - 1u, 100u);
   HAL_PWR_EnableWakeUpPin(PWR_WAKEUP_PIN1_LOW_0);
   HAL_PWR_EnableWakeUpPin(PWR_WAKEUP_PIN5_LOW_0);
+  /* HAL 毫秒时基（TIM7）必须高于采集中断。
+   *
+   * 2026-11-12 实机定位：TIM7 原用默认优先级 15（最低），而 4 kSPS 采集时
+   * DRDY(EXTI3)=7、GPDMA=6 每秒各来 4000 次，TIM7 每次都被它们抢先，
+   * 大量更新中断被压在 pending 里合并，于是 uwTick 每秒只前进约 91 次
+   * 而不是 1000 次——HAL_GetTick() 慢了整整一个数量级，所有超时、
+   * CDC 推送周期、记录时长都跟着失真（表现为 100 ms 的订阅只发出 2 条/秒）。
+   *
+   * 提到最高优先级 0 之后，tick 精确回到 1 kHz（实测事件间隔与
+   * 设备单调时间逐拍对齐）。TIM7 的 ISR 只是 HAL_IncTick() 加一，
+   * 耗时几微秒，放在最高优先级不会挤压采集时间预算。
+   *
+   * 注意：这与 EXTI3 必须低于 GPDMA(6) 的规则不冲突——那条约束管的是
+   * 采集内部两个中断的先后，TIM7 完全在采集环路之外。 */
+  HAL_NVIC_SetPriority(TIM7_IRQn, 0, 0);
   /* USER CODE END 2 */
 
   MX_ThreadX_Init();

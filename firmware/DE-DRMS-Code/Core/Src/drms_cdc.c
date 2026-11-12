@@ -239,23 +239,36 @@ void drms_cdc_poll(void)
   }
 }
 
+/* 发送线程：周期推送与出队发送的唯一执行者。
+ *
+ * 为什么推送在这里而不是接收线程：接收线程用 UX_WAIT_FOREVER 阻塞在
+ * cdc_acm_read 上，只有主机发数据才返回。订阅成功后主机通常就安静了，
+ * 接收线程于是长期停在 read 里，跟在它后面的 publish 一次都跑不到
+ * （实测：订阅成功后 3 秒内 publish 调用增量为 0、事件数为 0）。
+ * 发送线程本来每轮都醒，又已经是 USB 的唯一写入方，放在这里既不会
+ * 与回帧抢缓冲，也不会漏拍。
+ *
+ * 顺序：先推送再出队。推送只是往队列里放一帧，出队负责真正写给 USB；
+ * 同一轮里先放后发，让本轮的曲线帧有机会在最早的时刻上线。 */
 static void tx_entry(ULONG input)
 {
   TX_PARAMETER_NOT_USED(input);
   for (;;)
   {
+    drms_cdc_v2_publish(&v2, HAL_GetTick());
     drms_cdc_tx_poll();
     tx_thread_sleep(1);
   }
 }
 
+/* 接收线程：只负责"解析进来的一行/一帧"。
+ * 它会阻塞在 read 上，所以任何周期性工作都不能挂在这个循环里。 */
 static void entry(ULONG input)
 {
   TX_PARAMETER_NOT_USED(input);
   for (;;)
   {
     drms_cdc_poll();
-    drms_cdc_v2_publish(&v2, HAL_GetTick());
     tx_thread_sleep(1);
   }
 }
