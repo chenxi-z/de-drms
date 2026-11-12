@@ -10,7 +10,8 @@
 3. [CubeMX操作清单](../../firmware/DE-DRMS-Code/CUBEMX_SETUP.md)：硬件外设勾选只能 GUI 做；参数与引脚标签可脚本改后 `config saveext` 复存。
 4. [说明图](diagram/)：七张无历史后缀的拓扑图及其同名PNG；生成器在`diagram/_lib/`。
 5. [器件选型历史](component-selection.md)、[专题历史](spec/)、[交接记录](HANDOFF.md)。
-6. [AAF六方案报告](../../hardware/sim/signalchain/aaf_pkg_review/REPORT.md)：保留原始门槛与失败项，T2只是首板折中候选。
+6. AAF六方案报告（本机工作区 `hardware/sim/signalchain/aaf_pkg_review/REPORT.md`，该目录按 .gitignore 不入库）：
+   保留原始门槛与失败项，T2只是首板折中候选。
 7. [当前固件与上板流程](../../firmware/DE-DRMS-Code/README.md)、[控制/记录协议](../protocol/de-drms-v1.md)、
    [2026-11-04 实施记录](2026-11-04-firmware-implementation.md)：测量、参考校准、Flash、SD、USB/串口、RTC/电池和软关机的源码与本机验证。
 8. [固件任务架构讨论图](diagram/固件任务架构.svg)：2026-11-05 按冻结硬件讨论的任务职责、控制事件与两级数据环形缓冲；是目标设计，不是当前源码完成状态。

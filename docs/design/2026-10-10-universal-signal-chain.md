@@ -1156,7 +1156,7 @@ R32/R33 保留焊盘：四线 Kelvin 接法不贴，二线接法可装 0 Ω；�
 这组器件替换原 RC 群，不叠加在旧滤波器后面。两线镜像、末端电容靠 ADC、Kelvin 回路短，
 完整地平面，远离 SPI/SDMMC/SMPS 高频回流；尚未完成板内布线和 DRC。
 
-来源：[六方案报告](../../hardware/sim/signalchain/aaf_pkg_review/REPORT.md)。
+来源：六方案报告（本机 `hardware/sim/signalchain/aaf_pkg_review/REPORT.md`；该目录按 .gitignore 不入库，可由套件内 `gen_*.py`/`run_all.py` 重跑再生）。
 T2：D1=62.33 dB（要求80，失败），D2=61.05 dB（要求60），D3=94.74 dB（要求100，失败）；
 16 kHz 衰减标称0.412 dB、A5角0.461 dB，建立约32 µs均为该台架结果。
 D6 正交增量 ch1=44.6% 超30%，不能只摘线性口径的通过值。
