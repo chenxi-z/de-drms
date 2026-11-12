@@ -110,6 +110,11 @@ static DRMS_Result session_cancel_reason;
 static uint32_t session_footer_requested;
 static uint32_t session_duration_ms;
 static uint64_t session_started_us;
+/* 会话状态：三者的关系是 session_armed → session_active → session_stopping。
+ *   armed     已提交开始请求，还在等文件与起始边界
+ *   active    记录窗口已生效，帧正在往记录环里走
+ *   stopping  已请求结束，正在等结束边界 E
+ * 只有窗口真正生效（active）期间采到的帧才属于这次记录。 */
 static uint32_t session_stopping;/* request_stop 已发，等 E */
 static uint32_t session_active;  /* classify/记录窗口生效中 */
 static uint64_t consumed_raw;    /* 消费端 raw_ticket 水位 */
@@ -1424,6 +1429,9 @@ static void execute(const DRMS_Command *command)
         cal_active = 1;
       }
       break;
+    /* 保存校准系数到 Flash。
+     * 三个前置条件缺一不可：必须在停采状态、没有记录在写、且已经 calibrate 过。
+     * 之所以要求停采，是因为写 Flash 会长时间占用总线，与采集抢带宽。 */
     case DRMS_CMD_SAVE:
       if (drms_acq_running || drms_log_state || !calibration.valid)
         cmd_result = 1;
@@ -1435,6 +1443,9 @@ static void execute(const DRMS_Command *command)
         drms_user_config_set_calibration_generation(calibration.generation);
       }
       break;
+    /* 开始记录。这里走控制裁决而不是直接调用，因为它需要同时占用
+     * 采集配置、记录会话和 TF 卡三种资源，必须先问"现在能用吗"。
+     * 返回 100 表示已受理，最终结果（文件是否真的建起来）要等会话归结。 */
     case DRMS_CMD_RECORD:
     {
       DRMS_ControlRequest request = {
@@ -1460,6 +1471,9 @@ static void execute(const DRMS_Command *command)
       else
         (void)drms_log_stop();
       break;
+    /* 设置 RTC 的 UTC 时间。参数是 ISO-8601 字符串。
+     * 时间只影响记录文件里写的时间戳，不参与任何测量计算，
+     * 所以即使没设置也能正常测量——只是 rtc_valid 会是 0。 */
     case DRMS_CMD_TIME:
       cmd_result = drms_time_set(command->text) ? 0 : 7;
       drms_time_get(&clock_snapshot);
@@ -1586,6 +1600,13 @@ void drms_application_poll(void)
       cmd_result = begin(boot_rate, 0);
     }
   }
+  /* 安全停止优先于一切普通命令。
+   *
+   * 它走独立通道（drms_control_safe_stop_take）而不是命令队列，
+   * 就是为了能插队：主机可能刚发了一串请求，其中某条卡住了，
+   * 此时停止必须立刻生效，不能排在它们后面等。
+   *
+   * 记录下"停止时是否正在记录"，决定了收尾时要不要等文件关闭。 */
   uint32_t priority_stop = drms_control_safe_stop_take();
   uint32_t local_stop = __atomic_exchange_n(&stop_requested, 0U, __ATOMIC_ACQ_REL);
   if (priority_stop || local_stop)
@@ -1640,8 +1661,13 @@ void drms_application_poll(void)
     session_stopping = 1;
     session_duration_ms = 0; /* Issue a single stop request. */
   }
+  /* 屏障期内不要排空采集环——会话正在等一个一致边界，
+   * 此时把帧取走会让边界的样本序号与实际处理的帧对不上。
+   * 等边界定下来（barrier 变 0）再继续消费。 */
   if (!drms_record_session_barrier())
     drain_frames();
+  /* 基线与校准都是长流程（数秒到几十秒），每轮推进一点点，
+   * 绝不在一次调用里等它们完成——否则整机的响应会卡住。 */
   baseline_service(now);
   protocol_cal_service(HAL_GetTick());
   if (session_active)
