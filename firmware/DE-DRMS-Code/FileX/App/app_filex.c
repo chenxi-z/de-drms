@@ -57,8 +57,22 @@
 /* Main thread global data structures.  */
 TX_THREAD       fx_app_thread;
 
-/* Buffer for FileX FX_MEDIA sector cache. */
-ALIGN_32BYTES (uint32_t fx_sd_media_memory[FX_STM32_SD_DEFAULT_SECTOR_SIZE / sizeof(uint32_t)]);
+/* Buffer for FileX FX_MEDIA sector cache.
+ *
+ * 2026-11-12：从 1 个扇区（512 B）加大到 16 KiB（32 扇区）。
+ *
+ * 动机是把一次大块写摊到更多扇区上一并提交，减少单扇区往返。
+ * **实测结论要如实记录：这一改动没有解决记录吞吐问题。**
+ * 在 64 kSPS 场景下，把缓存从 512 B 加到 16 KiB 后，
+ * 实测记录吞吐仍在 ~90-160 KB/s 量级，没有数量级改善。
+ * 也就是说瓶颈不在 FileX 的缓存大小，而在更下层（SD 传输或
+ * 每轮 poll 的固定开销），尚未定位。详见 README 的"待查"一节。
+ *
+ * 保留这个改动的理由：更大的缓存对多扇区写本身是无害且合理的，
+ * 且 16 KiB 在 786 KB SRAM 里占比很小。但**不要**把它当成
+ * 64 kSPS 记录问题的修复。 */
+#define DRMS_MEDIA_CACHE_SECTORS 32u
+ALIGN_32BYTES (uint32_t fx_sd_media_memory[DRMS_MEDIA_CACHE_SECTORS * FX_STM32_SD_DEFAULT_SECTOR_SIZE / sizeof(uint32_t)]);
 /* Define FileX global data structures.  */
 FX_MEDIA        sdio_disk;
 
