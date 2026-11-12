@@ -1,7 +1,14 @@
+## 双远端同步规则（2026-11-06 用户确认，优先于旧规约）
+
+- 每次推送同时更新 GitHub `git@github.com:chenxi-z/de-drms.git` 与 Gitee `git@gitee.com:chenxi666/de-drms.git`。
+- 同名目标分支必须推送同一个提交，并用 `git ls-remote` 核对两端 SHA 完全一致；仅一端成功不得报告同步完成。
+- 若一端失败，保留成功结果并重试失败端；若存在分叉，先核对历史，禁止未经授权强推、改写历史或批量镜像覆盖。
+- 本规则替代旧“不要自动推送 Gitee”的限制；不授权提交无关工作区改动。
+
 # 当前实施规则（2026-10-28）
 
 用户已授权修改仓库固件、设计文档和说明图，原理图/PCB工程由用户修改。
-先读 `docs/design/README.md`、主文档**附录F**、`pin-assignment.md`、`firmware/DE-DRM/CUBEMX_SETUP.md`。
+先读 `docs/design/README.md`、主文档**附录F**、`pin-assignment.md`、`firmware/DE-DRMS-Code/CUBEMX_SETUP.md`。
 当前用户确认与附录F优先于下方旧规约中的硬件决策、性能断言和文件状态。
 
 **2026-10-28 换型与功能裁剪（用户决定，覆盖下方旧表）**：
@@ -15,7 +22,7 @@
 已有生成固件与EDA，不能再称纯文档阶段。根目录实际Git远端为GitHub `chenxi-z/de-drms`。
 不改EDA；不改历史仿真结果，不降门槛；修改SVG生成器后同步SVG和@2x.png并跑图检和目视。
 IOC不手工增删IP，当前源码与旧IOC差异见CubeMX清单，需GUI复存。
-源文件/文档可提交，构建产物和外部手册不入库。不要自动推送旧Gitee地址或改写历史。
+源文件/文档可提交，构建产物和外部手册不入库。按顶部双远端同步规则推送，不改写历史。
 
 ---
 
@@ -36,8 +43,8 @@ IOC不手工增删IP，当前源码与旧IOC差异见CubeMX清单，需GUI复存
    **两者冲突时以附录 E 为准**；更早版本文档（V1.0~V2.2）仅是决策历史，不得据此实现。
 3. `docs/design/pin-assignment.md` — **引脚分配总表**（2026-10-14 重排定稿；**2026-10-20 v3 重分配 + 同日就近二次重排 + 2026-10-22 电源监测改**：PB5=BQ_PG、PC2=BQ_CHG、HSE/LSE=扩展焊盘、ADC 簇收拢 PA1–PA7、调试改 USART1(PA9/PA10)，含 MCU/ADC/SDMMC/连接器/信号网络）
 4. `docs/design/HANDOFF.md` — 新会话交接提示词（设计线 + Obsidian 归档线）
-5. `firmware/DE-DRM/CUBEMX_SETUP.md` — CubeMX GUI 配置清单（改工程配置前必读；
-   **⚠️ IOC 不可手改加 IP，见「已被否决」末条**）
+5. `firmware/DE-DRMS-Code/CUBEMX_SETUP.md` — CubeMX GUI 配置清单 + 无 UI 实测能力边界（改工程配置前必读；
+   **⚠️ IOC 不可手改增删 IP 块，见「已被否决」末条；外设勾选只能 GUI 做**）
 
 ## 仓库结构（顶层实测清单）
 
@@ -64,7 +71,7 @@ IOC不手工增删IP，当前源码与旧IOC差异见CubeMX清单，需GUI复存
 | `tools/` | 研发辅助脚本 | **有效**：`svg_schematic_check.py`（示意图交付前体检，见文末规范） |
 | `hardware/sim/` | LTspice 仿真验证 | **有效**：`ccsource/`（恒流源拓扑验证，2026-10-13） |
 | `shared/protocol/` | 上下位机协议的**机器可读**权威定义 | 空占位（`.gitkeep`） |
-| `firmware/` `host/` `mechanical/` | 下位机 / 上位机 / 结构 | `firmware/DE-DRM/` **有效**：`DE-DRM.ioc`（CubeMX 工程）+ `CUBEMX_SETUP.md`（GUI 配置清单）；**尚无生成的源码**。`host/`、`mechanical/` 仍空占位（`.gitkeep`） |
+| `firmware/` `host/` `mechanical/` | 下位机 / 上位机 / 结构 | `firmware/DE-DRMS-Code/` **有效**：`DE-DRMS-Code.ioc`（CubeMX 工程，**STM32U575RGT6 + TrustZone 关**，2026-11-03 重建）+ `CUBEMX_SETUP.md`（GUI 配置清单 + 无 UI 实测边界）；旧 `firmware/DE-DRM/`（545 工程与其源码）已删除，仅存 git 历史。`host/`、`mechanical/` 仍空占位（`.gitkeep`） |
 | `hardware/` | 硬件（含仿真） | `sim/ccsource/` 有效（恒流源拓扑验证）；其余 `.gitkeep` |
 | `calibration/` `test/` `production/` | 校准 / 测试 / 生产 | 空占位（仅 `.gitkeep`） |
 
@@ -84,7 +91,7 @@ IOC不手工增删IP，当前源码与旧IOC差异见CubeMX清单，需GUI复存
 | --- | --- |
 | 拓扑 | 恒流激励 + 双通道同步实测（恒流测电阻，不做电桥） |
 | 激励 | 8 µA 恒流；Rsense = 150 kΩ 0.1%；恒流源 OPA333 + BSS138（低边拓扑）。**2026-10-14 终审封存**（四路证据收敛，OPA391/Howland/LM334/REFEXT 等全数评审，见 sim README） |
-| ADC | ADS131A02（2 通道同步、24 bit、128 kSPS、内部 **2.442 V** 基准、3.3 V 直连）；**采样策略：冲击全程 128 kSPS 采满、按需数字降采样**（E.4.3） |
+| ADC | ADS131A02（2 通道同步、24 bit、**ADC 本身支持 128 kSPS**、内部 **2.442 V** 基准、3.3 V 直连）；原策略"冲击全程 128 kSPS 采满、按需数字降采样"（E.4.3）**已被 2026-11-12 实板结论限制**：**64 kSPS 是无损上限**，128 kSPS 受读取时序限制不可用且被入口拒绝，详见固件说明 |
 | 前端 | **3 颗跟随器 OPA388**（T、M、B 三线；AIN1N 直接经 RC 接 Rsense 底端）；T 点顶端偏置 R_top 10 kΩ / R_b 150 kΩ（E.2）；保护 BAV199（默认）/ 低漏电 ESD 阵列（备选焊盘） |
 | 自校准 | 0.1% Rsense 打底 + 板上 R_ref（100 kΩ 0.01%）自检，**单颗 TMUX1134 切换**（2026-10-18 整合落地，替换原 TMUX1101×2+1102×2 分立方案）；**零点模式**消 ADC 失调（**SEL1/2/3 = PB2 同沿、SEL4 = PB0**，互锁靠固件；原 SEL_K1=PB5 已取消）（切换电路已画：`docs/design/diagram/模拟前端与自校准.svg`，方案见 E.3；**原理图施工级恒流源图**见 `docs/design/diagram/恒流源电路图.svg`）；**全链仿真 2026-10-14 定版**：三层校准机构逐项实测验证（fs 套件） |
 | 测量能力 | **1% 可用范围 ~73 Ω–600 kΩ**（设计量程 10–120 kΩ @≤0.005%）；定级**随 R 变**：**@120 kΩ ≈4½ 位精度**、**@10 kΩ 降到 4 位（typ）/3½ 位（max）**（INL 主导，2026-10-14 按手册 TYP 8/MAX 20 ppm FS 修正，原写"4½ 位精度"未分 R）；5½ 位**分辨率**（准静态，分辨率≠精度）；绝对精度锚定 R_ref（Rsense 在 k 校准中约掉）；冲击 10 ms 级跟踪误差 <0.000023%（E.3.4/E.4.3） |
@@ -150,7 +157,7 @@ IOC不手工增删IP，当前源码与旧IOC差异见CubeMX清单，需GUI复存
   令 E.8.3"在线不报警不关机"失效
 - **手改 CubeMX IOC 增删 IP 块（2026-10-14 实测否决）**：手写 SPI1/ADC1/USART2/USB_OTG_FS 的 IP 段
   会被 CubeMX **静默丢弃**（IOC 有内部指纹格式）；只能在 GUI 里配后 Save 落盘，
-  agent 只提供点击清单（`firmware/DE-DRM/CUBEMX_SETUP.md`）
+  agent 只提供点击清单（`firmware/DE-DRMS-Code/CUBEMX_SETUP.md`）
 
 ## 需外部输入才能推进（不要自行假设）
 

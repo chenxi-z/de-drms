@@ -18,7 +18,7 @@
 | 5/6 | PH0/PH1 | OSC_IN/OUT | — | **HSE 16 MHz（X4 已贴，C1/C2 20 pF，R1 1 MΩ）** |
 | 7 | NRST | NRST | 复位 | — |
 | 8 | PC0 | VBAT_MON | ADC1_IN1 | 电池分压；采样 68 周期 |
-| 9 | PC1 | BQ_EN | 输出 Low | **BQ24074 EN1**（R47 10 kΩ 下拉，默认关闭充电） |
+| 9 | PC1 | BQ_EN | 输出 Low | **BQ24074 EN1**（R47 10 kΩ 下拉；EN2接地，Low=USB100，High=USB500，**不是关闭充电**） |
 | 10 | PC2 | BQ_CHG | 输入 上拉 | 低 = 充电中 |
 | 11 | PC3 | ANA_EN | 输出 Low | 模拟 LDO(U4) EN；R81 100 kΩ 下拉 |
 | 12/13 | VSSA/VDDA | GND/VCC | 电源 | 100 nF + 1 µF |
@@ -43,7 +43,7 @@
 | 39/40 | PC8/PC9 | SD_D0 / SD_D1 | SDMMC1 AF12 | 经 R44/R45 串阻；R53/R63 上拉 |
 | 41 | **PA8** | — | **NC** | **本版不用**（原 SD_PWR_EN，已取消） |
 | 42/43 | PA9/PA10 | USART1_TX/RX | AF7 | 调试串口 115200 |
-| 44/45 | PA11/PA12 | PA11 / PA12 | USB_DRD_FS | Type-C。网络名即引脚别名 |
+| 44/45 | PA11/PA12 | PA11 / PA12 | USB_OTG_FS | U575 外设名；Type-C，网络名即引脚别名 |
 | 46 | PA13 | SWDIO | 调试 | — |
 | 47 | VSS | GND | 电源 | — |
 | 48 | VDDUSB | VCC | 电源 | **与 VCC 同轨，USB 不单独断电**（用户 2026-10-28 决定） |
