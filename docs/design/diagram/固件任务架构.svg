@@ -1,0 +1,147 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1540">
+<defs>
+<pattern id="grid" width="24" height="24" patternUnits="userSpaceOnUse"><path d="M24 0H0V24" fill="none" stroke="#eef2f7" stroke-width="0.5"/></pattern>
+
+<marker id="a-control" markerUnits="userSpaceOnUse" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M0 1L9 5L0 9Z" fill="#7c3aed"/></marker>
+<marker id="a-data" markerUnits="userSpaceOnUse" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M0 1L9 5L0 9Z" fill="#059669"/></marker>
+<marker id="a-fault" markerUnits="userSpaceOnUse" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M0 1L9 5L0 9Z" fill="#dc2626"/></marker>
+<marker id="a-neutral" markerUnits="userSpaceOnUse" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M0 1L9 5L0 9Z" fill="#374151"/></marker>
+</defs>
+<rect width="1600" height="1540" fill="#fff"/>
+<rect width="1600" height="1540" fill="url(#grid)"/>
+<text x="40" y="48" font-family="Noto Sans CJK SC" font-size="27" fill="#0f172a" font-weight="700">固件任务架构</text>
+<text x="40" y="78" font-family="Noto Sans CJK SC" font-size="14" fill="#374151" font-weight="400">STM32U575RGT6 · ThreadX · 两个按键 / 五个 LED · 硬件冻结</text>
+<text x="40" y="104" font-family="Noto Sans CJK SC" font-size="12" fill="#b45309" font-weight="400">设计提案：职责与通道已讨论；不是当前源码实现状态。任务优先级数值、队列容量与执行预算待验证。</text>
+<rect x="40" y="130" width="1520" height="650" rx="12" fill="#fff" stroke="#cbd5e1"/>
+<text x="60" y="159" font-family="Noto Sans CJK SC" font-size="15" fill="#374151" font-weight="700">一、控制与交互：业务异步协调，关键事件及时处理</text>
+<rect x="70" y="180" width="360" height="110" rx="8" fill="#eff6ff" stroke="#60a5fa" stroke-width="1.3"/>
+<text x="86" y="207" font-family="Noto Sans CJK SC" font-size="14" fill="#0f172a" font-weight="700">本机交互任务 · 低优先级</text>
+<text x="86" y="232" font-family="Noto Sans CJK SC" font-size="12" fill="#374151" font-weight="400">两个按键独立状态机；单击 / 长按</text>
+<text x="86" y="254" font-family="Noto Sans CJK SC" font-size="12" fill="#374151" font-weight="400">五个 LED 非阻塞灯效；读取最新业务状态</text>
+<text x="86" y="276" font-family="Noto Sans CJK SC" font-size="12" fill="#374151" font-weight="400">只提交操作，不裁决业务、不直接关机</text>
+<rect x="70" y="340" width="360" height="110" rx="8" fill="#eff6ff" stroke="#60a5fa" stroke-width="1.3"/>
+<text x="86" y="367" font-family="Noto Sans CJK SC" font-size="14" fill="#0f172a" font-weight="700">CDC 接收任务</text>
+<text x="86" y="392" font-family="Noto Sans CJK SC" font-size="12" fill="#374151" font-weight="400">接收 → 增量拼帧 → 校验 → 解码</text>
+<text x="86" y="414" font-family="Noto Sans CJK SC" font-size="12" fill="#374151" font-weight="400">同任务分级解析，完整请求才跨线程</text>
+<text x="86" y="436" font-family="Noto Sans CJK SC" font-size="12" fill="#374151" font-weight="400">保留来源 / 会话 / 请求编号</text>
+<rect x="70" y="500" width="360" height="110" rx="8" fill="#eff6ff" stroke="#60a5fa" stroke-width="1.3"/>
+<text x="86" y="527" font-family="Noto Sans CJK SC" font-size="14" fill="#0f172a" font-weight="700">USART1 调试服务</text>
+<text x="86" y="552" font-family="Noto Sans CJK SC" font-size="12" fill="#374151" font-weight="400">RX 环形缓冲 / TX DMA</text>
+<text x="86" y="574" font-family="Noto Sans CJK SC" font-size="12" fill="#374151" font-weight="400">独立启动 / 故障日志及调试指令</text>
+<text x="86" y="596" font-family="Noto Sans CJK SC" font-size="12" fill="#374151" font-weight="400">不承担正式协议、数据流、文件或升级</text>
+<rect x="600" y="340" width="400" height="130" rx="8" fill="#f5f3ff" stroke="#8b5cf6" stroke-width="1.3"/>
+<text x="616" y="367" font-family="Noto Sans CJK SC" font-size="14" fill="#0f172a" font-weight="700">设备控制任务 · 高优先级、短执行</text>
+<text x="616" y="392" font-family="Noto Sans CJK SC" font-size="12" fill="#374151" font-weight="400">业务独立状态机：测量 / 记录 / 基线 / 校准</text>
+<text x="616" y="414" font-family="Noto Sans CJK SC" font-size="12" fill="#374151" font-weight="400">统一接纳请求、检查冲突、预占资源</text>
+<text x="616" y="436" font-family="Noto Sans CJK SC" font-size="12" fill="#374151" font-weight="400">发起异步操作，接收结果；不等待写卡</text>
+<text x="616" y="458" font-family="Noto Sans CJK SC" font-size="12" fill="#374151" font-weight="400">协调安全停止、导出互锁和安全待机</text>
+<rect x="1140" y="180" width="390" height="110" rx="8" fill="#eff6ff" stroke="#60a5fa" stroke-width="1.3"/>
+<text x="1156" y="207" font-family="Noto Sans CJK SC" font-size="14" fill="#0f172a" font-weight="700">USB 管理任务</text>
+<text x="1156" y="232" font-family="Noto Sans CJK SC" font-size="12" fill="#374151" font-weight="400">PC13 / 枚举 / 挂起恢复 / 会话失效</text>
+<text x="1156" y="254" font-family="Noto Sans CJK SC" font-size="12" fill="#374151" font-weight="400">常插烧录、复位后的软件断开与重连</text>
+<text x="1156" y="276" font-family="Noto Sans CJK SC" font-size="12" fill="#374151" font-weight="400">CDC 与 MSC 生命周期；不直接读卡</text>
+<rect x="1140" y="340" width="390" height="110" rx="8" fill="#f1f5f9" stroke="#94a3b8" stroke-width="1.3"/>
+<text x="1156" y="367" font-family="Noto Sans CJK SC" font-size="14" fill="#0f172a" font-weight="700">系统服务任务 · 低优先级</text>
+<text x="1156" y="392" font-family="Noto Sans CJK SC" font-size="12" fill="#374151" font-weight="400">电池 / RTC / 参数与诊断快照</text>
+<text x="1156" y="414" font-family="Noto Sans CJK SC" font-size="12" fill="#374151" font-weight="400">普通信息低频刷新；有效性与更新时间</text>
+<text x="1156" y="436" font-family="Noto Sans CJK SC" font-size="12" fill="#374151" font-weight="400">Flash 维护窗口保存；不周期反复擦写</text>
+<rect x="1140" y="500" width="390" height="110" rx="8" fill="#fff7ed" stroke="#fb923c" stroke-width="1.3"/>
+<text x="1156" y="527" font-family="Noto Sans CJK SC" font-size="14" fill="#0f172a" font-weight="700">CDC 发送任务 · 单一发送者</text>
+<text x="1156" y="552" font-family="Noto Sans CJK SC" font-size="12" fill="#374151" font-weight="400">控制结果 / 关键故障优先，数据分块调度</text>
+<text x="1156" y="574" font-family="Noto Sans CJK SC" font-size="12" fill="#374151" font-weight="400">等待完成再释放缓冲；间隔按实测配置</text>
+<text x="1156" y="596" font-family="Noto Sans CJK SC" font-size="12" fill="#374151" font-weight="400">USB 拥塞只阻塞发送，不阻塞安全动作</text>
+<rect x="600" y="530" width="400" height="70" rx="8" fill="#fef2f2" stroke="#ef4444" stroke-width="1.3"/>
+<text x="616" y="557" font-family="Noto Sans CJK SC" font-size="14" fill="#0f172a" font-weight="700">紧急事件与操作结果通道</text>
+<text x="616" y="582" font-family="Noto Sans CJK SC" font-size="12" fill="#374151" font-weight="400">故障 / 停止优先；独立预留容量，不能被数据占满</text>
+<polyline points="430,235 480,235 480,370 600,370" fill="none" stroke="#7c3aed" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#a-control)"/>
+<polyline points="430,395 520,395 520,410 600,410" fill="none" stroke="#7c3aed" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#a-control)"/>
+<polyline points="430,555 560,555 560,450 600,450" fill="none" stroke="#7c3aed" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#a-control)"/>
+<polyline points="1140,235 1080,235 1080,370 1000,370" fill="none" stroke="#7c3aed" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#a-control)"/>
+<polyline points="1140,395 1100,395 1100,410 1000,410" fill="none" stroke="#7c3aed" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#a-control)"/>
+<polyline points="1000,450 1060,450 1060,555 1140,555" fill="none" stroke="#7c3aed" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#a-control)"/>
+<polyline points="800,530 800,470" fill="none" stroke="#dc2626" stroke-width="2" marker-end="url(#a-fault)"/>
+<polyline points="1000,565 1080,565 1080,585 1140,585" fill="none" stroke="#dc2626" stroke-width="2" marker-end="url(#a-fault)"/>
+<text x="70" y="665" font-family="Noto Sans CJK SC" font-size="13" fill="#374151" font-weight="400">请求：TX_QUEUE 保留顺序、来源与编号；安全停止独立保留。状态：最新快照 + 事件标志；提示：有界队列。</text>
+<text x="70" y="697" font-family="Noto Sans CJK SC" font-size="13" fill="#374151" font-weight="400">控制出口：异步请求采集 / 存储 / 系统服务；业务结果回到控制。LED 仅读取状态与提示，不介入裁决。</text>
+<text x="70" y="729" font-family="Noto Sans CJK SC" font-size="13" fill="#b91c1c" font-weight="400">红色通道：各业务故障先触发本机处理，再尽快通知电脑。不能等待 USB 发送完成才停采或结束失败记录。</text>
+<text x="70" y="757" font-family="Noto Sans CJK SC" font-size="12" fill="#374151" font-weight="400">注意：任务调度优先级、消息发送优先级、NVIC 中断优先级是三套规则；关键通知只能在完整帧边界插队。</text>
+<rect x="40" y="810" width="1520" height="350" rx="12" fill="#fff" stroke="#cbd5e1"/>
+<text x="60" y="839" font-family="Noto Sans CJK SC" font-size="15" fill="#374151" font-weight="700">二、采样数据路径：两级有界环形缓冲，按批次处理</text>
+<rect x="70" y="875" width="210" height="170" rx="8" fill="#eff6ff" stroke="#60a5fa" stroke-width="1.3"/>
+<text x="86" y="902" font-family="Noto Sans CJK SC" font-size="14" fill="#0f172a" font-weight="700">采集任务 / ISR</text>
+<text x="86" y="927" font-family="Noto Sans CJK SC" font-size="12" fill="#374151" font-weight="400">ADS / 模拟通路唯一控制</text>
+<text x="86" y="949" font-family="Noto Sans CJK SC" font-size="12" fill="#374151" font-weight="400">启动 / 停止 / 换路 / 稳定</text>
+<text x="86" y="971" font-family="Noto Sans CJK SC" font-size="12" fill="#374151" font-weight="400">DRDY 启动 SPI DMA</text>
+<text x="86" y="993" font-family="Noto Sans CJK SC" font-size="12" fill="#374151" font-weight="400">DMA 完成发布帧</text>
+<text x="86" y="1015" font-family="Noto Sans CJK SC" font-size="12" fill="#374151" font-weight="400">初始化与计算分离</text>
+<rect x="320" y="875" width="170" height="170" rx="8" fill="#ecfdf5" stroke="#059669" stroke-width="1.3"/>
+<text x="336" y="902" font-family="Noto Sans CJK SC" font-size="14" fill="#0f172a" font-weight="700">原始帧环形缓冲</text>
+<text x="336" y="927" font-family="Noto Sans CJK SC" font-size="12" fill="#374151" font-weight="400">当前容量 64 KiB</text>
+<text x="336" y="949" font-family="Noto Sans CJK SC" font-size="12" fill="#374151" font-weight="400">固定帧 16 字节</text>
+<text x="336" y="971" font-family="Noto Sans CJK SC" font-size="12" fill="#374151" font-weight="400">单生产者 / 单消费者</text>
+<text x="336" y="993" font-family="Noto Sans CJK SC" font-size="12" fill="#374151" font-weight="400">满则报告采集故障</text>
+<text x="336" y="1015" font-family="Noto Sans CJK SC" font-size="12" fill="#374151" font-weight="400">128 kSPS 约 32 ms</text>
+<rect x="530" y="875" width="240" height="170" rx="8" fill="#ecfdf5" stroke="#059669" stroke-width="1.3"/>
+<text x="546" y="902" font-family="Noto Sans CJK SC" font-size="14" fill="#0f172a" font-weight="700">测量处理任务</text>
+<text x="546" y="927" font-family="Noto Sans CJK SC" font-size="12" fill="#374151" font-weight="400">CRC / 格式 / 序号 / 有效性</text>
+<text x="546" y="949" font-family="Noto Sans CJK SC" font-size="12" fill="#374151" font-weight="400">电阻 / R/R0 / 区间判定</text>
+<text x="546" y="971" font-family="Noto Sans CJK SC" font-size="12" fill="#374151" font-weight="400">基线 / 校准累计统计</text>
+<text x="546" y="993" font-family="Noto Sans CJK SC" font-size="12" fill="#374151" font-weight="400">保留原始坏帧用于诊断</text>
+<text x="546" y="1015" font-family="Noto Sans CJK SC" font-size="12" fill="#374151" font-weight="400">批处理 + 有界执行预算</text>
+<rect x="810" y="875" width="170" height="170" rx="8" fill="#ecfdf5" stroke="#059669" stroke-width="1.3"/>
+<text x="826" y="902" font-family="Noto Sans CJK SC" font-size="14" fill="#0f172a" font-weight="700">记录环形缓冲</text>
+<text x="826" y="927" font-family="Noto Sans CJK SC" font-size="12" fill="#374151" font-weight="400">当前容量 512 KiB</text>
+<text x="826" y="949" font-family="Noto Sans CJK SC" font-size="12" fill="#374151" font-weight="400">单生产者 / 单消费者</text>
+<text x="826" y="971" font-family="Noto Sans CJK SC" font-size="12" fill="#374151" font-weight="400">不覆盖未写入数据</text>
+<text x="826" y="993" font-family="Noto Sans CJK SC" font-size="12" fill="#374151" font-weight="400">满则结束失败记录</text>
+<text x="826" y="1015" font-family="Noto Sans CJK SC" font-size="12" fill="#374151" font-weight="400">128 kSPS 约 256 ms</text>
+<rect x="1030" y="875" width="240" height="170" rx="8" fill="#faf5ff" stroke="#a855f7" stroke-width="1.3"/>
+<text x="1046" y="902" font-family="Noto Sans CJK SC" font-size="14" fill="#0f172a" font-weight="700">存储任务 · TF 唯一所有者</text>
+<text x="1046" y="927" font-family="Noto Sans CJK SC" font-size="12" fill="#374151" font-weight="400">挂载 / 批量写 / 分段 / flush</text>
+<text x="1046" y="949" font-family="Noto Sans CJK SC" font-size="12" fill="#374151" font-weight="400">原始记录与诊断信息</text>
+<text x="1046" y="971" font-family="Noto Sans CJK SC" font-size="12" fill="#374151" font-weight="400">MSC 只读扇区服务</text>
+<text x="1046" y="993" font-family="Noto Sans CJK SC" font-size="12" fill="#374151" font-weight="400">协议文件分块下载</text>
+<text x="1046" y="1015" font-family="Noto Sans CJK SC" font-size="12" fill="#374151" font-weight="400">介质交接 / 取消 / 排空</text>
+<rect x="1320" y="875" width="210" height="170" rx="8" fill="#faf5ff" stroke="#a855f7" stroke-width="1.3"/>
+<text x="1336" y="902" font-family="Noto Sans CJK SC" font-size="14" fill="#0f172a" font-weight="700">TF 卡</text>
+<text x="1336" y="927" font-family="Noto Sans CJK SC" font-size="12" fill="#374151" font-weight="400">记录与导出互斥</text>
+<text x="1336" y="949" font-family="Noto Sans CJK SC" font-size="12" fill="#374151" font-weight="400">记录中不下载</text>
+<text x="1336" y="971" font-family="Noto Sans CJK SC" font-size="12" fill="#374151" font-weight="400">掉卡 / 卡满 / 写失败</text>
+<text x="1336" y="993" font-family="Noto Sans CJK SC" font-size="12" fill="#374151" font-weight="400">记录报错，监测可继续</text>
+<text x="1336" y="1015" font-family="Noto Sans CJK SC" font-size="12" fill="#374151" font-weight="400">恢复卡不自动续录</text>
+<polyline points="280,960 320,960" fill="none" stroke="#059669" stroke-width="2" marker-end="url(#a-data)"/>
+<polyline points="490,960 530,960" fill="none" stroke="#059669" stroke-width="2" marker-end="url(#a-data)"/>
+<polyline points="770,960 810,960" fill="none" stroke="#059669" stroke-width="2" marker-end="url(#a-data)"/>
+<polyline points="980,960 1030,960" fill="none" stroke="#059669" stroke-width="2" marker-end="url(#a-data)"/>
+<polyline points="1270,960 1320,960" fill="none" stroke="#059669" stroke-width="2" marker-end="url(#a-data)"/>
+<rect x="810" y="1070" width="720" height="60" rx="8" fill="#fff7ed" stroke="#fb923c" stroke-width="1.3"/>
+<text x="826" y="1097" font-family="Noto Sans CJK SC" font-size="14" fill="#0f172a" font-weight="700">送往 CDC 发送：曲线统计 / 原始数据块</text>
+<text x="826" y="1122" font-family="Noto Sans CJK SC" font-size="12" fill="#374151" font-weight="400">小型有界缓冲 + 接收额度；慢电脑不占住记录队列，不新增第三套大型采样缓冲</text>
+<polyline points="650,1045 650,1100 810,1100" fill="none" stroke="#059669" stroke-width="2" marker-end="url(#a-data)"/>
+<rect x="40" y="1190" width="1520" height="300" rx="12" fill="#fff" stroke="#cbd5e1"/>
+<text x="60" y="1219" font-family="Noto Sans CJK SC" font-size="15" fill="#374151" font-weight="700">三、图注与自查要点</text>
+<rect x="70" y="1240" width="460" height="170" rx="8" fill="#f1f5f9" stroke="#94a3b8" stroke-width="1.3"/>
+<text x="86" y="1267" font-family="Noto Sans CJK SC" font-size="14" fill="#0f172a" font-weight="700">实时与故障边界</text>
+<text x="86" y="1292" font-family="Noto Sans CJK SC" font-size="12" fill="#374151" font-weight="400">采集 / 控制优先；交互和普通信息低优先级</text>
+<text x="86" y="1314" font-family="Noto Sans CJK SC" font-size="12" fill="#374151" font-weight="400">关键故障事件即时投递，周期统计不能代替安全检测</text>
+<text x="86" y="1336" font-family="Noto Sans CJK SC" font-size="12" fill="#374151" font-weight="400">看门狗按实际进展监督，不无条件定时喂狗</text>
+<text x="86" y="1358" font-family="Noto Sans CJK SC" font-size="12" fill="#374151" font-weight="400">USBX 内部线程仍保留，需共同核对调度</text>
+<text x="86" y="1380" font-family="Noto Sans CJK SC" font-size="12" fill="#374151" font-weight="400">128 kSPS 吞吐量与最坏延迟必须上板验证</text>
+<rect x="570" y="1240" width="460" height="170" rx="8" fill="#f1f5f9" stroke="#94a3b8" stroke-width="1.3"/>
+<text x="586" y="1267" font-family="Noto Sans CJK SC" font-size="14" fill="#0f172a" font-weight="700">内存与队列预算</text>
+<text x="586" y="1292" font-family="Noto Sans CJK SC" font-size="12" fill="#374151" font-weight="400">现有两环形缓冲 + 写入暂存合计 608 KiB</text>
+<text x="586" y="1314" font-family="Noto Sans CJK SC" font-size="12" fill="#374151" font-weight="400">最近构建 data + bss 约 693 KiB，主 RAM 768 KiB</text>
+<text x="586" y="1336" font-family="Noto Sans CJK SC" font-size="12" fill="#374151" font-weight="400">75 KiB 差额不是可任意分配的运行内存承诺</text>
+<text x="586" y="1358" font-family="Noto Sans CJK SC" font-size="12" fill="#374151" font-weight="400">缓冲时长按空队列估算，不是允许处理延迟</text>
+<text x="586" y="1380" font-family="Noto Sans CJK SC" font-size="12" fill="#374151" font-weight="400">线程栈 / 水位 / 小缓冲统一预算，所有队列有界</text>
+<rect x="1070" y="1240" width="460" height="170" rx="8" fill="#f1f5f9" stroke="#94a3b8" stroke-width="1.3"/>
+<text x="1086" y="1267" font-family="Noto Sans CJK SC" font-size="14" fill="#0f172a" font-weight="700">冻结硬件与实现状态</text>
+<text x="1086" y="1292" font-family="Noto Sans CJK SC" font-size="12" fill="#374151" font-weight="400">两个按键、五个 LED，无显示屏</text>
+<text x="1086" y="1314" font-family="Noto Sans CJK SC" font-size="12" fill="#374151" font-weight="400">灯光 GPIO 由本机交互任务唯一写入</text>
+<text x="1086" y="1336" font-family="Noto Sans CJK SC" font-size="12" fill="#374151" font-weight="400">VDDUSB 同 VCC：支持软重连，不是物理断电</text>
+<text x="1086" y="1358" font-family="Noto Sans CJK SC" font-size="12" fill="#374151" font-weight="400">MSC / R0 / 分档 / 任务拆分仍需代码实现</text>
+<text x="1086" y="1380" font-family="Noto Sans CJK SC" font-size="12" fill="#374151" font-weight="400">不改原理图、PCB、器件或接线</text>
+<text x="70" y="1446" font-family="Noto Sans CJK SC" font-size="13" fill="#374151" font-weight="400">图例：紫色虚线 = 控制 / 生命周期消息；绿色实线 = 采样数据；红色实线 = 关键事件优先通道。</text>
+<text x="70" y="1474" font-family="Noto Sans CJK SC" font-size="12" fill="#374151" font-weight="400">数据消费者取得有效帧后再计算；坏帧不参与基线和区间正常判定。所有跨任务缓冲均需明确归属和释放时机。</text>
+<text x="40" y="1522" font-family="Noto Sans CJK SC" font-size="12" fill="#64748b" font-weight="400">DE-DRMS · 2026-11-05 · 讨论版架构，依据本会话已确认职责；未承诺具体优先级数值或高速性能。</text>
+</svg>
