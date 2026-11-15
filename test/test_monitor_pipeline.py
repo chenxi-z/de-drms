@@ -11,6 +11,7 @@ import subprocess
 import tempfile
 import unittest
 
+from _platform import CC, EXT, release
 ROOT = Path(__file__).resolve().parents[1]
 
 HEADER = r'''
@@ -65,7 +66,7 @@ class Output(ctypes.Structure):
 class PipelineTest(unittest.TestCase):
     def test_monitor_context_budget_is_at_most_1536_bytes(self):
         src = ROOT / 'firmware/DE-DRMS-Code/Core/Inc'
-        subprocess.run(['cc', '-std=c11', '-fsyntax-only', '-I', str(src), '-xc', '-'],
+        subprocess.run([CC, '-std=c11', '-fsyntax-only', '-I', str(src), '-xc', '-'],
                        input='#include "drms_architecture_contract.h"\n'
                              '_Static_assert(DRMS_MONITOR_CONTEXT_BYTES <= 1536u, "context budget");\n',
                        text=True, check=True)
@@ -76,12 +77,12 @@ class PipelineTest(unittest.TestCase):
         p = Path(cls.tmp.name)
         (p / 'main.h').write_text(HEADER)
         src = ROOT / 'firmware/DE-DRMS-Code/Core'
-        subprocess.run(['cc', '-shared', '-fPIC', '-Wall', '-Werror=implicit-function-declaration',
+        subprocess.run([CC, '-shared', '-fPIC', '-Wall', '-Werror=implicit-function-declaration',
                         '-I', str(p), '-I', str(src / 'Inc'),
                         *[str(src.parent / f'App/application/measurement/drms_{name}.c') for name in
                           ('monitor', 'filter', 'classifier', 'baseline')],
-                        '-o', str(p / 'mon.so')], check=True)
-        cls.lib = ctypes.CDLL(str(p / 'mon.so'))
+                        '-o', str(p / f'mon{EXT}')], check=True)
+        cls.lib = ctypes.CDLL(str(p / f'mon{EXT}'))
         cls.lib.drms_monitor_configure.argtypes = [ctypes.c_void_p, ctypes.POINTER(Config)]
         cls.lib.drms_monitor_step.argtypes = [ctypes.c_void_p, ctypes.POINTER(Input), ctypes.POINTER(Output)]
         cls.lib.drms_monitor_tick.argtypes = [ctypes.c_void_p, ctypes.c_uint64, ctypes.POINTER(Output)]
@@ -95,11 +96,12 @@ class PipelineTest(unittest.TestCase):
         (p / 'selfcheck.c').write_text(
             '#include "drms_architecture_contract.h"\n'
             '#include "drms_filter.h"\n#include "drms_classifier.h"\n#include "drms_baseline.h"\nint probe;\n')
-        subprocess.run(['cc', '-fsyntax-only', '-Wall', '-Werror',
+        subprocess.run([CC, '-fsyntax-only', '-Wall', '-Werror',
                         '-I', str(src / 'Inc'), str(p / 'selfcheck.c')], check=True)
 
     @classmethod
     def tearDownClass(cls):
+        release(cls)
         cls.tmp.cleanup()
 
     def setUp(self):

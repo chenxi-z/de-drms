@@ -6,6 +6,7 @@ import tempfile
 import threading
 import unittest
 
+from _platform import CC, EXT, release
 ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -19,9 +20,9 @@ class FIFOTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.tmp = tempfile.TemporaryDirectory()
-        lib = Path(cls.tmp.name) / 'fifo.so'
+        lib = Path(cls.tmp.name) / f'fifo{EXT}'
         src = ROOT / 'firmware/DE-DRMS-Code/Core'
-        subprocess.run(['cc', '-shared', '-fPIC', '-O2', '-Wall', '-Wextra', '-Werror',
+        subprocess.run([CC, '-shared', '-fPIC', '-O2', '-Wall', '-Wextra', '-Werror',
                         '-I', str(src / 'Inc'), str(src / 'Src/drms_fifo.c'),
                         '-o', str(lib)], check=True)
         cls.lib = ctypes.CDLL(str(lib))
@@ -32,6 +33,7 @@ class FIFOTest(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
+        release(cls)
         cls.tmp.cleanup()
 
     def setUp(self):

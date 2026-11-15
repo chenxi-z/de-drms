@@ -9,6 +9,7 @@ import subprocess
 import tempfile
 import unittest
 
+from _platform import CC, EXT, release
 ROOT = Path(__file__).resolve().parents[1]
 
 HEADER = r'''
@@ -122,11 +123,11 @@ class ControlContractTest(unittest.TestCase):
         (p / 'main.h').write_text(HEADER)
         (p / 'mock.c').write_text(MOCK)
         src = ROOT / 'firmware/DE-DRMS-Code/Core'
-        subprocess.run(['cc', '-shared', '-fPIC', '-Wall', '-Werror=implicit-function-declaration',
+        subprocess.run([CC, '-shared', '-fPIC', '-Wall', '-Werror=implicit-function-declaration',
                         '-I', str(p), '-I', str(src / 'Inc'),
                         str(src / 'Src/drms_control.c'), str(p / 'mock.c'),
-                        '-o', str(p / 'control.so')], check=True)
-        cls.lib = ctypes.CDLL(str(p / 'control.so'))
+                        '-o', str(p / f'control{EXT}')], check=True)
+        cls.lib = ctypes.CDLL(str(p / f'control{EXT}'))
         cls.lib.token_of.restype = Token
         cls.lib.token_of.argtypes = [ctypes.c_int]
         cls.lib.drms_control_reserve.argtypes = [ctypes.c_uint32, ctypes.POINTER(Token)]
@@ -139,11 +140,12 @@ class ControlContractTest(unittest.TestCase):
         # 头文件自包含：contract.h 只含标准 C 类型，必须能单独编译
         (p / 'selfcheck.c').write_text('#include "drms_architecture_contract.h"\n'
                                        'int probe;\n')
-        subprocess.run(['cc', '-fsyntax-only', '-Wall', '-Werror',
+        subprocess.run([CC, '-fsyntax-only', '-Wall', '-Werror',
                         '-I', str(src / 'Inc'), str(p / 'selfcheck.c')], check=True)
 
     @classmethod
     def tearDownClass(cls):
+        release(cls)
         cls.tmp.cleanup()
 
     def setUp(self):

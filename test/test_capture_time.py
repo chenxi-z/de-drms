@@ -10,6 +10,7 @@ import subprocess
 import tempfile
 import unittest
 
+from _platform import CC, EXT, release
 ROOT = Path(__file__).resolve().parents[1]
 
 OK, ACCEPTED, BUSY, INVALID, STALE = 0, 1, 2, 3, 4
@@ -27,13 +28,13 @@ class CaptureTimeTest(unittest.TestCase):
         (p / 'selfcheck.c').write_text('#include "drms_architecture_contract.h"\n'
                                        '#include "drms_capture_time.h"\nint probe;\n')
         src = ROOT / 'firmware/DE-DRMS-Code/Core'
-        subprocess.run(['cc', '-shared', '-fPIC', '-Wall', '-Werror=implicit-function-declaration',
+        subprocess.run([CC, '-shared', '-fPIC', '-Wall', '-Werror=implicit-function-declaration',
                         '-I', str(src / 'Inc'), str(src / 'Src/drms_capture_time.c'),
-                        '-o', str(p / 'capture.so')], check=True)
+                        '-o', str(p / f'capture{EXT}')], check=True)
         # contract.h 与 capture_time.h 均须自包含可编译
-        subprocess.run(['cc', '-fsyntax-only', '-Wall', '-Werror',
+        subprocess.run([CC, '-fsyntax-only', '-Wall', '-Werror',
                         '-I', str(src / 'Inc'), str(p / 'selfcheck.c')], check=True)
-        cls.lib = ctypes.CDLL(str(p / 'capture.so'))
+        cls.lib = ctypes.CDLL(str(p / f'capture{EXT}'))
         cls.lib.drms_capture_time_publish.argtypes = [ctypes.c_uint64, ctypes.c_uint64,
                                                       ctypes.c_uint32, ctypes.c_uint64]
         cls.lib.drms_capture_time_lookup.argtypes = [ctypes.c_uint64, ctypes.c_uint32,
@@ -43,6 +44,7 @@ class CaptureTimeTest(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
+        release(cls)
         cls.tmp.cleanup()
 
     def setUp(self):

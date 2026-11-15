@@ -6,6 +6,7 @@ import re
 import tempfile
 import unittest
 
+from _platform import CC, EXT, close, release
 ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -13,8 +14,8 @@ class DeviceIdentityTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.tmp = tempfile.TemporaryDirectory()
-        out = Path(cls.tmp.name) / 'identity.so'
-        subprocess.run(['cc', '-shared', '-fPIC', '-Wall', '-Werror',
+        out = Path(cls.tmp.name) / f'identity{EXT}'
+        subprocess.run([CC, '-shared', '-fPIC', '-Wall', '-Werror',
                         str(ROOT / 'firmware/DE-DRMS-Code/App/platform/stm32/drms_identity.c'),
                         '-o', str(out)], check=True)
         cls.lib = ctypes.CDLL(str(out))
@@ -24,6 +25,7 @@ class DeviceIdentityTest(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
+        release(cls)
         cls.tmp.cleanup()
 
     def test_three_full_words_and_leading_zeroes(self):
@@ -63,8 +65,8 @@ static uint8_t USBD_Desc_GetLen(uint8_t *);
         extracted = tmp / 'descriptor.c'
         extracted.write_text(preamble + function('USBD_Desc_GetString') +
                              function('USBD_Desc_GetLen') + function('USBD_Get_String_Framework'))
-        out = tmp / 'descriptor.so'
-        subprocess.run(['cc', '-shared', '-fPIC', '-Wall', '-Werror',
+        out = tmp / f'descriptor{EXT}'
+        subprocess.run([CC, '-shared', '-fPIC', '-Wall', '-Werror',
                         '-I', str(ROOT / 'firmware/DE-DRMS-Code/App/platform/stm32'),
                         str(extracted),
                         str(ROOT / 'firmware/DE-DRMS-Code/App/platform/stm32/drms_identity.c'),
@@ -72,9 +74,13 @@ static uint8_t USBD_Desc_GetLen(uint8_t *);
         lib = ctypes.CDLL(str(out))
         lib.USBD_Get_String_Framework.argtypes = [ctypes.POINTER(ctypes.c_ulong)]
         lib.USBD_Get_String_Framework.restype = ctypes.POINTER(ctypes.c_ubyte)
-        length = ctypes.c_ulong()
-        data = lib.USBD_Get_String_Framework(ctypes.byref(length))
-        framework = bytes(data[:length.value])
+        try:
+            length = ctypes.c_ulong()
+            data = lib.USBD_Get_String_Framework(ctypes.byref(length))
+            framework = bytes(data[:length.value])
+        finally:
+            # 本方法的库是临时加载的，不卸载 Windows 就删不掉临时目录。
+            close(lib)
         serial = b'DRMS-00000001ABCDEF01F0000002'
         self.assertTrue(framework.endswith(b'\x09\x04\x03' + bytes([len(serial)]) + serial))
 

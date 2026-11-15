@@ -5,6 +5,7 @@ import subprocess
 import tempfile
 import unittest
 
+from _platform import CC, EXT, release
 ROOT = Path(__file__).resolve().parents[1]
 HEADER = r'''
 #include <stdint.h>
@@ -46,13 +47,14 @@ class EntropyTest(unittest.TestCase):
         (p / 'main.h').write_text(HEADER)
         (p / 'mock.c').write_text(MOCK)
         source = ROOT / 'firmware/DE-DRMS-Code/App/platform/stm32/drms_entropy.c'
-        subprocess.run(['cc', '-shared', '-fPIC', '-Wall', '-Werror', '-I', str(p),
-                        str(source), str(p / 'mock.c'), '-o', str(p / 'entropy.so')], check=True)
-        cls.lib = ctypes.CDLL(str(p / 'entropy.so'))
+        subprocess.run([CC, '-shared', '-fPIC', '-Wall', '-Werror', '-I', str(p),
+                        str(source), str(p / 'mock.c'), '-o', str(p / f'entropy{EXT}')], check=True)
+        cls.lib = ctypes.CDLL(str(p / f'entropy{EXT}'))
         cls.lib.drms_entropy_boot_id.argtypes = [ctypes.c_void_p, ctypes.POINTER(ctypes.c_uint64)]
 
     @classmethod
     def tearDownClass(cls):
+        release(cls)
         cls.tmp.cleanup()
 
     def setUp(self):

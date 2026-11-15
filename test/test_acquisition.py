@@ -5,6 +5,7 @@ import subprocess
 import tempfile
 import unittest
 
+from _platform import CC, EXT, release
 ROOT = Path(__file__).resolve().parents[1]
 HEADER = r'''
 #ifndef MOCK_ACQ_H
@@ -211,14 +212,15 @@ class AcquisitionTest(unittest.TestCase):
         (p / 'spi.h').write_text('#include "main.h"')
         (p / 'mock.c').write_text(MOCK)
         src = ROOT / 'firmware/DE-DRMS-Code/Core'
-        subprocess.run(['cc', '-shared', '-fPIC', '-Wall', '-Werror=implicit-function-declaration',
+        subprocess.run([CC, '-shared', '-fPIC', '-Wall', '-Werror=implicit-function-declaration',
                         '-I', str(p), '-I', str(src / 'Inc'),
                         *[str(src / f'Src/drms_{name}.c') for name in ('acquisition', 'measurement', 'fifo', 'capture_time')],
-                        str(p / 'mock.c'), '-o', str(p / 'acq.so')], check=True)
-        cls.lib = ctypes.CDLL(str(p / 'acq.so'))
+                        str(p / 'mock.c'), '-o', str(p / f'acq{EXT}')], check=True)
+        cls.lib = ctypes.CDLL(str(p / f'acq{EXT}'))
 
     @classmethod
     def tearDownClass(cls):
+        release(cls)
         cls.tmp.cleanup()
 
     def value(self, name):

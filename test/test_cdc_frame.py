@@ -7,6 +7,7 @@ import tempfile
 import unittest
 import struct
 
+from _platform import CC, EXT, release
 ROOT = Path(__file__).resolve().parents[1]
 PROJECT = ROOT / 'firmware/DE-DRMS-Code'
 
@@ -27,8 +28,8 @@ class CDCFrameTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.tmp = tempfile.TemporaryDirectory()
-        out = Path(cls.tmp.name) / 'frame.so'
-        subprocess.run(['cc', '-shared', '-fPIC', '-Wall', '-Werror',
+        out = Path(cls.tmp.name) / f'frame{EXT}'
+        subprocess.run([CC, '-shared', '-fPIC', '-Wall', '-Werror',
                         '-I', str(PROJECT / 'Core/Inc'),
                         str(PROJECT / 'App/interfaces/cdc/drms_cdc_frame.c'),
                         str(PROJECT / 'Core/Src/drms_measurement.c'),
@@ -53,6 +54,7 @@ class CDCFrameTest(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
+        release(cls)
         cls.tmp.cleanup()
 
     def setUp(self):

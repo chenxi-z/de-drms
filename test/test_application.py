@@ -16,6 +16,7 @@ from test_config_wire import settings, tlv
 from test_config_snapshot import View
 import struct
 
+from _platform import CC, EXT, release, track
 ROOT = Path(__file__).resolve().parents[1]
 
 class ControlRequest(ctypes.Structure):
@@ -253,7 +254,7 @@ uint32_t HAL_GetUIDw2(void);
                  'log_codec', 'calibration_codec', 'calibration_journal', 'time_codec', 'power',
                  'control', 'record_session', 'monitor', 'filter', 'classifier', 'baseline', 'capture_time',
                  'user_config', 'config_snapshot', 'file_service', 'msc', 'storage')
-        command = ['cc', '-shared', '-fPIC', '-Wall', '-Werror=implicit-function-declaration',
+        command = [CC, '-shared', '-fPIC', '-Wall', '-Werror=implicit-function-declaration',
                         '-I', str(p), '-I', str(src / 'Inc'), '-I', str(src.parent / 'App/interfaces/cdc'),
                         *[str((src.parent / 'App/application/measurement' if name in ('monitor', 'filter', 'classifier', 'baseline') else src / 'Src') / f'drms_{name}.c') for name in names],
                         str(src.parent / 'App/interfaces/local_ui/drms_button.c'),
@@ -261,20 +262,25 @@ uint32_t HAL_GetUIDw2(void);
                         str(src.parent / 'App/interfaces/cdc/drms_cdc_frame.c'),
                         str(src.parent / 'App/interfaces/cdc/drms_cdc_v2.c'),
                         str(p / 'mock.c'), '-lm']
-        subprocess.run(command + ['-o', str(p / 'app.so')], check=True)
-        subprocess.run(command + ['-DDRMS_LOG_SEGMENT_RECORDS=2', '-o', str(p / 'app-segments.so')], check=True)
+        subprocess.run(command + ['-o', str(p / f'app{EXT}')], check=True)
+        subprocess.run(command + ['-DDRMS_LOG_SEGMENT_RECORDS=2', '-o', str(p / f'app-segments{EXT}')], check=True)
         cls.instance = 0
 
     @classmethod
     def tearDownClass(cls):
+        release(cls)
         cls.tmp.cleanup()
+
+    def tearDown(self):
+        release(self)
 
     def setUp(self):
         type(self).instance += 1
         p = Path(self.tmp.name)
-        target = p / f'app-{self.instance}.so'
-        shutil.copyfile(p / 'app.so', target)
+        target = p / f'app-{self.instance}{EXT}'
+        shutil.copyfile(p / f'app{EXT}', target)
         self.lib = ctypes.CDLL(str(target))
+        track(self, 'lib')
         self.lib.drms_console_dispatch.argtypes = [ctypes.c_char_p]
         self.lib.drms_application_status.argtypes = [ctypes.c_void_p, ctypes.c_size_t]
         self.lib.drms_application_status.restype = ctypes.c_size_t
@@ -1178,7 +1184,8 @@ uint32_t HAL_GetUIDw2(void);
     def test_application_recording_across_segments_is_decodable(self):
         import io
         from tools.de_drms_log import LogReaderV2Segments
-        self.lib = ctypes.CDLL(str(Path(self.tmp.name) / 'app-segments.so'))
+        self.lib = ctypes.CDLL(str(Path(self.tmp.name) / f'app-segments{EXT}'))
+        track(self, 'lib')
         self.lib.drms_console_dispatch.argtypes = [ctypes.c_char_p]
         self.lib.drms_application_status.argtypes = [ctypes.c_void_p, ctypes.c_size_t]
         self.lib.drms_application_status.restype = ctypes.c_size_t

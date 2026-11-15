@@ -5,6 +5,7 @@ import subprocess
 import tempfile
 import unittest
 
+from _platform import CC, EXT, release
 ROOT = Path(__file__).resolve().parents[1]
 
 HEADER = r'''
@@ -96,11 +97,11 @@ class StorageOwnershipTest(unittest.TestCase):
         (p / 'main.h').write_text('#include "app_filex.h"')
         (p / 'mock.c').write_text(MOCK)
         src = ROOT / 'firmware/DE-DRMS-Code/Core'
-        subprocess.run(['cc', '-shared', '-fPIC', '-Wall', '-Werror=implicit-function-declaration',
+        subprocess.run([CC, '-shared', '-fPIC', '-Wall', '-Werror=implicit-function-declaration',
                         '-I', str(p), '-I', str(src / 'Inc'),
                         *[str(src / f'Src/drms_{name}.c') for name in ('msc', 'storage')],
-                        str(p / 'mock.c'), '-o', str(p / 'own.so')], check=True)
-        cls.lib = ctypes.CDLL(str(p / 'own.so'))
+                        str(p / 'mock.c'), '-o', str(p / f'own{EXT}')], check=True)
+        cls.lib = ctypes.CDLL(str(p / f'own{EXT}'))
         cls.lib.drms_msc_read.argtypes = [ctypes.c_uint32, ctypes.c_uint32, ctypes.c_void_p]
         cls.lib.drms_msc_media_info.argtypes = [ctypes.POINTER(ctypes.c_uint32)]
         cls.lib.drms_msc_set_wait_hook.argtypes = [ctypes.c_void_p]
@@ -109,6 +110,7 @@ class StorageOwnershipTest(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
+        release(cls)
         cls.tmp.cleanup()
 
     def setUp(self):

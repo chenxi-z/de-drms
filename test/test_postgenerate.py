@@ -7,6 +7,7 @@ import subprocess
 import tempfile
 import unittest
 
+from _platform import PYTHON, release
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / 'tools/firmware_postgenerate.py'
 SPEC = importlib.util.spec_from_file_location('postgenerate', SCRIPT)
@@ -47,7 +48,7 @@ class PostgenerateTest(unittest.TestCase):
         self.tmp.cleanup()
 
     def run_script(self, apply=False):
-        return subprocess.run(['python3', str(SCRIPT), '--project', str(self.project),
+        return subprocess.run([PYTHON, str(SCRIPT), '--project', str(self.project),
                                *(['--apply'] if apply else [])], capture_output=True, text=True)
 
     def edit(self, relative, change):

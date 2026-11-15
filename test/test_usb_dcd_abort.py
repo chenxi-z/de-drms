@@ -5,6 +5,7 @@ import subprocess
 import tempfile
 import unittest
 
+from _platform import CC, EXT, release
 ROOT = Path(__file__).resolve().parents[1]
 HEADER = r'''
 #ifndef DCD_TEST_H
@@ -89,13 +90,14 @@ class USBDCDAbortTest(unittest.TestCase):
         src = ROOT / 'firmware/DE-DRMS-Code/Middlewares/ST/usbx/common/usbx_stm32_device_controllers/ux_dcd_stm32_transfer_request.c'
         # Its sibling DCD header also gets replaced by this boundary mock.
         (p / 'transfer.c').write_text(src.read_text())
-        subprocess.run(['cc', '-shared', '-fPIC', '-Werror=implicit-function-declaration',
+        subprocess.run([CC, '-shared', '-fPIC', '-Werror=implicit-function-declaration',
                         '-I', str(p), str(p / 'transfer.c'), str(p / 'mock.c'),
-                        '-o', str(p / 'dcd.so')], check=True)
-        cls.lib = ctypes.CDLL(str(p / 'dcd.so'))
+                        '-o', str(p / f'dcd{EXT}')], check=True)
+        cls.lib = ctypes.CDLL(str(p / f'dcd{EXT}'))
 
     @classmethod
     def tearDownClass(cls):
+        release(cls)
         cls.tmp.cleanup()
 
     def value(self, name):

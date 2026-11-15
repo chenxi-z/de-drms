@@ -5,6 +5,7 @@ import subprocess
 import tempfile
 import unittest
 
+from _platform import CC, EXT, release
 ROOT = Path(__file__).resolve().parents[1]
 HEADER = r'''
 #include <stddef.h>
@@ -149,7 +150,7 @@ class CDCConsoleTest(unittest.TestCase):
         (p / 'main.h').write_text('#include <stdint.h>\n#define __get_PRIMASK() 0U\n#define __disable_irq() ((void)0)\n#define __set_PRIMASK(x) ((void)(x))\nuint32_t HAL_GetTick(void);\nuint32_t HAL_GetUIDw0(void);\nuint32_t HAL_GetUIDw1(void);\nuint32_t HAL_GetUIDw2(void);\n')
         (p / 'mock.c').write_text(MOCK)
         src = ROOT / 'firmware/DE-DRMS-Code/Core'
-        subprocess.run(['cc', '-shared', '-fPIC', '-Wall', '-Werror=implicit-function-declaration',
+        subprocess.run([CC, '-shared', '-fPIC', '-Wall', '-Werror=implicit-function-declaration',
                         '-I', str(p), '-I', str(src / 'Inc'),
                         str(src / 'Src/drms_cdc.c'), str(src / 'Src/drms_console.c'),
                         str(src.parent / 'App/interfaces/cdc/drms_cdc_v2.c'),
@@ -158,11 +159,12 @@ class CDCConsoleTest(unittest.TestCase):
                         str(src / 'Src/drms_control.c'),
                         str(src / 'Src/drms_boot_identity.c'),
                         str(src / 'Src/drms_config_snapshot.c'),
-                        str(p / 'mock.c'), '-o', str(p / 'cdc.so')], check=True)
-        cls.lib = ctypes.CDLL(str(p / 'cdc.so'))
+                        str(p / 'mock.c'), '-o', str(p / f'cdc{EXT}')], check=True)
+        cls.lib = ctypes.CDLL(str(p / f'cdc{EXT}'))
 
     @classmethod
     def tearDownClass(cls):
+        release(cls)
         cls.tmp.cleanup()
 
     def value(self, name):

@@ -5,6 +5,7 @@ import subprocess
 import tempfile
 import unittest
 
+from _platform import CC, EXT, release
 ROOT = Path(__file__).resolve().parents[1]
 HEADER = r'''
 #include <stdint.h>
@@ -105,13 +106,14 @@ class PowerBackendTest(unittest.TestCase):
         (p / 'main.h').write_text(HEADER)
         (p / 'mock.c').write_text(MOCK)
         src = ROOT / 'firmware/DE-DRMS-Code/Core'
-        subprocess.run(['cc', '-shared', '-fPIC', '-Wall', '-Werror=implicit-function-declaration',
+        subprocess.run([CC, '-shared', '-fPIC', '-Wall', '-Werror=implicit-function-declaration',
                         '-I', str(p), '-I', str(src / 'Inc'), str(src / 'Src/drms_power_stm32.c'),
-                        str(p / 'mock.c'), '-o', str(p / 'backend.so')], check=True)
-        cls.lib = ctypes.CDLL(str(p / 'backend.so'))
+                        str(p / 'mock.c'), '-o', str(p / f'backend{EXT}')], check=True)
+        cls.lib = ctypes.CDLL(str(p / f'backend{EXT}'))
 
     @classmethod
     def tearDownClass(cls):
+        release(cls)
         cls.tmp.cleanup()
 
     def setUp(self):

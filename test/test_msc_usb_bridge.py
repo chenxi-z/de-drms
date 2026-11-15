@@ -6,6 +6,7 @@ import subprocess
 import tempfile
 import unittest
 
+from _platform import CC, EXT, release
 ROOT = Path(__file__).resolve().parents[1]
 HEADER = r'''
 #include <stdint.h>
@@ -46,15 +47,16 @@ class MSCUSBBridgeTest(unittest.TestCase):
         (path / 'ux_device_msc.h').write_text(HEADER)
         (path / 'ux_device_class_storage.h').write_text('/* supplied by the USBX test header */\n')
         (path / 'mock.c').write_text(MOCK)
-        subprocess.run(['cc', '-shared', '-fPIC', '-Wall', '-Werror=implicit-function-declaration',
+        subprocess.run([CC, '-shared', '-fPIC', '-Wall', '-Werror=implicit-function-declaration',
                         '-I', str(path), '-I', str(ROOT / 'firmware/DE-DRMS-Code/Core/Inc'),
-                        str(path / 'ux_device_msc.c'), str(path / 'mock.c'), '-o', str(path / 'msc.so')], check=True)
-        cls.lib = ctypes.CDLL(str(path / 'msc.so'))
+                        str(path / 'ux_device_msc.c'), str(path / 'mock.c'), '-o', str(path / f'msc{EXT}')], check=True)
+        cls.lib = ctypes.CDLL(str(path / f'msc{EXT}'))
         cls.lib.USBD_STORAGE_Status.argtypes = [ctypes.c_void_p, ctypes.c_ulong, ctypes.c_ulong, ctypes.POINTER(ctypes.c_ulong)]
         cls.lib.USBD_STORAGE_Write.argtypes = [ctypes.c_void_p, ctypes.c_ulong, ctypes.c_void_p, ctypes.c_ulong, ctypes.c_ulong, ctypes.POINTER(ctypes.c_ulong)]
 
     @classmethod
     def tearDownClass(cls):
+        release(cls)
         cls.tmp.cleanup()
 
     def setUp(self):

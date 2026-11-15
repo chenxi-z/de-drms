@@ -6,6 +6,7 @@ import subprocess
 import tempfile
 import unittest
 
+from _platform import CC, EXT, release
 ROOT = Path(__file__).resolve().parents[1]
 DRIVER = ROOT / 'firmware/DE-DRMS-Code/Middlewares/ST/filex/common/drivers/fx_stm32_sd_driver.c'
 HEADER = r'''
@@ -76,13 +77,14 @@ class SDDriverRecoveryTest(unittest.TestCase):
         header = HEADER + ''.join(f'\n#define {hook}(...) ((void)0)' for hook in hooks)
         (p / 'fx_stm32_sd_driver.h').write_text(header)
         (p / 'mock.c').write_text(MOCK)
-        subprocess.run(['cc', '-shared', '-fPIC', '-Werror=implicit-function-declaration',
+        subprocess.run([CC, '-shared', '-fPIC', '-Werror=implicit-function-declaration',
                         '-I', str(p), str(DRIVER), str(p / 'mock.c'),
-                        '-o', str(p / 'driver.so')], check=True)
-        cls.lib = ctypes.CDLL(str(p / 'driver.so'))
+                        '-o', str(p / f'driver{EXT}')], check=True)
+        cls.lib = ctypes.CDLL(str(p / f'driver{EXT}'))
 
     @classmethod
     def tearDownClass(cls):
+        release(cls)
         cls.tmp.cleanup()
 
     def value(self, name):

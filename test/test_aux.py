@@ -7,6 +7,7 @@ import tempfile
 import unittest
 from test_time import Time
 
+from _platform import CC, EXT, release
 ROOT = Path(__file__).resolve().parents[1]
 HEADER = r'''
 #ifndef AUX_MOCK_H
@@ -79,20 +80,24 @@ class AuxTest(unittest.TestCase):
             (p / name).write_text('#include "main.h"')
         (p / 'mock.c').write_text(MOCK)
         src = ROOT / 'firmware/DE-DRMS-Code/Core'
-        subprocess.run(['cc', '-shared', '-fPIC', '-Wall', '-Werror=implicit-function-declaration',
+        subprocess.run([CC, '-shared', '-fPIC', '-Wall', '-Werror=implicit-function-declaration',
                         '-I', str(p), '-I', str(src / 'Inc'), str(src / 'Src/drms_aux.c'),
-                        str(src / 'Src/drms_time_codec.c'), str(p / 'mock.c'), '-o', str(p / 'aux.so')], check=True)
+                        str(src / 'Src/drms_time_codec.c'), str(p / 'mock.c'), '-o', str(p / f'aux{EXT}')], check=True)
         cls.instance = 0
 
     @classmethod
     def tearDownClass(cls):
+        release(cls)
         cls.tmp.cleanup()
+
+    def tearDown(self):
+        release(self)
 
     def setUp(self):
         type(self).instance += 1
         p = Path(self.tmp.name)
-        target = p / f'aux-{self.instance}.so'
-        shutil.copyfile(p / 'aux.so', target)
+        target = p / f'aux-{self.instance}{EXT}'
+        shutil.copyfile(p / f'aux{EXT}', target)
         self.lib = ctypes.CDLL(str(target))
         self.lib.drms_time_set.argtypes = [ctypes.c_char_p]
         self.lib.drms_time_get.argtypes = [ctypes.POINTER(Time)]

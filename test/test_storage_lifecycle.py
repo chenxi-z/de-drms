@@ -5,6 +5,7 @@ import subprocess
 import tempfile
 import unittest
 
+from _platform import CC, EXT, release
 ROOT = Path(__file__).resolve().parents[1]
 HEADER = r'''
 #include <stdint.h>
@@ -67,15 +68,16 @@ class StorageLifecycleTest(unittest.TestCase):
         (p / 'main.h').write_text('')
         (p / 'mock.c').write_text(MOCK)
         src = ROOT / 'firmware/DE-DRMS-Code/Core'
-        subprocess.run(['cc', '-shared', '-fPIC', '-Werror=implicit-function-declaration',
+        subprocess.run([CC, '-shared', '-fPIC', '-Werror=implicit-function-declaration',
                         '-I', str(p), '-I', str(src / 'Inc'),
                         *[str(src / f'Src/drms_{name}.c') for name in ('msc', 'storage')],
                         str(p / 'mock.c'),
-                        '-o', str(p / 'storage.so')], check=True)
-        cls.lib = ctypes.CDLL(str(p / 'storage.so'))
+                        '-o', str(p / f'storage{EXT}')], check=True)
+        cls.lib = ctypes.CDLL(str(p / f'storage{EXT}'))
 
     @classmethod
     def tearDownClass(cls):
+        release(cls)
         cls.tmp.cleanup()
 
     def value(self, name):

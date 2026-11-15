@@ -4,6 +4,7 @@ import subprocess
 import tempfile
 import unittest
 
+from _platform import CC, EXT, release
 ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -16,8 +17,8 @@ class CommandTest(unittest.TestCase):
     def setUpClass(cls):
         cls.tmp = tempfile.TemporaryDirectory()
         src = ROOT / 'firmware/DE-DRMS-Code/Core'
-        lib = Path(cls.tmp.name) / 'cmd.so'
-        subprocess.run(['cc', '-shared', '-fPIC', '-Wall', '-Wextra', '-Werror',
+        lib = Path(cls.tmp.name) / f'cmd{EXT}'
+        subprocess.run([CC, '-shared', '-fPIC', '-Wall', '-Wextra', '-Werror',
                         '-I', str(src / 'Inc'),
                         *[str(src / f'Src/drms_{name}.c') for name in ('command', 'time_codec', 'measurement')],
                         '-o', str(lib)], check=True)
@@ -26,6 +27,7 @@ class CommandTest(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
+        release(cls)
         cls.tmp.cleanup()
 
     def test_valid_commands(self):

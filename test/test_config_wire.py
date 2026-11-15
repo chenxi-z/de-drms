@@ -7,6 +7,7 @@ import tempfile
 import unittest
 from test_user_config import FakeFlash, BaselinePolicy
 
+from _platform import CC, EXT, release
 ROOT = Path(__file__).resolve().parents[1]
 PROJECT = ROOT / 'firmware/DE-DRMS-Code'
 
@@ -32,21 +33,23 @@ class ConfigWireTest(unittest.TestCase):
         p = Path(cls.tmp.name)
         (p / 'main.h').write_text('#include <stdint.h>\n')
         (p / 'fake.c').write_text(FakeFlash.CODE)
-        subprocess.run(['cc', '-shared', '-fPIC', '-Wall', '-Werror',
+        subprocess.run([CC, '-shared', '-fPIC', '-Wall', '-Werror',
             '-I', str(p), '-I', str(PROJECT / 'Core/Inc'),
             str(PROJECT / 'App/interfaces/cdc/drms_config_wire.c'),
             str(PROJECT / 'App/interfaces/cdc/drms_cdc_frame.c'),
             str(PROJECT / 'Core/Src/drms_user_config.c'),
             str(PROJECT / 'Core/Src/drms_measurement.c'), str(p / 'fake.c'),
-            '-o', str(p / 'config.so')], check=True)
-        cls.lib = ctypes.CDLL(str(p / 'config.so'))
+            '-o', str(p / f'config{EXT}')], check=True)
+        cls.lib = ctypes.CDLL(str(p / f'config{EXT}'))
         cls.lib.drms_config_wire_to_body.argtypes = [ctypes.c_void_p, ctypes.c_size_t, ctypes.c_void_p, ctypes.c_size_t]
         cls.lib.drms_user_config_apply.argtypes = [ctypes.c_void_p, ctypes.c_size_t, ctypes.c_uint64]
         cls.lib.drms_user_config_get_baseline_policy.argtypes = [ctypes.POINTER(BaselinePolicy)]
         cls.lib.drms_user_config_get_wire.argtypes = [ctypes.c_void_p, ctypes.c_uint32]
 
     @classmethod
-    def tearDownClass(cls): cls.tmp.cleanup()
+    def tearDownClass(cls):
+        release(cls)
+        cls.tmp.cleanup()
 
     def setUp(self):
         self.lib.fake_reset()

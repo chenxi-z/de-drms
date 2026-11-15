@@ -5,6 +5,7 @@ import subprocess
 import tempfile
 import unittest
 
+from _platform import CC, EXT, release
 ROOT = Path(__file__).resolve().parents[1] / 'firmware/DE-DRMS-Code'
 
 class View(ctypes.Structure):
@@ -18,16 +19,18 @@ class ConfigSnapshotTest(unittest.TestCase):
         cls.tmp = tempfile.TemporaryDirectory()
         p = Path(cls.tmp.name)
         (p / 'main.h').write_text('#include <stdint.h>\n#define __get_PRIMASK() 0u\n#define __disable_irq() ((void)0)\n#define __set_PRIMASK(x) ((void)(x))\n')
-        subprocess.run(['cc', '-shared', '-fPIC', '-Wall', '-Werror', '-I', str(p),
+        subprocess.run([CC, '-shared', '-fPIC', '-Wall', '-Werror', '-I', str(p),
                         '-I', str(ROOT / 'Core/Inc'),
-                        str(ROOT / 'Core/Src/drms_config_snapshot.c'), '-o', str(p/'snapshot.so')], check=True)
-        cls.lib = ctypes.CDLL(str(p/'snapshot.so'))
+                        str(ROOT / 'Core/Src/drms_config_snapshot.c'), '-o', str(p/f'snapshot{EXT}')], check=True)
+        cls.lib = ctypes.CDLL(str(p/f'snapshot{EXT}'))
         cls.lib.drms_config_snapshot_publish.argtypes = [ctypes.c_void_p, ctypes.c_uint32, ctypes.c_uint64, ctypes.c_uint64]
         cls.lib.drms_config_snapshot_acquire.argtypes = [ctypes.POINTER(View)]
         cls.lib.drms_config_snapshot_release.argtypes = [ctypes.POINTER(View)]
 
     @classmethod
-    def tearDownClass(cls): cls.tmp.cleanup()
+    def tearDownClass(cls):
+        release(cls)
+        cls.tmp.cleanup()
 
     def setUp(self): self.lib.drms_config_snapshot_init()
     def publish(self, data, running=1, saved=0):

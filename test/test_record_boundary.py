@@ -11,6 +11,7 @@ import unittest
 
 from test_acquisition import Raw
 
+from _platform import CC, EXT, release
 ROOT = Path(__file__).resolve().parents[1]
 
 HEADER = r'''
@@ -266,12 +267,12 @@ class BoundaryTest(unittest.TestCase):
         (p / 'app_filex.h').write_text(FX_HEADER)
         (p / 'mock.c').write_text(MOCK)
         src = ROOT / 'firmware/DE-DRMS-Code/Core'
-        subprocess.run(['cc', '-shared', '-fPIC', '-Wall', '-Werror=implicit-function-declaration',
+        subprocess.run([CC, '-shared', '-fPIC', '-Wall', '-Werror=implicit-function-declaration',
                         '-I', str(p), '-I', str(src / 'Inc'),
                         *[str(src / f'Src/drms_{name}.c') for name in
                           ('acquisition', 'record_session', 'logging', 'log_codec', 'fifo', 'measurement', 'capture_time')],
-                        str(p / 'mock.c'), '-o', str(p / 'boundary.so')], check=True)
-        cls.lib = ctypes.CDLL(str(p / 'boundary.so'))
+                        str(p / 'mock.c'), '-o', str(p / f'boundary{EXT}')], check=True)
+        cls.lib = ctypes.CDLL(str(p / f'boundary{EXT}'))
         lib = cls.lib
         lib.drms_acq_boundary_request.argtypes = [Token]
         lib.drms_acq_boundary_get.argtypes = [Token, ctypes.POINTER(Boundary)]
@@ -293,6 +294,7 @@ class BoundaryTest(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
+        release(cls)
         cls.tmp.cleanup()
 
     def setUp(self):

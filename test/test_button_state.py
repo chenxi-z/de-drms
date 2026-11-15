@@ -5,6 +5,7 @@ import subprocess
 import tempfile
 import unittest
 
+from _platform import CC, EXT, release
 ROOT = Path(__file__).resolve().parents[1]
 SRC = ROOT / 'firmware/DE-DRMS-Code/App/interfaces/local_ui'
 
@@ -19,8 +20,8 @@ class ButtonTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.tmp = tempfile.TemporaryDirectory()
-        path = Path(cls.tmp.name) / 'button.so'
-        subprocess.run(['cc', '-shared', '-fPIC', '-Wall', '-Werror',
+        path = Path(cls.tmp.name) / f'button{EXT}'
+        subprocess.run([CC, '-shared', '-fPIC', '-Wall', '-Werror',
                         str(SRC / 'drms_button.c'), '-o', str(path)], check=True)
         cls.lib = ctypes.CDLL(str(path))
         cls.lib.drms_button_init.argtypes = [ctypes.POINTER(Button), ctypes.c_uint32, ctypes.c_uint8]
@@ -29,6 +30,7 @@ class ButtonTest(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
+        release(cls)
         cls.tmp.cleanup()
 
     def setUp(self):

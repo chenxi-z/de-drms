@@ -5,6 +5,7 @@ import subprocess
 import tempfile
 import unittest
 
+from _platform import CC, EXT, release
 ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -22,16 +23,17 @@ size_t drms_console_status(char *out,size_t size) {
 }
 ''')
         src = ROOT / 'firmware/DE-DRMS-Code/Core'
-        subprocess.run(['cc', '-shared', '-fPIC', '-Wall', '-Wextra', '-Werror',
+        subprocess.run([CC, '-shared', '-fPIC', '-Wall', '-Wextra', '-Werror',
                         '-I', str(src / 'Inc'), str(src / 'Src/drms_console.c'),
-                        str(p / 'mock.c'), '-o', str(p / 'console.so')], check=True)
-        cls.lib = ctypes.CDLL(str(p / 'console.so'))
+                        str(p / 'mock.c'), '-o', str(p / f'console{EXT}')], check=True)
+        cls.lib = ctypes.CDLL(str(p / f'console{EXT}'))
         cls.lib.drms_console_feed.argtypes = [ctypes.c_void_p, ctypes.c_ubyte,
                                                ctypes.c_void_p, ctypes.c_size_t]
         cls.lib.drms_console_feed.restype = ctypes.c_size_t
 
     @classmethod
     def tearDownClass(cls):
+        release(cls)
         cls.tmp.cleanup()
 
     def feed(self, data, size=256):

@@ -8,6 +8,7 @@ import unittest
 import zlib
 from test_acquisition import Raw
 
+from _platform import CC, EXT, PYTHON, release
 ROOT = Path(__file__).resolve().parents[1]
 HEADER = r'''
 #include <stdint.h>
@@ -94,11 +95,11 @@ class LoggingTest(unittest.TestCase):
         (p / 'main.h').write_text('#include <stdint.h>\n#define __get_PRIMASK() 0u\n#define __disable_irq() ((void)0)\n#define __set_PRIMASK(x) ((void)(x))\n')
         (p / 'mock.c').write_text(MOCK)
         src = ROOT / 'firmware/DE-DRMS-Code/Core'
-        subprocess.run(['cc', '-shared', '-fPIC', '-Wall', '-Werror=implicit-function-declaration',
+        subprocess.run([CC, '-shared', '-fPIC', '-Wall', '-Werror=implicit-function-declaration',
                         '-I', str(p), '-I', str(src / 'Inc'),
                         *[str(src / f'Src/drms_{name}.c') for name in ('logging', 'log_codec', 'fifo', 'measurement')],
-                        str(p / 'mock.c'), '-o', str(p / 'log.so')], check=True)
-        cls.lib = ctypes.CDLL(str(p / 'log.so'))
+                        str(p / 'mock.c'), '-o', str(p / f'log{EXT}')], check=True)
+        cls.lib = ctypes.CDLL(str(p / f'log{EXT}'))
         cls.lib.drms_log_start.argtypes = [ctypes.POINTER(Metadata)]
         cls.lib.drms_log_enqueue.argtypes = [ctypes.POINTER(Raw)]
         rollover_mock = MOCK.replace('UINT fx_file_close(FX_FILE *f) { ++closes;return 0; }',
@@ -107,16 +108,17 @@ class LoggingTest(unittest.TestCase):
             'enqueue_on_close=0;DRMS_RawFrame frame={.sequence=99};drms_log_enqueue(&frame);}'
             'return 0; }')
         (p / 'roll.c').write_text(rollover_mock)
-        subprocess.run(['cc', '-shared', '-fPIC', '-DDRMS_LOG_SEGMENT_RECORDS=2',
+        subprocess.run([CC, '-shared', '-fPIC', '-DDRMS_LOG_SEGMENT_RECORDS=2',
                         '-I', str(p), '-I', str(src / 'Inc'),
                         *[str(src / f'Src/drms_{name}.c') for name in ('logging', 'log_codec', 'fifo', 'measurement')],
-                        str(p / 'roll.c'), '-o', str(p / 'roll.so')], check=True)
-        cls.roll = ctypes.CDLL(str(p / 'roll.so'))
+                        str(p / 'roll.c'), '-o', str(p / f'roll{EXT}')], check=True)
+        cls.roll = ctypes.CDLL(str(p / f'roll{EXT}'))
         cls.roll.drms_log_start.argtypes = [ctypes.POINTER(Metadata)]
         cls.roll.drms_log_enqueue.argtypes = [ctypes.POINTER(Raw)]
 
     @classmethod
     def tearDownClass(cls):
+        release(cls, names=("lib", "roll"))
         cls.tmp.cleanup()
 
     def value(self, name):
@@ -375,7 +377,7 @@ class LoggingTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             a, b = Path(directory)/'a.bin', Path(directory)/'b.bin'
             a.write_bytes(identified_first); b.write_bytes(identified_last)
-            result = subprocess.run(['python3', str(ROOT/'tools/de_drms_log.py'), str(a), str(b)],
+            result = subprocess.run([PYTHON, str(ROOT/'tools/de_drms_log.py'), str(a), str(b)],
                                     capture_output=True, text=True)
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertIn('102,', result.stdout)

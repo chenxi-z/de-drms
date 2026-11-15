@@ -13,6 +13,7 @@ from test_acquisition import HEADER as ACQ_HEADER, MOCK as ACQ_MOCK
 from test_calibration_journal import MOCK as CAL_MOCK
 from test_logging import HEADER as FX_HEADER, MOCK as FX_MOCK
 
+from _platform import EXT, release
 ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -26,14 +27,18 @@ class ArchitectureIntegrationTest(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
+        release(cls)
         app.ApplicationTest.tearDownClass()
+
+    def tearDown(self):
+        release(self)
 
     def setUp(self):
         type(self).base.instance += 1
         import shutil
         p = Path(type(self).base.tmp.name)
-        target = p / f'app-{type(self).base.instance}.so'
-        shutil.copyfile(p / 'app.so', target)
+        target = p / f'app-{type(self).base.instance}{EXT}'
+        shutil.copyfile(p / f'app{EXT}', target)
         self.lib = ctypes.CDLL(str(target))
         self.lib.drms_console_dispatch.argtypes = [ctypes.c_char_p]
         self.lib.drms_application_status.argtypes = [ctypes.c_void_p, ctypes.c_size_t]

@@ -5,6 +5,7 @@ import subprocess
 import tempfile
 import unittest
 
+from _platform import CC, EXT, release
 ROOT = Path(__file__).resolve().parents[1] / 'firmware/DE-DRMS-Code'
 HEADER = r'''
 #include <stdint.h>
@@ -48,13 +49,15 @@ class FileBackendTest(unittest.TestCase):
     def setUpClass(cls):
         cls.tmp=tempfile.TemporaryDirectory(); p=Path(cls.tmp.name)
         (p/'app_filex.h').write_text(HEADER); (p/'mock.c').write_text(MOCK)
-        subprocess.run(['cc','-shared','-fPIC','-Wall','-Werror','-I',str(p),'-I',str(ROOT/'Core/Inc'),
-                        str(ROOT/'Core/Src/drms_file_backend.c'),str(p/'mock.c'),'-o',str(p/'f.so')],check=True)
-        cls.lib=ctypes.CDLL(str(p/'f.so'))
+        subprocess.run([CC,'-shared','-fPIC','-Wall','-Werror','-I',str(p),'-I',str(ROOT/'Core/Inc'),
+                        str(ROOT/'Core/Src/drms_file_backend.c'),str(p/'mock.c'),'-o',str(p/f'f{EXT}')],check=True)
+        cls.lib=ctypes.CDLL(str(p/f'f{EXT}'))
         cls.lib.drms_file_backend_open.argtypes=[ctypes.c_uint32,ctypes.c_uint32,ctypes.c_uint32,ctypes.POINTER(ctypes.c_uint64)]
         cls.lib.drms_file_backend_read.argtypes=[ctypes.c_uint32,ctypes.c_uint32,ctypes.c_uint64,ctypes.c_uint16,ctypes.c_void_p,ctypes.POINTER(ctypes.c_uint16),ctypes.POINTER(ctypes.c_uint8)]
     @classmethod
-    def tearDownClass(cls): cls.tmp.cleanup()
+    def tearDownClass(cls):
+        release(cls)
+        cls.tmp.cleanup()
     def value(self,name): return ctypes.c_uint32.in_dll(self.lib,name)
     def setUp(self):
         self.lib.drms_file_backend_init()

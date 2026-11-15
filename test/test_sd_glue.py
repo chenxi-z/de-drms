@@ -5,6 +5,7 @@ import subprocess
 import tempfile
 import unittest
 
+from _platform import CC, EXT, release
 ROOT = Path(__file__).resolve().parents[1]
 HEADER = r'''
 #ifndef MOCK_SD_H
@@ -59,13 +60,14 @@ class SDGlueTest(unittest.TestCase):
         # Copy just this source to let mocks replace its sibling generated header.
         src = ROOT / 'firmware/DE-DRMS-Code/FileX/Target/fx_stm32_sd_driver_glue.c'
         (p / 'glue.c').write_text(src.read_text())
-        subprocess.run(['cc', '-shared', '-fPIC', '-Werror=implicit-function-declaration',
+        subprocess.run([CC, '-shared', '-fPIC', '-Werror=implicit-function-declaration',
                         '-I', str(p), str(p / 'glue.c'), str(p / 'mock.c'),
-                        '-o', str(p / 'glue.so')], check=True)
-        cls.lib = ctypes.CDLL(str(p / 'glue.so'))
+                        '-o', str(p / f'glue{EXT}')], check=True)
+        cls.lib = ctypes.CDLL(str(p / f'glue{EXT}'))
 
     @classmethod
     def tearDownClass(cls):
+        release(cls)
         cls.tmp.cleanup()
 
     def value(self, name):

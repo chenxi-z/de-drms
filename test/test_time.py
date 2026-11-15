@@ -4,6 +4,7 @@ import subprocess
 import tempfile
 import unittest
 
+from _platform import CC, EXT, release
 ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -18,8 +19,8 @@ class TimeTest(unittest.TestCase):
     def setUpClass(cls):
         cls.tmp = tempfile.TemporaryDirectory()
         src = ROOT / 'firmware/DE-DRMS-Code/Core'
-        lib = Path(cls.tmp.name) / 'time.so'
-        subprocess.run(['cc', '-shared', '-fPIC', '-Wall', '-Wextra', '-Werror',
+        lib = Path(cls.tmp.name) / f'time{EXT}'
+        subprocess.run([CC, '-shared', '-fPIC', '-Wall', '-Wextra', '-Werror',
                         '-I', str(src / 'Inc'), str(src / 'Src/drms_time_codec.c'), '-o', str(lib)], check=True)
         cls.lib = ctypes.CDLL(str(lib))
         cls.lib.drms_time_parse.argtypes = [ctypes.c_char_p, ctypes.POINTER(Time)]
@@ -27,6 +28,7 @@ class TimeTest(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
+        release(cls)
         cls.tmp.cleanup()
 
     def test_calendar_and_weekday(self):

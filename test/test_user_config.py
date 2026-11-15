@@ -13,6 +13,7 @@ import tempfile
 import unittest
 import zlib
 
+from _platform import CC, EXT, release
 ROOT = Path(__file__).resolve().parents[1]
 
 HEADER = r'''
@@ -104,11 +105,11 @@ class UserConfigTest(unittest.TestCase):
         (p / 'main.h').write_text(HEADER)
         (p / 'fake.c').write_text(FakeFlash.CODE)
         src = ROOT / 'firmware/DE-DRMS-Code/Core'
-        subprocess.run(['cc', '-shared', '-fPIC', '-Wall', '-Werror=implicit-function-declaration',
+        subprocess.run([CC, '-shared', '-fPIC', '-Wall', '-Werror=implicit-function-declaration',
                         '-I', str(p), '-I', str(src / 'Inc'),
                         str(src / 'Src/drms_user_config.c'), str(src / 'Src/drms_measurement.c'),
-                        str(p / 'fake.c'), '-o', str(p / 'uc.so')], check=True)
-        cls.lib = ctypes.CDLL(str(p / 'uc.so'))
+                        str(p / 'fake.c'), '-o', str(p / f'uc{EXT}')], check=True)
+        cls.lib = ctypes.CDLL(str(p / f'uc{EXT}'))
         cls.lib.drms_user_config_apply.argtypes = [ctypes.c_char_p, ctypes.c_size_t, ctypes.c_uint64]
         cls.lib.drms_user_config_preflight.argtypes = [ctypes.c_char_p, ctypes.c_size_t, ctypes.c_uint64]
         cls.lib.drms_user_config_save.argtypes = [ctypes.c_uint64]
@@ -123,6 +124,7 @@ class UserConfigTest(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
+        release(cls)
         cls.tmp.cleanup()
 
     def setUp(self):
@@ -224,7 +226,7 @@ class UserConfigTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             output = Path(directory) / 'config.o'
             source = ROOT / 'firmware/DE-DRMS-Code/Core'
-            subprocess.run(['cc', '-O0', '-fstack-usage', '-I', str(source / 'Inc'),
+            subprocess.run([CC, '-O0', '-fstack-usage', '-I', str(source / 'Inc'),
                             '-c', str(source / 'Src/drms_user_config.c'), '-o', str(output)], check=True)
             usage = output.with_suffix('.su').read_text()
             for name in ('validate_encoded', 'drms_user_config_load',

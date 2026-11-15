@@ -8,6 +8,7 @@ import subprocess
 import tempfile
 import unittest
 
+from _platform import CC, EXT, release
 ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -21,8 +22,8 @@ class MeasurementTest(unittest.TestCase):
     def setUpClass(cls):
         cls.tmp = tempfile.TemporaryDirectory()
         src = ROOT / 'firmware/DE-DRMS-Code/Core'
-        lib = Path(cls.tmp.name) / 'measurement.so'
-        subprocess.run(['cc', '-shared', '-fPIC', '-Wall', '-Wextra', '-Werror',
+        lib = Path(cls.tmp.name) / f'measurement{EXT}'
+        subprocess.run([CC, '-shared', '-fPIC', '-Wall', '-Wextra', '-Werror',
                         '-I', str(src / 'Inc'), str(src / 'Src/drms_measurement.c'),
                         '-o', str(lib)], check=True)
         cls.lib = ctypes.CDLL(str(lib))
@@ -38,6 +39,7 @@ class MeasurementTest(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
+        release(cls)
         cls.tmp.cleanup()
 
     def frame(self, voltage, sense, status=0x2200):

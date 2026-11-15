@@ -5,6 +5,7 @@ import subprocess
 import tempfile
 import unittest
 
+from _platform import CC, EXT, release
 ROOT = Path(__file__).resolve().parents[1]
 HEADER = r'''
 #ifndef TEST_UART_H
@@ -67,15 +68,16 @@ class UARTRuntimeTest(unittest.TestCase):
         (p / 'tx_api.h').write_text('#include "main.h"')
         (p / 'mock.c').write_text(MOCK)
         src = ROOT / 'firmware/DE-DRMS-Code/Core'
-        subprocess.run(['cc', '-shared', '-fPIC', '-Wall', '-Werror=implicit-function-declaration',
+        subprocess.run([CC, '-shared', '-fPIC', '-Wall', '-Werror=implicit-function-declaration',
                         '-I', str(p), '-I', str(src / 'Inc'),
                         str(src / 'Src/drms_runtime.c'), str(src / 'Src/drms_console.c'),
-                        str(p / 'mock.c'), '-o', str(p / 'uart.so')], check=True)
-        cls.lib = ctypes.CDLL(str(p / 'uart.so'))
+                        str(p / 'mock.c'), '-o', str(p / f'uart{EXT}')], check=True)
+        cls.lib = ctypes.CDLL(str(p / f'uart{EXT}'))
         cls.lib.inject.argtypes = [ctypes.c_char_p]
 
     @classmethod
     def tearDownClass(cls):
+        release(cls)
         cls.tmp.cleanup()
 
     def value(self, name):

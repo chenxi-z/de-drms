@@ -6,6 +6,7 @@ import subprocess
 import tempfile
 import unittest
 
+from _platform import CC, EXT, release
 ROOT = Path(__file__).resolve().parents[1]
 from test_acquisition import Raw, HEADER as ACQ_HEADER, MOCK as ACQ_MOCK
 
@@ -51,11 +52,11 @@ class LifecycleTest(unittest.TestCase):
         (p / 'main.h').write_text(ACQ_HEADER)
         (p / 'backend.c').write_text(FakeBackend.CODE)
         src = ROOT / 'firmware/DE-DRMS-Code/Core'
-        subprocess.run(['cc', '-shared', '-fPIC', '-Wall', '-Werror=implicit-function-declaration',
+        subprocess.run([CC, '-shared', '-fPIC', '-Wall', '-Werror=implicit-function-declaration',
                         '-I', str(p), '-I', str(src / 'Inc'),
                         str(src / 'Src/drms_resource_lifecycle.c'), str(p / 'backend.c'),
-                        '-o', str(p / 'rlc.so')], check=True)
-        cls.lib = ctypes.CDLL(str(p / 'rlc.so'))
+                        '-o', str(p / f'rlc{EXT}')], check=True)
+        cls.lib = ctypes.CDLL(str(p / f'rlc{EXT}'))
         # 后端函数指针：取 fake_* 地址
         cls.abort_ptr = ctypes.cast(cls.lib.fake_abort, ctypes.c_void_p)
         cls.probe_ptr = ctypes.cast(cls.lib.fake_probe, ctypes.c_void_p)
@@ -74,6 +75,7 @@ class LifecycleTest(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
+        release(cls)
         cls.tmp.cleanup()
 
     def install(self, abort=BUSY, probe=BUSY, recover=ACCEPTED):
@@ -247,17 +249,18 @@ class AcquisitionBackendTest(unittest.TestCase):
                              "unsigned int abort_calls;\n"
                              "int HAL_SPI_Abort(SPI_HandleTypeDef *s) { ++abort_calls;return abort_ok(); }"))
         src = ROOT / 'firmware/DE-DRMS-Code/Core'
-        subprocess.run(['cc', '-shared', '-fPIC', '-Wall', '-Werror=implicit-function-declaration',
+        subprocess.run([CC, '-shared', '-fPIC', '-Wall', '-Werror=implicit-function-declaration',
                         '-I', str(p), '-I', str(src / 'Inc'),
                         *[str(src / f'Src/drms_{name}.c') for name in ('acquisition', 'measurement', 'fifo', 'capture_time')],
-                        str(p / 'mock.c'), '-o', str(p / 'acq.so')], check=True)
-        cls.lib = ctypes.CDLL(str(p / 'acq.so'))
+                        str(p / 'mock.c'), '-o', str(p / f'acq{EXT}')], check=True)
+        cls.lib = ctypes.CDLL(str(p / f'acq{EXT}'))
         cls.lib.drms_acq_start.restype = ctypes.c_int
         cls.lib.drms_acq_resource_backend.restype = ctypes.c_void_p
         cls.lib.abort_ok_result = ctypes.c_int.in_dll(cls.lib, 'abort_ok_result')
 
     @classmethod
     def tearDownClass(cls):
+        release(cls)
         cls.tmp.cleanup()
 
     def setUp(self):

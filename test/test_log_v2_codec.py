@@ -18,6 +18,7 @@ from test_acquisition import Raw
 from test_record_boundary import End, Token, Position
 from test_user_config import build_body
 
+from _platform import CC, EXT, PYTHON, release
 ROOT = Path(__file__).resolve().parents[1]
 
 HEADER = r'''
@@ -77,11 +78,11 @@ class V2CodecTest(unittest.TestCase):
         p = Path(cls.tmp.name)
         (p / 'main.h').write_text(HEADER)
         src = ROOT / 'firmware/DE-DRMS-Code/Core'
-        subprocess.run(['cc', '-shared', '-fPIC', '-Wall', '-Werror=implicit-function-declaration',
+        subprocess.run([CC, '-shared', '-fPIC', '-Wall', '-Werror=implicit-function-declaration',
                         '-I', str(p), '-I', str(src / 'Inc'),
                         *[str(src / f'Src/drms_{name}.c') for name in ('log_codec', 'measurement')],
-                        '-o', str(p / 'codec.so')], check=True)
-        cls.lib = ctypes.CDLL(str(p / 'codec.so'))
+                        '-o', str(p / f'codec{EXT}')], check=True)
+        cls.lib = ctypes.CDLL(str(p / f'codec{EXT}'))
         cls.lib.drms_log_v2_pack_header.argtypes = [ctypes.c_char_p, ctypes.c_uint32, ctypes.c_void_p]
         cls.lib.drms_log_v2_pack_data.argtypes = [ctypes.c_char_p, ctypes.c_uint32, ctypes.c_void_p, ctypes.c_uint32]
         cls.lib.drms_log_v2_pack_end.argtypes = [ctypes.c_char_p, ctypes.c_uint32, ctypes.c_void_p]
@@ -89,6 +90,7 @@ class V2CodecTest(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
+        release(cls)
         cls.tmp.cleanup()
 
     def c_end(self, **kw):
@@ -156,7 +158,7 @@ class V2CodecTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             output = Path(directory) / 'codec.o'
             source = ROOT / 'firmware/DE-DRMS-Code/Core'
-            subprocess.run(['cc', '-O0', '-fstack-usage', '-I', str(source / 'Inc'),
+            subprocess.run([CC, '-O0', '-fstack-usage', '-I', str(source / 'Inc'),
                             '-c', str(source / 'Src/drms_log_codec.c'), '-o', str(output)], check=True)
             usage = output.with_suffix('.su').read_text()
             for name in ('drms_log_v2_pack_header', 'drms_log_v2_pack_data', 'drms_log_v2_pack_end'):
@@ -184,7 +186,7 @@ class V2CodecTest(unittest.TestCase):
             log = Path(directory) / 'record.bin'
             csv_path = Path(directory) / 'record.csv'
             log.write_bytes(self.c_file())
-            result = subprocess.run(['python3', str(ROOT / 'tools/de_drms_log.py'), str(log),
+            result = subprocess.run([PYTHON, str(ROOT / 'tools/de_drms_log.py'), str(log),
                                      '--csv', str(csv_path), '--allow-incomplete'],
                                     capture_output=True, text=True)
             self.assertEqual(result.returncode, 0, result.stderr)

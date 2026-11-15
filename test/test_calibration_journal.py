@@ -6,6 +6,7 @@ import tempfile
 import unittest
 from test_calibration import Calibration
 
+from _platform import CC, EXT, release
 ROOT = Path(__file__).resolve().parents[1]
 MOCK = r'''
 #include <stdint.h>
@@ -32,17 +33,18 @@ class CalibrationJournalTest(unittest.TestCase):
         p = Path(cls.tmp.name)
         (p / 'mock.c').write_text(MOCK)
         src = ROOT / 'firmware/DE-DRMS-Code/Core'
-        subprocess.run(['cc', '-shared', '-fPIC', '-Wall', '-Wextra', '-Werror',
+        subprocess.run([CC, '-shared', '-fPIC', '-Wall', '-Wextra', '-Werror',
                         '-I', str(src / 'Inc'),
                         *[str(src / f'Src/drms_{name}.c') for name in
                           ('calibration_codec', 'calibration_journal', 'measurement')],
-                        str(p / 'mock.c'), '-o', str(p / 'journal.so')], check=True)
-        cls.lib = ctypes.CDLL(str(p / 'journal.so'))
+                        str(p / 'mock.c'), '-o', str(p / f'journal{EXT}')], check=True)
+        cls.lib = ctypes.CDLL(str(p / f'journal{EXT}'))
         cls.lib.drms_calibration_load.argtypes = [ctypes.POINTER(Calibration)]
         cls.lib.drms_calibration_save.argtypes = [ctypes.POINTER(Calibration)]
 
     @classmethod
     def tearDownClass(cls):
+        release(cls)
         cls.tmp.cleanup()
 
     def value(self, name):

@@ -5,6 +5,7 @@ import subprocess
 import tempfile
 import unittest
 
+from _platform import CC, EXT, release
 ROOT = Path(__file__).resolve().parents[1]
 HEADER = r'''
 #include <stdint.h>
@@ -57,13 +58,14 @@ class UserBackendTest(unittest.TestCase):
         (directory / 'main.h').write_text(HEADER)
         (directory / 'mock.c').write_text(MOCK)
         source = ROOT / 'firmware/DE-DRMS-Code/Core'
-        subprocess.run(['cc', '-shared', '-fPIC', '-Wall', '-Werror', '-I', str(directory),
+        subprocess.run([CC, '-shared', '-fPIC', '-Wall', '-Werror', '-I', str(directory),
                         '-I', str(source / 'Inc'), str(source / 'Src/drms_user_backend.c'),
-                        str(directory / 'mock.c'), '-o', str(directory / 'backend.so')], check=True)
-        cls.lib = ctypes.CDLL(str(directory / 'backend.so'))
+                        str(directory / 'mock.c'), '-o', str(directory / f'backend{EXT}')], check=True)
+        cls.lib = ctypes.CDLL(str(directory / f'backend{EXT}'))
 
     @classmethod
     def tearDownClass(cls):
+        release(cls)
         cls.tmp.cleanup()
 
     def value(self, name):

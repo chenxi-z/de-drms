@@ -11,6 +11,7 @@ import unittest
 from test_logging import Metadata
 from test_acquisition import Raw
 
+from _platform import CC, EXT, PYTHON, release
 ROOT = Path(__file__).resolve().parents[1]
 MODULE_SPEC = importlib.util.spec_from_file_location('de_drms_log', ROOT / 'tools/de_drms_log.py')
 DECODER = importlib.util.module_from_spec(MODULE_SPEC)
@@ -22,8 +23,8 @@ class LogDecoderTest(unittest.TestCase):
     def setUpClass(cls):
         cls.tmp = tempfile.TemporaryDirectory()
         src = ROOT / 'firmware/DE-DRMS-Code/Core'
-        lib = Path(cls.tmp.name) / 'codec.so'
-        subprocess.run(['cc', '-shared', '-fPIC', '-Wall', '-Wextra', '-Werror',
+        lib = Path(cls.tmp.name) / f'codec{EXT}'
+        subprocess.run([CC, '-shared', '-fPIC', '-Wall', '-Wextra', '-Werror',
                         '-I', str(src / 'Inc'), str(src / 'Src/drms_log_codec.c'),
                         str(src / 'Src/drms_measurement.c'), '-o', str(lib)], check=True)
         cls.lib = ctypes.CDLL(str(lib))
@@ -32,6 +33,7 @@ class LogDecoderTest(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
+        release(cls)
         cls.tmp.cleanup()
 
     def fixture(self, sequences=(10, 12), corrupt=False, footer=True, overruns=1, scale=150000.):
@@ -109,7 +111,7 @@ class LogDecoderTest(unittest.TestCase):
     def test_cli_reports_loss_as_nonzero_unless_recovery_requested(self):
         p = Path(self.tmp.name) / 'lossy.BIN'
         p.write_bytes(self.fixture(sequences=(10,11), corrupt=True, overruns=0))
-        command = ['python3', str(ROOT / 'tools/de_drms_log.py'), str(p)]
+        command = [PYTHON, str(ROOT / 'tools/de_drms_log.py'), str(p)]
         result = subprocess.run(command, capture_output=True)
         self.assertEqual(result.returncode, 1)
         self.assertIn(b'"no_reported_loss": false', result.stderr)
@@ -121,7 +123,7 @@ class LogDecoderTest(unittest.TestCase):
         p = Path(self.tmp.name) / 'sample.BIN'
         data = self.fixture()
         p.write_bytes(data)
-        result = subprocess.run(['python3', str(ROOT / 'tools/de_drms_log.py'), str(p), '--csv', str(p)], capture_output=True)
+        result = subprocess.run([PYTHON, str(ROOT / 'tools/de_drms_log.py'), str(p), '--csv', str(p)], capture_output=True)
         self.assertEqual(result.returncode, 2)
         self.assertEqual(p.read_bytes(), data)
 

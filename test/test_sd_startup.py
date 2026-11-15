@@ -9,6 +9,7 @@ import subprocess
 import tempfile
 import unittest
 
+from _platform import CC, EXT, release
 ROOT = Path(__file__).resolve().parents[1]
 
 HEADER = r'''
@@ -90,14 +91,15 @@ class SDStartupTest(unittest.TestCase):
         p = Path(cls.tmp.name)
         (p / 'sdmmc.h').write_text(HEADER)
         (p / 'mock.c').write_text(MOCK)
-        subprocess.run(['cc', '-shared', '-fPIC', '-Werror=implicit-function-declaration',
+        subprocess.run([CC, '-shared', '-fPIC', '-Werror=implicit-function-declaration',
                         '-I', str(p), str(ROOT / 'firmware/DE-DRMS-Code/Core/Src/sdmmc.c'),
-                        str(p / 'mock.c'), '-o', str(p / 'sd.so')], check=True)
-        cls.lib = ctypes.CDLL(str(p / 'sd.so'))
+                        str(p / 'mock.c'), '-o', str(p / f'sd{EXT}')], check=True)
+        cls.lib = ctypes.CDLL(str(p / f'sd{EXT}'))
         cls.lib.MX_SDMMC1_SD_Init.restype = None
 
     @classmethod
     def tearDownClass(cls):
+        release(cls)
         cls.tmp.cleanup()
 
     def value(self, name):
