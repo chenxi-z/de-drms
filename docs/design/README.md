@@ -19,6 +19,16 @@
 
 10. [架构收敛实施计划](2026-11-06-firmware-architecture-plan.md)：八项复核修正的任务、接口、故障注入、自检与历史执行记录；当前完成情况以固件源码和协议现状为准。
 
+11. **上位机（2026-11-13 起，尚未实现）**：
+    [需求交接](2026-11-13-host-requirements-handoff.md)记录用户已确认的方向（本地独立软件、
+    Windows 主交付、一机一仪、联机与离线两种试验方式、慢测试优先）与待确认清单；
+    [曲线显示规格](2026-11-14-host-curve-display.md)已定纵轴（主 R/R₀、副 R）、
+    视口与尺度滑块、平滑、MATLAB 风格、R₀ 按钮与断线语义；
+    [技术栈决定](2026-11-15-host-tech-stack.md)选定 **C# + .NET 10 + Avalonia 12 + ScottPlot 5**
+    （验证过版本组合不可拆，WPF 因 Linux 无法构建被排除）。
+    上位机直接依赖的接口边界见 [CDC v2 协议](../protocol/de-drms-cdc-v2.md)、
+    [BIN v2 格式](2026-11-06-record-v2-format.md)、[接入指南](../protocol/host-integration.md)。
+
 当前规则：用户本轮确认 > 主文档附录F与当前引脚表 > 历史正文/附录D/E。
 **2026-10-28 换型决定**：MCU 改 STM32U575RGT6（原 545 缺货）；**不做 I²C/TMP117**；
 **TF 卡常电（取消 SD_PWR_EN）**；**PA4 保持 ADS_CS 不作 DAC**。
