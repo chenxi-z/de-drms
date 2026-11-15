@@ -1,0 +1,110 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:sp="clr-namespace:ScottPlot.Avalonia;assembly=ScottPlot.Avalonia"
+        xmlns:local="clr-namespace:Drms.Gui"
+        x:Class="Drms.Gui.MainWindow"
+        x:DataType="local:MainViewModel"
+        Title="DE-DRMS 双电极电阻测量仪"
+        Width="1120" Height="800"
+        Background="White"
+        FontFamily="Microsoft YaHei UI, Noto Sans CJK SC, sans-serif">
+
+    <!-- MATLAB 风格：白底、四边全框、浅灰网格、无圆角无阴影。 -->
+    <Window.Styles>
+        <Style Selector="TextBlock.readout">
+            <Setter Property="FontSize" Value="20" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+        <Style Selector="TextBlock.label">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Foreground" Value="#6B7280" />
+        </Style>
+        <Style Selector="Button">
+            <Setter Property="Padding" Value="12,6" />
+            <Setter Property="Margin" Value="0,0,8,0" />
+        </Style>
+    </Window.Styles>
+
+    <Grid RowDefinitions="Auto,Auto,*,Auto" Margin="12">
+
+        <!-- ===== 连接栏 ===== -->
+        <Border Grid.Row="0" BorderBrush="#D1D5DB" BorderThickness="1" Padding="10" Margin="0,0,0,8">
+            <Grid ColumnDefinitions="Auto,180,Auto,Auto,*,Auto">
+                <TextBlock Grid.Column="0" Text="串口" VerticalAlignment="Center" Margin="0,0,8,0" />
+                <ComboBox Grid.Column="1" x:Name="PortBox"
+                          ItemsSource="{Binding Ports}"
+                          SelectedItem="{Binding SelectedPort}"
+                          Margin="0,0,8,0" />
+                <Button Grid.Column="2" Content="刷新" Click="OnRefreshPorts" />
+                <Button Grid.Column="3" Content="连接" Click="OnConnect"
+                        IsEnabled="{Binding CanConnect}" />
+                <TextBlock Grid.Column="4" Text="{Binding ConnectionText}"
+                           VerticalAlignment="Center" Margin="12,0,0,0" FontWeight="SemiBold" />
+                <TextBlock Grid.Column="5" Text="{Binding DeviceUid}"
+                           VerticalAlignment="Center" Foreground="#6B7280" FontFamily="Consolas,monospace" />
+            </Grid>
+        </Border>
+
+        <!-- ===== 读数面板 ===== -->
+        <Border Grid.Row="1" BorderBrush="#D1D5DB" BorderThickness="1" Padding="10" Margin="0,0,0,8">
+            <!-- 用固定宽度的 WrapPanel 而不是等分 Grid：窗口变窄时自动换行，
+                 不会把最后一栏裁掉半截。 -->
+            <WrapPanel Orientation="Horizontal">
+                <StackPanel Width="150" Margin="0,0,8,0">
+                    <TextBlock Classes="label" Text="R" />
+                    <TextBlock Classes="readout" Text="{Binding OhmsText}" />
+                </StackPanel>
+                <StackPanel Width="125" Margin="0,0,8,0">
+                    <TextBlock Classes="label" Text="R/R0" />
+                    <TextBlock Classes="readout" Text="{Binding RatioText}" />
+                </StackPanel>
+                <StackPanel Width="80" Margin="0,0,8,0">
+                    <TextBlock Classes="label" Text="等级" />
+                    <TextBlock Classes="readout" Text="{Binding LevelText}" />
+                </StackPanel>
+                <StackPanel Width="140" Margin="0,0,8,0">
+                    <TextBlock Classes="label" Text="分类状态" />
+                    <TextBlock Classes="readout" FontSize="16" Text="{Binding ClassificationText}" />
+                </StackPanel>
+                <StackPanel Width="140" Margin="0,0,8,0">
+                    <TextBlock Classes="label" Text="采集 / 记录" />
+                    <TextBlock FontSize="15" Foreground="#111827">
+                        <Run Text="{Binding AcquisitionText}" /><Run Text=" / " /><Run Text="{Binding RecordingText}" />
+                    </TextBlock>
+                </StackPanel>
+                <StackPanel Width="160">
+                    <TextBlock Classes="label" Text="介质 / 电池" />
+                    <TextBlock FontSize="15" Foreground="#111827">
+                        <Run Text="{Binding MediumText}" /><Run Text=" · " /><Run Text="{Binding BatteryText}" />
+                    </TextBlock>
+                </StackPanel>
+            </WrapPanel>
+        </Border>
+
+        <!-- ===== 双图：主图 R/R0，副图 R，共享横轴 =====
+             规格要求主图约占 2/3，但 2*:1* 在 820 高的窗口里给副图只剩约 150 px，
+             连坐标轴都放不下。改用 3*:2*，主图仍明显更大，副图保持可读。 -->
+        <Grid Grid.Row="2" RowDefinitions="3*,2*">
+            <Border Grid.Row="0" BorderBrush="#D1D5DB" BorderThickness="1" Margin="0,0,0,4">
+                <sp:AvaPlot x:Name="RatioPlot" />
+            </Border>
+            <Border Grid.Row="1" BorderBrush="#D1D5DB" BorderThickness="1">
+                <sp:AvaPlot x:Name="OhmsPlot" />
+            </Border>
+        </Grid>
+
+        <!-- ===== 状态栏 ===== -->
+        <Border Grid.Row="3" BorderBrush="#D1D5DB" BorderThickness="1" Padding="8" Margin="0,8,0,0">
+            <Grid ColumnDefinitions="*,Auto,Auto">
+                <TextBlock Grid.Column="0" Text="{Binding StatusMessage}" TextWrapping="Wrap"
+                           VerticalAlignment="Center" Foreground="#374151" />
+                <TextBlock Grid.Column="1" VerticalAlignment="Center" Foreground="#6B7280"
+                           Margin="12,0,0,0">
+                    <Run Text="质量：" /><Run Text="{Binding QualityText}" />
+                    <Run Text="  新鲜度：" /><Run Text="{Binding FreshText}" />
+                </TextBlock>
+                <Button Grid.Column="2" Content="断开" Click="OnDisconnect" Margin="12,0,0,0" />
+            </Grid>
+        </Border>
+    </Grid>
+</Window>
