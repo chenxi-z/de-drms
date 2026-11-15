@@ -206,6 +206,21 @@ IOC不手工增删IP，当前源码与旧IOC差异见CubeMX清单，需GUI复存
 
 ### 工具链（本机现状，勿凭想象）
 
+**2026-11-15 本机 Windows 环境已打通三条线**（此前只有 SVG 渲染可用）：
+
+| 用途 | 工具 | 位置 / 用法 |
+| --- | --- | --- |
+| 固件构建 | **STM32CubeCLT 1.22.0**（含 arm-none-eabi-gcc **14.3.1**） | `C:\ST\STM32CubeCLT_1.22.0\GNU-tools-for-STM32\bin`，同目录还有 `Make\bin\make.exe`；把两者加进 PATH 即可 `make -C firmware/DE-DRMS-Code -j8` |
+| 主机测试（456 项） | Python 3.11 + MinGW gcc | `python -m unittest discover -s test -p 'test_*.py'`；跨平台细节集中在 `test/_platform.py`（`CC`/`EXT`/`PYTHON`/`release`），**不要再在测试里硬编码 `cc`、`.so`、`python3`** |
+| 上位机 | **.NET 10.0.404 SDK** | `C:\Users\chenx\.dotnet`（zip 解包，非安装器）。用前 `export DOTNET_ROOT="C:/Users/chenx/.dotnet"; export PATH="/c/Users/chenx/.dotnet:$PATH"`；Avalonia 模板已装 |
+
+固件构建实测（2026-11-15，GCC 14.3.1）：`text 191,936 B / data 328 B / bss 753,320 B`，
+`data+bss = 736.0 KiB`，门禁 736 KiB **只剩 16 B 余量**——**任何再增加主 RAM 静态分配的改动都会超限**，
+加缓冲前先看 `.bss` 里谁占着（`frames` 64 KiB + `records` 512 KiB + `staging` 32 KiB 是三大块）。
+SRAM4 工作区 12,312 B / 16 KiB 仍有余量，优先往那边放。
+注意：GCC 14 与历史基线（13.2.1 时 `text 120144`）不可直接比，`-O3 -flto` 的代码生成不同，
+**门禁看 RAM 占用与关键符号尺寸，不看 text 绝对值**。
+
 - 渲染/预览：`python3 -c "import cairosvg; cairosvg.svg2png(url='x.svg', write_to='x@2x.png', scale=2)"`
   （`bun` 未装，`npx -y bun` 因 npm 缓存权限失败；`cairosvg` 已装，中文、箭头、`≤ Ω ℃ µ` 均正常）
 - 字体用系统 `'Noto Sans CJK SC'`；**不要** `@import` 网络字体（离线渲染会缺字）

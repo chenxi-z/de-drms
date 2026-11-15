@@ -220,8 +220,13 @@ class ArchitectureIntegrationTest(unittest.TestCase):
         self.assertNotEqual(state, 5)  # 绝不是 CONFIRMED
 
     def test_ram_budget_and_frame_sizes_unchanged(self):
-        build = Path('/tmp/de-drms-t7-verify')
-        if not build.exists():
+        # 构建产物目录由跑构建的人决定，两边都可能出现：
+        # Linux 上按惯例放 /tmp，Windows 上没有 /tmp（Path('/tmp/..') 会解析到
+        # 当前盘符根），所以这里同时认仓库内的默认 build/ 与 /tmp 两处。
+        candidates = [Path('/tmp/de-drms-t7-verify'),
+                      ROOT / 'firmware/DE-DRMS-Code/build']
+        build = next((p for p in candidates if p.exists() and list(p.glob('*.map'))), None)
+        if build is None:
             self.skipTest('ARM map not built in this run')
         elfs = list(build.glob('*.map'))
         self.assertTrue(elfs)

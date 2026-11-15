@@ -81,6 +81,20 @@ make -C firmware/DE-DRMS-Code -j6 BUILD_DIR=/tmp/de-drms-build
 
 构建产物在 `/tmp/de-drms-build`，不入库。固件源码修改没有改 IOC 或 EDA。
 
+**Windows 本机（2026-11-15 实测可用）**：
+
+```bash
+export PATH="/c/ST/STM32CubeCLT_1.22.0/GNU-tools-for-STM32/bin:/c/ST/STM32CubeCLT_1.22.0/Make/bin:$PATH"
+python -m unittest discover -s test -p 'test_*.py'    # 456 项，用 python 不是 python3
+make -C firmware/DE-DRMS-Code -j8                    # 产物在 firmware/DE-DRMS-Code/build/
+```
+
+`BUILD_DIR` 不要传 Windows 风格路径（`D:/tmp/x` 会被 Makefile 与 GCC 的路径处理冲突，
+生成 `D:C:/...` 这种非法依赖文件名）；省略即用仓库内 `build/`，已被 `.gitignore` 忽略。
+本机工具链是 CubeCLT 自带的 **arm-none-eabi-gcc 14.3.1**，与历史基线 13.2.1 不同，
+`text` 段绝对值不可直接对比（`-O3 -flto` 代码生成有差异）；**门禁看 `data+bss` 与关键缓冲尺寸**。
+当前 `data+bss = 736.0 KiB`，距 736 KiB 门禁仅剩 16 B，新增主 RAM 静态分配前必须先核算。
+
 以后在 CubeMX Generate Code 后运行：
 
 ```bash
