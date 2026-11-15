@@ -183,13 +183,38 @@ public sealed class DeviceSession : IDisposable
     public StatusReply GetStatus()
         => Result_<StatusReply>(Messages.GetStatusRequest(_session, NextRequestId()), Messages.ParseStatus);
 
+    /// <summary>
+    /// 查操作结果。
+    ///
+    /// 注意这里**不接受** result 非 OK 的回复：固件的 GET_OPERATION 把
+    /// "查询是否成功"和"操作结果"合并在同一个 result 字段里
+    /// （drms_cdc_v2.c 的 opcode==3 分支：`result = operation.result`）。
+    /// 所以一个 INCOMPLETE(9) 的回复表示"查询成功，操作以 INCOMPLETE 结束"，
+    /// 是合法终态，不是协议错误。把它当异常抛出去会让调用方拿不到结果。
+    ///
+    /// 真正的查询错误只有 BUSY/STALE/INVALID 这几种（drms_control_get_operation 的返回）。
+    /// </summary>
     public OperationReply GetOperation(ulong operation)
-        => Result_<OperationReply>(Messages.GetOperationRequest(_session, NextRequestId(), operation),
-                                   Messages.ParseOperation);
+    {
+        Message reply = Send(Messages.GetOperationRequest(_session, NextRequestId(), operation));
+        Result result = Messages.ReadResult(reply);
 
+        // 这三种才表示"查不到这个操作"，其余都是操作的终态结果
+        if (result is Result.Invalid or Result.Stale or Result.Busy)
+            throw new DeviceException($"查询操作 {operation} 失败", result, Messages.ReadReason(reply));
+
+        return Messages.ParseOperation(reply);
+    }
+
+    /// <summary>查记录结果。与 GetOperation 同理：result 是记录的业务结果。</summary>
     public RecordReply GetRecord(ulong record)
-        => Result_<RecordReply>(Messages.GetRecordRequest(_session, NextRequestId(), record),
-                                Messages.ParseRecord);
+    {
+        Message reply = Send(Messages.GetRecordRequest(_session, NextRequestId(), record));
+        Result result = Messages.ReadResult(reply);
+        if (result is Result.Invalid or Result.Stale)
+            throw new DeviceException($"查询记录 {record} 失败", result, Messages.ReadReason(reply));
+        return Messages.ParseRecord(reply);
+    }
 
     public ConfigReply GetConfig()
         => Result_<ConfigReply>(Messages.GetConfigRequest(_session, NextRequestId()), Messages.ParseConfig);

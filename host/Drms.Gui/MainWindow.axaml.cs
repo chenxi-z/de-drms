@@ -218,6 +218,18 @@ public partial class MainWindow : Window
 
     private void OnRefreshPorts(object? sender, RoutedEventArgs e) => _vm.RefreshPorts();
 
+    private async void OnApplyConfig(object? sender, RoutedEventArgs e)
+    {
+        await _vm.ApplyConfigAsync();
+    }
+
+    private async void OnBuildBaseline(object? sender, RoutedEventArgs e)
+    {
+        await _vm.BuildBaselineAsync();
+    }
+
+    private void OnCancelBaseline(object? sender, RoutedEventArgs e) => _vm.CancelBaseline();
+
     private async void OnConnect(object? sender, RoutedEventArgs e)
     {
         try

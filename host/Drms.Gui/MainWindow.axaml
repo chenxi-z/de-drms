@@ -5,7 +5,7 @@
         x:Class="Drms.Gui.MainWindow"
         x:DataType="local:MainViewModel"
         Title="DE-DRMS 双电极电阻测量仪"
-        Width="1120" Height="800"
+        Width="1180" Height="900"
         Background="White"
         FontFamily="Microsoft YaHei UI, Noto Sans CJK SC, sans-serif">
 
@@ -23,12 +23,21 @@
             <Setter Property="Padding" Value="12,6" />
             <Setter Property="Margin" Value="0,0,8,0" />
         </Style>
+        <Style Selector="TextBlock.hint">
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="Foreground" Value="#6B7280" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+        </Style>
     </Window.Styles>
 
-    <Grid RowDefinitions="Auto,Auto,*,Auto" Margin="12">
+    <!-- 布局注意：ScottPlot 的 AvaPlot 在 Avalonia 12 下用"列"布局时会无视列宽、
+         铺满整行并把右侧控件完全遮住（已用最小工程复现）。用"行"布局则正常，
+         因此图表与配置面板上下排，不用左右分栏。 -->
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+    <StackPanel Margin="12">
 
         <!-- ===== 连接栏 ===== -->
-        <Border Grid.Row="0" BorderBrush="#D1D5DB" BorderThickness="1" Padding="10" Margin="0,0,0,8">
+        <Border BorderBrush="#D1D5DB" BorderThickness="1" Padding="10" Margin="0,0,0,8">
             <Grid ColumnDefinitions="Auto,180,Auto,Auto,*,Auto">
                 <TextBlock Grid.Column="0" Text="串口" VerticalAlignment="Center" Margin="0,0,8,0" />
                 <ComboBox Grid.Column="1" x:Name="PortBox"
@@ -46,15 +55,13 @@
         </Border>
 
         <!-- ===== 读数面板 ===== -->
-        <Border Grid.Row="1" BorderBrush="#D1D5DB" BorderThickness="1" Padding="10" Margin="0,0,0,8">
-            <!-- 用固定宽度的 WrapPanel 而不是等分 Grid：窗口变窄时自动换行，
-                 不会把最后一栏裁掉半截。 -->
+        <Border BorderBrush="#D1D5DB" BorderThickness="1" Padding="10" Margin="0,0,0,8">
             <WrapPanel Orientation="Horizontal">
                 <StackPanel Width="150" Margin="0,0,8,0">
                     <TextBlock Classes="label" Text="R" />
                     <TextBlock Classes="readout" Text="{Binding OhmsText}" />
                 </StackPanel>
-                <StackPanel Width="125" Margin="0,0,8,0">
+                <StackPanel Width="115" Margin="0,0,8,0">
                     <TextBlock Classes="label" Text="R/R0" />
                     <TextBlock Classes="readout" Text="{Binding RatioText}" />
                 </StackPanel>
@@ -81,30 +88,122 @@
             </WrapPanel>
         </Border>
 
-        <!-- ===== 双图：主图 R/R0，副图 R，共享横轴 =====
-             规格要求主图约占 2/3，但 2*:1* 在 820 高的窗口里给副图只剩约 150 px，
-             连坐标轴都放不下。改用 3*:2*，主图仍明显更大，副图保持可读。 -->
-        <Grid Grid.Row="2" RowDefinitions="3*,2*">
-            <Border Grid.Row="0" BorderBrush="#D1D5DB" BorderThickness="1" Margin="0,0,0,4">
-                <sp:AvaPlot x:Name="RatioPlot" />
+        <!-- ===== 双图 =====
+             AvaPlot 必须给固定 Height：它在 Avalonia 12 下不守星号尺寸，
+             会铺满并盖住同级控件（左右分栏、DockPanel、Overlay、官方示例的
+             Grid 单元格写法全部实测失败）。固定高度是唯一可靠的约束方式。 -->
+        <Border BorderBrush="#D1D5DB" BorderThickness="1" Height="340" Margin="0,0,0,4">
+            <sp:AvaPlot x:Name="RatioPlot" />
+        </Border>
+        <Border BorderBrush="#D1D5DB" BorderThickness="1" Height="240">
+            <sp:AvaPlot x:Name="OhmsPlot" />
+        </Border>
+
+        <!-- ===== 配置与基线（可折叠） ===== -->
+        <Expander Header="配置与基线" IsExpanded="False" Margin="0,8,0,0"
+                  HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+            <Border BorderBrush="#D1D5DB" BorderThickness="1" Padding="10">
+                <Grid ColumnDefinitions="*,Auto,*">
+
+                    <!-- 左：等级区间 -->
+                    <StackPanel Grid.Column="0" Margin="0,0,16,0">
+                        <TextBlock Text="等级区间" FontWeight="SemiBold" FontSize="13" />
+                        <TextBlock Classes="hint" Margin="0,2,0,6"
+                                   Text="上界按 R/R0 偏移百分比填；绿色下界自动取 -10%（容差），回差需小于区间宽度的一半。" />
+
+                        <Grid ColumnDefinitions="44,*,*" Margin="0,0,0,3">
+                            <TextBlock Grid.Column="0" Classes="label" Text="等级" />
+                            <TextBlock Grid.Column="1" Classes="label" Text="上界 %" />
+                            <TextBlock Grid.Column="2" Classes="label" Text="回差 %" />
+                        </Grid>
+
+                        <ItemsControl ItemsSource="{Binding Config.Bands}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="local:BandRow">
+                                    <Grid ColumnDefinitions="44,*,*" Margin="0,0,0,3">
+                                        <TextBlock Grid.Column="0" Text="{Binding Name}"
+                                                   VerticalAlignment="Center" FontSize="12" />
+                                        <TextBox Grid.Column="1" Text="{Binding UpperPercent}"
+                                                 Margin="0,0,5,0" MinHeight="26" FontSize="12" />
+                                        <TextBox Grid.Column="2" Text="{Binding HysteresisPercent}"
+                                                 MinHeight="26" FontSize="12" />
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
+                        <TextBlock Text="{Binding Config.ValidationText}" Classes="hint"
+                                   Foreground="#B45309" Margin="0,4,0,6" />
+                        <Button Content="下发配置" Click="OnApplyConfig"
+                                HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" />
+                        <TextBlock Text="{Binding Config.ApplyResult}" Classes="hint" Margin="0,4,0,0" />
+                    </StackPanel>
+
+                <Rectangle Grid.Column="1" Width="1" Fill="#E5E7EB" Margin="0,0,16,0" />
+
+                <!-- 右：建立基线 -->
+                <StackPanel Grid.Column="2" MinWidth="330">
+                    <TextBlock Text="建立基线 R0" FontWeight="SemiBold" FontSize="13" />
+                    <TextBlock Classes="hint" Margin="0,2,0,6"
+                               Text="设备连续采一段有效读数算均值。成功后采集会重启，曲线断开一次。" />
+
+                    <Grid ColumnDefinitions="Auto,*,Auto,Auto" Margin="0,0,0,6">
+                        <TextBlock Grid.Column="0" Text="采样窗口" VerticalAlignment="Center" FontSize="12"
+                                   Margin="0,0,8,0" />
+                        <ComboBox Grid.Column="1" ItemsSource="{Binding Config.BaselineDurations}"
+                                  SelectedItem="{Binding Config.SelectedDuration}"
+                                  HorizontalAlignment="Stretch" FontSize="12" />
+                        <Button Grid.Column="2" Content="开始" Click="OnBuildBaseline" Margin="8,0,4,0"
+                                IsEnabled="{Binding Config.Baseline.CanStart}" />
+                        <Button Grid.Column="3" Content="取消" Click="OnCancelBaseline" Margin="0"
+                                IsEnabled="{Binding Config.Baseline.Running}" />
+                    </Grid>
+
+                    <ProgressBar Value="{Binding Config.Baseline.ProgressValue}" Height="6"
+                                 Maximum="1" Margin="0,0,0,4" />
+
+                    <Grid ColumnDefinitions="Auto,*" Margin="0,0,0,1">
+                        <TextBlock Grid.Column="0" Classes="hint" Text="进度 " />
+                        <TextBlock Grid.Column="1" Classes="hint" Text="{Binding Config.Baseline.ProgressText}" />
+                    </Grid>
+                    <Grid ColumnDefinitions="Auto,*" Margin="0,0,0,1">
+                        <TextBlock Grid.Column="0" Classes="hint" Text="均值 " />
+                        <TextBlock Grid.Column="1" Classes="hint" Text="{Binding Config.Baseline.MeanText}" />
+                    </Grid>
+                    <Grid ColumnDefinitions="Auto,*" Margin="0,0,0,1">
+                        <TextBlock Grid.Column="0" Classes="hint" Text="CV " />
+                        <TextBlock Grid.Column="1" Classes="hint" Text="{Binding Config.Baseline.CvText}" />
+                    </Grid>
+                    <Grid ColumnDefinitions="Auto,*" Margin="0,0,0,1">
+                        <TextBlock Grid.Column="0" Classes="hint" Text="稳定度 " />
+                        <TextBlock Grid.Column="1" Classes="hint" Text="{Binding Config.Baseline.StabilityText}" />
+                    </Grid>
+                    <Grid ColumnDefinitions="Auto,*" Margin="0,0,0,4">
+                        <TextBlock Grid.Column="0" Classes="hint" Text="当前基线 " />
+                        <TextBlock Grid.Column="1" Classes="hint" Text="{Binding R0StatusText}" />
+                    </Grid>
+
+                    <TextBlock Text="{Binding Config.Baseline.PreconditionText}" Classes="hint"
+                               Foreground="#B91C1C" Margin="0,0,0,3" />
+                    <TextBlock Text="{Binding Config.Baseline.Result}" Classes="hint" />
+                </StackPanel>
+                </Grid>
             </Border>
-            <Border Grid.Row="1" BorderBrush="#D1D5DB" BorderThickness="1">
-                <sp:AvaPlot x:Name="OhmsPlot" />
-            </Border>
-        </Grid>
+        </Expander>
 
         <!-- ===== 状态栏 ===== -->
-        <Border Grid.Row="3" BorderBrush="#D1D5DB" BorderThickness="1" Padding="8" Margin="0,8,0,0">
+        <Border BorderBrush="#D1D5DB" BorderThickness="1" Padding="8" Margin="0,8,0,0">
             <Grid ColumnDefinitions="*,Auto,Auto">
                 <TextBlock Grid.Column="0" Text="{Binding StatusMessage}" TextWrapping="Wrap"
-                           VerticalAlignment="Center" Foreground="#374151" />
+                           VerticalAlignment="Center" Foreground="#374151" FontSize="12" />
                 <TextBlock Grid.Column="1" VerticalAlignment="Center" Foreground="#6B7280"
-                           Margin="12,0,0,0">
+                           Margin="12,0,0,0" FontSize="12">
                     <Run Text="质量：" /><Run Text="{Binding QualityText}" />
                     <Run Text="  新鲜度：" /><Run Text="{Binding FreshText}" />
                 </TextBlock>
                 <Button Grid.Column="2" Content="断开" Click="OnDisconnect" Margin="12,0,0,0" />
             </Grid>
         </Border>
-    </Grid>
+        </StackPanel>
+    </ScrollViewer>
 </Window>
