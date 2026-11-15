@@ -13,7 +13,22 @@
 > 技术栈见 `2026-11-15-host-tech-stack.md`（C# + .NET 10 + Avalonia 12 + ScottPlot 5）；
 > 索引在 `README.md` 第 11 条。
 
-### F-1 `tau_us` 滤波系数公式颠倒，配置项实际失效
+### F-1 `tau_us` 滤波系数公式颠倒，配置项实际失效 —— ✅ 2026-11-15 已修复
+
+**修复**：`drms_filter.c` 的 alpha 改为 `1.0 - exp(-dt/tau)`，并同步了文件头注释。
+本机实测（MinGW GCC 编译真实 `drms_filter.c` 后用 ctypes 驱动）：
+alpha 与 `1-exp(-dt/tau)` 在 tau=1…100000 全档逐值一致；`tau=1000` 在 1/4/16 kSPS
+下等效时间常数恒为 1000 µs（旧公式分别为 4000/250/15.6 µs）；tau 单调性正确；
+阶跃响应 63.2% 恰在 1000 µs。
+
+**测试**：新增两条能抓住该 bug 的用例（`test_iir_time_constant_is_independent_of_sample_rate`、
+`test_iir_larger_tau_smooths_more`）。已验证它们在旧公式下**均失败**、修复后通过；
+`test_monitor_pipeline.py` 22 项全过。原 `test_iir_converges_with_tau`（tau=250）无需改期望
+——该点 `dt/tau == tau/dt == 1`，两种公式恒等，正是当初漏检的原因，用例保留作历史锚点。
+
+**为何当时没抓到**：`tau=250` @4 kSPS 时分子分母相等，属数值巧合；其余用例均为 `tau=0`（旁路）。
+
+以下为原始分析，保留供追溯。
 
 **位置**：`firmware/DE-DRMS-Code/App/application/measurement/drms_filter.c:36-37`
 
@@ -45,14 +60,17 @@ ctx->alpha = 1.0 - exp(-(double)tau_us / dt_us);   /* ← 分子分母颠倒 */
    真正的"时间常数"应与采样率无关。
 
 **测试为何没抓到**：`test/test_monitor_pipeline.py:145` 只测 `tau=250`，
-该点两种公式数值巧合接近；其余用例均为 `tau=0`（旁路）。
-修公式后该用例的期望值 `1.0+0.632` 需重算。
+该点两种公式数值恒等（`dt/tau == tau/dt == 1`，都是 0.632121）；其余用例均为 `tau=0`（旁路）。
 
 **严重性判断**：不影响 R 的测量正确性（`drms_resistance` 与滤波无关），
 属于"配置项不生效"，不是精度缺陷。但会让配置者以为设置了平滑而实际没有。
 
-**待决定**：修公式（`exp(-dt/tau)`）还是删除/重新定义该配置项。
-若修，须同步 §3.3 的测试期望与协议文档对 `tau_us` 的语义描述。
+**最终结论（2026-11-15）**：选择"修公式"而非删除该配置项——`tau_us` 已在协议
+（CDC v2 tag 74）、Flash 配置区和架构文档中作为一阶 IIR 时间常数存在，
+删除等于缩小接口；而公式本身只需一行修正。
+`test_iir_converges_with_tau` 的期望值 `1.0+0.632` **无需重算**（该点两式恒等），
+保留为"旧用例为何漏检"的活标本。协议对 `tau_us` 的语义描述（"一阶 IIR 时间常数"）
+原本就是正确的，本次只改实现不改语义，故 `shared/protocol/` 与 `docs/protocol/` 无需同步。
 
 ### F-2 `stale_timeout_us` 计算式与注释量级不符（低优先）
 

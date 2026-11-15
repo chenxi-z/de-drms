@@ -148,6 +148,26 @@ class PipelineTest(unittest.TestCase):
         out = self.step(2.0, 2)
         self.assertAlmostEqual(out.ratio, 1.0 + 0.632, places=2)  # y += alpha*(x-y)
 
+    def test_iir_time_constant_is_independent_of_sample_rate(self):
+        # alpha=1-exp(-dt/tau)。若分子分母写反成 exp(-tau/dt)，
+        # tau>dt 时 alpha 会趋近 1（等效无滤波），且等效 tau 随采样率漂移。
+        # tau=1000us → 4 个 dt=250us 样本后 y 应达 1-e^-1≈0.632。
+        self.configure(tau=1000, warmup=0, confirm=0, rate=4000)
+        self.step(0.0, 1)
+        for seq in range(2, 6):
+            out = self.step(1.0, seq)
+        self.assertAlmostEqual(out.ratio, 1.0 - math.exp(-1.0), places=6)
+
+    def test_iir_larger_tau_smooths_more(self):
+        # tau 越大越平滑：同样两步阶跃，大 tau 的输出必须更接近起点而不是目标。
+        outputs = {}
+        for tau in (250, 4000):
+            self.configure(tau=tau, warmup=0, confirm=0, rate=4000)
+            self.step(0.0, 1)
+            outputs[tau] = self.step(1.0, 2).ratio
+        # 旧公式下 tau=4000 的 alpha≈1.0，输出会几乎等于 1.0，比 tau=250 更"快"。
+        self.assertLess(outputs[4000], outputs[250])
+
     def test_warmup_window_and_full_restart_after_fault(self):
         self.configure(tau=0, warmup=1000, confirm=0)  # 4 个样本 @250us
         for seq in (1, 2, 3):

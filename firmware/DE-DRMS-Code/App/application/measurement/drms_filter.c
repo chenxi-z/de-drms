@@ -11,8 +11,12 @@
  *   warmup   预热时间，滤波器从零状态开始需要一段时间才能收敛到真值。
  *            这段时间内的输出不可信，必须显式标记以免被当成有效读数。
  *
- * 实现上把 alpha = 1 - exp(-tau/dt) 在配置时算好缓存：
+ * 实现上把 alpha = 1 - exp(-dt/tau) 在配置时算好缓存：
  *   每次调用都算 exp() 太贵，而这个系数只与采样率和 tau 有关。
+ *
+ * 分子分母不能写反：dt 是采样间隔，tau 是希望达到的时间常数。
+ * 写成 exp(-tau/dt) 会让 alpha 随 tau 增大而趋近 1，即"配置的 tau 越大越不平滑"，
+ * 与 tau 的语义相反，且 tau ≥ 若干倍 dt 后 alpha 退化为 1.0（完全旁路）。
  *****************************************************************************/
 
 #include "drms_filter.h"
@@ -34,7 +38,7 @@ void drms_filter_configure(DRMS_FilterContext *ctx, uint32_t rate_hz, uint64_t t
     return;
   }
   double dt_us = 1000000.0 / (double)rate_hz;
-  ctx->alpha = 1.0 - exp(-(double)tau_us / dt_us); /* configure 时一次算好并缓存 */
+  ctx->alpha = 1.0 - exp(-dt_us / (double)tau_us); /* configure 时一次算好并缓存 */
 }
 
 void drms_filter_reset(DRMS_FilterContext *ctx)
