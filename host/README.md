@@ -39,6 +39,25 @@ dotnet publish Drms.Gui/Drms.Gui.csproj -c Release -r win-x64 \
 host\dist\Drms.Gui.exe --auto COM5
 ```
 
+### 界面：4 kSPS 波形与 PC 落盘
+
+界面下半部分有「4 kSPS 波形」面板：
+
+- **开启**：订阅设备的 RAW 全速率流（60 帧/批，约 15 ms）。曲线按 **100 ms 分桶**画
+  min/max 包络 + 桶均值——包络保尖峰，内存不随运行时长增长（60 s 环形视窗）。
+- **同时落盘到 PC**：把同一份流写成 **BIN v2 文件**（16 B/帧，约 230 MB/小时），
+  按「轮转 MiB」自动换文件，每个文件独立完整（含自己的 HEADER/END 与校准信息），
+  可直接用 `tools/de_drms_log.py` 解码或导 CSV。
+- ⚠️ **USB 流可能丢批**（电脑卡顿/休眠/拔线），落盘文件会如实记 `lost` 与序号缺口并标
+  `INCOMPLETE`。**设备 TF 记录才是权威数据**，PC 落盘是便利副本。
+
+自动化/现场直接拉起（窗口会自动关闭，便于脚本验证）：
+
+```bash
+dotnet run --project Drms.Gui -- --auto COM9 --record data/pc --exit-after 60
+#                                连接端口      落盘目录        多少秒后停流退出
+```
+
 ### 界面（开发时从源码跑）
 
 **前置**：.NET 10 SDK（本机在 `C:\Users\chenx\.dotnet`，非系统安装）。
@@ -151,7 +170,7 @@ cd host/Drms.Core.Tests && dotnet test
 | 项 | 说明 |
 | --- | --- |
 | 开始/结束记录按钮 | 核心库已实现（`BeginRecord`/`EndRecord`），界面按钮尚未接上 |
-| **PC 侧循环落盘** | ✅ 2026-11-16：`PC-REC` 模式把 4 kSPS RAW 流写成设备同构的 BIN v2 文件（`host/Drms.Core/Record/BinRecorder.cs`），按大小轮转、每个文件独立完整、跨文件序号连续。真板 35 s 三文件全部 `complete=True`、零缺口。UI 还没接按钮 |
+| **PC 侧循环落盘** | ✅ 2026-11-16：界面「4 kSPS 波形 → 同时落盘到 PC」把 RAW 流写成设备同构的 BIN v2 文件（`host/Drms.Core/Record/BinRecorder.cs`），按大小轮转、每个文件独立完整、跨文件序号连续。真板 35 s 三文件、GUI 12 s 单文件均 `complete=True`、零缺口 |
 | **出厂空配置问题** | `GET_CONFIG` 返回 `UNSUPPORTED`，此时 `baseline_min_count` 不可读，`BUILD_R0` 前置条件不满足。**首次必须先完整下发一次 `APPLY_CONFIG`**（界面上的"下发配置"按钮） |
 | 历史回放 | 未实现。BIN v2 解析规格见 [记录格式](../docs/design/2026-11-06-record-v2-format.md) |
 | MSC 交接 | 未实现（固件侧仍有 SAFE_STOP 与导出所有权冲突待定） |

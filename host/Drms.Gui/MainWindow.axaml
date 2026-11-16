@@ -99,6 +99,38 @@
             <sp:AvaPlot x:Name="OhmsPlot" />
         </Border>
 
+        <!-- ===== 4 kSPS 波形 + PC 落盘 =====
+             RAW 流是"看波形"的窗口：设备每 60 帧（约 15 ms）推一批，
+             界面按 100 ms 分桶画 min/max 包络与均值（曲线规格 §7.4：抽稀必须保尖峰）。
+             落盘写的是与设备同构的 BIN v2 文件，按大小轮转，可直接用
+             tools/de_drms_log.py 解码——但 USB 流可能丢批，设备 TF 记录才是权威。 -->
+        <Border BorderBrush="#D1D5DB" BorderThickness="1" Padding="10" Margin="0,8,0,0">
+            <StackPanel>
+                <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto,Auto">
+                    <TextBlock Grid.Column="0" Text="4 kSPS 波形" FontWeight="SemiBold"
+                               FontSize="13" VerticalAlignment="Center" Margin="0,0,12,0" />
+                    <CheckBox Grid.Column="1" Content="同时落盘到 PC" IsChecked="{Binding RawRecord}"
+                              VerticalAlignment="Center" Margin="0,0,12,0" />
+                    <TextBox Grid.Column="2" Text="{Binding RawDirectory}" MinHeight="26" FontSize="12"
+                             Watermark="落盘目录（相对当前工作目录）" />
+                    <TextBlock Grid.Column="3" Text="轮转 MiB" VerticalAlignment="Center"
+                               FontSize="12" Margin="10,0,6,0" />
+                    <TextBox Grid.Column="4" Text="{Binding RawRotateText}" Width="70" MinHeight="26"
+                             FontSize="12" Margin="0,0,10,0" />
+                    <StackPanel Grid.Column="5" Orientation="Horizontal">
+                        <Button Content="开启" Click="OnStartRaw" IsEnabled="{Binding CanStartRaw}" />
+                        <Button Content="停止" Click="OnStopRaw" IsEnabled="{Binding CanStopRaw}" Margin="0" />
+                    </StackPanel>
+                </Grid>
+                <TextBlock Classes="hint" Margin="0,4,0,0" Text="{Binding RawStatusText}" />
+                <TextBlock Classes="hint" Margin="0,2,0,0"
+                           Text="包络为 100 ms 桶内的 min/max（保尖峰），实线为桶均值；逐帧数据请用设备 TF 记录或 PC 落盘文件。" />
+                <Border BorderBrush="#D1D5DB" BorderThickness="1" Height="200" Margin="0,6,0,0">
+                    <sp:AvaPlot x:Name="RawPlot" />
+                </Border>
+            </StackPanel>
+        </Border>
+
         <!-- ===== 配置与基线（可折叠） ===== -->
         <Expander Header="配置与基线" IsExpanded="False" Margin="0,8,0,0"
                   HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">

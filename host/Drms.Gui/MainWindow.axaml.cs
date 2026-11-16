@@ -29,7 +29,7 @@ public partial class MainWindow : Window
         // 曲线刷新与数据采集解耦：50 ms 重绘一次就够了（20 Hz），
         // 比按事件重绘省 CPU，也避免高频重绘把 UI 线程压住。
         _plotTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(50) };
-        _plotTimer.Tick += (_, _) => Render();
+        _plotTimer.Tick += (_, _) => { _vm.RefreshRawStatus(); Render(); };
         _plotTimer.Start();
 
         _vm.PropertyChanged += (_, e) =>
@@ -41,14 +41,45 @@ public partial class MainWindow : Window
             }
         };
 
-        // 命令行参数 --auto <COMx>：启动即连接。
-        // 既是给自动化验证用的，也方便现场直接拉起来看数据。
+        // 命令行参数（既是自动化验证入口，也方便现场直接拉起来用）：
+        //   --auto <COMx>      启动即连接
+        //   --record <目录>    连接后开启 4 kSPS 流并落盘 BIN（隐含 --raw）
+        //   --raw              连接后只开启 4 kSPS 流（不落盘）
+        //   --exit-after <秒>  到点先停流（保证文件有 END）再退出
         string[] args = Environment.GetCommandLineArgs();
         int autoIndex = Array.IndexOf(args, "--auto");
+        int recordIndex = Array.IndexOf(args, "--record");
+        bool rawOnly = Array.IndexOf(args, "--raw") >= 0;
+        int exitIndex = Array.IndexOf(args, "--exit-after");
+
+        if (recordIndex >= 0 && recordIndex + 1 < args.Length)
+        {
+            _vm.RawRecord = true;
+            _vm.RawDirectory = args[recordIndex + 1];
+            rawOnly = true;
+        }
         if (autoIndex >= 0 && autoIndex + 1 < args.Length)
         {
             _vm.SelectedPort = args[autoIndex + 1];
-            Opened += async (_, _) => await _vm.ConnectAsync();
+            Opened += async (_, _) =>
+            {
+                await _vm.ConnectAsync();
+                if (rawOnly && _vm.Connected)
+                    await _vm.StartRawAsync();
+            };
+        }
+        if (exitIndex >= 0 && exitIndex + 1 < args.Length &&
+            double.TryParse(args[exitIndex + 1], out double exitAfter))
+        {
+            var exitTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(exitAfter) };
+            exitTimer.Tick += (_, _) =>
+            {
+                exitTimer.Stop();
+                _vm.StopRaw();
+                _vm.Disconnect();
+                Close();
+            };
+            exitTimer.Start();
         }
     }
 
@@ -102,7 +133,7 @@ public partial class MainWindow : Window
         // ScottPlot 默认字体不含中文字形，轴标题会渲染成豆腐块。
         // Plot.Font.Set() 会统一设置整个图的默认字体（标题/轴/图例/刻度），
         // 比逐个设 LabelFontName 可靠——后者只影响已经创建的那些 Label。
-        foreach (AvaPlot plot in new[] { RatioPlot, OhmsPlot })
+        foreach (AvaPlot plot in new[] { RatioPlot, OhmsPlot, RawPlot })
         {
             Plot p = plot.Plot;
             p.FigureBackground.Color = Colors.White;
@@ -121,9 +152,14 @@ public partial class MainWindow : Window
         OhmsPlot.Plot.YLabel("R (kOhm)");
         OhmsPlot.Plot.XLabel("相对连接时间 (s)");
 
+        RawPlot.Plot.Title("4 kSPS 波形（100 ms 分桶）");
+        RawPlot.Plot.YLabel("R (kOhm)");
+        RawPlot.Plot.XLabel("流开启后时间 (s)");
+
         // 没有数据时不要显示 ±10 这种默认坐标，那会被误读成"数据接近 0"
         ShowPlaceholder(RatioPlot, "等待数据…");
         ShowPlaceholder(OhmsPlot, "等待数据…");
+        ShowPlaceholder(RawPlot, "点“开启”订阅 4 kSPS 全速率流");
     }
 
     /// <summary>系统上可用的中文字体名。Win 用雅黑，Linux 用 Noto。</summary>
@@ -203,6 +239,44 @@ public partial class MainWindow : Window
 
         RatioPlot.Refresh();
         OhmsPlot.Refresh();
+        RenderRaw();
+    }
+
+    /// <summary>
+    /// 画 RAW 分桶：min/max 包络（浅色填充感）+ 均值折线。
+    /// 只画最近 60 s 的桶——桶序列本身就是环形缓冲，长跑不会涨内存。
+    /// </summary>
+    private void RenderRaw()
+    {
+        Drms.Core.Record.RawBucketSeries? buckets = _vm.Buckets;
+        if (buckets is null || !_vm.RawRunning)
+            return;
+        var (seconds, min, max, mean) = buckets.Snapshot();
+        if (seconds.Length < 2)
+            return;
+        double t0 = seconds[0];
+        double[] xs = seconds.Select(s => s - t0).ToArray();
+
+        RawPlot.Plot.Clear();
+        // 包络：min 与 max 各一条细线，夹出尖峰范围
+        var upper = RawPlot.Plot.Add.Scatter(xs, max);
+        upper.LegendText = "包络 max";
+        upper.Color = Color.FromHex("#93C5FD");
+        upper.MarkerSize = 0;
+        upper.LineWidth = 1;
+        var lower = RawPlot.Plot.Add.Scatter(xs, min);
+        lower.LegendText = "包络 min";
+        lower.Color = Color.FromHex("#93C5FD");
+        lower.MarkerSize = 0;
+        lower.LineWidth = 1;
+        var avg = RawPlot.Plot.Add.Scatter(xs, mean);
+        avg.LegendText = "桶均值";
+        avg.Color = Color.FromHex("#0072BD");
+        avg.MarkerSize = 0;
+        avg.LineWidth = 1.5f;
+
+        RawPlot.Plot.Axes.AutoScale();
+        RawPlot.Refresh();
     }
 
     /// <summary>在图上放一句说明文字，居中显示。</summary>
@@ -229,6 +303,14 @@ public partial class MainWindow : Window
     }
 
     private void OnCancelBaseline(object? sender, RoutedEventArgs e) => _vm.CancelBaseline();
+
+    private async void OnStartRaw(object? sender, RoutedEventArgs e)
+    {
+        await _vm.StartRawAsync();
+        RenderRaw();
+    }
+
+    private void OnStopRaw(object? sender, RoutedEventArgs e) => _vm.StopRaw();
 
     private async void OnConnect(object? sender, RoutedEventArgs e)
     {

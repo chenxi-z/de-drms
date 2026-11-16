@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using Drms.Core.Config;
 using Drms.Core.Protocol;
+using Drms.Core.Record;
 using Drms.Core.Session;
 using Drms.Core.Transport;
 
@@ -122,6 +123,175 @@ public sealed class MainViewModel : INotifyPropertyChanged
     private string _r0StatusText = "未建立";
     public string R0StatusText { get => _r0StatusText; private set => Set(ref _r0StatusText, value); }
 
+    // ---- 4 kSPS RAW 流与 PC 落盘 ----
+    //
+    // 设计要点（都有实测依据）：
+    //   · RAW 是"看波形"的窗口，不是长期记录的唯一来源：USB 抖动会让整批丢失，
+    //     设备 TF 记录才是权威数据。界面上的说明照实写。
+    //   · 显示走分桶（100 ms/桶，min/max/mean），1 小时也只有 3.6 万个桶；
+    //     逐帧画在 4 kSPS 下既看不清又吃内存。
+    //   · 落盘走 BinRecorder（BIN v2，与设备同构），按大小轮转，每个文件独立完整。
+
+    private DeviceSession? _rawSession;
+    private RawBucketSeries? _buckets;
+    private BinRecorder? _recorder;
+    private readonly object _rawLock = new();
+    private DateTime _rawStarted;
+    private ulong _rawFrames;
+    private ulong _rawLost;
+    private double _rawScaleKilo;   // 1 kΩ 单位的换算系数：scale_ohms/1000
+
+    /// <summary>分桶序列（UI 读取用；null 表示未开启）。</summary>
+    public RawBucketSeries? Buckets => _buckets;
+
+    private bool _rawRunning;
+    public bool RawRunning
+    {
+        get => _rawRunning;
+        private set { if (Set(ref _rawRunning, value)) { Notify(nameof(CanStartRaw)); Notify(nameof(CanStopRaw)); } }
+    }
+
+    public bool CanStartRaw => Connected && !RawRunning;
+    public bool CanStopRaw => RawRunning;
+
+    private bool _rawRecord;
+    /// <summary>开启 RAW 时是否同时在 PC 侧落盘。</summary>
+    public bool RawRecord
+    {
+        get => _rawRecord;
+        set => Set(ref _rawRecord, value);
+    }
+
+    private string _rawDirectory = Path.Combine("data", "pc");
+    public string RawDirectory
+    {
+        get => _rawDirectory;
+        set => Set(ref _rawDirectory, value);
+    }
+
+    private string _rawRotateText = "1024";
+    public string RawRotateText
+    {
+        get => _rawRotateText;
+        set => Set(ref _rawRotateText, value);
+    }
+
+    private string _rawStatusText = "未开启";
+    public string RawStatusText
+    {
+        get => _rawStatusText;
+        private set => Set(ref _rawStatusText, value);
+    }
+
+    /// <summary>开启 4 kSPS 流（可选同时落盘）。返回是否成功。</summary>
+    public async Task<bool> StartRawAsync()
+    {
+        DeviceSession? session = _session;
+        if (session is null) { RawStatusText = "未连接"; return false; }
+        if (RawRunning) return true;
+
+        try
+        {
+            StatusReply st = await Task.Run(session.GetStatus);
+            uint rate = st.Rate;
+            // 分桶宽度固定 100 ms；低于 1 kSPS 时退化为每 100 帧一桶，避免空桶
+            int framesPerBucket = Math.Max(1, (int)Math.Round(rate / 10.0));
+            var buckets = new RawBucketSeries(framesPerBucket, capacity: 600);   // 60 s 视窗
+            BinRecorder? recorder = null;
+            if (RawRecord)
+            {
+                long rotateMiB = long.TryParse(RawRotateText, out long mib) && mib > 0 ? mib : 1024;
+                recorder = new BinRecorder(RawDirectory, "PC", session.Hello?.Uid ?? [0, 0, 0],
+                                           rate, st.SampleGeneration, recordId: 1,
+                                           rotateBytes: rotateMiB * 1024 * 1024,
+                                           calibrationValid: st.CalibrationVersion != 0,
+                                           calibrationGeneration: (uint)st.CalibrationVersion,
+                                           scaleOhms: st.ScaleOhms ?? 0,
+                                           referenceOhms: st.ReferenceOhms ?? 0,
+                                           bootId: session.Hello?.Boot ?? 0);
+            }
+
+            double scaleKilo = (st.ScaleOhms ?? 0) / 1000.0;
+            lock (_rawLock)
+            {
+                _buckets = buckets;
+                _recorder = recorder;
+                _rawScaleKilo = scaleKilo;
+                _rawFrames = 0;
+                _rawLost = 0;
+                _rawStarted = DateTime.UtcNow;
+            }
+
+            session.RawReceived += OnRaw;
+            _rawSession = session;
+            uint period = await Task.Run(session.SubscribeRaw);
+            RawRunning = true;
+            RawStatusText = recorder is null
+                ? $"已开启：{rate} SPS → {framesPerBucket} 帧/桶（约 {1000.0 / 10:F0} ms）"
+                : $"已开启并落盘：{rate} SPS → {Path.GetFullPath(RawDirectory)}";
+            return true;
+        }
+        catch (Exception ex) when (ex is DeviceException or ProtocolException or IOException)
+        {
+            RawStatusText = $"开启失败：{ex.Message}";
+            CleanupRaw();
+            return false;
+        }
+    }
+
+    /// <summary>关闭流（先退订，再收尾落盘文件）。</summary>
+    public void StopRaw()
+    {
+        if (!RawRunning) return;
+        DeviceSession? session = _rawSession;
+        if (session is not null)
+        {
+            session.RawReceived -= OnRaw;
+            try { session.Unsubscribe(StreamKind.Raw); } catch (Exception) { /* 断线时忽略 */ }
+        }
+        CleanupRaw();
+        RawRunning = false;
+        RawStatusText = "已停止";
+    }
+
+    private void CleanupRaw()
+    {
+        lock (_rawLock)
+        {
+            _buckets?.FlushPartial();
+            _recorder?.Finish();
+            _recorder?.Dispose();
+            _recorder = null;
+            _rawSession = null;
+        }
+    }
+
+    private void OnRaw(RawEvent ev)
+    {
+        lock (_rawLock)
+        {
+            _rawFrames += (ulong)ev.FrameCount;
+            _rawLost = ev.Lost;
+            _buckets?.Append(ev.Data, _rawScaleKilo * 1000.0, (DateTime.UtcNow - _rawStarted).TotalSeconds);
+            _recorder?.Append(ev.Data, ev.Lost);
+        }
+    }
+
+    /// <summary>UI 定时刷新用的状态文字（不阻塞读线程）。</summary>
+    public void RefreshRawStatus()
+    {
+        if (!RawRunning) return;
+        lock (_rawLock)
+        {
+            double elapsed = (DateTime.UtcNow - _rawStarted).TotalSeconds;
+            double rate = elapsed > 0.1 ? _rawFrames / elapsed : 0;
+            string files = _recorder is null
+                ? "未落盘"
+                : $"{_recorder.FilesCreated} 文件 · {Path.GetFileName(_recorder.CurrentPath ?? "-")}";
+            RawStatusText = $"{_rawFrames} 帧 · {rate:F0} 帧/s · lost={_rawLost} · {files}";
+        }
+    }
+
     // ---- 动作 ----
 
     public void RefreshPorts()
@@ -181,6 +351,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
     public void Disconnect()
     {
+        StopRaw();
         _pollTimer?.Dispose();
         _pollTimer = null;
         _session?.Dispose();
