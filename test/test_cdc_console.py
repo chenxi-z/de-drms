@@ -151,9 +151,10 @@ class CDCConsoleTest(unittest.TestCase):
         (p / 'mock.c').write_text(MOCK)
         src = ROOT / 'firmware/DE-DRMS-Code/Core'
         subprocess.run([CC, '-shared', '-fPIC', '-Wall', '-Werror=implicit-function-declaration',
-                        '-I', str(p), '-I', str(src / 'Inc'),
+                        '-I', str(p), '-I', str(src / 'Inc'), '-I', str(src.parent / 'App/interfaces/cdc'),
                         str(src / 'Src/drms_cdc.c'), str(src / 'Src/drms_console.c'),
                         str(src.parent / 'App/interfaces/cdc/drms_cdc_v2.c'),
+                        str(src / 'Src/drms_raw_stream.c'),
                         str(src.parent / 'App/interfaces/cdc/drms_cdc_frame.c'),
                         str(src / 'Src/drms_measurement.c'),
                         str(src / 'Src/drms_control.c'),

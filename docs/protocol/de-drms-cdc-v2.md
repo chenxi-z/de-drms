@@ -1,10 +1,12 @@
 # 正式 CDC v2 固件接口（设计候选版）
 
-[机器定义](../../shared/protocol/de-drms-cdc-v2.json)列出字段号、类型、请求/成功回复字段、枚举和四条线上向量。本文规定编码与生命周期。版本 2 区别于现有 ASCII v1；当前固件的 CDC 入口支持 v2 HELLO、GET_STATUS、GET_OPERATION、GET_RECORD、BEGIN_RECORD、END_RECORD、SAFE_STOP、RESUME_MONITOR、GET_CONFIG、APPLY_CONFIG、SAVE_CONFIG、BUILD_R0、CALIBRATE、SET_UTC、MSC_EXPORT、MSC_RELEASE、FILE_OPEN、FILE_READ、FILE_CLOSE、FILE_LIST、SUBSCRIBE（仅 CURVE）和 UNSUBSCRIBE。其他未实现命令返回 UNSUPPORTED，ASCII v1 调试入口暂时保留。出厂空配置和无完整 CDC 字段的旧配置暂无法读取完整设置，GET_CONFIG 返回 UNSUPPORTED；首次完整 APPLY_CONFIG 成功后可读。BEGIN_RECORD 支持时长覆盖；END_RECORD 等待文件收尾后报告操作结果。GET_RECORD 可查询已受理的排队记录及最近的启动失败结果；历史结果按有限容量保留，过期后返回 STALE。以下其余内容是目标规格，不能视作已实现能力；真实 USB 和硬件随机源仍须板测。
+[机器定义](../../shared/protocol/de-drms-cdc-v2.json)列出字段号、类型、请求/成功回复字段、枚举和四条线上向量。本文规定编码与生命周期。版本 2 区别于现有 ASCII v1；当前固件的 CDC 入口支持 v2 HELLO、GET_STATUS、GET_OPERATION、GET_RECORD、BEGIN_RECORD、END_RECORD、SAFE_STOP、RESUME_MONITOR、GET_CONFIG、APPLY_CONFIG、SAVE_CONFIG、BUILD_R0、CALIBRATE、SET_UTC、MSC_EXPORT、MSC_RELEASE、FILE_OPEN、FILE_READ、FILE_CLOSE、FILE_LIST、SUBSCRIBE（CURVE 与 RAW）和 UNSUBSCRIBE。其他未实现命令返回 UNSUPPORTED，ASCII v1 调试入口暂时保留。出厂空配置和无完整 CDC 字段的旧配置暂无法读取完整设置，GET_CONFIG 返回 UNSUPPORTED；首次完整 APPLY_CONFIG 成功后可读。BEGIN_RECORD 支持时长覆盖；END_RECORD 等待文件收尾后报告操作结果。GET_RECORD 可查询已受理的排队记录及最近的启动失败结果；历史结果按有限容量保留，过期后返回 STALE。以下其余内容是目标规格，不能视作已实现能力；真实 USB 和硬件随机源仍须板测。
 
 当前 CDC 收发由独立线程处理，发送端使用 4 个普通槽和 1 个安全停止专用槽；对应槽已满时，请求在业务受理前被丢弃，不产生动作，主机可超时重试。旧会话排队回复不会在新连接发送。CURVE 遥测已按订阅周期推送（见下），但 OP_EVENT、FAULT_EVENT、RAW_EVENT 三类单向事件仍未实现，因此"故障与操作结果优先于普通遥测"的调度尚无实际对象；不能将本段视为下文完整 TX 调度能力已交付。
 
-CURVE 订阅已接通：`SUBSCRIBE` 以 `stream=CURVE`、正 `period_ms` 受理后，由 CDC 发送线程按周期推送 MEAS_EVENT（opcode 130），回复携带实际周期；`lost` 累计该发而未发的周期数。实机（2026-11-12，4 kSPS 监测）`period_ms=200` 时 4 s 内收到 20 条事件、`lost=0`。`stream=RAW` 与 `period_ms=0` 仍显式返回 `INVALID`，不做静默降级。上限、长时运行、慢主机与断线重连下的推送行为尚未做压力验收，不能据上述结果外推。
+CURVE 订阅已接通：`SUBSCRIBE` 以 `stream=CURVE`、正 `period_ms` 受理后，由 CDC 发送线程按周期推送 MEAS_EVENT（opcode 130），回复携带实际周期；`lost` 累计该发而未发的周期数。实机（2026-11-12，4 kSPS 监测）`period_ms=200` 时 4 s 内收到 20 条事件、`lost=0`。
+
+RAW 订阅（`stream=RAW`，`period_ms` 必须为 0）已于 2026-11-16 实现，**尚未上板验收**：设备把处理路径上消费的每一帧镜像进攒批器，每 60 帧（4 kSPS 下约 15 ms、960 B 数据）推送一条 RAW_EVENT（opcode 131），批不跨采集代次（换代立即冲刷当前批）。`period_ms` 回复为实际批周期。速率档上限 `DRMS_RAW_RATE_CAP = 16000`，超档位订阅返回 `INVALID` 而非静默降级；订阅后切到更高档位不自动退订，超预算的批被丢弃并计入 `lost`。发送队列占用时批留槽重试（延时不计丢失），发送未投递（返回 0）或邮箱被上一批占住时整批丢弃并计入 `lost`；`lost` 覆盖了发送侧丢弃（修复此前"只统计队列满"的缺口）。缓冲与状态全部位于 SRAM4（NOLOAD），主 RAM 零新增。上限、长时运行、慢主机与断线重连下的推送行为尚未做压力验收，不能据上述结果外推。
 
 ## 编码
 

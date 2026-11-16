@@ -3,7 +3,10 @@
 #include "drms_cdc_frame.h"
 #include "drms_file_service.h"
 #include "drms_application.h"
-typedef void (*DRMS_CDCV2Send)(void *context, const uint8_t *data, size_t size, uint32_t priority);
+/* 发送回调返回 1=已入队，0=未投递（队列被并发回复抢占等）。
+ * 周期流的调用方必须把 0 计入该流的 lost——这是 F-3（lost 不覆盖发送侧丢弃）
+ * 的修复点：回复路径可以忽略返回值（有自己的重试语义），订阅流不行。 */
+typedef int (*DRMS_CDCV2Send)(void *context, const uint8_t *data, size_t size, uint32_t priority);
 typedef int (*DRMS_CDCV2CanSend)(void *context, uint32_t priority);
 typedef struct {
   uint64_t request_id, operation_id, record_id, age;
@@ -59,4 +62,8 @@ void drms_cdc_v2_publish(DRMS_CDCV2 *ctx, uint32_t now);
 /* Stateless: safe for the single TX owner to encode into its own buffer. */
 size_t drms_cdc_v2_encode_measurement(uint32_t session, uint64_t sequence, uint64_t lost,
     const DRMS_ApplicationSnapshot *snapshot, uint8_t *wire, size_t capacity);
+
+/* 推送 RAW 实时流的一批（若有）。由 CDC 发送线程在 publish 之后调用；
+ * 攒批/换代/lost 记账全部在 drms_raw_stream 内部，本函数只搬运回调。 */
+void drms_cdc_v2_publish_raw(DRMS_CDCV2 *ctx);
 #endif

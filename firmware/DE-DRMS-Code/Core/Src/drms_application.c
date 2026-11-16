@@ -46,6 +46,7 @@
 #include "drms_log_codec.h"
 #include "drms_storage.h"
 #include "drms_file_service.h"
+#include "drms_raw_stream.h"
 #include "drms_time.h"
 #include "drms_usb.h"
 #include "drms_boot_identity.h"
@@ -1086,6 +1087,9 @@ static void drain_frames(void)
   uint64_t capture_lower_us;
   while (limit-- && drms_acq_pop_timed(&frame, &capture_lower_us))
   {
+    /* RAW 实时流镜像：所有被消费的帧（含记录窗口外的监测帧与坏帧）都喂给
+     * 攒批状态机，未订阅时为一次原子读开销。批不跨代次、缓冲在 SRAM4。 */
+    drms_raw_stream_feed(drms_acq_generation(), frame.sequence, drms_acq_rate, &frame);
     pipeline_step_frame(&frame, consumed_raw, capture_lower_us);
     if (baseline_active && consumed_raw >= baseline_ticket && baseline_failure == DRMS_OK)
     {

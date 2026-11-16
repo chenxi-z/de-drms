@@ -40,6 +40,7 @@
  *****************************************************************************/
 
 #include "drms_cdc_v2.h"
+#include "drms_raw_stream.h"
 #include "drms_measurement.h"
 #include "drms_control.h"
 #include "drms_application.h"
@@ -171,9 +172,23 @@ void drms_cdc_v2_publish(DRMS_CDCV2 *ctx, uint32_t now)
      * ——它本来就不该存在，不是链路问题。 */
     return;
   }
-  ctx->curve_sequence = sequence;
-  ctx->send(ctx->send_context, ctx->curve_wire, len, 0);
+  /* F-3：send 返回 0 表示被并发回复抢占了发送槽——计数并把序号回退，
+   * 下个周期重发同序号，不留缺口。 */
+  if (ctx->send(ctx->send_context, ctx->curve_wire, len, 0))
+    ctx->curve_sequence = sequence;
+  else
+    ++ctx->curve_lost;
   ctx->curve_last_ms = now;
+}
+
+/* 推送 RAW 实时流的一批。攒批/换代冲刷/lost 记账在 drms_raw_stream 内部；
+ * 这里的职责只是把发送线程上下文（会话号与回调）搬运过去。 */
+void drms_cdc_v2_publish_raw(DRMS_CDCV2 *ctx)
+{
+  if (!ctx || !ctx->session.session || !ctx->send)
+    return;
+  (void)drms_raw_stream_publish(ctx->session.session, ctx->send, ctx->send_context,
+                                ctx->can_send, ctx->send_context);
 }
 
 /* 为一次"会改变状态的请求"找一个缓存槽位。
@@ -348,10 +363,11 @@ static void received(void *user, const uint8_t *request, size_t length)
       }
       else if (opcode == 64u || opcode == 65u)
       {
-        /* SUBSCRIBE / UNSUBSCRIBE. CURVE only: period_ms > 0 is the pushed
-         * interval, RAW (period_ms = 0) is not implemented and is rejected
-         * rather than silently accepted, so a client cannot believe it is
-         * receiving raw frames. */
+        /* SUBSCRIBE / UNSUBSCRIBE。
+         *   stream=0 CURVE：period_ms>0 为推送间隔；
+         *   stream=1 RAW：period_ms 必须为 0（分块由批大小决定），回复携带
+         *     实际批周期。速率档超过 DRMS_RAW_RATE_CAP 时拒绝（带宽验证前置）。
+         * 订阅互相独立（CURVE 与 RAW 可同时激活），都是会话级，断线即清。 */
         static const DRMS_CDCFieldRule sub_rules[] = {{60,1,1,0,1},{61,4,4,0,1}};
         uint32_t now_stamp = ctx->feed_now;
         static const DRMS_CDCFieldRule unsub_rules[] = {{60,1,1,0,1}};
@@ -364,11 +380,45 @@ static void received(void *user, const uint8_t *request, size_t length)
           stream = fields[0].value[0];
           if (opcode == 64u)
             period = get32(fields[1].value);
-          if (stream != 0u || (opcode == 64u && (period == 0u || period > 60000u)))
+          if (stream == 0u)
+          {
+            if (opcode == 64u && (period == 0u || period > 60000u))
+              invalid = 1;
+          }
+          else if (stream == 1u)
+          {
+            if (opcode == 64u && period != 0u)
+              invalid = 1;
+          }
+          else
             invalid = 1;
         }
         if (invalid)
+        {
           result = DRMS_INVALID;
+        }
+        else if (opcode == 64u && stream == 1u)
+        {
+          DRMS_ApplicationSnapshot snap;
+          uint32_t rate = drms_application_snapshot(&snap) ? snap.rate : 0u;
+          subscribed_period = drms_raw_stream_subscribe(rate);
+          if (subscribed_period)
+          {
+            result = DRMS_OK;
+            subscribed_stream = stream;
+            have_subscription = 1;
+          }
+          else
+            result = DRMS_INVALID;
+        }
+        else if (opcode == 65u && stream == 1u)
+        {
+          drms_raw_stream_unsubscribe();
+          subscribed_stream = stream;
+          subscribed_period = 0;
+          have_subscription = 1;
+          result = DRMS_OK;
+        }
         else if (opcode == 64u)
         {
           ctx->curve_subscribed = 1;
@@ -377,6 +427,9 @@ static void received(void *user, const uint8_t *request, size_t length)
           ctx->curve_lost = 0;
           ctx->curve_last_ms = now_stamp;
           ++ctx->curve_epoch; /* 让正在编码的旧帧作废 */
+          subscribed_stream = stream;
+          subscribed_period = period;
+          have_subscription = 1;
           result = DRMS_OK;
         }
         else
@@ -384,11 +437,11 @@ static void received(void *user, const uint8_t *request, size_t length)
           ctx->curve_subscribed = 0;
           ctx->curve_period_ms = 0;
           ++ctx->curve_epoch; /* 让正在编码的旧帧作废 */
+          subscribed_stream = stream;
+          subscribed_period = 0;
+          have_subscription = 1;
           result = DRMS_OK;
         }
-        subscribed_stream = stream;
-        subscribed_period = period;
-        have_subscription = 1;
       }
       /* opcode 53 = FILE_LIST：列举卡上的记录文件。
        *
@@ -832,6 +885,7 @@ void drms_cdc_v2_disconnect(DRMS_CDCV2 *ctx)
   ctx->curve_sequence = 0;
   ctx->curve_lost = 0;
   ++ctx->curve_epoch; /* 让发送线程手里那一帧作废 */
+  drms_raw_stream_unsubscribe();
 }
 
 /* 往解帧器里喂一个字节。由 CDC 接收线程逐字节调用。

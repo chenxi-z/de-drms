@@ -138,8 +138,8 @@ static DRMS_CDCV2 test_cdc;
 uint8_t test_cdc_wire[1054];
 uint32_t test_cdc_length;
 static int test_entropy(void *c,uint64_t *v) { (void)c; *v=123; return 1; }
-static void test_cdc_send(void *c,const uint8_t *data,size_t length,uint32_t priority) {
- (void)c;(void)priority;memcpy(test_cdc_wire,data,length);test_cdc_length=(uint32_t)length; }
+static int test_cdc_send(void *c,const uint8_t *data,size_t length,uint32_t priority) {
+ (void)c;(void)priority;memcpy(test_cdc_wire,data,length);test_cdc_length=(uint32_t)length;return 1; }
 static int test_cdc_room(void *c,uint32_t priority) { (void)c;(void)priority;return 1; }
 void test_cdc_init(void) {
  uint32_t uid[3]={1,2,3};test_cdc_length=0;
@@ -252,7 +252,7 @@ uint32_t HAL_GetUIDw2(void);
         src = ROOT / 'firmware/DE-DRMS-Code/Core'
         names = ('application', 'command', 'acquisition', 'measurement', 'fifo', 'logging',
                  'log_codec', 'calibration_codec', 'calibration_journal', 'time_codec', 'power',
-                 'control', 'record_session', 'monitor', 'filter', 'classifier', 'baseline', 'capture_time',
+                 'control', 'record_session', 'monitor', 'filter', 'classifier', 'baseline', 'capture_time', 'raw_stream',
                  'user_config', 'config_snapshot', 'file_service', 'msc', 'storage')
         command = [CC, '-shared', '-fPIC', '-Wall', '-Werror=implicit-function-declaration',
                         '-I', str(p), '-I', str(src / 'Inc'), '-I', str(src.parent / 'App/interfaces/cdc'),

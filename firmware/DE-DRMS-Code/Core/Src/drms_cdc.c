@@ -119,14 +119,13 @@ static int can_send_v2(void *context, uint32_t priority)
   return room;
 }
 
-static void send_v2(void *context, const uint8_t *data, size_t size, uint32_t priority)
+static int send_v2(void *context, const uint8_t *data, size_t size, uint32_t priority)
 {
   (void)context;
   UX_SLAVE_CLASS_CDC_ACM *cdc = instance;
   if (cdc && generation == processing_generation && cdc->ux_slave_class_cdc_acm_data_dtr_state && drms_usb_can_io())
-  {
-    (void)tx_enqueue(data, size, processing_generation, priority);
-  }
+    return tx_enqueue(data, size, processing_generation, priority) ? 1 : 0;
+  return 0;
 }
 
 void drms_cdc_activate(void *cdc)
@@ -256,7 +255,13 @@ static void tx_entry(ULONG input)
   for (;;)
   {
     drms_cdc_v2_publish(&v2, HAL_GetTick());
-    drms_cdc_tx_poll();
+    drms_cdc_v2_publish_raw(&v2);
+    /* 每轮把当前积压清空（优先槽 + 4 普通槽，至多 5 次单槽写）。
+     * 原先每 10 ms 只发一槽，持续发送能力被压在 ~105 kB/s，RAW 实时流
+     * （4 kSPS≈70 kB/s）加状态轮询回复后余量太薄。阻塞写按主机接收速度
+     * 自节拍，清空循环不会饿其他线程。 */
+    for (int drain = 0; drain < 5; ++drain)
+      drms_cdc_tx_poll();
     tx_thread_sleep(1);
   }
 }
