@@ -31,6 +31,8 @@
     代码在 [`host/`](../../host/README.md)，已实现连设备→下发配置→建立 R₀→R/R₀ 曲线→判级，
     并在真板（COM5，443 Ω 临时试件）验证通过；记录按钮、历史回放、区间色带、平滑、
     视口缩放、MSC 交接仍缺。
+    上位机的**工频谐波陷波器**（三模式、逐样本、验收与真实数据基准）
+    见 [2026-11-16 陷波器记录](2026-11-16-host-mains-notch.md)。
     上位机直接依赖的接口边界见 [CDC v2 协议](../protocol/de-drms-cdc-v2.md)、
     [BIN v2 格式](2026-11-06-record-v2-format.md)、[接入指南](../protocol/host-integration.md)。
 

@@ -45,6 +45,10 @@ host\dist\Drms.Gui.exe --auto COM5
 
 - **开启**：订阅设备的 RAW 全速率流（60 帧/批，约 15 ms）。曲线按 **100 ms 分桶**画
   min/max 包络 + 桶均值——包络保尖峰，内存不随运行时长增长（60 s 环形视窗）。
+- **处理方式**（三选一，互斥）：`原始（旁路）` / `谐波陷波`（50·[1,2,3,5] Hz，B=2 Hz，
+  四级级联 biquad）/ `周期平均`（50 Hz，80 样本）。滤波按样本序号逐点执行、状态跨包保留，
+  切换即重同步并进入 2 s 建立期（期间不用于判级）。滤波曲线用青绿另画，**不覆盖原始包络**。
+  实现与验收数字见 [2026-11-16 陷波器记录](../docs/design/2026-11-16-host-mains-notch.md)。
 - **同时落盘到 PC**：把同一份流写成 **BIN v2 文件**（16 B/帧，约 230 MB/小时），
   按「轮转 MiB」自动换文件，每个文件独立完整（含自己的 HEADER/END 与校准信息），
   可直接用 `tools/de_drms_log.py` 解码或导 CSV。
@@ -84,6 +88,9 @@ dotnet run --project Drms.Probe -- COM5 10 0.6      # 窗口 10 s，CV 限值放
 dotnet run --project Drms.Probe -- measure COM5 300 # 只测阻值与稳定性（300 点统计）
 dotnet run --project Drms.Probe -- raw COM5 10        # 联机 4 kSPS 全速率统计（零缺口/工频分析）
 dotnet run --project Drms.Probe -- pcrec COM5 3600 dir 1024  # PC 侧循环落盘 BIN（1 GiB 轮转）
+dotnet run --project Drms.Probe -- analyze data/noise30/PC0001.BIN  # 离线基准：旁路/陷波/周期平均对比
+dotnet run --project Drms.Probe -- analyze --synthetic              # 动态影响：阶跃/斜坡/脉冲/复合
+# 界面也可 --filter notch|avg 直接以某模式启动，配合 --raw / --record 做无人值守验证
 ```
 
 第三个参数（CV 上限百分比）**只用于临时验证流程**。默认 0.1% 是设计要求；

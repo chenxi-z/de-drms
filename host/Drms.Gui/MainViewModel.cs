@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using Drms.Core.Config;
 using Drms.Core.Protocol;
+using Drms.Core.Filter;
 using Drms.Core.Record;
 using Drms.Core.Session;
 using Drms.Core.Transport;
@@ -134,6 +135,9 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
     private DeviceSession? _rawSession;
     private RawBucketSeries? _buckets;
+    private RawBucketSeries? _filteredBuckets;
+    private SampleFilterChain? _filterChain;
+    private FilterSettings _filterSettings = new();   // 默认旁路
     private BinRecorder? _recorder;
     private readonly object _rawLock = new();
     private DateTime _rawStarted;
@@ -143,6 +147,65 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
     /// <summary>分桶序列（UI 读取用；null 表示未开启）。</summary>
     public RawBucketSeries? Buckets => _buckets;
+
+    /// <summary>滤波后的分桶序列（与原始分开保存：滤波曲线不得覆盖原始曲线）。</summary>
+    public RawBucketSeries? FilteredBuckets => _filteredBuckets;
+
+    /// <summary>三种互斥处理方式（规格 §1）。</summary>
+    public static string[] FilterModeOptions { get; } = ["原始（旁路）", "谐波陷波", "周期平均"];
+
+    private int _filterModeIndex;
+    public int FilterModeIndex
+    {
+        get => _filterModeIndex;
+        set
+        {
+            if (!Set(ref _filterModeIndex, value)) return;
+            ApplyFilterSettings();
+        }
+    }
+
+    private string _filterStatusText = "原始（旁路）";
+    public string FilterStatusText
+    {
+        get => _filterStatusText;
+        private set => Set(ref _filterStatusText, value);
+    }
+
+    private void ApplyFilterSettings()
+    {
+        _filterSettings = new FilterSettings(
+            Mode: _filterModeIndex switch
+            {
+                1 => FilterMode.MainsNotch,
+                2 => FilterMode.PeriodAverage,
+                _ => FilterMode.Bypass,
+            },
+            LineHz: 50.0,
+            Harmonics: FilterSettings.DefaultHarmonics,
+            BandwidthHz: 2.0,
+            EstablishSeconds: 2.0);
+
+        if (_filterChain is not null && _rawRateHz > 0)
+            _filterChain.Configure(_rawRateHz, _filterSettings);   // 配置变化 → 重建系数并清状态
+        FilterStatusText = DescribeFilter();
+    }
+
+    private string DescribeFilter()
+    {
+        string mode = _filterModeIndex switch
+        {
+            1 => $"谐波陷波 {string.Join('/', FilterSettings.DefaultHarmonics)}×50 Hz，B=2 Hz",
+            2 => "周期平均 50 Hz（80 样本 @4 kSPS）",
+            _ => "原始（旁路）",
+        };
+        if (_filterModeIndex == 0) return mode;
+        string establishing = _filterChain?.IsEstablishing == true ? " · 建立中（不用于判级）" : " · 已建立";
+        string resets = _filterChain is null ? "" : $" · 重同步 {_filterChain.ResetCount}";
+        return mode + establishing + resets;
+    }
+
+    private uint _rawRateHz;
 
     private bool _rawRunning;
     public bool RawRunning
@@ -212,9 +275,15 @@ public sealed class MainViewModel : INotifyPropertyChanged
             }
 
             double scaleKilo = (st.ScaleOhms ?? 0) / 1000.0;
+            var chain = new SampleFilterChain();
+            chain.Configure(rate, _filterSettings);
+            var filtered = new RawBucketSeries(framesPerBucket, capacity: 600);
+            _rawRateHz = rate;
             lock (_rawLock)
             {
                 _buckets = buckets;
+                _filteredBuckets = filtered;
+                _filterChain = chain;
                 _recorder = recorder;
                 _rawScaleKilo = scaleKilo;
                 _rawFrames = 0;
@@ -259,6 +328,9 @@ public sealed class MainViewModel : INotifyPropertyChanged
         lock (_rawLock)
         {
             _buckets?.FlushPartial();
+            _filteredBuckets?.FlushPartial();
+            _filterChain = null;
+            _filteredBuckets = null;
             _recorder?.Finish();
             _recorder?.Dispose();
             _recorder = null;
@@ -272,8 +344,24 @@ public sealed class MainViewModel : INotifyPropertyChanged
         {
             _rawFrames += (ulong)ev.FrameCount;
             _rawLost = ev.Lost;
-            _buckets?.Append(ev.Data, _rawScaleKilo * 1000.0, (DateTime.UtcNow - _rawStarted).TotalSeconds);
+            double seconds = (DateTime.UtcNow - _rawStarted).TotalSeconds;
+            _buckets?.Append(ev.Data, _rawScaleKilo * 1000.0, seconds);
             _recorder?.Append(ev.Data, ev.Lost);
+
+            // 逐帧过滤：按样本序号连续处理，状态跨包保留（规格 §1）；
+            // 滤波结果另存一份分桶，绝不覆盖原始。
+            SampleFilterChain? chain = _filterChain;
+            if (chain is not null)
+            {
+                for (int offset = 0; offset + 16 <= ev.Data.Length; offset += 16)
+                {
+                    RawFrame frame = RawFrame.Decode(ev.Data.AsSpan(offset, 16));
+                    double? ohms = frame.Ohms(_rawScaleKilo * 1000.0);
+                    SampleFilterChain.Result r = chain.Process(frame.Sequence, ohms ?? double.NaN, ohms.HasValue);
+                    if (!r.Establishing && double.IsFinite(r.Value))
+                        _filteredBuckets?.AppendSample(r.Value / 1000.0, seconds);
+                }
+            }
         }
     }
 
@@ -289,6 +377,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
                 ? "未落盘"
                 : $"{_recorder.FilesCreated} 文件 · {Path.GetFileName(_recorder.CurrentPath ?? "-")}";
             RawStatusText = $"{_rawFrames} 帧 · {rate:F0} 帧/s · lost={_rawLost} · {files}";
+            if (_filterModeIndex != 0) FilterStatusText = DescribeFilter();
         }
     }
 

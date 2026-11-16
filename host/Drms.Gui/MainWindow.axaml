@@ -122,9 +122,18 @@
                         <Button Content="停止" Click="OnStopRaw" IsEnabled="{Binding CanStopRaw}" Margin="0" />
                     </StackPanel>
                 </Grid>
+                <Grid ColumnDefinitions="Auto,190,*" Margin="0,6,0,0">
+                    <TextBlock Grid.Column="0" Text="处理方式" VerticalAlignment="Center"
+                               FontSize="12" Margin="0,0,8,0" />
+                    <ComboBox Grid.Column="1" ItemsSource="{Binding FilterModeOptions}"
+                              SelectedIndex="{Binding FilterModeIndex}"
+                              HorizontalAlignment="Stretch" FontSize="12" Margin="0,0,10,0" />
+                    <TextBlock Grid.Column="2" Text="{Binding FilterStatusText}" Classes="hint"
+                               VerticalAlignment="Center" />
+                </Grid>
                 <TextBlock Classes="hint" Margin="0,4,0,0" Text="{Binding RawStatusText}" />
                 <TextBlock Classes="hint" Margin="0,2,0,0"
-                           Text="包络为 100 ms 桶内的 min/max（保尖峰），实线为桶均值；逐帧数据请用设备 TF 记录或 PC 落盘文件。" />
+                           Text="包络为 100 ms 桶内的 min/max（保尖峰），实线为桶均值；滤波曲线另画一条（青绿），不覆盖原始。三种处理方式互斥，切换即重同步并进入 2 s 建立期。" />
                 <Border BorderBrush="#D1D5DB" BorderThickness="1" Height="200" Margin="0,6,0,0">
                     <sp:AvaPlot x:Name="RawPlot" />
                 </Border>

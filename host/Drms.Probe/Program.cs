@@ -1,6 +1,9 @@
+using System.Linq;
 using Drms.Core.Config;
 using Drms.Core.Protocol;
 using Drms.Core.Record;
+using Drms.Core.BinFile;
+using Drms.Core.Filter;
 using Drms.Core.Session;
 using Drms.Core.Transport;
 
@@ -19,6 +22,15 @@ if (args.Length > 0 && args[0] == "measure")
 if (args.Length > 0 && args[0] == "unstick")
 {
     return await UnstickAsync(args.Length > 1 ? args[1] : "COM5");
+}
+
+// analyze 模式：离线基准——读一个 BIN v2 文件，比较旁路 / 四级陷波 / 周期平均。
+// 规格 §7「真实数据基准」与 §7「动态影响」的报告入口。
+// 用法：analyze <bin> [--line 50] [--b 2] [--harm 1,2,3,5] [--skip 2]
+if (args.Length > 0 && args[0] == "analyze")
+{
+    if (args.Length > 1 && args[1] == "--synthetic") return SyntheticReport();
+    return Analyze(args);
 }
 
 // pcrec 模式：订阅 RAW 全速率原始流，**在 PC 侧循环落盘为 BIN v2 文件**。
@@ -365,6 +377,245 @@ static async Task DownloadAsync(DeviceSession session, ulong handle, ulong fileS
     Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path))!);
     File.WriteAllBytes(path, data);
     Console.WriteLine($"已下载 {data.Length} B → {path}");
+}
+
+/// <summary>离线滤波基准：旁路 vs 谐波陷波 vs 周期平均（排除建立段后统计）。</summary>
+static int Analyze(string[] args)
+{
+    string path = args.Length > 1 ? args[1] : "host/data/noise30/PC0001.BIN";
+    double line = 50, bandwidth = 2, skip = 2;
+    int[] harmonics = FilterSettings.DefaultHarmonics;
+    for (int i = 2; i + 1 < args.Length; i++)
+    {
+        switch (args[i])
+        {
+            case "--line": double.TryParse(args[i + 1], out line); break;
+            case "--b": double.TryParse(args[i + 1], out bandwidth); break;
+            case "--skip": double.TryParse(args[i + 1], out skip); break;
+            case "--harm": harmonics = args[i + 1].Split(',').Select(int.Parse).ToArray(); break;
+        }
+    }
+
+    BinReader.Result file = BinReader.Read(File.ReadAllBytes(path));
+    if (file.Header is null) { Console.WriteLine($"读取失败：{file.Error}"); return 1; }
+    int valid = file.Frames.Count(f => BinReader.Result.IsValid(f));
+    Console.WriteLine($"文件：{Path.GetFileName(path)}");
+    Console.WriteLine($"  完整性 = {(file.Complete ? "complete" : "不完整: " + file.Error)}，块 = {file.DataChunks}，帧 = {file.Frames.Count}，有效 = {valid}");
+    Console.WriteLine($"  rate = {file.Header.RateHz} Hz，代次 = {file.Header.Generation}，校准 k = {file.Header.ScaleOhms:F3} Ω");
+    if (!file.Complete) { Console.WriteLine("文件不完整，拒绝作为基准"); return 2; }
+
+    // 逐帧序列（含无效帧：无效帧会触发滤波链路重置，与在线路径一致）
+    var seqs = new ulong[file.Frames.Count];
+    var values = new double[file.Frames.Count];
+    var valids = new bool[file.Frames.Count];
+    for (int i = 0; i < file.Frames.Count; i++)
+    {
+        seqs[i] = file.Frames[i].Sequence;
+        double? ohms = file.Ohms(file.Frames[i]);
+        values[i] = ohms ?? double.NaN;
+        valids[i] = ohms.HasValue;
+    }
+    int skipSamples = (int)Math.Round(skip * file.Header.RateHz);
+
+    Console.WriteLine();
+    Console.WriteLine($"{"模式",-22}{"均值 Ω",12}{"标准差 Ω",12}{"CV %",9}{"峰峰 Ω",11}{"重同步",7}");
+    var results = new List<(string Name, double[] Data)>();
+    foreach (FilterSettings settings in new[]
+             {
+                 new FilterSettings(FilterMode.Bypass, line, harmonics, bandwidth, skip),
+                 new FilterSettings(FilterMode.MainsNotch, line, harmonics, bandwidth, skip),
+                 new FilterSettings(FilterMode.PeriodAverage, line, harmonics, bandwidth, skip),
+             })
+    {
+        var chain = new SampleFilterChain();
+        chain.Configure(file.Header.RateHz, settings);
+        var output = new List<double>(file.Frames.Count);
+        for (int i = 0; i < seqs.Length; i++)
+        {
+            SampleFilterChain.Result r = chain.Process(seqs[i], values[i], valids[i]);
+            if (i >= skipSamples && !r.Establishing && double.IsFinite(r.Value)) output.Add(r.Value);
+        }
+        double[] data = output.ToArray();
+        results.Add((chain.Describe(), data));
+        double mean = data.Average();
+        double sd = Sd(data, mean);
+        Console.WriteLine($"{chain.Describe(),-22}{mean,12:F2}{sd,12:F2}{sd / mean * 100,9:F4}{data.Max() - data.Min(),11:F1}{chain.ResetCount,7}");
+    }
+
+    // 实测工频：在 fLine ± 0.5 Hz 内扫描原始序列，取最强谱线
+    double measured = EstimateLine(results[0].Data, file.Header.RateHz, line);
+    Console.WriteLine();
+    Console.WriteLine($"实测工频 = {measured:F3} Hz（标称 {line:F1} Hz，偏差 {measured - line:+0.000;-0.000} Hz）");
+    Console.WriteLine($"  陷波器按标称 {line:F1} Hz 设计；B={bandwidth:F1} Hz 的半带宽度覆盖该偏差。");
+    Console.WriteLine();
+
+    // 各次谐波幅值（最小二乘，用实测工频的整数倍，含未处理的 4/6/7 次作为对照）
+    Console.WriteLine();
+    Console.Write($"{"模式",-22}");
+    int[] probeHarmonics = [1, 2, 3, 4, 5, 6, 7];
+    foreach (int m in probeHarmonics) Console.Write($"{m * line,9:F0}Hz");
+    Console.WriteLine();
+    foreach ((string name, double[] data) in results)
+    {
+        Console.Write($"{name,-22}");
+        foreach (int m in probeHarmonics)
+        {
+            double amp = FitAmplitude(data, file.Header.RateHz, m * measured);
+            Console.Write($"{amp,11:F1}");
+        }
+        Console.WriteLine();
+    }
+
+    Console.WriteLine();
+    Console.WriteLine("说明：标准差按样本估计；谐波幅值为最小二乘拟合的单频幅值；");
+    Console.WriteLine("      统计区间已排除前 " + skip.ToString("F1") + " s 的滤波建立段。");
+    return 0;
+}
+
+static double Sd(double[] data, double mean)
+{
+    double sum = 0;
+    for (int i = 0; i < data.Length; i++) { double d = data[i] - mean; sum += d * d; }
+    return data.Length > 1 ? Math.Sqrt(sum / (data.Length - 1)) : 0;
+}
+
+/// <summary>动态影响报告（规格 §7「动态影响」）：恒值+工频、阶跃、斜坡、短脉冲。</summary>
+static int SyntheticReport()
+{
+    const double fs = 4000, dc = 15000;
+    (string Name, PeriodAverageFilter? Avg, MainsNotchBank? Notch)[] modes =
+    [
+        ("谐波陷波 1/2/3/5", null, new MainsNotchBank(fs, 50, FilterSettings.DefaultHarmonics, 2.0)),
+        ("周期平均 50Hz", new PeriodAverageFilter(fs, 50), null),
+    ];
+
+    Console.WriteLine("一、恒值 + 工频（50/100/150/250 Hz 各 200 Ω）");
+    Console.WriteLine($"{"模式",-18}{"DC 偏移 Ω",12}{"交流 RMS Ω",12}{"交流衰减 dB",12}");
+    foreach ((string name, PeriodAverageFilter? avg, MainsNotchBank? notch) in modes)
+    {
+        int n = 16000;
+        var input = new double[n];
+        for (int i = 0; i < n; i++)
+        {
+            double v = dc;
+            foreach (int m in FilterSettings.DefaultHarmonics) v += 200 * Math.Sin(2 * Math.PI * m * 50 * i / fs);
+            input[i] = v;
+        }
+        double[] output = RunFilter(notch, avg, input);
+        int skip = 2 * 4000;   // 排除建立段
+        double mean = output[skip..].Average();
+        double rms = Math.Sqrt(output[skip..].Select(v => (v - mean) * (v - mean)).Average());
+        Console.WriteLine($"{name,-18}{mean - dc,12:F4}{rms,12:F2}{20 * Math.Log10(800.0 / rms),12:F1}");
+    }
+
+    Console.WriteLine();
+    Console.WriteLine("二、阶跃 +400 Ω（0.5 s 处），测量过冲与建立时间");
+    Console.WriteLine($"{"模式",-18}{"过冲 %",10}{"1‰ 建立 ms",14}{"0.1% 建立 ms",15}");
+    foreach ((string name, PeriodAverageFilter? avg, MainsNotchBank? notch) in modes)
+    {
+        int n = 12000, at = 2000;
+        var input = new double[n];
+        for (int i = 0; i < n; i++) input[i] = i < at ? dc : dc + 400;
+        double[] output = RunFilter(notch, avg, input);
+        Console.WriteLine($"{name,-18}{StepOvershoot(output, at, dc, 400) * 100,10:F2}" +
+                          $"{SettleMs(output, at, dc + 400, 400, 0.001, fs),14:F1}" +
+                          $"{SettleMs(output, at, dc + 400, 400, 0.0005, fs),15:F1}");
+    }
+
+    Console.WriteLine();
+    Console.WriteLine("三、斜坡 1 kΩ/s，稳态滞后");
+    foreach ((string name, PeriodAverageFilter? avg, MainsNotchBank? notch) in modes)
+    {
+        int n = 12000;
+        var input = new double[n];
+        for (int i = 0; i < n; i++) input[i] = dc + 1000.0 * i / fs;
+        double[] output = RunFilter(notch, avg, input);
+        double lagMs = (input[^1] - output[^1]) / 1000.0 * 1000;
+        Console.WriteLine($"  {name,-18}滞后 {lagMs,6:F2} ms");
+    }
+
+    Console.WriteLine();
+    Console.WriteLine("四、2 ms 脉冲（+200 Ω）");
+    Console.WriteLine($"{"模式",-18}{"峰值保留 %",12}{"1 Ω 宽度 ms",14}");
+    foreach ((string name, PeriodAverageFilter? avg, MainsNotchBank? notch) in modes)
+    {
+        int n = 12000;
+        var input = new double[n];
+        Array.Fill(input, dc);
+        for (int i = 2000; i < 2008; i++) input[i] = dc + 200;
+        double[] output = RunFilter(notch, avg, input);
+        double peak = output.Max() - dc;
+        int width = output.Count(v => Math.Abs(v - dc) >= 1.0);
+        Console.WriteLine($"{name,-18}{peak / 200 * 100,12:F1}{(double)width / fs * 1000,14:F1}");
+    }
+    return 0;
+}
+
+static double[] RunFilter(MainsNotchBank? notch, PeriodAverageFilter? avg, double[] input)
+{
+    var output = new double[input.Length];
+    if (notch is not null)
+    {
+        notch.Initialize(input[0]);
+        for (int i = 0; i < input.Length; i++) output[i] = notch.Step(input[i]);
+    }
+    else
+    {
+        avg!.Initialize(input[0]);
+        for (int i = 0; i < input.Length; i++) output[i] = avg.Step(input[i]);
+    }
+    return output;
+}
+
+static double StepOvershoot(double[] y, int at, double from, double step)
+{
+    double max = double.MinValue;
+    for (int i = at; i < y.Length; i++) max = Math.Max(max, (y[i] - (from + step)) / step);
+    return Math.Max(0, max);
+}
+
+static double SettleMs(double[] y, int at, double target, double step, double tol, double fs)
+{
+    int settled = -1;
+    for (int i = at; i < y.Length; i++)
+    {
+        bool ok = Math.Abs(y[i] - target) / step <= tol;
+        if (ok && settled < 0) settled = i;
+        else if (!ok) settled = -1;
+    }
+    return settled < 0 ? double.NaN : (settled - at) / fs * 1000;
+}
+
+/// <summary>在 [line-0.5, line+0.5] Hz 内按 0.002 Hz 步进扫描，返回最强谱线频率。</summary>
+static double EstimateLine(double[] data, double fs, double line)
+{
+    double best = line, bestAmp = -1;
+    for (double f = line - 0.5; f <= line + 0.5 + 1e-9; f += 0.002)
+    {
+        double amp = FitAmplitude(data, fs, f);
+        if (amp > bestAmp) { bestAmp = amp; best = f; }
+    }
+    return best;
+}
+
+/// <summary>最小二乘拟合某频率的正弦幅值（同时拟合 sin/cos）。</summary>
+static double FitAmplitude(double[] data, double fs, double frequency)
+{
+    int n = data.Length;
+    if (n == 0 || frequency <= 0 || frequency >= fs / 2) return 0;
+    double ss = 0, cc = 0, sc = 0, xs = 0, xc = 0;
+    for (int i = 0; i < n; i++)
+    {
+        double ph = 2 * Math.PI * frequency * i / fs;
+        double s = Math.Sin(ph), c = Math.Cos(ph);
+        ss += s * s; cc += c * c; sc += s * c;
+        xs += data[i] * s; xc += data[i] * c;
+    }
+    double det = ss * cc - sc * sc;
+    if (Math.Abs(det) < 1e-9) return 0;
+    double a = (xs * cc - xc * sc) / det;
+    double b = (xc * ss - xs * sc) / det;
+    return Math.Sqrt(a * a + b * b);
 }
 
 /// <summary>订阅 RAW 全速率流并在 PC 侧落盘为 BIN v2 文件（可轮转）。</summary>

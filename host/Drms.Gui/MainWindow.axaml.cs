@@ -51,12 +51,23 @@ public partial class MainWindow : Window
         int recordIndex = Array.IndexOf(args, "--record");
         bool rawOnly = Array.IndexOf(args, "--raw") >= 0;
         int exitIndex = Array.IndexOf(args, "--exit-after");
+        int filterIndex = Array.IndexOf(args, "--filter");
 
         if (recordIndex >= 0 && recordIndex + 1 < args.Length)
         {
             _vm.RawRecord = true;
             _vm.RawDirectory = args[recordIndex + 1];
             rawOnly = true;
+        }
+        if (filterIndex >= 0 && filterIndex + 1 < args.Length)
+        {
+            // 处理方式：bypass | notch | avg（规格 §1 的三选项）
+            _vm.FilterModeIndex = args[filterIndex + 1] switch
+            {
+                "notch" => 1,
+                "avg" => 2,
+                _ => 0,
+            };
         }
         if (autoIndex >= 0 && autoIndex + 1 < args.Length)
         {
@@ -274,6 +285,22 @@ public partial class MainWindow : Window
         avg.Color = Color.FromHex("#0072BD");
         avg.MarkerSize = 0;
         avg.LineWidth = 1.5f;
+
+        // 滤波曲线：单独的桶序列，画在自己的时间轴上（绝不覆盖原始）
+        var filtered = _vm.FilteredBuckets;
+        if (filtered is not null)
+        {
+            var (fSeconds, _, _, fMean) = filtered.Snapshot();
+            if (fSeconds.Length >= 2)
+            {
+                double[] fxs = fSeconds.Select(v => v - t0).ToArray();
+                var line = RawPlot.Plot.Add.Scatter(fxs, fMean);
+                line.LegendText = $"滤波（{_vm.FilterStatusText.Split('·')[0].Trim()}）";
+                line.Color = Color.FromHex("#059669");
+                line.MarkerSize = 0;
+                line.LineWidth = 1.5f;
+            }
+        }
 
         RawPlot.Plot.Axes.AutoScale();
         RawPlot.Refresh();
