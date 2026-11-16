@@ -20,6 +20,16 @@ if (args.Length > 0 && args[0] == "unstick")
     return await UnstickAsync(args.Length > 1 ? args[1] : "COM5");
 }
 
+// raw 模式：订阅 RAW 全速率原始流（SUBSCRIBE stream=RAW），按批收帧并统计。
+// 这是"联机看 4 kSPS 波形"的通路：设备每 60 帧一批（约 15 ms）推送，批内带流内序号，
+// 批间用 lost 与帧序号连续性判定缺口。用法：raw <port> <秒数> [k_ohms 可选]
+if (args.Length > 0 && args[0] == "raw")
+{
+    return await RawAsync(args.Length > 1 ? args[1] : "COM5",
+                          args.Length > 2 && double.TryParse(args[2], out double sec) ? sec : 10.0,
+                          args.Length > 3 && double.TryParse(args[3], out double k) ? k : (double?)null);
+}
+
 // msc 模式：显式导出/交还 TF 卡（opcode 48/49）。
 // 导出成功后卡以只读 U 盘出现在电脑上；交还前应先在电脑端安全弹出。
 // 用法：msc COM9 export   /   msc COM9 release
@@ -342,6 +352,90 @@ static async Task DownloadAsync(DeviceSession session, ulong handle, ulong fileS
     Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path))!);
     File.WriteAllBytes(path, data);
     Console.WriteLine($"已下载 {data.Length} B → {path}");
+}
+
+/// <summary>订阅 RAW 全速率流并统计（联机噪声/工频分析的实时版本）。</summary>
+static async Task<int> RawAsync(string port, double seconds, double? kOhms)
+{
+    using var link = new SerialByteLink(port);
+    using var session = new DeviceSession(link) { RequestTimeout = TimeSpan.FromSeconds(10) };
+    session.Diagnostic += m => Console.WriteLine($"  [诊断] {m}");
+    var frames = new List<(uint Seq, int V, int I, bool CrcOk)>();
+    var gate = new ManualResetEventSlim(false);
+    ulong lastStreamSeq = 0, lostSeen = 0;
+    int batches = 0, gapEvents = 0, gappyFrames = 0;
+    uint? lastGen = null;
+    var lockObj = new object();
+
+    session.RawReceived += ev =>
+    {
+        lock (lockObj)
+        {
+            batches++;
+            if (lastStreamSeq != 0 && ev.Sequence != lastStreamSeq + 1)
+                gapEvents++;
+            lastStreamSeq = ev.Sequence;
+            if (ev.Lost > lostSeen) { lostSeen = ev.Lost; }
+            if (lastGen.HasValue && ev.SampleGeneration != lastGen.Value)
+                Console.WriteLine($"  代次变化 {lastGen} → {ev.SampleGeneration}（采集重启，批另起）");
+            lastGen = ev.SampleGeneration;
+            foreach (var f in ev.Frames())
+            {
+                if (frames.Count > 0 && f.Sequence != frames[^1].Seq + 1) gappyFrames++;
+                frames.Add(f);
+            }
+            if (frames.Count > 0 && DateTime.UtcNow > deadline) gate.Set();
+        }
+    };
+    var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(seconds);
+    session.Start();
+    HelloReply hello = session.Handshake();
+    Console.WriteLine($"UID={hello.UidText}");
+
+    StatusReply st = session.GetStatus();
+    Console.WriteLine($"acq={st.Acquisition} rate={st.Rate} fresh={st.Fresh}");
+
+    uint period = session.SubscribeRaw();
+    Console.WriteLine($"SUBSCRIBE(RAW) 成功，设备批周期 {period} ms，采集 {seconds} s…");
+    await Task.Delay(TimeSpan.FromSeconds(seconds + 1));
+    gate.Set();
+    session.Unsubscribe(StreamKind.Raw);
+
+    List<(uint Seq, int V, int I, bool CrcOk)> v;
+    lock (lockObj) v = frames.ToList();
+    if (v.Count < 100) { Console.WriteLine($"只收到 {v.Count} 帧，数据不足"); return 1; }
+
+    double rateMeasured = v.Count / seconds;
+    Console.WriteLine();
+    Console.WriteLine($"帧数     = {v.Count}  批次 = {batches}  实测速率 ≈ {rateMeasured:F0} 帧/s（标称 {st.Rate}）");
+    Console.WriteLine($"帧序号缺口 = {gappyFrames} 帧   批序号跳变 = {gapEvents} 次   lost = {lostSeen}");
+    Console.WriteLine($"CRC 坏帧   = {v.Count(f => !f.CrcOk)}");
+
+    // 电压/电流比值的统计（不需要 k 也能看噪声；给 k 则换算成欧姆）
+    var ratios = v.Where(f => f.CrcOk && f.I > 4096).Select(f => (double)f.V / f.I).ToList();
+    if (ratios.Count < 10) { Console.WriteLine("有效帧太少"); return 1; }
+    double mean = ratios.Average();
+    double sd = Math.Sqrt(ratios.Sum(x => (x - mean) * (x - mean)) / (ratios.Count - 1));
+    double cv = sd / mean * 100;
+    Console.WriteLine();
+    Console.WriteLine($"V/I 均值 = {mean:F6}   CV = {cv:F4} %  （逐帧全速率）");
+    if (kOhms.HasValue)
+        Console.WriteLine($"换算电阻 ≈ {mean * kOhms.Value:F1} Ohm（k = {kOhms.Value:F2} Ohm）");
+
+    // 整工频周期盒平均：20 ms = rate/50 帧
+    int win = Math.Max(1, (int)Math.Round(st.Rate / 50.0));
+    var blocks = new List<double>();
+    for (int i = 0; i + win <= ratios.Count; i += win)
+        blocks.Add(ratios.GetRange(i, win).Average());
+    if (blocks.Count > 1)
+    {
+        double bm = blocks.Average();
+        double bsd = Math.Sqrt(blocks.Sum(x => (x - bm) * (x - bm)) / (blocks.Count - 1));
+        Console.WriteLine($"20 ms 盒平均（{win} 帧/块，{blocks.Count} 块）: CV = {bsd / bm * 100:F4} %");
+        if (kOhms.HasValue)
+            Console.WriteLine($"    → 均值 ≈ {bm * kOhms.Value:F1} Ohm");
+    }
+    return 0;
 }
 
 /// <summary>MSC 导出/交还。导出 = FileX 关闭并把卡交给电脑（只读 U 盘）；

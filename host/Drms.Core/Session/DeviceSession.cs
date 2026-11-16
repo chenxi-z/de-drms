@@ -38,6 +38,9 @@ public sealed class DeviceSession : IDisposable
     /// <summary>收到 MEAS_EVENT 时触发（在读线程上，注意不要在这里做重活）。</summary>
     public event Action<MeasurementEvent>? MeasurementReceived;
 
+    /// <summary>收到 RAW_EVENT 时触发（在读线程上）。每批含若干 16 B 原始帧。</summary>
+    public event Action<RawEvent>? RawReceived;
+
     /// <summary>收到无法归类的事件或坏帧时触发，用于诊断。</summary>
     public event Action<string>? Diagnostic;
 
@@ -109,6 +112,17 @@ public sealed class DeviceSession : IDisposable
                 catch (ProtocolException ex)
                 {
                     Diagnostic?.Invoke($"MEAS_EVENT 解析失败：{ex.Message}");
+                }
+            }
+            else if (message.Opcode == Opcodes.RawEvent)
+            {
+                try
+                {
+                    RawReceived?.Invoke(Messages.ParseRawEvent(message));
+                }
+                catch (ProtocolException ex)
+                {
+                    Diagnostic?.Invoke($"RAW_EVENT 解析失败：{ex.Message}");
                 }
             }
             else
@@ -271,6 +285,18 @@ public sealed class DeviceSession : IDisposable
             throw new DeviceException("SUBSCRIBE 被拒绝", result, Messages.ReadReason(reply));
         // 返回设备实际采用的周期
         return reply.Index.Optional(Tag.PeriodMs)?.AsU32() ?? periodMs;
+    }
+
+    /// <summary>SUBSCRIBE stream=RAW（全速率原始帧，period_ms=0）。
+    /// 返回设备实际批周期（ms）：4 kSPS 下 60 帧/批约 15 ms。
+    /// 超带宽档位设备返回 INVALID（不静默降级），调用方应回落 CURVE 轮询。</summary>
+    public uint SubscribeRaw()
+    {
+        Message reply = Send(Messages.SubscribeRawRequest(_session, NextRequestId()));
+        Result result = Messages.ReadResult(reply);
+        if (result != Result.Ok)
+            throw new DeviceException("SUBSCRIBE(RAW) 被拒绝", result, Messages.ReadReason(reply));
+        return reply.Index.Optional(Tag.PeriodMs)?.AsU32() ?? 0;
     }
 
     public void Unsubscribe(StreamKind stream)

@@ -114,6 +114,54 @@ public sealed class MeasurementEvent
     public ushort? Interval { get; init; }
 }
 
+/// <summary>RAW_EVENT（opcode 131）：RAW 订阅推送的一批原始记录帧。
+///
+/// Data 是同一代次连续的 16 字节记录（BIN v2 帧布局：12 B ADC + u32 序号），
+/// 批间以 Sequence 连续与 Lost 判定缺口；代次变化时设备另起一批。
+/// 每帧的 ADC 字段是 12 B 大端：status u16 / voltage i24 / sense i24 / CRC16 / 尾字节，
+/// 与 tools/de_drms_log.py 的 LogReader 解码口径一致。</summary>
+public sealed class RawEvent
+{
+    public required ulong Sequence { get; init; }
+    public required ulong Lost { get; init; }
+    public required uint SampleGeneration { get; init; }
+    public required ulong SampleIndex { get; init; }
+    public required uint Rate { get; init; }
+    public required byte[] Data { get; init; }
+
+    /// <summary>本批帧数（Data 长度 / 16）。</summary>
+    public int FrameCount => Data.Length / 16;
+
+    /// <summary>逐帧解析出 (序号, status, voltage, sense, crcOk)。</summary>
+    public IEnumerable<(uint Sequence, ushort Status, int Voltage, int Sense, bool CrcOk)> Frames()
+    {
+        for (int i = 0; i + 16 <= Data.Length; i += 16)
+        {
+            var f = Data.AsSpan(i, 16);
+            ushort status = (ushort)((f[0] << 8) | f[1]);
+            int voltage = ((sbyte)f[3] << 16) | (f[4] << 8) | f[5];
+            int sense = ((sbyte)f[6] << 16) | (f[7] << 8) | f[8];
+            ushort crc = (ushort)((f[9] << 8) | f[10]);
+            bool crcOk = Crc16Ccitt(f[..9]) == crc;
+            uint seq = System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(f[12..]);
+            yield return (seq, status, voltage, sense, crcOk);
+        }
+    }
+
+    /// <summary>ADC 帧 CRC：CRC-16/CCITT 初值 0xFFFF（与固件及 Python 解码器一致）。</summary>
+    public static ushort Crc16Ccitt(ReadOnlySpan<byte> bytes)
+    {
+        ushort crc = 0xFFFF;
+        foreach (byte b in bytes)
+        {
+            crc ^= (ushort)(b << 8);
+            for (int bit = 0; bit < 8; bit++)
+                crc = (crc & 0x8000) != 0 ? (ushort)((crc << 1) ^ 0x1021) : (ushort)(crc << 1);
+        }
+        return crc;
+    }
+}
+
 /// <summary>区间表条目（config tag 78 的 30 字节元素）。lo/hi 单位是 R/R₀。</summary>
 public sealed class MonitorInterval
 {
@@ -186,6 +234,13 @@ public static class Messages
         FrameCodec.Encode(Kind.Request, Opcodes.Subscribe, session, requestId,
             new TlvWriter().AddU8(Tag.Stream, (byte)StreamKind.Curve)
                            .AddU32(Tag.PeriodMs, periodMs).ToArray());
+
+    /// <summary>SUBSCRIBE stream=RAW：period_ms 固定 0（分块由设备批大小决定）。
+    /// 设备按当前采样率验证带宽：超档位返回 INVALID，不静默降级。</summary>
+    public static byte[] SubscribeRawRequest(uint session, ulong requestId) =>
+        FrameCodec.Encode(Kind.Request, Opcodes.Subscribe, session, requestId,
+            new TlvWriter().AddU8(Tag.Stream, (byte)StreamKind.Raw)
+                           .AddU32(Tag.PeriodMs, 0).ToArray());
 
     public static byte[] UnsubscribeRequest(uint session, ulong requestId, StreamKind stream) =>
         FrameCodec.Encode(Kind.Request, Opcodes.Unsubscribe, session, requestId,
@@ -327,6 +382,20 @@ public static class Messages
             Ratio = f.Optional(Tag.Ratio)?.AsDouble(),
             Level = f.Optional(Tag.Level)?.AsByte(),
             Interval = f.Optional(Tag.Interval)?.AsU16(),
+        };
+    }
+
+    public static RawEvent ParseRawEvent(Message message)
+    {
+        var f = message.Index;
+        return new RawEvent
+        {
+            Sequence = f.Require(Tag.Sequence, "sequence").AsU64(),
+            Lost = f.Require(Tag.Lost, "lost").AsU64(),
+            SampleGeneration = f.Require(Tag.SampleGeneration, "sample_generation").AsU32(),
+            SampleIndex = f.Require(Tag.SampleIndex, "sample_index").AsU64(),
+            Rate = f.Require(Tag.Rate, "rate").AsU32(),
+            Data = f.Require(Tag.Data, "data").Value,
         };
     }
 
