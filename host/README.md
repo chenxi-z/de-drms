@@ -16,30 +16,57 @@
 
 ## 怎么启动
 
-**前置**：需要 .NET 10 SDK（本机在 `C:\Users\chenx\.dotnet`，非系统安装）。
+### 界面（最简单：直接双击）
+
+**`host\dist\Drms.Gui.exe`** —— 自包含单文件，**不需要装 .NET**。
+第一次使用前先生成它：
 
 ```bash
 export DOTNET_ROOT="C:/Users/chenx/.dotnet"
 export PATH="/c/Users/chenx/.dotnet:$PATH"
+cd host
+dotnet publish Drms.Gui/Drms.Gui.csproj -c Release -r win-x64 \
+  --self-contained true -p:PublishSingleFile=true \
+  -p:IncludeNativeLibrariesForSelfExtract=true -o dist
 ```
 
-### 界面
+产物约 101 MB（内含 .NET 运行时）。双击即可运行，`dist/` 已被 `.gitignore`
+忽略，不入库，换机器需重新发布。
+
+命令行带自动连接：
+
+```bat
+host\dist\Drms.Gui.exe --auto COM5
+```
+
+### 界面（开发时从源码跑）
+
+**前置**：.NET 10 SDK（本机在 `C:\Users\chenx\.dotnet`，非系统安装）。
 
 ```bash
+export DOTNET_ROOT="C:/Users/chenx/.dotnet"
+export PATH="/c/Users/chenx/.dotnet:$PATH"
 cd host
 dotnet run --project Drms.Gui                       # 启动后手动选串口并点“连接”
 dotnet run --project Drms.Gui -- --auto COM5        # 启动即连接（现场/自动化用）
 ```
 
-也可直接跑编译产物：`host\Drms.Gui\bin\Debug\net10.0\Drms.Gui.exe --auto COM5`
+> ⚠️ **不要直接双击 `bin\Debug\net10.0\Drms.Gui.exe`**。那是依赖框架的构建产物，
+> 它会去 `C:\Program Files\dotnet` 找 .NET 10 运行时（那里只有 6/8），
+> 报 `You must install or update .NET`。要么用 `dotnet run`，要么用上面的
+> 自包含 `dist\Drms.Gui.exe`。
 
 ### 联调工具（验证协议，不需要界面）
 
 ```bash
 cd host
-dotnet run --project Drms.Probe -- COM5             # 握手 + 状态 + 配置
-dotnet run --project Drms.Probe -- COM5 200         # 再加 200 ms 曲线订阅
+dotnet run --project Drms.Probe -- COM5             # 握手 + 状态 + 配置 + 建基线
+dotnet run --project Drms.Probe -- COM5 10 0.6      # 窗口 10 s，CV 限值放宽到 0.6%
+dotnet run --project Drms.Probe -- measure COM5 300 # 只测阻值与稳定性（300 点统计）
 ```
+
+第三个参数（CV 上限百分比）**只用于临时验证流程**。默认 0.1% 是设计要求；
+放宽后建出的 R₀ 没有物理意义，不要当作测量结果。
 
 输出包含 UID、能力列表、采集/记录/介质状态、ohms/ratio、配置字段与区间表。
 
