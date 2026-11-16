@@ -396,8 +396,10 @@ static async Task<int> RawAsync(string port, double seconds, double? kOhms)
     Console.WriteLine($"acq={st.Acquisition} rate={st.Rate} fresh={st.Fresh}");
 
     uint period = session.SubscribeRaw();
+    var clock = System.Diagnostics.Stopwatch.StartNew();
     Console.WriteLine($"SUBSCRIBE(RAW) 成功，设备批周期 {period} ms，采集 {seconds} s…");
     await Task.Delay(TimeSpan.FromSeconds(seconds + 1));
+    clock.Stop();
     gate.Set();
     session.Unsubscribe(StreamKind.Raw);
 
@@ -405,7 +407,7 @@ static async Task<int> RawAsync(string port, double seconds, double? kOhms)
     lock (lockObj) v = frames.ToList();
     if (v.Count < 100) { Console.WriteLine($"只收到 {v.Count} 帧，数据不足"); return 1; }
 
-    double rateMeasured = v.Count / seconds;
+    double rateMeasured = v.Count / clock.Elapsed.TotalSeconds;
     Console.WriteLine();
     Console.WriteLine($"帧数     = {v.Count}  批次 = {batches}  实测速率 ≈ {rateMeasured:F0} 帧/s（标称 {st.Rate}）");
     Console.WriteLine($"帧序号缺口 = {gappyFrames} 帧   批序号跳变 = {gapEvents} 次   lost = {lostSeen}");
