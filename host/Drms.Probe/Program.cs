@@ -1,5 +1,6 @@
 using Drms.Core.Config;
 using Drms.Core.Protocol;
+using Drms.Core.Record;
 using Drms.Core.Session;
 using Drms.Core.Transport;
 
@@ -18,6 +19,18 @@ if (args.Length > 0 && args[0] == "measure")
 if (args.Length > 0 && args[0] == "unstick")
 {
     return await UnstickAsync(args.Length > 1 ? args[1] : "COM5");
+}
+
+// pcrec 模式：订阅 RAW 全速率原始流，**在 PC 侧循环落盘为 BIN v2 文件**。
+// 用途：长期监测时把 4 kSPS 全量数据留在电脑上（设备 TF 记录之外的备份/主记录），
+// 文件与设备写出的格式同构，可直接用 tools/de_drms_log.py 解码/导 CSV。
+// 用法：pcrec <port> <秒数> [输出目录] [轮转 MiB]
+if (args.Length > 0 && args[0] == "pcrec")
+{
+    return await PcRecordAsync(args.Length > 1 ? args[1] : "COM5",
+                               args.Length > 2 && double.TryParse(args[2], out double s) ? s : 60.0,
+                               args.Length > 3 ? args[3] : Path.Combine("data", "pc"),
+                               args.Length > 4 && long.TryParse(args[4], out long mib) ? mib : 1024);
 }
 
 // raw 模式：订阅 RAW 全速率原始流（SUBSCRIBE stream=RAW），按批收帧并统计。
@@ -352,6 +365,74 @@ static async Task DownloadAsync(DeviceSession session, ulong handle, ulong fileS
     Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path))!);
     File.WriteAllBytes(path, data);
     Console.WriteLine($"已下载 {data.Length} B → {path}");
+}
+
+/// <summary>订阅 RAW 全速率流并在 PC 侧落盘为 BIN v2 文件（可轮转）。</summary>
+static async Task<int> PcRecordAsync(string port, double seconds, string outDir, long rotateMiB)
+{
+    using var link = new SerialByteLink(port);
+    using var session = new DeviceSession(link) { RequestTimeout = TimeSpan.FromSeconds(10) };
+    session.Diagnostic += m => Console.WriteLine($"  [诊断] {m}");
+    session.Start();
+    HelloReply hello = session.Handshake();
+    Console.WriteLine($"UID={hello.UidText}");
+
+    StatusReply st = session.GetStatus();
+    Console.WriteLine($"acq={st.Acquisition} rate={st.Rate} calVer={st.CalibrationVersion} " +
+                      $"scale={st.ScaleOhms?.ToString("F3") ?? "未知"} reference={st.ReferenceOhms?.ToString("F1") ?? "未知"}");
+
+    BinRecorder? rec = null;
+    ulong lastLost = 0;
+
+    session.RawReceived += ev =>
+    {
+        if (rec is null || ev.Data.Length == 0) return;
+        rec.Append(ev.Data, ev.Lost);
+        lastLost = ev.Lost;
+    };
+
+    uint period = session.SubscribeRaw();
+    Console.WriteLine($"SUBSCRIBE(RAW) 成功，批周期 {period} ms，落盘 {seconds} s → {outDir}");
+    // 记录器在第一帧到达后创建（需要该批的 rate/代次/首序号）
+    var first = new ManualResetEventSlim(false);
+    uint rate = st.Rate, generation = 0;
+    ulong firstIndex = 0;
+    session.RawReceived += ev =>
+    {
+        if (first.IsSet) return;
+        rate = ev.Rate; generation = ev.SampleGeneration; firstIndex = ev.SampleIndex;
+        rec = new BinRecorder(outDir, "PC", hello.Uid, rate, generation, recordId: 1,
+                              rotateBytes: rotateMiB * 1024 * 1024,
+                              calibrationValid: st.CalibrationVersion != 0,
+                              calibrationGeneration: (uint)st.CalibrationVersion,
+                              scaleOhms: st.ScaleOhms ?? 0, referenceOhms: st.ReferenceOhms ?? 0,
+                              bootId: hello.Boot);
+        rec.Append(ev.Data, ev.Lost);
+        first.Set();
+    };
+
+    var clock = System.Diagnostics.Stopwatch.StartNew();
+    var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(seconds);
+    while (DateTime.UtcNow < deadline)
+    {
+        await Task.Delay(500);
+        if (rec is not null && rec.FramesWritten % 20000 < 500)
+            Console.WriteLine($"  {clock.Elapsed.TotalSeconds:F0}s 帧={rec.FramesWritten} " +
+                              $"文件={rec.FilesCreated} 当前={Path.GetFileName(rec.CurrentPath ?? "-")}");
+    }
+    clock.Stop();
+    session.Unsubscribe(StreamKind.Raw);
+    BinRecorder? done = rec;   // 捕获变量交给本地，便于可空分析
+    if (done is null) { Console.WriteLine("没有收到任何帧"); return 1; }
+    done.Finish();
+    done.Dispose();
+
+    Console.WriteLine();
+    Console.WriteLine($"落盘完成：{done.FramesWritten} 帧 / {clock.Elapsed.TotalSeconds:F1} s " +
+                      $"= {done.FramesWritten / clock.Elapsed.TotalSeconds:F0} 帧/s，共 {done.FilesCreated} 个文件");
+    Console.WriteLine($"累计设备 lost = {lastLost}");
+    Console.WriteLine($"目录：{Path.GetFullPath(outDir)}");
+    return 0;
 }
 
 /// <summary>订阅 RAW 全速率流并统计（联机噪声/工频分析的实时版本）。</summary>

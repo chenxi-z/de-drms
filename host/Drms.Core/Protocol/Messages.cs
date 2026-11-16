@@ -48,6 +48,10 @@ public sealed class StatusReply
     public double? Ratio { get; init; }
     public byte? Level { get; init; }
     public ushort? Interval { get; init; }
+    /// <summary>当前生效的校准系数（Ω），tag 86 可选；未校准时为名义 150000。</summary>
+    public double? ScaleOhms { get; init; }
+    /// <summary>校准时使用的参考标称（Ω），tag 87 可选；名义 100000。</summary>
+    public double? ReferenceOhms { get; init; }
     public ulong? Operation { get; init; }
     public ulong? Record { get; init; }
     public ulong? LastRecord { get; init; }
@@ -309,6 +313,8 @@ public static class Messages
             Ratio = f.Optional(Tag.Ratio)?.AsDouble(),
             Level = f.Optional(Tag.Level)?.AsByte(),
             Interval = f.Optional(Tag.Interval)?.AsU16(),
+            ScaleOhms = f.Optional(Tag.ScaleOhms)?.AsDouble(),
+            ReferenceOhms = f.Optional(Tag.ReferenceOhms)?.AsDouble(),
             Operation = f.Optional(Tag.Operation)?.AsU64(),
             Record = f.Optional(Tag.Record)?.AsU64(),
             LastRecord = f.Optional(Tag.LastRecord)?.AsU64(),

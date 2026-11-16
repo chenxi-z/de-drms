@@ -63,6 +63,8 @@ cd host
 dotnet run --project Drms.Probe -- COM5             # 握手 + 状态 + 配置 + 建基线
 dotnet run --project Drms.Probe -- COM5 10 0.6      # 窗口 10 s，CV 限值放宽到 0.6%
 dotnet run --project Drms.Probe -- measure COM5 300 # 只测阻值与稳定性（300 点统计）
+dotnet run --project Drms.Probe -- raw COM5 10        # 联机 4 kSPS 全速率统计（零缺口/工频分析）
+dotnet run --project Drms.Probe -- pcrec COM5 3600 dir 1024  # PC 侧循环落盘 BIN（1 GiB 轮转）
 ```
 
 第三个参数（CV 上限百分比）**只用于临时验证流程**。默认 0.1% 是设计要求；
@@ -149,6 +151,7 @@ cd host/Drms.Core.Tests && dotnet test
 | 项 | 说明 |
 | --- | --- |
 | 开始/结束记录按钮 | 核心库已实现（`BeginRecord`/`EndRecord`），界面按钮尚未接上 |
+| **PC 侧循环落盘** | ✅ 2026-11-16：`PC-REC` 模式把 4 kSPS RAW 流写成设备同构的 BIN v2 文件（`host/Drms.Core/Record/BinRecorder.cs`），按大小轮转、每个文件独立完整、跨文件序号连续。真板 35 s 三文件全部 `complete=True`、零缺口。UI 还没接按钮 |
 | **出厂空配置问题** | `GET_CONFIG` 返回 `UNSUPPORTED`，此时 `baseline_min_count` 不可读，`BUILD_R0` 前置条件不满足。**首次必须先完整下发一次 `APPLY_CONFIG`**（界面上的"下发配置"按钮） |
 | 历史回放 | 未实现。BIN v2 解析规格见 [记录格式](../docs/design/2026-11-06-record-v2-format.md) |
 | MSC 交接 | 未实现（固件侧仍有 SAFE_STOP 与导出所有权冲突待定） |

@@ -151,6 +151,10 @@ public static class Tag
     public const ushort BaselineMaxCv = 83;
     public const ushort IntervalNames = 84;
     public const ushort MediaGeneration = 85;
+    /// <summary>校准比例系数（Ω），GET_STATUS 可选字段。</summary>
+    public const ushort ScaleOhms = 86;
+    /// <summary>校准参考标称（Ω），GET_STATUS 可选字段。</summary>
+    public const ushort ReferenceOhms = 87;
 }
 
 /// <summary>TLV 列表的读写。写出时统一置必填位（协议要求发送方对必填字段置位）。</summary>
