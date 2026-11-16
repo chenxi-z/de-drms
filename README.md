@@ -23,7 +23,12 @@ ADC 同步采两者压降，按 `R = (V_sample / V_Rsense) × Rsense` 计算电�
   [CSV解码工具](tools/de_drms_log.py)保留坏帧/丢帧诊断，不将正常关闭误当无损采集。
 - 尚须实板验证精度、连续吞吐、晶振裕量、实际卡与掉电恢复、USB枚举/挂起/唤醒。
   **BQ24074当前模式接线不能仅靠EN1满足USB挂起取电要求**。无温度补偿，损伤阈值仍需试件标定。
-- EDA由用户维护；上位机为实现未开始的下一个工作面（**技术栈 C# + .NET 10 + Avalonia 12 + ScottPlot 5**，见[设计索引](docs/design/README.md)第 11 条）。当前可用串口/USB终端控制和命令行导出CSV。
+- EDA由用户维护。**上位机已有可运行第一版**（2026-11-16，代码在 [`host/`](host/README.md)）：
+  连设备 → 下发配置 → 建立 R₀ → 主图 R/R₀ 曲线 → 判级，已在真板（COM5）验证通过；
+  技术栈 **C# + .NET 10 + Avalonia 12 + ScottPlot 5**。
+  **换电脑或新会话请先读 [`docs/design/2026-11-16-host-handoff.md`](docs/design/2026-11-16-host-handoff.md)**。
+  仍缺：记录按钮、历史回放、区间色带、界面平滑、视口缩放、MSC 交接。
+  也可用串口/USB终端控制和命令行导出CSV。
 
 ## 仓库结构
 
@@ -94,11 +99,16 @@ R_ref 自校准电路（TMUX110x 切换）、引脚/时钟/电源域/交互（�
    **#13 TF 持续写实测**（768 KB/s 是否丢帧，上板后）；
    **PB4 复位态（2026-10-16 新增）**：PB4 复位后 = NJTRST + 内部上拉（Table 27 注 4）→ 默认 500 mA 须外部下拉保证，原理图阶段核。
 4. **"R₀ 的 1%"适用区间**与量程下限：待客户确认。
-5. **上位机**：**技术栈已定、实现未开始**——需求见
+5. **上位机**：**已有可运行第一版（2026-11-16）**，代码在 [`host/`](host/README.md)——
+   已实现连设备、下发配置（区间表 + 基线策略）、建立 R₀、R/R₀ 与 R 双图曲线、判级显示，
+   并在真板验证通过。**换电脑/新会话先读
+   [`docs/design/2026-11-16-host-handoff.md`](docs/design/2026-11-16-host-handoff.md)**。
+   相关背景：需求见
    [`docs/design/2026-11-13-host-requirements-handoff.md`](docs/design/2026-11-13-host-requirements-handoff.md)，
    曲线规格见 [`docs/design/2026-11-14-host-curve-display.md`](docs/design/2026-11-14-host-curve-display.md)，
    技术栈见 [`docs/design/2026-11-15-host-tech-stack.md`](docs/design/2026-11-15-host-tech-stack.md)
    （**C# + .NET 10 + Avalonia 12 + ScottPlot 5**，Ubuntu 开发、Windows 交付）。
+   仍缺：记录按钮、历史回放、区间色带、界面平滑、视口缩放、MSC 交接。
    取数方式已定两条：`FILE_OPEN`/`FILE_READ` 协议读（记录空闲时）或显式 MSC 导出为只读 U 盘
    （[接入指南](docs/protocol/host-integration.md)）。温度补偿**不在本版**（无温度传感）。
 6. ~~物理链路细节~~ USB FS 已定；供电与充电管理协同已定（E.8）；

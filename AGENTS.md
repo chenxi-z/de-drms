@@ -31,9 +31,21 @@ IOC不手工增删IP，当前源码与旧IOC差异见CubeMX清单，需GUI复存
 # AGENTS.md — DE-DRMS 工作区说明
 
 双电极直流电阻测量仪（用于两端 MWCNTs 导电网络传感层的结构损伤分级监测）。
-**当前是纯设计文档阶段**：`firmware/`、`host/`、`hardware/` 等目录仅有 `.gitkeep` 占位，
-尚无代码、原理图与 PCB。**唯一可跑的门禁**是示意图体检脚本：
-`python3 tools/svg_schematic_check.py <xxx.svg>`（详见文末「示意图（SVG）绘制规范」）。
+
+**⚠️ 本节已于 2026-11-16 更新——此前的"纯设计文档阶段"描述已作废。当前三条线都有实体代码：**
+
+| 线 | 状态 | 入口 |
+| --- | --- | --- |
+| 固件 | 已上板，64 kSPS 无损上限经实测确认 | [`firmware/DE-DRMS-Code/README.md`](firmware/DE-DRMS-Code/README.md) |
+| 上位机 | 已有可运行第一版，真板验证通过 | [`host/README.md`](host/README.md) |
+| 硬件/EDA | 由用户维护，agent 不改 | 主文档附录 F + `docs/design/pin-assignment.md` |
+
+**换电脑或开新会话，上位机线先读 [`docs/design/2026-11-16-host-handoff.md`](docs/design/2026-11-16-host-handoff.md)**
+（装什么、怎么跑、八个已踩过的坑、验证到什么程度、下一步做什么）。
+
+本机可跑的门禁有三类：示意图体检 `python tools/svg_schematic_check.py <xxx.svg>`、
+主机测试 `python -m unittest discover -s test -p 'test_*.py'`（456 项）、
+上位机测试 `cd host/Drms.Core.Tests && dotnet test`（43 项）。
 
 ## 必读文档（动手前按序读）
 
@@ -67,13 +79,15 @@ IOC不手工增删IP，当前源码与旧IOC差异见CubeMX清单，需GUI复存
 
 | 目录 | 职责 | 现状（实测） |
 | --- | --- | --- |
-| `docs/` | 文档中心 | **有效**：`design/`（权威设计文档 + 选型记录 + 图）；`protocol/`、`spec/`、`user_manual/` 仅 `.gitkeep` |
-| `tools/` | 研发辅助脚本 | **有效**：`svg_schematic_check.py`（示意图交付前体检，见文末规范） |
+| `docs/` | 文档中心 | **有效**：`design/`（权威设计文档 + 选型记录 + 图）、`protocol/`（CDC v2 / ASCII v1 / 接入指南）、`spec/`（设备行为）；`user_manual/` 仅 `.gitkeep` |
+| `tools/` | 研发辅助脚本 | `de_drms_log.py`（BIN 解码/CSV）、`firmware_postgenerate.py`（CubeMX 后生成修复）、`svg_schematic_check.py`（示意图交付前体检） |
 | `hardware/sim/` | LTspice 仿真验证 | **有效**：`ccsource/`（恒流源拓扑验证，2026-10-13） |
-| `shared/protocol/` | 上下位机协议的**机器可读**权威定义 | 空占位（`.gitkeep`） |
-| `firmware/` `host/` `mechanical/` | 下位机 / 上位机 / 结构 | `firmware/DE-DRMS-Code/` **有效**：`DE-DRMS-Code.ioc`（CubeMX 工程，**STM32U575RGT6 + TrustZone 关**，2026-11-03 重建）+ `CUBEMX_SETUP.md`（GUI 配置清单 + 无 UI 实测边界）；旧 `firmware/DE-DRM/`（545 工程与其源码）已删除，仅存 git 历史。`host/`、`mechanical/` 仍空占位（`.gitkeep`） |
+| `shared/protocol/` | 上下位机协议的**机器可读**权威定义 | **有效**：`de-drms-cdc-v2.json`（CDC v2，含字段表/枚举/四条线上向量）、`de-drms-v1.json`（ASCII v1） |
+| `firmware/` | 下位机 | `DE-DRMS-Code/` **有效**：`.ioc`（STM32U575RGT6 + TrustZone 关，2026-11-03 重建）+ `CUBEMX_SETUP.md` + 完整源码。旧 `DE-DRM/`（545 工程）已删，仅存 git 历史 |
+| `host/` | **上位机（有效）** | `Drms.Core/`（协议编解码/会话/配置，零 GUI 依赖，可跨平台单测）、`Drms.Gui/`（Avalonia 12 + ScottPlot 5）、`Drms.Core.Tests/`（43 项）、`Drms.Probe/`（控制台联调工具）。见 [`docs/design/2026-11-16-host-handoff.md`](docs/design/2026-11-16-host-handoff.md) |
+| `test/` | 主机测试 | **有效**：456 项 C 源码 ctypes 测试；跨平台适配集中在 `test/_platform.py` |
 | `hardware/` | 硬件（含仿真） | `sim/ccsource/` 有效（恒流源拓扑验证）；其余 `.gitkeep` |
-| `calibration/` `test/` `production/` | 校准 / 测试 / 生产 | 空占位（仅 `.gitkeep`） |
+| `mechanical/` `calibration/` `production/` | 结构 / 校准 / 生产 | 空占位（仅 `.gitkeep`） |
 
 ### 要点（沿用既有约定）
 
@@ -205,6 +219,11 @@ IOC不手工增删IP，当前源码与旧IOC差异见CubeMX清单，需GUI复存
 本节来自 R_ref 自校准电路（E.3）的实操总结——**按此做可避免重复踩坑**。
 
 ### 工具链（本机现状，勿凭想象）
+
+> **换了电脑？** 上面的绝对路径会变。按
+> [`docs/design/2026-11-16-host-handoff.md`](docs/design/2026-11-16-host-handoff.md)
+> 第二节的顺序重装即可（.NET 10 → Avalonia 模板 → CubeCLT → 跑测试验证）。
+> 那里也列了八个已踩过的坑，比这条路省时间。
 
 **2026-11-15 本机 Windows 环境已打通三条线**（此前只有 SVG 渲染可用）：
 

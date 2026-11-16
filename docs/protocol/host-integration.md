@@ -1,6 +1,6 @@
 # 上位机接入指南
 
-供上位机开发者和接续工作的 agent 使用。固件与上位机独立开发，当前尚无上位机程序。本文概述设备工作流及接入现状；消息号、类型、单位、CRC 和测试字节以[CDC v2 协议](de-drms-cdc-v2.md)及[机器定义](../../shared/protocol/de-drms-cdc-v2.json)为准。
+供上位机开发者和接续工作的 agent 使用。固件与上位机独立开发，**上位机第一版已存在且真板验证通过（2026-11-16，代码在 [`host/`](../../host/README.md)，开发交接见 [2026-11-16-host-handoff.md](../design/2026-11-16-host-handoff.md)）**。本文概述设备工作流及接入现状；消息号、类型、单位、CRC 和测试字节以[CDC v2 协议](de-drms-cdc-v2.md)及[机器定义](../../shared/protocol/de-drms-cdc-v2.json)为准。
 
 ## 设备规划与现状
 
