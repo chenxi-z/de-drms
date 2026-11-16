@@ -34,7 +34,44 @@
 > 技术栈见 `2026-11-15-host-tech-stack.md`（C# + .NET 10 + Avalonia 12 + ScottPlot 5），
 > 开发交接见 `2026-11-16-host-handoff.md`；索引在 `README.md` 第 11 条。
 >
-> F-1 已修复；F-2/F-3 见下。
+> F-1 已修复；F-2/F-3 见下；**F-4/F-5 为 2026-11-16 上位机实测新发现（🔴 未处理）**。
+
+### F-4 文件服务操作永完不成（FILE_LIST/FILE_OPEN 卡 Active，上位机取数被阻）—— 🔴 2026-11-16 实测
+
+**现象（2026-11-16，真板 COM9，UID=003300495943501420323055，15.25 kΩ 试件在测）**：
+
+1. **干净重启后**、纯监测态、无任何先导文件操作：`BEGIN_RECORD 200 ms` 正常（`result=Ok
+   clean_end=True` 三项丢失计数全 0），但随后的 `FILE_LIST(cursor=0)` 重试约 120 次（含换
+   request_id、跨 6 分钟）**全部回 BUSY，无一次成功**。
+2. `FILE_OPEN(file_id=60, media_generation=当前)`（**不存在的文件**）被受理后
+   `GET_OPERATION` 停在 `phase=Active` 超过 10 s 不终态。按
+   `drms_file_backend.c:61` 对不存在文件应快速返回 `DRMS_INVALID` 并完成操作。
+3. `SAFE_STOP` + `RESUME_MONITOR`（均 Ok）不清除；**MSC_EXPORT → MSC_RELEASE 完整往返**
+   （均 Ok，owner 正确 Exported→Local）也不清除。
+4. 记录、监测、CDC、MSC 设备侧全部正常——卡死的只有文件服务这一族操作。
+
+**对照**：2026-11-13 台架测试 `FILE_OPEN→FILE_READ 取 HEADER` 是通的。
+当前设备上的固件**不一定是仓库 HEAD 的构建**——上位机无法读固件版本（协议无此字段）。
+**接手第一步**：用仓库 HEAD 重新构建并烧录，复测同一序列；若仍复现再修。
+
+**静态核对过的路径（仓库源码看起来是闭环的，供对照）**：
+提交 `drms_application.c` case `DRMS_OP_FILE_LIST/DOWNLOAD`（:705/:687）→
+`drms_file_service_submit`（state=1）→ FileX 线程 `app_filex.c:177` 每轮
+`drms_file_service_poll()` 执行 backend → `file_service_control`（`drms_application.c:805`，
+由 `drms_application_poll` :1647 每轮调用）take 收尾。backend 对缺文件返回
+`DRMS_INVALID`、对代次不符返回 `DRMS_STALE`，均有终态。
+
+**对上位机的影响**：历史回放/取数按钮（交接 §六 第 1、3 项）在设备侧修好前**不可交付**；
+上位机侧 `Drms.Probe` 已备好 `recdl`（记录+FILE_* 下载）、`getbin`（绕过 LIST 的 OPEN 试探）、
+`msc export|release`、`unstick` 四个模式可作为复测工具。
+
+### F-5 MSC 在 Windows 上不枚举出存储盘（补 2026-11-13 发现 2 的 Windows 侧事实）—— 🔴
+
+2026-11-16 实测：`MSC_EXPORT` 终态 Ok、`GET_STATUS owner=Exported`，但 Windows 24H2
+（AMD USB3.1/xHCI）**始终不出现 USBSTOR/磁盘节点**（`Get-Disk`、`Get-PnpDevice`、卷列表
+均无；CDC 复合设备保持 OK）。此前 2026-11-13 已知容量基准错误（`fx_media_total_sectors`
+当绝对块数）在 Linux 上是"枚举但挂载失败"；Windows 表现更早失败。
+"Windows 下 MSC 挂载"维持**未验证**；F-4 修完后一并核。
 
 ### F-1 `tau_us` 滤波系数公式颠倒，配置项实际失效 —— ✅ 2026-11-15 已修复
 
