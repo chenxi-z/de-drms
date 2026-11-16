@@ -192,6 +192,23 @@ python tools/mains_tracking_prototype.py inject     # 注入测试 + 图
 （`compare_timeseries.svg`、`compare_zoom.svg`、`compare_psd.svg`、`tracking_params.svg`、
 `inject_step.svg`、`inject_pulse_10.svg`）。派生数据按规格不入 Git。
 
+## 10.1 本地原始数据清单（不入 Git）
+
+两份 30 s 记录都留在本机 `host/data/`（`.gitignore` 覆盖，按规则不入库），
+各自附 `README.md` 说明格式、条件与校验结果，可直接交给外部工具或协作者分析：
+
+| 目录 | 采集时间 | 文件 | 大小 | MD5 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| `host/data/noise30/` | 2026-11-16 17:56 | `PC0001.BIN` + `.csv` | 1,937,469 B | `d87d99dbb306ed5d86e1b3751d50cda6` | 第一批：工频 50.034 Hz 稳定、原始 sd 365.5 Ω |
+| `host/data/live30/` | 2026-11-16 21:26 | `PC0001.BIN` + `.csv` | 1,937,469 B | `a8b4d1f1fecba6ac12a71e8ec87cde71` | 第二批（实板复测）：工频 49.96–50.00 Hz 漂移、原始 sd 418.3 Ω |
+
+两份都是 120,840 帧 @ 4 kSPS、`complete=True`、零缺口、零 CRC 错、k=150005.152 Ω。
+第二批的价值在于**工频漂移与低频趋势都更大**，能暴露固定频率模型的脆弱性
+（固定模型 447.7 Ω，劣于原始 418.3 Ω）。
+
+`host/data/analysis/mains_proto/` 保存原型生成的分析图（时域对比、残差频谱、
+跟踪参数、注入响应），同样是派生数据，不入库。
+
 ## 11. 边界与未做
 
 - **第一阶段手动控制学习**，没有自动事件识别；"允许学习"区间由人工指定。
