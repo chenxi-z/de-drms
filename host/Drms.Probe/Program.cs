@@ -50,9 +50,22 @@ if (args.Length > 0 && args[0] == "pcrec")
 // 批间用 lost 与帧序号连续性判定缺口。用法：raw <port> <秒数> [k_ohms 可选]
 if (args.Length > 0 && args[0] == "raw")
 {
-    return await RawAsync(args.Length > 1 ? args[1] : "COM5",
-                          args.Length > 2 && double.TryParse(args[2], out double sec) ? sec : 10.0,
-                          args.Length > 3 && double.TryParse(args[3], out double k) ? k : (double?)null);
+    FilterMode mode = FilterMode.Bypass;
+    double sec = args.Length > 2 && double.TryParse(args[2], out double s0) ? s0 : 10.0;
+    double k = args.Length > 3 && double.TryParse(args[3], out double k0) ? k0 : double.NaN;
+    for (int i = 2; i + 1 < args.Length; i++)
+    {
+        if (args[i] == "--filter") mode = args[i + 1] switch
+        {
+            "notch" => FilterMode.MainsNotch,
+            "avg" => FilterMode.PeriodAverage,
+            _ => FilterMode.Bypass,
+        };
+        else if (args[i] == "--seconds" && double.TryParse(args[i + 1], out double ss)) sec = ss;
+        else if (args[i] == "--k" && double.TryParse(args[i + 1], out double kk)) k = kk;
+    }
+    return await RawAsync(args.Length > 1 ? args[1] : "COM5", sec,
+                          double.IsNaN(k) ? null : k, mode);
 }
 
 // msc 模式：显式导出/交还 TF 卡（opcode 48/49）。
@@ -686,13 +699,26 @@ static async Task<int> PcRecordAsync(string port, double seconds, string outDir,
     return 0;
 }
 
+/// <summary>按模式建滤波链（与 GUI 同一实现：SampleFilterChain）。</summary>
+static SampleFilterChain? MakeChain(uint rate, FilterMode mode)
+{
+    if (mode == FilterMode.Bypass || rate == 0) return null;
+    var chain = new SampleFilterChain();
+    chain.Configure(rate, new FilterSettings(mode, 50, FilterSettings.DefaultHarmonics, 2.0, 2.0));
+    return chain;
+}
+
 /// <summary>订阅 RAW 全速率流并统计（联机噪声/工频分析的实时版本）。</summary>
-static async Task<int> RawAsync(string port, double seconds, double? kOhms)
+static async Task<int> RawAsync(string port, double seconds, double? kOhms, FilterMode filter = FilterMode.Bypass)
 {
     using var link = new SerialByteLink(port);
     using var session = new DeviceSession(link) { RequestTimeout = TimeSpan.FromSeconds(10) };
     session.Diagnostic += m => Console.WriteLine($"  [诊断] {m}");
     var frames = new List<(uint Seq, int V, int I, bool CrcOk)>();
+    var filtered = new List<double>();              // 滤波后序列（逐样本，状态跨包）
+    SampleFilterChain? chain = null;
+    int chainResets = 0;
+    double scaleOhms = 0;                           // 校准系数（在读取状态后填入）
     var gate = new ManualResetEventSlim(false);
     var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(seconds);
     ulong lastStreamSeq = 0, lostSeen = 0;
@@ -712,10 +738,21 @@ static async Task<int> RawAsync(string port, double seconds, double? kOhms)
             if (lastGen.HasValue && ev.SampleGeneration != lastGen.Value)
                 Console.WriteLine($"  代次变化 {lastGen} → {ev.SampleGeneration}（采集重启，批另起）");
             lastGen = ev.SampleGeneration;
+            chain ??= MakeChain(ev.Rate, filter);
+            int local = 0;
             foreach (var f in ev.Frames())
             {
                 if (frames.Count > 0 && f.Sequence != frames[^1].Seq + 1) gappyFrames++;
                 frames.Add((f.Sequence, f.Voltage, f.Sense, f.CrcOk));
+                if (chain is not null)
+                {
+                    RawFrame raw = RawFrame.Decode(ev.Data.AsSpan(local * 16, 16));
+                    local++;
+                    double? ohms = raw.Ohms(scaleOhms);
+                    SampleFilterChain.Result r = chain.Process(f.Sequence, ohms ?? double.NaN, ohms.HasValue);
+                    if (r.Reset) chainResets++;
+                    if (!r.Establishing && double.IsFinite(r.Value)) filtered.Add(r.Value);
+                }
             }
             if (frames.Count > 0 && DateTime.UtcNow > deadline) gate.Set();
         }
@@ -727,6 +764,7 @@ static async Task<int> RawAsync(string port, double seconds, double? kOhms)
     StatusReply st = session.GetStatus();
     Console.WriteLine($"acq={st.Acquisition} rate={st.Rate} fresh={st.Fresh}");
 
+    scaleOhms = st.ScaleOhms ?? 0;
     uint period = session.SubscribeRaw();
     var clock = System.Diagnostics.Stopwatch.StartNew();
     Console.WriteLine($"SUBSCRIBE(RAW) 成功，设备批周期 {period} ms，采集 {seconds} s…");
@@ -755,6 +793,19 @@ static async Task<int> RawAsync(string port, double seconds, double? kOhms)
     Console.WriteLine($"V/I 均值 = {mean:F6}   CV = {cv:F4} %  （逐帧全速率）");
     if (kOhms.HasValue)
         Console.WriteLine($"换算电阻 ≈ {mean * kOhms.Value:F1} Ohm（k = {kOhms.Value:F2} Ohm）");
+
+    if (chain is not null)
+    {
+        double[] fv = filtered.ToArray();
+        if (fv.Length > 10)
+        {
+            double fm = fv.Average();
+            double fsd = Math.Sqrt(fv.Sum(x => (x - fm) * (x - fm)) / (fv.Length - 1));
+            Console.WriteLine($"滤波（{chain.Describe()}）：样本 {fv.Length}，均值 {fm:F2} Ω，" +
+                              $"标准差 {fsd:F2} Ω，CV {fsd / fm * 100:F4} %");
+            Console.WriteLine($"  重同步 {chainResets} 次（原因：{chain.LastResetReason ?? "-"}）");
+        }
+    }
 
     // 整工频周期盒平均：20 ms = rate/50 帧
     int win = Math.Max(1, (int)Math.Round(st.Rate / 50.0));
