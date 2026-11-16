@@ -1500,6 +1500,9 @@ void drms_application_init(void)
   memset(record_history, 0, sizeof(record_history));
   record_history_next = record_history_count = 0;
   drms_config_snapshot_init();
+  /* SRAM4 是 NOLOAD 区、上电不清零：raw 流的攒批状态必须显式初始化，
+   * 否则垃圾 batch_count 会让 feed 写越界（实测：漏掉本调用导致启动即挂）。 */
+  drms_raw_stream_reset();
   config_view_current = 0;
   memset(&published_status, 0, sizeof(published_status));
   _Static_assert(sizeof(DRMS_Command) % sizeof(ULONG) == 0, "Queue word alignment");

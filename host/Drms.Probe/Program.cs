@@ -362,6 +362,7 @@ static async Task<int> RawAsync(string port, double seconds, double? kOhms)
     session.Diagnostic += m => Console.WriteLine($"  [诊断] {m}");
     var frames = new List<(uint Seq, int V, int I, bool CrcOk)>();
     var gate = new ManualResetEventSlim(false);
+    var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(seconds);
     ulong lastStreamSeq = 0, lostSeen = 0;
     int batches = 0, gapEvents = 0, gappyFrames = 0;
     uint? lastGen = null;
@@ -382,12 +383,11 @@ static async Task<int> RawAsync(string port, double seconds, double? kOhms)
             foreach (var f in ev.Frames())
             {
                 if (frames.Count > 0 && f.Sequence != frames[^1].Seq + 1) gappyFrames++;
-                frames.Add(f);
+                frames.Add((f.Sequence, f.Voltage, f.Sense, f.CrcOk));
             }
             if (frames.Count > 0 && DateTime.UtcNow > deadline) gate.Set();
         }
     };
-    var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(seconds);
     session.Start();
     HelloReply hello = session.Handshake();
     Console.WriteLine($"UID={hello.UidText}");
