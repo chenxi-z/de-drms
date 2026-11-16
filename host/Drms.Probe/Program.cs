@@ -13,6 +13,46 @@ if (args.Length > 0 && args[0] == "measure")
                               args.Length > 2 && int.TryParse(args[2], out int n) ? n : 300);
 }
 
+// unstick 模式：SAFE_STOP → RESUME_MONITOR，用"安全停止失效化冲突启动"的语义
+// 清理设备侧卡死的异步操作（如断线遗留的 FILE_LIST）。不丢数据，监测短暂中断后恢复。
+if (args.Length > 0 && args[0] == "unstick")
+{
+    return await UnstickAsync(args.Length > 1 ? args[1] : "COM5");
+}
+
+// msc 模式：显式导出/交还 TF 卡（opcode 48/49）。
+// 导出成功后卡以只读 U 盘出现在电脑上；交还前应先在电脑端安全弹出。
+// 用法：msc COM9 export   /   msc COM9 release
+if (args.Length > 0 && args[0] == "msc")
+{
+    if (args.Length < 3 || (args[2] != "export" && args[2] != "release"))
+    {
+        Console.WriteLine("用法: msc <port> export|release");
+        return 1;
+    }
+    return await MscAsync(args[1], args[2] == "export");
+}
+
+// getbin 模式：绕过 FILE_LIST，用 GET_STATUS 的 media_generation 直接 FILE_OPEN。
+// file_id 从 startId 往下试探（不存在时 OPEN 会以错误终态快速返回）。
+// 背景：FILE_LIST 的断线遗留操作在设备侧可能卡死（2026-11-16 实测），此模式是绕行通道。
+if (args.Length > 0 && args[0] == "getbin")
+{
+    return await GetBinAsync(args.Length > 1 ? args[1] : "COM5",
+                             args.Length > 2 && uint.TryParse(args[2], out uint sid) ? sid : 60u,
+                             args.Length > 3 ? args[3] : null);
+}
+
+// recdl 模式：短记录 → TF 落盘 → FILE_* 下载到本地。
+// 用途：拿 4 kSPS 全速率原始帧。CURVE 订阅只有 100 ms 单帧快照（10 Hz），
+// 单帧不滤波且工频在 10 Hz 下混叠，统计会失真；全速率数据以记录文件为准。
+if (args.Length > 0 && args[0] == "recdl")
+{
+    return await RecordDownloadAsync(args.Length > 1 ? args[1] : "COM5",
+                                     args.Length > 2 && uint.TryParse(args[2], out uint ms) ? ms : 200u,
+                                     args.Length > 3 ? args[3] : null);
+}
+
 string port = args.Length > 0 ? args[0] : "COM5";
 ulong windowUs = args.Length > 1 && ulong.TryParse(args[1], out ulong w) ? w * 1_000_000UL : 10_000_000UL;
 // 第 3 个参数可覆盖 CV 限值（%）。默认 0.1%。临时放宽只用于验证软件流程，
@@ -190,4 +230,320 @@ static async Task<int> MeasureAsync(string port, int points)
     Console.WriteLine($"推算 sample = {sampleCodes:F0} 码（满量程 {Codes24:F0}，占 {sampleCodes / Codes24 * 100:F3}%）");
     Console.WriteLine($"1 码对应约 {150000.0 / (1.2 / FullScale * Codes24):F4} Ohm");
     return 0;
+}
+
+/// <summary>短记录 + 下载 BIN。回答"4 kSPS 全速率下这电阻多大、稳不稳"。</summary>
+static async Task<int> RecordDownloadAsync(string port, uint durationMs, string? outPath)
+{
+    using var link = new SerialByteLink(port);
+    using var session = new DeviceSession(link) { RequestTimeout = TimeSpan.FromSeconds(10) };
+    session.Diagnostic += m => Console.WriteLine($"  [诊断] {m}");
+    session.Start();
+    HelloReply hello = session.Handshake();
+    Console.WriteLine($"UID={hello.UidText}");
+
+    StatusReply st = session.GetStatus();
+    Console.WriteLine($"acq={st.Acquisition} recording={st.Recording} medium={st.Medium} " +
+                      $"owner={st.Owner} rate={st.Rate}");
+    if (st.Recording != Recording.Idle) { Console.WriteLine("设备正在记录，先结束再试"); return 2; }
+    if (st.Medium != Medium.Ready) { Console.WriteLine($"介质不可用（medium={st.Medium}），记录需要 TF 卡在位"); return 3; }
+
+    // ---- 1. 短记录：duration 到点自动结束，不需要 END_RECORD ----
+    // 注意：BEGIN 操作 Ok 只代表"开始边界已确认"；记录跑满 duration 并落盘收尾后
+    // GET_RECORD 的 phase 才到 Finished（此前 result=Accepted 是合法的"终态前"值）。
+    var (op, record) = session.BeginRecord(durationMs);
+    Console.WriteLine($"BEGIN_RECORD 受理 op={op} record={record} duration={durationMs}ms");
+    OperationReply final = await OperationWaiter.WaitAsync(session, op, TimeSpan.FromSeconds(30));
+    Console.WriteLine($"记录操作终态: {final.Result}");
+
+    RecordReply rec;
+    var recDeadline = DateTime.UtcNow + TimeSpan.FromSeconds(15);
+    while (true)
+    {
+        rec = session.GetRecord(record);
+        if (rec.Phase == OperationPhase.Finished) break;
+        if (DateTime.UtcNow > recDeadline) { Console.WriteLine("等待记录收尾超时"); return 5; }
+        await Task.Delay(300);
+    }
+    Console.WriteLine($"记录摘要: result={rec.Result} clean_end={rec.CleanEnd} " +
+                      $"capture_lost={rec.CaptureLost} log_dropped={rec.LogDropped} unknown_loss={rec.UnknownLoss}");
+    if (rec.Result != Result.Ok || rec.UnknownLoss || rec.CaptureLost > 0 || rec.LogDropped > 0)
+        Console.WriteLine("⚠ 记录不完整，统计仅供参考");
+
+    await Task.Delay(1000);   // 记录收尾刚完成，给存储线程一点释放 TF 租约的时间
+
+    // 文件操作只在存储完全静止时才会收尾（drms_application.c: file_service_control）。
+    // 记录未完全空闲时提交文件操作会卡死设备侧单槽状态机（2026-11-16 实测），这里显式挡住。
+    st = session.GetStatus();
+    if (st.Recording != Recording.Idle)
+    {
+        Console.WriteLine($"recording={st.Recording}（非 Idle），不提交文件操作，避免卡死文件服务");
+        return 6;
+    }
+
+    // ---- 2. 列文件，取编号最大（最新）的一个 ----
+    uint fileId;
+    ulong fileSize;
+    uint mediaGen;
+    try { (fileId, fileSize, mediaGen) = FileListNewest(session); }
+    catch (Exception ex) { Console.WriteLine($"列文件失败: {ex.Message}"); return 4; }
+    Console.WriteLine($"最新文件 DRMS{fileId:D4}.BIN，{fileSize} B，mediaGen={mediaGen}");
+
+    // ---- 3. 打开句柄并分块下载 ----
+    ulong handle = await FileOpenAsync(session, fileId, mediaGen);
+    Console.WriteLine($"FILE_OPEN 完成，句柄={handle}");
+    string path = outPath ?? Path.Combine(Path.GetTempPath(), "de-drms-probe", $"DRMS{fileId:D4}.BIN");
+    await DownloadAsync(session, handle, fileSize, path);
+    return 0;
+}
+
+/// <summary>按 768 B 分块读整个句柄并落盘（count 单位是字节，见 drms_cdc_v2.c opcode 51），
+/// 最后关句柄（读取在途时 CLOSE 也回 BUSY，同样换号重试）。</summary>
+static async Task DownloadAsync(DeviceSession session, ulong handle, ulong fileSize, string path)
+{
+    var data = new byte[fileSize];
+    ulong offset = 0;
+    while (offset < fileSize)
+    {
+        ushort count = (ushort)Math.Min(768, fileSize - offset);
+        Message reply = RetryBusy(session, rid => FrameCodec.Encode(Kind.Request, Opcodes.FileRead,
+            session.SessionId, rid, new TlvWriter()
+                .AddU64(Tag.Operation, handle)
+                .AddU64(Tag.Offset, offset)
+                .AddU16(Tag.Count, count).ToArray()));
+        Result r = Messages.ReadResult(reply);
+        if (r != Result.Ok)
+            throw new DeviceException($"FILE_READ @ {offset} 失败", r, Messages.ReadReason(reply));
+        var f = reply.Index;
+        ulong gotOffset = f.Require(Tag.Offset, "offset").AsU64();
+        if (gotOffset != offset)
+            throw new ProtocolException($"FILE_READ 偏移不匹配：请求 {offset}，回复 {gotOffset}");
+        byte[] chunk = f.Require(Tag.Data, "data").Value;
+        bool eof = f.Optional(Tag.Eof)?.AsBool() ?? false;
+        if (chunk.Length == 0 && !eof) throw new ProtocolException("空数据且无 EOF");
+        Buffer.BlockCopy(chunk, 0, data, (int)offset, chunk.Length);
+        offset += (ulong)chunk.Length;
+        if (eof != (offset >= fileSize))
+            throw new ProtocolException($"EOF 标志与文件大小矛盾：eof={eof}，offset={offset}/{fileSize}");
+    }
+
+    Message closeReply = RetryBusy(session, rid => FrameCodec.Encode(Kind.Request, Opcodes.FileClose,
+        session.SessionId, rid, new TlvWriter().AddU64(Tag.Operation, handle).ToArray()));
+    Result closeResult = Messages.ReadResult(closeReply);
+    if (closeResult == Result.Accepted)
+    {
+        ulong closeOp = closeReply.Index.Require(Tag.Operation, "operation").AsU64();
+        OperationReply closeFinal = await OperationWaiter.WaitAsync(session, closeOp, TimeSpan.FromSeconds(10));
+        closeResult = closeFinal.Result;
+    }
+    if (closeResult != Result.Ok)
+        throw new DeviceException($"FILE_CLOSE 失败", closeResult, Messages.ReadReason(closeReply));
+
+    Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path))!);
+    File.WriteAllBytes(path, data);
+    Console.WriteLine($"已下载 {data.Length} B → {path}");
+}
+
+/// <summary>MSC 导出/交还。导出 = FileX 关闭并把卡交给电脑（只读 U 盘）；
+/// 交还 = 设备收回并重新挂载。操作都是 ACCEPTED → 轮询终态。</summary>
+static async Task<int> MscAsync(string port, bool export)
+{
+    using var link = new SerialByteLink(port);
+    using var session = new DeviceSession(link) { RequestTimeout = TimeSpan.FromSeconds(10) };
+    session.Diagnostic += m => Console.WriteLine($"  [诊断] {m}");
+    session.Start();
+    HelloReply hello = session.Handshake();
+    Console.WriteLine($"UID={hello.UidText}");
+
+    StatusReply st = session.GetStatus();
+    Console.WriteLine($"recording={st.Recording} medium={st.Medium} owner={st.Owner}");
+    if (export && st.Recording != Recording.Idle) { Console.WriteLine("记录进行中，不能导出"); return 2; }
+
+    ulong rid = session.NextRequestId();
+    byte[] request = FrameCodec.Encode(Kind.Request, export ? Opcodes.MscExport : Opcodes.MscRelease,
+        session.SessionId, rid, []);
+    Message reply = session.Transact(request, rid);
+    Result r = Messages.ReadResult(reply);
+    Console.WriteLine($"{(export ? "MSC_EXPORT" : "MSC_RELEASE")}: {r}");
+    if (r != Result.Accepted)
+    {
+        if (export && r == Result.Ok) { Console.WriteLine("已是导出状态"); return 0; }
+        return 3;
+    }
+    ulong op = reply.Index.Require(Tag.Operation, "operation").AsU64();
+    OperationReply final = await OperationWaiter.WaitAsync(session, op, TimeSpan.FromSeconds(30),
+        TimeSpan.FromMilliseconds(500),
+        (rp, e) => { if ((int)e.TotalSeconds % 5 == 0) Console.WriteLine($"  {e.TotalSeconds:F0}s phase={rp.Phase}"); });
+    Console.WriteLine($"终态: {final.Result}" + (final.Reason.HasValue ? $" / {final.Reason}" : ""));
+    st = session.GetStatus();
+    Console.WriteLine($"现在: owner={st.Owner} medium={st.Medium} recording={st.Recording}");
+    return final.Result == Result.Ok ? 0 : 4;
+}
+
+/// <summary>绕过 FILE_LIST 的下载：从 startId 往下试探 FILE_OPEN，
+/// 第一个能打开的就是（接近）最新的文件。</summary>
+static async Task<int> GetBinAsync(string port, uint startId, string? outPath)
+{
+    using var link = new SerialByteLink(port);
+    using var session = new DeviceSession(link) { RequestTimeout = TimeSpan.FromSeconds(10) };
+    session.Diagnostic += m => Console.WriteLine($"  [诊断] {m}");
+    session.Start();
+    HelloReply hello = session.Handshake();
+    Console.WriteLine($"UID={hello.UidText}");
+
+    StatusReply st = session.GetStatus();
+    uint mediaGen = st.MediaGeneration;
+    Console.WriteLine($"mediaGen={mediaGen} recording={st.Recording} medium={st.Medium}");
+    if (st.Medium != Medium.Ready) { Console.WriteLine("介质不可用"); return 3; }
+
+    for (uint id = startId; ; id--)
+    {
+        Message reply;
+        try
+        {
+            reply = RetryBusy(session, rid => FrameCodec.Encode(Kind.Request, Opcodes.FileOpen,
+                session.SessionId, rid, new TlvWriter()
+                    .AddU32(Tag.FileId, id)
+                    .AddU32(Tag.MediaGeneration, mediaGen).ToArray()), maxTries: 10);
+        }
+        catch (DeviceException ex)
+        {
+            Console.WriteLine($"试探 DRMS{id:D4} 时重试超限：{ex.Message}");
+            return 4;
+        }
+        Result r = Messages.ReadResult(reply);
+        if (r != Result.Accepted)
+        {
+            Console.WriteLine($"DRMS{id:D4}: OPEN 回复 {r}，继续往下试探");
+            if (id == 0) { Console.WriteLine("已试探到 0，没有可打开的文件"); return 5; }
+            continue;
+        }
+        ulong op = reply.Index.Require(Tag.Operation, "operation").AsU64();
+        OperationReply final = await OperationWaiter.WaitAsync(session, op, TimeSpan.FromSeconds(10));
+        if (final.Result != Result.Ok)
+        {
+            Console.WriteLine($"DRMS{id:D4}: 打开终态 {final.Result}，继续往下试探");
+            if (id == 0) { Console.WriteLine("已试探到 0，没有可打开的文件"); return 5; }
+            continue;
+        }
+
+        ulong handle = final.Operation;
+        ulong fileSize = final.FileSize ?? 0;
+        Console.WriteLine($"打开成功：DRMS{id:D4}.BIN，{fileSize} B，句柄={handle}");
+        string path = outPath ?? Path.Combine(Path.GetTempPath(), "de-drms-probe", $"DRMS{id:D4}.BIN");
+        await DownloadAsync(session, handle, fileSize, path);
+        return 0;
+    }
+}
+
+/// <summary>SAFE_STOP + RESUME_MONITOR：让设备失效化冲突的旧异步操作后恢复监测。</summary>
+static async Task<int> UnstickAsync(string port)
+{
+    using var link = new SerialByteLink(port);
+    using var session = new DeviceSession(link) { RequestTimeout = TimeSpan.FromSeconds(10) };
+    session.Diagnostic += m => Console.WriteLine($"  [诊断] {m}");
+    session.Start();
+    HelloReply hello = session.Handshake();
+    Console.WriteLine($"UID={hello.UidText} session={session.SessionId}");
+
+    StatusReply st = session.GetStatus();
+    Console.WriteLine($"清理前: acq={st.Acquisition} recording={st.Recording} medium={st.Medium}");
+
+    ulong rid = session.NextRequestId();
+    Message stopReply = session.Transact(Messages.SafeStopRequest(session.SessionId, rid), rid);
+    Result stopResult = Messages.ReadResult(stopReply);
+    Console.WriteLine($"SAFE_STOP: {stopResult}");
+    if (stopResult == Result.Accepted)
+    {
+        ulong op = stopReply.Index.Require(Tag.Operation, "operation").AsU64();
+        OperationReply final = await OperationWaiter.WaitAsync(session, op, TimeSpan.FromSeconds(15));
+        Console.WriteLine($"SAFE_STOP 终态: {final.Result}");
+    }
+
+    await Task.Delay(1500);
+
+    rid = session.NextRequestId();
+    Message resumeReply = session.Transact(Messages.ResumeMonitorRequest(session.SessionId, rid), rid);
+    Result resumeResult = Messages.ReadResult(resumeReply);
+    Console.WriteLine($"RESUME_MONITOR: {resumeResult}");
+    if (resumeResult == Result.Accepted)
+    {
+        ulong op = resumeReply.Index.Require(Tag.Operation, "operation").AsU64();
+        OperationReply final = await OperationWaiter.WaitAsync(session, op, TimeSpan.FromSeconds(15));
+        Console.WriteLine($"RESUME_MONITOR 终态: {final.Result}");
+    }
+
+    await Task.Delay(1500);
+    st = session.GetStatus();
+    Console.WriteLine($"恢复后: acq={st.Acquisition} recording={st.Recording} medium={st.Medium} " +
+                      $"fresh={st.Fresh} ohms={(st.Ohms.HasValue ? st.Ohms.Value.ToString("F1") : "-")}");
+    return 0;
+}
+
+/// <summary>BUSY-受理重试：FILE_LIST/FILE_READ 首轮回 BUSY 表示已受理，
+/// 按协议换新 request_id 重发同样内容，直到结果不再是 BUSY。
+/// 单次超时也按可重试处理（协议允许主机超时后换号重试）。</summary>
+static Message RetryBusy(DeviceSession session, Func<ulong, byte[]> build, int maxTries = 120)
+{
+    for (int i = 0; i < maxTries; i++)
+    {
+        ulong rid = session.NextRequestId();
+        Message reply;
+        try
+        {
+            reply = session.Transact(build(rid), rid);
+        }
+        catch (DeviceException) when (i < maxTries - 1)
+        {
+            continue;   // 超时：该编号已消耗，换号重试
+        }
+        if (Messages.ReadResult(reply) != Result.Busy) return reply;
+        Thread.Sleep(50);
+    }
+    throw new DeviceException("设备持续 BUSY/无回复，重试超限");
+}
+
+/// <summary>翻 FILE_LIST 到最后一个条目（记录文件编号递增，最后 = 最新）。</summary>
+static (uint Id, ulong Size, uint MediaGen) FileListNewest(DeviceSession session)
+{
+    uint lastId = 0;
+    ulong lastSize = 0;
+    uint gen = 0;
+    bool any = false;
+    uint cursor = 0;
+    while (cursor <= 10000u)
+    {
+        Message reply = RetryBusy(session, rid => FrameCodec.Encode(Kind.Request, Opcodes.FileList,
+            session.SessionId, rid, new TlvWriter().AddU32(Tag.Cursor, cursor).ToArray()));
+        Result r = Messages.ReadResult(reply);
+        if (r != Result.Ok)
+            throw new DeviceException($"FILE_LIST cursor={cursor} 失败", r, Messages.ReadReason(reply));
+        var f = reply.Index;
+        gen = f.Require(Tag.MediaGeneration, "media_generation").AsU32();
+        if (f.Optional(Tag.FileId) is not { } idF) break;      // 候选号不存在 → 结束
+        lastId = idF.AsU32();
+        any = true;
+        lastSize = f.Optional(Tag.FileSize)?.AsU64() ?? 0;
+        if (f.Optional(Tag.NextCursor) is not { } nextF) break; // 无 next_cursor = 结束
+        cursor = nextF.AsU32();
+    }
+    if (!any) throw new DeviceException("卡上没有记录文件");
+    return (lastId, lastSize, gen);
+}
+
+/// <summary>FILE_OPEN：受理后轮询到 FINISHED，成功即句柄已建立（句柄 = operation 号）。</summary>
+static async Task<ulong> FileOpenAsync(DeviceSession session, uint fileId, uint mediaGen)
+{
+    Message reply = RetryBusy(session, rid => FrameCodec.Encode(Kind.Request, Opcodes.FileOpen,
+        session.SessionId, rid, new TlvWriter()
+            .AddU32(Tag.FileId, fileId)
+            .AddU32(Tag.MediaGeneration, mediaGen).ToArray()));
+    Result r = Messages.ReadResult(reply);
+    if (r != Result.Accepted)
+        throw new DeviceException("FILE_OPEN 未被受理", r, Messages.ReadReason(reply));
+    ulong op = reply.Index.Require(Tag.Operation, "operation").AsU64();
+    OperationReply final = await OperationWaiter.WaitAsync(session, op, TimeSpan.FromSeconds(10));
+    if (final.Result != Result.Ok)
+        throw new DeviceException($"FILE_OPEN 终态非 OK：{final.Result}");
+    return final.Operation;
 }
