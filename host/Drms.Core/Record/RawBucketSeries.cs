@@ -103,6 +103,24 @@ public sealed class RawBucketSeries
         }
     }
 
+    /// <summary>
+    /// 直接喂一个标量样本（滤波后的序列用；与 <see cref="Append"/> 共用同一套分桶状态机）。
+    /// NaN 被忽略（建立期/无效样本），不会污染 min/max。
+    /// </summary>
+    public void AppendSample(double value, double seconds)
+    {
+        if (!double.IsFinite(value)) return;
+        lock (_sync)
+        {
+            if (_bucketCount == 0) _bucketStart = seconds;
+            if (value < _bucketMin) _bucketMin = value;
+            if (value > _bucketMax) _bucketMax = value;
+            _bucketSum += value;
+            _bucketCount++;
+            if (_bucketCount >= _framesPerBucket) FlushBucketLocked();
+        }
+    }
+
     /// <summary>把正在累积的半个桶也写出去（停止流时调用，避免丢掉尾巴）。</summary>
     public void FlushPartial()
     {
