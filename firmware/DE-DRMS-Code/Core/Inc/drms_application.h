@@ -7,6 +7,10 @@ typedef struct {
   uint64_t revision, mono_us, running_version, saved_version, baseline_version, calibration_version;
   uint64_t sample_index;
   double ohms, ratio;
+  /* 当前生效的校准系数与参考标称（GET_STATUS 可选字段 86/87 的来源）：
+   * 上位机把 RAW 流落盘成 BIN v2 时需要它们写 0xD703 TLV，否则无法换算欧姆。 */
+  double scale_ohms, reference_ohms;
+  uint8_t scale_valid;
   uint32_t rate, generation, media_generation, quality, fault;
   uint8_t acquisition, recording, medium, owner, maintenance, fresh, classification, rtc_valid;
   uint8_t ohms_valid, ratio_valid;

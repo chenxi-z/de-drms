@@ -51,6 +51,8 @@ class StatusSnapshot(ctypes.Structure):
                 ('running_version', ctypes.c_uint64), ('saved_version', ctypes.c_uint64),
                 ('baseline_version', ctypes.c_uint64), ('calibration_version', ctypes.c_uint64),
                 ('sample_index', ctypes.c_uint64), ('ohms', ctypes.c_double), ('ratio', ctypes.c_double),
+                ('scale_ohms', ctypes.c_double), ('reference_ohms', ctypes.c_double),
+                ('scale_valid', ctypes.c_uint8),
                 ('rate', ctypes.c_uint32), ('generation', ctypes.c_uint32),
                 ('media_generation', ctypes.c_uint32), ('quality', ctypes.c_uint32), ('fault', ctypes.c_uint32),
                 ('acquisition', ctypes.c_uint8), ('recording', ctypes.c_uint8), ('medium', ctypes.c_uint8),

@@ -194,7 +194,7 @@ size_t drms_cdc_frame_encode(const uint8_t *raw, size_t length, uint8_t *out, si
 static int known_field(uint16_t id)
 {
   return (id >= 1u && id <= 12u) || (id >= 16u && id <= 45u) ||
-         (id >= 48u && id <= 64u) || (id >= 72u && id <= 85u);
+         (id >= 48u && id <= 64u) || (id >= 72u && id <= 87u);
 }
 
 int drms_cdc_fields_validate(const uint8_t *payload, size_t length,

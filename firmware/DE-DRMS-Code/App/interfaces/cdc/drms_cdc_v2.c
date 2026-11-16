@@ -808,6 +808,18 @@ static void received(void *user, const uint8_t *request, size_t length)
       T8(27, snapshot.level);
       put16(temp, snapshot.interval); tlv(out, &pos, 28, temp, 2);
     }
+    /* 可选字段：当前生效的校准系数与参考标称（f64，IEEE754 位模式直传）。
+     * 上位机用它给 PC 侧 BIN 记录写 0xD703 TLV；老客户端按未知可选字段跳过。 */
+    if (snapshot.scale_valid)
+    {
+      uint64_t bits;
+      memcpy(&bits, &snapshot.scale_ohms, sizeof(bits));
+      put64(temp, bits);
+      optional_tlv(out, &pos, 86, temp, 8);
+      memcpy(&bits, &snapshot.reference_ohms, sizeof(bits));
+      put64(temp, bits);
+      optional_tlv(out, &pos, 87, temp, 8);
+    }
 #undef T8
 #undef T32
 #undef T64

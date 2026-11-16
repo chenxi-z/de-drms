@@ -308,6 +308,14 @@
     "media_generation": {
       "tag": 85,
       "type": "u32"
+    },
+    "scale_ohms": {
+      "tag": 86,
+      "type": "f64"
+    },
+    "reference_ohms": {
+      "tag": 87,
+      "type": "f64"
     }
   },
   "messages": {
@@ -355,7 +363,9 @@
         "?last_record",
         "?last_result",
         "?battery_mv",
-        "media_generation"
+        "media_generation",
+        "?scale_ohms",
+        "?reference_ohms"
       ]
     },
     "GET_OPERATION": {

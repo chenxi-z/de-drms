@@ -1833,6 +1833,9 @@ void drms_application_poll(void)
     next.saved_version = drms_user_config_persisted_version();
     next.baseline_version = drms_user_config_r0_valid() ? monitor_config_version : 0;
     next.calibration_version = calibration.valid ? calibration.generation : 0;
+    next.scale_ohms = calibration.scale;
+    next.reference_ohms = calibration.reference_ohms;
+    next.scale_valid = calibration.scale > 0.0 && calibration.reference_ohms > 0.0;
     next.sample_index = published_monitor.sample_seq;
     int32_t measured_milliohms = r_milliohms;
     next.ratio = published_monitor.ratio;
